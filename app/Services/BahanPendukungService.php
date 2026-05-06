@@ -26,11 +26,17 @@ class BahanPendukungService
             return null;
         }
 
-        // Ambil konversi dari tabel bahan_konversi
-        $konversiList = DB::table('bahan_konversi as bk')
+        // 🔒 SECURITY: Ambil konversi dari tabel bahan_konversi dengan multi-tenant filtering
+        $konversiQuery = DB::table('bahan_konversi as bk')
             ->join('satuans as s', 'bk.satuan_id', '=', 's.id')
-            ->where('bk.bahan_id', $bahanPendukungId)
-            ->select(
+            ->where('bk.bahan_id', $bahanPendukungId);
+        
+        // Add user_id filter if column exists
+        if (\Illuminate\Support\Facades\Schema::hasColumn('bahan_konversi', 'user_id')) {
+            $konversiQuery->where('bk.user_id', auth()->id());
+        }
+        
+        $konversiList = $konversiQuery->select(
                 's.nama as satuan_nama',
                 'bk.nilai as konversi_nilai',
                 'bk.satuan_id'

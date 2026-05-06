@@ -42,11 +42,12 @@ class Pegawai extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            // Auto-fill user_id for multi-tenant isolation
-            if (empty($model->user_id) && auth()->check()) {
+            // 🔒 SECURITY: Auto-fill user_id only if column exists
+            if (empty($model->user_id) && auth()->check() && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
                 $model->user_id = auth()->id();
             }
-            if (empty($model->kode_pegawai)) {
+            // 🔒 SECURITY: Auto-fill kode_pegawai only if column exists
+            if (empty($model->kode_pegawai) && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'kode_pegawai')) {
                 $lastId = static::max('id') ?? 0;
                 $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
             }

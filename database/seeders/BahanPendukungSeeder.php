@@ -244,14 +244,21 @@ class BahanPendukungSeeder extends Seeder
                     ]);
                 }
 
-                // Insert konversi
-                DB::table('bahan_konversi')->insert([
+                // 🔒 SECURITY: Insert konversi dengan user_id untuk multi-tenant
+                $konversiData = [
                     'bahan_id' => $bahanId,
                     'satuan_id' => $konversiSatuanId,
                     'nilai' => $konversi['nilai'],
                     'created_at' => now(),
                     'updated_at' => now()
-                ]);
+                ];
+                
+                // Add user_id if column exists (for seeder, use default user 1)
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bahan_konversi', 'user_id')) {
+                    $konversiData['user_id'] = 1;
+                }
+                
+                DB::table('bahan_konversi')->insert($konversiData);
             }
         }
 

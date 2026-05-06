@@ -11,35 +11,19 @@ class ProdukObserver
 {
     /**
      * Handle the Produk "created" event.
-     * Automatically create BomJobCosting and populate BTKL/BOP data
+     * DISABLED: BomJobCosting should only be created manually via HPP form
      */
     public function created(Produk $produk): void
     {
         try {
             Log::info("ProdukObserver: New product created - {$produk->nama_produk}");
             
-            // Create BomJobCosting for this product
-            $bomJobCosting = BomJobCosting::create([
-                'produk_id' => $produk->id,
-                'jumlah_produk' => 1,
-                'total_bbb' => 0,
-                'total_btkl' => 0,
-                'total_bahan_pendukung' => 0,
-                'total_bop' => 0,
-                'total_hpp' => 0,
-                'hpp_per_unit' => 0
-            ]);
-            
-            Log::info("ProdukObserver: Created BomJobCosting for {$produk->nama_produk}");
-            
-            // Auto-populate BTKL and BOP data
-            BomSyncService::syncBTKLForBom($bomJobCosting);
-            BomSyncService::syncBOPForBom($bomJobCosting);
-            
-            Log::info("ProdukObserver: Auto-populated BTKL and BOP for {$produk->nama_produk}");
+            // DISABLED: Do not auto-create BomJobCosting
+            // BomJobCosting should only be created manually via HPP form
+            Log::info("ProdukObserver: BomJobCosting auto-creation DISABLED for {$produk->nama_produk}");
             
         } catch (\Exception $e) {
-            Log::error("ProdukObserver: Failed to auto-populate BOM for {$produk->nama_produk} - " . $e->getMessage());
+            Log::error("ProdukObserver: Error in created event for {$produk->nama_produk} - " . $e->getMessage());
         }
     }
 
@@ -49,11 +33,22 @@ class ProdukObserver
     public function updated(Produk $produk): void
     {
         // Skip recalculation if only pricing fields were updated to prevent infinite loop
-        $pricingFields = ['harga_bom', 'harga_jual', 'biaya_bahan', 'margin_percent'];
+        $pricingFields = ['harga_bom', 'harga_jual', 'biaya_bahan', 'margin_percent', 'harga_pokok'];
+        $systemFields = ['updated_at', 'created_at'];
         $changedFields = array_keys($produk->getDirty());
         
-        // If only pricing fields changed, skip recalculation to prevent infinite loop
-        $nonPricingChanges = array_diff($changedFields, $pricingFields);
+        Log::info("ProdukObserver: Updated event for {$produk->nama_produk}");
+        Log::info("Changed fields: " . json_encode($changedFields));
+        Log::info("Pricing fields: " . json_encode($pricingFields));
+        
+        // Remove system fields from changed fields
+        $relevantChanges = array_diff($changedFields, $systemFields);
+        
+        // If only pricing fields changed (excluding system fields), skip recalculation
+        $nonPricingChanges = array_diff($relevantChanges, $pricingFields);
+        
+        Log::info("Relevant changes: " . json_encode(array_values($relevantChanges)));
+        Log::info("Non-pricing changes: " . json_encode(array_values($nonPricingChanges)));
         
         if (empty($nonPricingChanges)) {
             Log::info("ProdukObserver: Skipping recalculation for {$produk->nama_produk} - only pricing fields changed");

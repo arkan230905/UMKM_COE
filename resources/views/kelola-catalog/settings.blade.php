@@ -44,7 +44,7 @@
                                 <div class="text-center mb-3">
                                     @if($company && $company->foto)
                                         <div class="position-relative d-inline-block">
-                                            <img src="{{ asset('storage/'.$company->foto) }}" 
+                                            <img src="{{ storage_url($company->foto) }}" 
                                                  alt="Company Logo" 
                                                  class="img-fluid rounded border"
                                                  style="max-width: 200px; max-height: 200px; object-fit: cover;">
@@ -202,7 +202,7 @@
                                             <div class="d-flex align-items-center justify-content-center">
                                                 <div class="text-center">
                                                     @if($company && $company->foto)
-                                                        <img src="{{ asset('storage/'.$company->foto) }}" 
+                                                        <img src="{{ storage_url($company->foto) }}" 
                                                              alt="{{ $company->nama }}" 
                                                              class="img-fluid rounded mb-2"
                                                              style="max-width: 150px;">

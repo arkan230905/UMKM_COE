@@ -39,7 +39,10 @@ class BahanBakuController extends Controller
     // Menampilkan detail bahan baku
     public function show($id)
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Hitung harga rata-rata untuk display
         $averageHarga = $this->getAverageHargaSatuan($bahanBaku->id);
@@ -61,8 +64,9 @@ class BahanBakuController extends Controller
     // Menampilkan form tambah data
     public function create()
     {
-        $satuans = Satuan::all();
-        $coas = \App\Models\Coa::all();
+        // 🔒 SECURITY: Filter satuan and coa by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
         return view('master-data.bahan-baku.create', compact('satuans', 'coas'));
     }
 
@@ -163,9 +167,14 @@ class BahanBakuController extends Controller
     // Menampilkan form edit
     public function edit($id)
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
-        $satuans = Satuan::all();
-        $coas = \App\Models\Coa::all();
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
+        
+        // 🔒 SECURITY: Filter satuan and coa by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
         return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans', 'coas'));
     }
 
@@ -196,7 +205,8 @@ class BahanBakuController extends Controller
             'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
-        $bahanBaku = BahanBaku::findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
         
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
@@ -233,7 +243,8 @@ class BahanBakuController extends Controller
     public function destroy($id)
     {
         try {
-            $bahanBaku = BahanBaku::findOrFail($id);
+            // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+            $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
             
             // Check for foreign key constraints before deleting
             $constraints = [];

@@ -68,11 +68,12 @@ class KasBankConsistencyService
     {
         $duplicates = [];
         
-        // Get transactions from both systems
-        $journalLines = JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->select('journal_entries.tanggal', 'journal_entries.ref_type', 'journal_entries.ref_id', 'journal_lines.debit', 'journal_lines.credit')
+        // Get transactions from jurnal_umum system (JournalLine tidak ada)
+        $journalLines = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->select('ju.tanggal', 'ju.tipe_referensi', 'ju.referensi', 'ju.debit', 'ju.kredit')
             ->get();
             
         $jurnalUmum = JurnalUmum::where('coa_id', $akun->id)
@@ -88,12 +89,12 @@ class KasBankConsistencyService
                         'tanggal' => $jl->tanggal,
                         'nominal' => $jl->debit ?: $jl->credit,
                         'new_system' => [
-                            'ref_type' => $jl->ref_type,
-                            'ref_id' => $jl->ref_id
+                            'ref_type' => $jl->tipe_referensi,
+                            'ref_id' => $jl->referensi
                         ],
                         'old_system' => [
-                            'tipe_referensi' => $ju->tipe_referensi,
-                            'referensi' => $ju->referensi
+                            'ref_type' => $ju->tipe_referensi,
+                            'ref_id' => $ju->referensi
                         ]
                     ];
                 }
@@ -121,24 +122,24 @@ class KasBankConsistencyService
         
         // Check ref type match
         $refTypeMatch = (
-            ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
-            ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
-            ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
-            ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
-            ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+            ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+            ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
+            ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+            ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+            ($jl->tipe_referensi === 'penggajian' && $ju->tipe_referensi === 'penggajian')
         );
         
         // Check penjualan match
         $penjualanMatch = false;
-        if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
+        if ($jl->tipe_referensi === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
             if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
                 $penjualanId = (int)$matches[1];
-                if ($jl->ref_id == $penjualanId) {
+                if ($jl->referensi == $penjualanId) {
                     $penjualanMatch = true;
                 }
             } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
                 $penjualanId = (int)$matches[1];
-                if ($jl->ref_id == $penjualanId) {
+                if ($jl->referensi == $penjualanId) {
                     $penjualanMatch = true;
                 }
             }
@@ -154,16 +155,17 @@ class KasBankConsistencyService
     {
         $unreferenced = [];
         
-        // Check new system
-        $journalLines = JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+        // Check new system (jurnal_umum)
+        $journalLines = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
             ->where(function($query) {
-                $query->whereNull('journal_entries.ref_type')
-                      ->orWhereNull('journal_entries.ref_id')
-                      ->orWhere('journal_entries.ref_id', '=', 0);
+                $query->whereNull('ju.tipe_referensi')
+                      ->orWhereNull('ju.referensi')
+                      ->orWhere('ju.referensi', '=', 0);
             })
-            ->select('journal_entries.tanggal', 'journal_entries.memo', 'journal_lines.debit', 'journal_lines.credit')
+            ->select('ju.tanggal', 'ju.keterangan', 'ju.debit', 'ju.kredit')
             ->get();
             
         foreach ($journalLines as $jl) {
@@ -171,7 +173,7 @@ class KasBankConsistencyService
                 'tanggal' => $jl->tanggal,
                 'nominal' => $jl->debit ?: $jl->credit,
                 'system' => 'new',
-                'memo' => $jl->memo,
+                'memo' => $jl->keterangan,
                 'issue' => 'Missing ref_type or ref_id'
             ];
         }
@@ -207,12 +209,13 @@ class KasBankConsistencyService
         $inconsistent = [];
         
         // Check for zero amounts
-        $zeroAmounts = JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->where('journal_lines.debit', '=', 0)
-            ->where('journal_lines.credit', '=', 0)
-            ->select('journal_entries.tanggal', 'journal_entries.memo')
+        $zeroAmounts = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->where('ju.debit', '=', 0)
+            ->where('ju.kredit', '=', 0)
+            ->select('ju.tanggal', 'ju.keterangan')
             ->get();
             
         foreach ($zeroAmounts as $za) {
@@ -220,12 +223,13 @@ class KasBankConsistencyService
                 'tanggal' => $za->tanggal,
                 'system' => 'new',
                 'issue' => 'Zero amount transaction',
-                'memo' => $za->memo
+                'memo' => $za->keterangan
             ];
         }
         
         // Check old system for zero amounts
         $zeroAmountsOld = JurnalUmum::where('coa_id', $akun->id)
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->where('debit', '=', 0)
             ->where('kredit', '=', 0)

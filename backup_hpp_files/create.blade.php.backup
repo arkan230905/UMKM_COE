@@ -1,0 +1,488 @@
+@extends('layouts.app')
+
+@section('title', 'Hitung Harga Pokok Produksi')
+
+@section('content')
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
+            <i class="fas fa-calculator me-2"></i>Hitung Harga Pokok Produksi
+        </h3>
+        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Kembali
+        </a>
+    </div>
+
+    <form action="{{ route('master-data.harga-pokok-produksi.store') }}" method="POST" id="hppForm">
+        @csrf
+        
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show">
+                <strong>Error:</strong>
+                <ul class="mb-0">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+        
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+        
+        <!-- Step 1: Pilih Produk -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-box me-2"></i>1. Pilih Produk</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Produk yang Sudah Memiliki Biaya Bahan *</label>
+                        <select name="produk_id" id="produk_id" class="form-select" required onchange="loadProdukData()">
+                            <option value="">-- Pilih Produk --</option>
+                            @foreach($produks as $produk)
+                                <option value="{{ $produk->id }}" 
+                                        data-biaya-bahan="{{ $produk->total_biaya_bahan ?? 0 }}">
+                                    {{ $produk->nama_produk }} 
+                                    (Biaya Bahan: Rp {{ number_format($produk->total_biaya_bahan ?? 0, 0, ',', '.') }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Hanya produk yang sudah memiliki biaya bahan yang dapat dipilih</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Biaya Bahan</label>
+                        <div class="form-control-plaintext bg-light p-3 rounded border">
+                            <h4 class="mb-0 text-primary" id="displayBiayaBahan">Rp 0</h4>
+                            <input type="hidden" name="biaya_bahan" id="biayaBahanInput" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Pilih Proses BTKL yang Digunakan -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>2. Pilih Proses BTKL yang Digunakan</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Informasi:</strong> Pilih proses BTKL yang akan digunakan untuk produk ini. Data diambil dari database proses_produksis.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">Pilih</th>
+                                <th width="10%">Kode</th>
+                                <th width="30%">Nama Proses</th>
+                                <th width="20%">Jabatan</th>
+                                <th width="15%">Tarif BTKL/Jam</th>
+                                <th width="10%">Kapasitas</th>
+                                <th width="10%">BTKL/pcs</th>
+                            </tr>
+                        </thead>
+                        <tbody id="btklTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                @if($prosesBtkl->isEmpty())
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">Belum Ada Data BTKL</h5>
+                    <p class="text-muted">Silakan buat data BTKL terlebih dahulu di halaman Master Data BTKL</p>
+                    <a href="{{ route('master-data.proses-produksi.index') }}" class="btn btn-warning">
+                        <i class="fas fa-arrow-right me-2"></i>Ke Halaman BTKL
+                    </a>
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Step 3: Detail Komponen BOP (Otomatis) -->
+        <div class="card shadow-sm mb-4" id="bopSection" style="display: none;">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-industry me-2"></i>3. Detail Komponen BOP (Otomatis)</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Informasi:</strong> Komponen BOP ditampilkan otomatis berdasarkan proses BTKL yang dipilih.
+                </div>
+                
+                <div id="bopDetailContent"></div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan HPP</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-primary text-white rounded">
+                            <h6>Biaya Bahan</h6>
+                            <h4 id="summaryBiayaBahan">Rp 0</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-success text-white rounded">
+                            <h6>Total BTKL</h6>
+                            <h4 id="summaryBtkl">Rp 0</h4>
+                            <input type="hidden" name="total_btkl" id="totalBtklInput" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-warning text-dark rounded">
+                            <h6>Total BOP</h6>
+                            <h4 id="summaryBop">Rp 0</h4>
+                            <input type="hidden" name="total_bop" id="totalBopInput" value="0">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-dark text-white rounded">
+                            <h6>Total HPP</h6>
+                            <h4 id="summaryHpp">Rp 0</h4>
+                            <input type="hidden" name="total_hpp" id="totalHppInput" value="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden fields for HPP calculation -->
+        <input type="hidden" name="include_bbb" value="1">
+        <input type="hidden" name="include_btkl" value="1">
+        <input type="hidden" name="include_bop" value="1">
+        <div id="selectedBbbIdsContainer"></div>
+        <div id="selectedBtklIdsContainer"></div>
+        <div id="selectedBopIdsContainer"></div>
+
+        <!-- Submit Button -->
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i>Batal
+            </a>
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                <i class="fas fa-save me-2"></i>Simpan Harga Pokok Produksi
+            </button>
+        </div>
+    </form>
+</div>
+
+@push('styles')
+<style>
+    .proses-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    
+    .table th {
+        vertical-align: middle;
+    }
+    
+    .bop-komponen-table {
+        font-size: 0.9rem;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+let selectedBtklIds = [];
+let btklData = [];
+
+// Load produk data when selected
+function loadProdukData() {
+    const select = document.getElementById('produk_id');
+    const option = select.selectedOptions[0];
+    
+    if (option && option.value) {
+        const biayaBahan = parseFloat(option.dataset.biayaBahan) || 0;
+        
+        document.getElementById('displayBiayaBahan').textContent = formatRupiah(biayaBahan);
+        document.getElementById('biayaBahanInput').value = biayaBahan;
+        document.getElementById('summaryBiayaBahan').textContent = formatRupiah(biayaBahan);
+        
+        // Load BTKL data when product is selected
+        loadBTKLData();
+        
+        updateSummary();
+    } else {
+        document.getElementById('displayBiayaBahan').textContent = 'Rp 0';
+        document.getElementById('biayaBahanInput').value = 0;
+        document.getElementById('summaryBiayaBahan').textContent = 'Rp 0';
+        
+        // Clear BTKL data when no product selected
+        const tbody = document.getElementById('btklTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Silakan pilih produk terlebih dahulu</td></tr>';
+        
+        updateSummary();
+    }
+}
+
+// Load BTKL data from controller-provided data
+function loadBTKLData() {
+    // Use the data already loaded from controller
+    const btklData = @json($prosesBtkl);
+    displayBTKLTable(btklData);
+}
+
+// Display BTKL table
+function displayBTKLTable(data) {
+    const tbody = document.getElementById('btklTableBody');
+    
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Tidak ada data BTKL tersedia</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = data.map((btkl, index) => `
+        <tr>
+            <td class="text-center">
+                <input type="checkbox" 
+                       class="form-check-input btkl-checkbox" 
+                       name="selected_btkl_ids[]" 
+                       value="${btkl.id}"
+                       data-btkl="${btkl.btkl_per_produk}"
+                       data-nama="${btkl.nama_proses}"
+                       onchange="updateBTKLSelection()">
+            </td>
+            <td>${btkl.kode_proses}</td>
+            <td><strong>${btkl.nama_proses}</strong></td>
+            <td>${btkl.nama_jabatan}</td>
+            <td>Rp ${formatNumber(btkl.tarif_btkl)}</td>
+            <td>${btkl.kapasitas_per_jam} pcs/jam</td>
+            <td class="text-success fw-semibold">Rp ${formatNumber(btkl.btkl_per_produk)}</td>
+        </tr>
+    `).join('');
+    
+    // Enable submit button if data is loaded
+    document.getElementById('submitBtn').disabled = data.length === 0;
+}
+
+// Update BTKL selection
+function updateBTKLSelection() {
+    const checkboxes = document.querySelectorAll('.btkl-checkbox:checked');
+    selectedBtklIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Create hidden inputs for selected BTKL IDs (array format)
+    const selectedBtklIdsContainer = document.getElementById('selectedBtklIdsContainer');
+    selectedBtklIdsContainer.innerHTML = '';
+    
+    selectedBtklIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_btkl_ids[]';
+        input.value = id;
+        selectedBtklIdsContainer.appendChild(input);
+    });
+    
+    // Calculate total BTKL
+    let totalBTKL = 0;
+    checkboxes.forEach(checkbox => {
+        const btklPerProduk = parseFloat(checkbox.dataset.btkl) || 0;
+        totalBTKL += btklPerProduk;
+    });
+    
+    // Update total BTKL input
+    const totalBtklInput = document.getElementById('totalBtklInput');
+    if (totalBtklInput) {
+        totalBtklInput.value = totalBTKL;
+    }
+    
+    // Load BOP details when BTKL is selected
+    if (selectedBtklIds.length > 0) {
+        loadBOPDetails(selectedBtklIds);
+    } else {
+        // Clear BOP details when no BTKL selected
+        document.getElementById('bopSection').style.display = 'none';
+        document.getElementById('bopDetailContent').innerHTML = '';
+        document.getElementById('totalBopInput').value = 0;
+        document.getElementById('totalBtklInput').value = 0;
+        selectedBtklIdsContainer.innerHTML = '';
+        updateSummary();
+    }
+    
+    // Update summary
+    updateSummary();
+    
+    // Enable/disable submit button
+    const produkSelected = document.getElementById('produk_id').value !== '';
+    const prosesSelected = selectedBtklIds.length > 0;
+    document.getElementById('submitBtn').disabled = !(produkSelected && prosesSelected);
+}
+
+// Load BOP details from bop_proses table for selected BTKL IDs
+function loadBOPDetails(btklIds) {
+    fetch(`/master-data/api/bop-details/${btklIds.join(',')}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('BOP data received:', data);
+            
+            // Calculate total BOP for summary
+            const totalBOP = calculateTotalBOP(data);
+            
+            // Update the total BOP input for summary calculation
+            const totalBopInput = document.getElementById('totalBopInput');
+            if (totalBopInput) {
+                totalBopInput.value = totalBOP;
+            }
+            
+            // Update summary
+            updateSummary();
+            
+            displayBOPDetails(data);
+        })
+        .catch(error => {
+            console.error('Error loading BOP details:', error);
+            document.getElementById('bopDetailContent').innerHTML = '<p class="text-muted">Tidak ada data BOP tersedia</p>';
+        });
+}
+
+// Calculate total BOP from BOP data
+function calculateTotalBOP(bopData) {
+    let totalBOP = 0;
+    
+    bopData.forEach(bop => {
+        try {
+            const components = JSON.parse(bop.komponen_bop);
+            
+            if (Array.isArray(components)) {
+                components.forEach(component => {
+                    totalBOP += parseFloat(component.rate_per_hour) || 0;
+                });
+            } else {
+                totalBOP += parseFloat(bop.total_bop_per_produk) || 0;
+            }
+        } catch (e) {
+            totalBOP += parseFloat(bop.total_bop_per_produk) || 0;
+        }
+    });
+    
+    return totalBOP;
+}
+
+// Display BOP details
+function displayBOPDetails(bopData) {
+    // Show BOP section
+    document.getElementById('bopSection').style.display = 'block';
+    
+    // Process BOP data to extract individual components from JSON
+    const processedBopData = [];
+    
+    bopData.forEach(bop => {
+        try {
+            const components = JSON.parse(bop.komponen_bop);
+            
+            if (Array.isArray(components)) {
+                components.forEach(component => {
+                    processedBopData.push({
+                        komponen_bop: component.component || 'Unknown',
+                        total_bop_per_produk: component.rate_per_hour || 0,
+                        total_bop_per_jam: component.rate_per_hour || 0
+                    });
+                });
+            } else {
+                processedBopData.push({
+                    komponen_bop: bop.komponen_bop,
+                    total_bop_per_produk: bop.total_bop_per_produk,
+                    total_bop_per_jam: bop.total_bop_per_jam
+                });
+            }
+        } catch (e) {
+            processedBopData.push({
+                komponen_bop: bop.komponen_bop,
+                total_bop_per_produk: bop.total_bop_per_produk,
+                total_bop_per_jam: bop.total_bop_per_jam
+            });
+        }
+    });
+    
+    const content = `
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nama Komponen</th>
+                        <th>Total per Produk</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${processedBopData.map(bop => `
+                        <tr>
+                            <td><strong>${bop.komponen_bop}</strong></td>
+                            <td>Rp ${formatNumber(bop.total_bop_per_produk)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    document.getElementById('bopDetailContent').innerHTML = content;
+}
+
+// Update summary
+function updateSummary() {
+    const biayaBahan = parseFloat(document.getElementById('biayaBahanInput').value) || 0;
+    const totalBtkl = parseFloat(document.getElementById('totalBtklInput').value) || 0;
+    const totalBop = parseFloat(document.getElementById('totalBopInput').value) || 0;
+    
+    const totalHpp = biayaBahan + totalBtkl + totalBop;
+    
+    document.getElementById('summaryBiayaBahan').textContent = formatRupiah(biayaBahan);
+    document.getElementById('summaryBtkl').textContent = formatRupiah(totalBtkl);
+    document.getElementById('summaryBop').textContent = formatRupiah(totalBop);
+    document.getElementById('summaryHpp').textContent = formatRupiah(totalHpp);
+}
+
+function resetSummary() {
+    document.getElementById('summaryBiayaBahan').textContent = 'Rp 0';
+    document.getElementById('summaryBtkl').textContent = 'Rp 0';
+    document.getElementById('summaryBop').textContent = 'Rp 0';
+    document.getElementById('summaryHpp').textContent = 'Rp 0';
+    document.getElementById('biayaBahanInput').value = 0;
+    document.getElementById('totalBtklInput').value = 0;
+    document.getElementById('totalBopInput').value = 0;
+}
+
+function formatRupiah(amount) {
+    return 'Rp ' + formatNumber(amount);
+}
+
+function formatNumber(amount) {
+    return new Intl.NumberFormat('id-ID').format(Math.round(amount));
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    resetSummary();
+    
+    // Load BTKL data on page load (data already filtered by user ID in controller)
+    loadBTKLData();
+    
+    // Add change listeners to all checkboxes
+    document.querySelectorAll('.btkl-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateBTKLSelection);
+    });
+});
+</script>
+@endpush
+@endsection

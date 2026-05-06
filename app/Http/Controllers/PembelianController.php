@@ -83,6 +83,7 @@ class PembelianController extends Controller
 
     public function show($id)
     {
+        // CRITICAL: Filter by user_id for multi-tenant
         $pembelian = Pembelian::with([
             'vendor', 
             'kasBank',
@@ -98,7 +99,9 @@ class PembelianController extends Controller
             'details.bahanPendukung.coaPembelian',
             'details.satuanRelation',
             'details.konversiManual.satuan'
-        ])->findOrFail($id);
+        ])
+        ->where('user_id', auth()->id())
+        ->findOrFail($id);
 
         // Fix data accuracy for purchase ID 10 (Ayam Potong manual conversion case)
         if ($id == 10) {
@@ -471,9 +474,16 @@ class PembelianController extends Controller
         // Validasi dasar
         $request->validate([
             'vendor_id' => 'required|exists:vendors,id',
+            'nomor_faktur' => 'required|string|max:255',
+            'bukti_faktur' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'tanggal' => 'required|date',
             'bank_id' => 'required',
             'jumlah_satuan_utama' => 'nullable|array',
+        ], [
+            'nomor_faktur.required' => 'Nomor faktur pembelian wajib diisi',
+            'bukti_faktur.required' => 'Bukti faktur wajib diupload',
+            'bukti_faktur.mimes' => 'Bukti faktur harus berformat JPG, PNG, atau PDF',
+            'bukti_faktur.max' => 'Ukuran bukti faktur maksimal 2MB',
         ]);
         
         // Cek manual apakah ada item yang dipilih
@@ -541,8 +551,7 @@ class PembelianController extends Controller
                 
                 if ($bank) {
                     // Hitung saldo real-time menggunakan journal entries (Lebih akurat)
-                    $journalLines = \App\Models\JournalLine::where('coa_id', $bank->id)
-                        ->with('entry')
+                    $journalLines = \App\Models\JurnalUmum::where('coa_id', $bank->id)
                         ->get();
                     
                     $totalDebit = $journalLines->sum('debit');
@@ -622,10 +631,33 @@ class PembelianController extends Controller
                     $vendor = Vendor::find($request->vendor_id);
                     $tipePembelian = $vendor->kategori ?? 'Bahan Baku';
                     
+                    // Handle bukti faktur upload (sudah divalidasi di awal)
+                    $buktiFakturPath = null;
+                    if ($request->hasFile('bukti_faktur')) {
+                        $file = $request->file('bukti_faktur');
+                        
+                        // Create directory structure: storage/app/public/bukti_faktur/{user_id}/
+                        $userId = auth()->id();
+                        $directory = "bukti_faktur/{$userId}";
+                        
+                        // Generate unique filename: {timestamp}_{original_name}
+                        $filename = time() . '_' . $file->getClientOriginalName();
+                        
+                        // Store file
+                        $buktiFakturPath = $file->storeAs($directory, $filename, 'public');
+                        
+                        \Log::info('Bukti faktur uploaded', [
+                            'user_id' => $userId,
+                            'filename' => $filename,
+                            'path' => $buktiFakturPath
+                        ]);
+                    }
+                    
                     // 1. Buat header pembelian
                     $pembelian = new Pembelian([
                         'vendor_id' => $request->vendor_id,
                         'nomor_faktur' => $request->nomor_faktur,
+                        'bukti_faktur' => $buktiFakturPath,  // Save file path
                         'tanggal' => $request->tanggal,
                         'subtotal' => $subtotal,
                         'biaya_kirim' => $biayaKirim,
@@ -1130,7 +1162,10 @@ class PembelianController extends Controller
 
     public function edit($id)
     {
-        $pembelian = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuan'])->findOrFail($id);
+        // CRITICAL: Filter by user_id for multi-tenant
+        $pembelian = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuan'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // CRITICAL MULTI-TENANT: Filter semua data by user_id
         $vendors = Vendor::where('user_id', auth()->id())->orderBy('nama_vendor')->get();
@@ -1185,7 +1220,8 @@ class PembelianController extends Controller
 
     public function update(Request $request, $id)
     {
-        $pembelian = Pembelian::findOrFail($id);
+        // CRITICAL: Filter by user_id for multi-tenant
+        $pembelian = Pembelian::where('user_id', auth()->id())->findOrFail($id);
         
         // Validasi input
         $request->validate([
@@ -1433,12 +1469,14 @@ class PembelianController extends Controller
         try {
             \DB::beginTransaction();
             
-            // Find pembelian including soft deleted ones
+            // CRITICAL: Filter by user_id for multi-tenant
             $pembelian = \App\Models\Pembelian::withTrashed()->with([
                 'pembelianDetails',
                 'pelunasan',
                 'apSettlements'
-            ])->findOrFail($id);
+            ])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
             
             // Log the deletion attempt
             \Log::info('Attempting to delete pembelian', [

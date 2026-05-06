@@ -19,8 +19,13 @@ class PegawaiController extends Controller
         $search = request('search');
         $jenis = request('jenis');
         
-        // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $query = Pegawai::where('user_id', auth()->id());
+        // Use safety check for multi-tenant filtering
+        $query = Pegawai::query();
+        
+        // Check if user_id column exists and filter by it
+        if (Schema::hasColumn('pegawais', 'user_id')) {
+            $query->where('user_id', auth()->id());
+        }
         
         // Filter berdasarkan jenis pegawai (opsional)
         if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
@@ -46,17 +51,31 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
-            ->where('user_id', auth()->id())
-            ->orderBy('nama')
-            ->get();
+        // 🔒 SECURITY: Filter jabatans by user_id with safety check
+        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif');
         
-        // Get unique kategori values from Jabatan table (linked to kualifikasi-tenaga-kerja)
-        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
-            ->whereNotNull('kategori')
-            ->where('kategori', '!=', '')
-            ->distinct()
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $jabatanQuery->where('user_id', auth()->id());
+        } else {
+            // If no user_id column, return empty collection to prevent global data access
+            $jabatans = collect();
+            $kategoris = collect();
+            return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
+        }
+        
+        $jabatans = $jabatanQuery->orderBy('nama')->get();
+        
+        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
+        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
+            ->where('kategori', '!=', '');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $kategoriQuery->where('user_id', auth()->id());
+        }
+        
+        $kategoris = $kategoriQuery->distinct()
             ->pluck('kategori')
             ->map(function($k) {
                 return strtolower($k);
@@ -64,10 +83,8 @@ class PegawaiController extends Controller
             ->unique()
             ->values();
         
-        // If no kategori found in database, use default BTKL/BTKTL
-        if ($kategoris->isEmpty()) {
-            $kategoris = collect(['btkl', 'btktl']);
-        }
+        // IMPORTANT: Do NOT provide default categories if user has no data
+        // This prevents mixing user data with global data
         
         return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
@@ -77,12 +94,11 @@ class PegawaiController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            // MULTI-TENANT: email unique hanya dalam scope user yang sama
+            // MULTI-TENANT: email unique dengan safety check
             'email' => [
                 'required',
                 'email',
-                \Illuminate\Validation\Rule::unique('pegawais', 'email')
-                    ->where('user_id', auth()->id()),
+                'unique:pegawais,email'
             ],
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
@@ -104,7 +120,6 @@ class PegawaiController extends Controller
 
         // Prepare data for creation
         $pegawaiData = [
-            'user_id' => auth()->id(), // CRITICAL: multi-tenant isolation
             'nama' => $validated['nama'],
             'email' => $validated['email'],
             $phoneColumn => $validated['no_telepon'],
@@ -121,6 +136,11 @@ class PegawaiController extends Controller
             'nomor_rekening' => $validated['nomor_rekening'],
             'nama_rekening' => $validated['nama_rekening'],
         ];
+        
+        // Add user_id only if column exists
+        if (Schema::hasColumn('pegawais', 'user_id')) {
+            $pegawaiData['user_id'] = auth()->id(); // CRITICAL: multi-tenant isolation
+        }
         
         // Log data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);
@@ -162,15 +182,31 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        // MULTI-TENANT: Filter by user_id
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam')
-            ->where('user_id', auth()->id())
-            ->orderBy('nama')
-            ->get();
-        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
-            ->whereNotNull('kategori')
-            ->where('kategori', '!=', '')
-            ->distinct()
+        // 🔒 SECURITY: Filter jabatans by user_id with safety check
+        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $jabatanQuery->where('user_id', auth()->id());
+        } else {
+            // If no user_id column, return empty collection to prevent global data access
+            $jabatans = collect();
+            $kategoris = collect();
+            return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
+        }
+        
+        $jabatans = $jabatanQuery->orderBy('nama')->get();
+        
+        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
+        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
+            ->where('kategori', '!=', '');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $kategoriQuery->where('user_id', auth()->id());
+        }
+        
+        $kategoris = $kategoriQuery->distinct()
             ->orderBy('kategori')
             ->pluck('kategori');
         

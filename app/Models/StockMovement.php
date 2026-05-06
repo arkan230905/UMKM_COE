@@ -10,11 +10,25 @@ class StockMovement extends Model
     use HasFactory;
 
     protected $fillable = [
-        'item_type','item_id','tanggal','direction','qty','satuan','unit_cost','total_cost','ref_type','ref_id','keterangan','manual_conversion_data'
+        'user_id','item_type','item_id','tanggal','direction','qty','satuan','unit_cost','total_cost','ref_type','ref_id','keterangan','manual_conversion_data'
     ];
     
     /**
      * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check() && !$model->user_id) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
+
+    /**
+     * Additional booted method for other events
      */
     protected static function booted()
     {

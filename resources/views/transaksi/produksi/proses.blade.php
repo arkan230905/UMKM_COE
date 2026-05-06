@@ -122,7 +122,7 @@
                                 <td>{!! $proses->status_badge !!}</td>
                                 <td class="text-end">Rp {{ number_format($proses->biaya_btkl, 0, ',', '.') }}</td>
                                 <td class="text-end">Rp {{ number_format($proses->biaya_bop, 0, ',', '.') }}</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($proses->total_biaya_proses, 0, ',', '.') }}</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($proses->biaya_btkl + $proses->biaya_bop, 0, ',', '.') }}</td>
                                 <td>
                                     @if($proses->waktu_mulai)
                                         <small>Mulai: {{ $proses->waktu_mulai->format('d/m/Y H:i:s') }}</small>

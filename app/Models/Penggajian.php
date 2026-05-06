@@ -34,6 +34,7 @@ class Penggajian extends Model
                 // Check if journal entries already exist
                 $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
                     ->where('referensi', $penggajian->id)
+                    ->where('user_id', auth()->id())
                     ->exists();
                     
                 if (!$existingJournal) {
@@ -197,6 +198,7 @@ class Penggajian extends Model
         // Cari nomor urut terakhir hari ini
         $lastJournal = JurnalUmum::where('tipe_referensi', 'penggajian')
             ->where('keterangan', 'like', $prefix . '-' . $date . '%')
+            ->where('user_id', auth()->id())
             ->orderBy('id', 'desc')
             ->first();
 

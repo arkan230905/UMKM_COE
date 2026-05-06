@@ -66,10 +66,11 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
-                                <th style="width: 30%">Nama Proses</th>
-                                <th style="width: 20%">BOP / produk</th>
-                                <th style="width: 25%">Biaya/Produk</th>
-                                <th style="width: 20%">Aksi</th>
+                                <th style="width: 20%">Nama Proses</th>
+                                <th style="width: 15%">BOP / produk</th>
+                                <th style="width: 15%">Biaya/Produk</th>
+                                <th style="width: 30%">Komponen BOP</th>
+                                <th style="width: 15%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,7 +92,7 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
                                         <div>
-                                            <div class="fw-semibold text-warning">Rp {{ formatNumberClean($bop->bop_per_unit) }}</div>
+                                            <div class="fw-semibold text-warning">Rp {{ formatNumberClean($bop->total_bop_per_produk ?? $bop->bop_per_unit) }}</div>
                                             <small class="text-muted">Per produk</small>
                                         </div>
                                     </div>
@@ -100,21 +101,39 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-cash-stack me-2 text-success opacity-50"></i>
                                         <div>
-                                            <div class="fw-bold text-success">{{ $bop->biaya_per_produk_formatted }}</div>
+                                            <div class="fw-bold text-success">{{ $bop->total_biaya_per_produk_formatted ?? $bop->biaya_per_produk_formatted }}</div>
                                             <small class="text-muted">Total biaya</small>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
+                                    <div class="small">
+                                        @php
+                                            $komponenBop = [];
+                                            if ($bop->komponen_bop && is_array($bop->komponen_bop)) {
+                                                $komponenBop = $bop->komponen_bop;
+                                            }
+                                        @endphp
+                                        @if(!empty($komponenBop))
+                                            @foreach($komponenBop as $komponen)
+                                                <div class="d-flex justify-content-between align-items-center py-1">
+                                                    <span class="text-muted">{{ $komponen['component'] ?? 'N/A' }}</span>
+                                                    <span class="fw-semibold">Rp {{ formatNumberClean($komponen['rate_per_produk'] ?? $komponen['rate_per_hour'] ?? 0) }}</span>
+                                                </div>
+                                            @endforeach
+                                            <div class="border-top pt-1 mt-1">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <strong>Total BOP / produk:</strong>
+                                                    <strong class="text-primary">Rp {{ formatNumberClean($bop->total_bop_per_produk ?? $bop->bop_per_unit) }}</strong>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-muted">Belum ada komponen</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>
                                     <div class="d-flex gap-1">
-                                        <button type="button" 
-                                               class="btn btn-sm btn-info text-white rounded-pill px-3"
-                                               onclick="viewBopDetail({{ $bop->id }})"
-                                               data-bs-toggle="tooltip" 
-                                               title="Lihat Detail">
-                                            <i class="bi bi-eye me-1"></i>
-                                            <span class="d-none d-md-inline">Lihat</span>
-                                        </button>
                                         <button type="button" 
                                                class="btn btn-sm btn-warning text-white rounded-pill px-3"
                                                onclick="editBopProses({{ $bop->id }})"

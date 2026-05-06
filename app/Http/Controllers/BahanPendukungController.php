@@ -40,7 +40,12 @@ class BahanPendukungController extends Controller
         
         // Sort by created_at ascending (oldest to newest)
         $bahanPendukungs = $query->orderBy('created_at', 'asc')->paginate(15);
-        $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
+        
+        // 🔒 SECURITY: Filter kategori by user_id for multi-tenant isolation
+        $kategoris = KategoriBahanPendukung::where('user_id', auth()->id())
+            ->active()
+            ->orderBy('nama')
+            ->get();
         
         \Log::info('Bahan Pendukung loaded', [
             'count' => $bahanPendukungs->count(),
@@ -112,9 +117,16 @@ class BahanPendukungController extends Controller
 
     public function create()
     {
-        $satuans = Satuan::orderBy('nama')->get();
-        $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
-        $coas = \App\Models\Coa::all();
+        // 🔒 SECURITY: Filter satuan and kategori by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
+        $kategoris = KategoriBahanPendukung::where('user_id', auth()->id())
+            ->active()
+            ->orderBy('nama')
+            ->get();
+        
+        // 🔒 SECURITY: Filter coa by user_id for multi-tenant isolation
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
+        
         return view('master-data.bahan-pendukung.create', compact('satuans', 'kategoris', 'coas'));
     }
 
@@ -131,7 +143,7 @@ class BahanPendukungController extends Controller
             'harga_satuan' => 'required|numeric|min:0',
             'stok' => 'nullable|numeric|min:0',
             'stok_minimum' => 'nullable|numeric|min:0',
-            'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
+            'kategori_id' => 'required|exists:kategori_bahan_pendukung,id,user_id,' . auth()->id(),
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
             'sub_satuan_1_nilai' => 'required|numeric',
@@ -197,6 +209,10 @@ class BahanPendukungController extends Controller
 
     public function show(BahanPendukung $bahanPendukung)
     {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanPendukung = BahanPendukung::where('user_id', auth()->id())
+            ->findOrFail($bahanPendukung->id);
+            
         $bahanPendukung->load(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp']);
         
         // Hitung harga rata-rata untuk display
@@ -219,15 +235,28 @@ class BahanPendukungController extends Controller
 
     public function edit(BahanPendukung $bahanPendukung)
     {
-        $satuans = Satuan::orderBy('nama')->get();
-        $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
-        $coas = \App\Models\Coa::all();
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanPendukung = BahanPendukung::where('user_id', auth()->id())
+            ->findOrFail($bahanPendukung->id);
+            
+        // 🔒 SECURITY: Filter dropdown data by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
+        $kategoris = KategoriBahanPendukung::where('user_id', auth()->id())
+            ->active()
+            ->orderBy('nama')
+            ->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
+        
         return view('master-data.bahan-pendukung.edit', compact('bahanPendukung', 'satuans', 'kategoris', 'coas'));
     }
 
     public function update(Request $request, BahanPendukung $bahanPendukung)
     {
         try {
+            // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+            $bahanPendukung = BahanPendukung::where('user_id', auth()->id())
+                ->findOrFail($bahanPendukung->id);
+                
             \Log::info('BahanPendukung update started', [
                 'id' => $bahanPendukung->id,
                 'request_data' => $request->all(),
@@ -256,7 +285,7 @@ class BahanPendukungController extends Controller
                 'harga_satuan' => 'required|numeric|min:0',
                 'stok' => 'nullable|numeric|min:0',
                 'stok_minimum' => 'nullable|numeric|min:0',
-                'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
+                'kategori_id' => 'required|exists:kategori_bahan_pendukung,id,user_id,' . auth()->id(),
                 'sub_satuan_1_id' => 'required|exists:satuans,id',
                 'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
                 'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
@@ -327,6 +356,10 @@ class BahanPendukungController extends Controller
     public function destroy(BahanPendukung $bahanPendukung)
     {
         try {
+            // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+            $bahanPendukung = BahanPendukung::where('user_id', auth()->id())
+                ->findOrFail($bahanPendukung->id);
+                
             $bahanPendukung->delete();
             return redirect()->route('master-data.bahan-pendukung.index')
                 ->with('success', 'Bahan pendukung berhasil dihapus');

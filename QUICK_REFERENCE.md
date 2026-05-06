@@ -1,122 +1,197 @@
-# Quick Reference Card
+# 🚀 QUICK REFERENCE GUIDE
 
-## 🎯 What's Done vs What's Pending
+## 📌 Storage Helper Usage
 
-| Task | Status | Action Required |
-|------|--------|-----------------|
-| Page Titles | ✅ DONE | None |
-| Produk Column | ✅ DONE | None |
-| Payment Flow Code | ✅ DONE | Run migration |
-| BTKL/BOP Code | ✅ DONE | Fix database |
+### Display Images in Blade Templates
 
----
+```blade
+<!-- ✅ CORRECT - Use storage_url() helper -->
+<img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
 
-## ⚡ Quick Links
+<!-- ❌ WRONG - Don't use these -->
+<img src="{{ asset('storage/' . $produk->foto) }}">
+<img src="{{ Storage::url($produk->foto) }}">
+```
 
-### Status & Monitoring
-- **Status Dashboard**: `http://127.0.0.1:8000/status-check.php`
-- **Migration Check**: `http://127.0.0.1:8000/check-migration.php`
-- **Journal Check**: `http://127.0.0.1:8000/check-btkl-bop.php`
+### Check if File Exists
 
-### Application Pages
-- **Payment Flow Test**: `http://127.0.0.1:8000/transaksi/penjualan/create`
-- **Journal Verification**: `http://127.0.0.1:8000/akuntansi/jurnal-umum`
-- **Master Data**: `http://127.0.0.1:8000/master-data/produk`
+```blade
+@if(storage_exists($produk->foto))
+    <img src="{{ storage_url($produk->foto) }}">
+@else
+    <img src="/images/no-image.png">
+@endif
+```
 
----
+### In Controllers
 
-## 🔧 Two Pending Tasks
+```php
+// Get storage URL
+$url = storage_url($produk->foto);
 
-### Task 3: Penjualan Payment Flow
-**What**: Add payment proof columns to database
-**Time**: 1 minute
-**Action**: Open `http://127.0.0.1:8000/check-migration.php`
+// Check if file exists
+if (storage_exists($produk->foto)) {
+    // File exists
+}
 
-### Task 4: BTKL & BOP Journal
-**What**: Fix existing journal entry positions
-**Time**: 1 minute
-**Action**: Open `http://127.0.0.1:8000/check-btkl-bop.php`
-
----
-
-## 📝 Documentation Files
-
-| File | Purpose |
-|------|---------|
-| `TASK_STATUS_SUMMARY.md` | Detailed status of all tasks |
-| `COMPLETION_GUIDE.md` | Step-by-step completion instructions |
-| `IMPLEMENTATION_SUMMARY.md` | Technical implementation details |
-| `QUICK_REFERENCE.md` | This file - quick lookup |
+// Get full file path
+$path = storage_path('app/public/' . $produk->foto);
+```
 
 ---
 
-## ✅ Verification Checklist
+## 🔒 Multi-Tenant Security
 
-After completing both pending tasks:
+### Always Filter by user_id
 
-- [ ] Open status check page - shows all ✓ COMPLETE
-- [ ] Test payment flow - can create penjualan with payment
-- [ ] Check journal - BTKL/BOP in correct columns
-- [ ] Verify file upload - can upload bukti pembayaran
-- [ ] Check cash payment - kembalian calculates correctly
+```php
+// ✅ CORRECT - Filter by user_id
+$produks = Produk::where('user_id', auth()->id())->get();
+$produk = Produk::where('user_id', auth()->id())->findOrFail($id);
 
----
+// ❌ WRONG - No user_id filter
+$produks = Produk::all();
+$produk = Produk::findOrFail($id);
+```
 
-## 🆘 If Something Goes Wrong
+### Model Setup
 
-1. **Check status page**: `http://127.0.0.1:8000/status-check.php`
-2. **Read error message carefully**
-3. **Try manual SQL** via phpMyAdmin
-4. **Check database connection** (user: root, password: empty)
-5. **Refresh page** (Ctrl+F5)
-
----
-
-## 📞 Key Information
-
-**Database**: `simcost_sistem_manufaktur_process_costing`
-**User**: `root`
-**Password**: (empty)
-**Host**: `127.0.0.1`
-
-**Estimated Time to Complete**: 5 minutes
-**Difficulty**: Easy
-**Risk**: Low
-
----
-
-## 🎓 What Each Task Does
-
-### Task 1: Page Titles ✅
-- Fixes browser tab titles for master data pages
-- Example: "SIMCOST - DASHBOARD" → "Daftar COA"
-
-### Task 2: Produk Column ✅
-- Changes column header from "#" to "No"
-- Better UX for product listing
-
-### Task 3: Payment Flow ⚠️
-- Adds payment confirmation page
-- Supports cash and transfer payments
-- Tracks payment proof for transfers
-- **Pending**: Database columns
-
-### Task 4: Journal Fix ⚠️
-- Fixes BTKL & BOP journal positions
-- Ensures correct accounting entries
-- **Pending**: Database update
+```php
+class YourModel extends Model
+{
+    // 1. Add user_id to fillable
+    protected $fillable = ['user_id', 'name', ...];
+    
+    // 2. Auto-fill user_id on create
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
+}
+```
 
 ---
 
-## 🚀 Fastest Way to Complete
+## 🧪 Testing Commands
 
-1. Open: `http://127.0.0.1:8000/status-check.php`
-2. Click: "Run Migration Now"
-3. Click: "Fix BTKL & BOP Positions Now"
-4. Done! ✓
+```bash
+# Test storage route
+php artisan storage:test
 
-**Total Time**: 2-5 minutes
+# Clear view cache
+php artisan view:clear
+
+# Clear all caches
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+
+# Restart server (if needed)
+# Press Ctrl+C to stop, then:
+php artisan serve
+```
 
 ---
 
-**Last Updated**: April 21, 2026
+## 🐛 Troubleshooting
+
+### Foto tidak tampil?
+
+1. **Clear cache**:
+   ```bash
+   php artisan view:clear
+   ```
+
+2. **Check file exists**:
+   ```bash
+   ls storage/app/public/produk/
+   ```
+
+3. **Test storage route**:
+   ```bash
+   curl http://127.0.0.1:8000/storage/produk/filename.jpg
+   ```
+
+4. **Check in browser console** (F12):
+   - Look for 404 or 403 errors
+   - Check Network tab for failed requests
+
+### Error 403 Forbidden?
+
+- Make sure `config/filesystems.php` has `'serve' => false`
+- Make sure `routes/storage.php` exists
+- Restart server: `php artisan serve`
+
+### Error "Call to undefined function storage_url"?
+
+- Make sure `app/Helpers/helpers.php` exists
+- Make sure it's loaded in `composer.json`:
+  ```json
+  "autoload": {
+      "files": [
+          "app/Helpers/helpers.php"
+      ]
+  }
+  ```
+- Run: `composer dump-autoload`
+
+---
+
+## 📁 File Locations
+
+### Storage Files
+- **Uploaded files**: `storage/app/public/`
+- **Product photos**: `storage/app/public/produk/`
+- **Bukti faktur**: `storage/app/public/bukti_faktur/`
+- **Catalog photos**: `storage/app/public/catalog/`
+
+### Helper Files
+- **Storage helper**: `app/Helpers/helpers.php`
+- **Storage class**: `app/Helpers/StorageHelper.php`
+- **Storage route**: `routes/storage.php`
+- **Test command**: `app/Console/Commands/TestStorageAccess.php`
+
+### Configuration
+- **Filesystem config**: `config/filesystems.php`
+
+---
+
+## 🔗 Quick Links
+
+### Documentation
+- `SUMMARY_ALL_FIXES.md` - Complete summary of all fixes
+- `FOTO_PRODUK_FIX_COMPLETE.md` - Detailed foto fix documentation
+- `TEST_FOTO_DISPLAY.md` - Testing guide
+- `DATABASE_PENJUALAN_STRUCTURE.md` - Database documentation
+
+### Key Files
+- `routes/storage.php` - Custom storage route
+- `app/Helpers/helpers.php` - Helper functions
+- `config/filesystems.php` - Filesystem configuration
+
+---
+
+## ✅ Checklist for New Features
+
+When adding new features that involve file uploads:
+
+- [ ] Use `storage_url()` to display files in views
+- [ ] Use `storage_exists()` to check if file exists
+- [ ] Store files in `storage/app/public/` directory
+- [ ] Save only the relative path in database (e.g., `produk/filename.jpg`)
+- [ ] Add `user_id` filter for multi-tenant data
+- [ ] Add `user_id` to model fillable
+- [ ] Add `user_id` auto-fill in model boot method
+- [ ] Test file upload and display
+- [ ] Clear view cache after changes
+
+---
+
+**Last Updated**: May 6, 2026  
+**Status**: ✅ Ready to Use

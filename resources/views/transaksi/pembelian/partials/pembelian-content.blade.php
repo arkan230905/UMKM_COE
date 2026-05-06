@@ -96,6 +96,7 @@
                         <th class="text-center" style="width: 50px">No</th>
                         <th class="nowrap">No. Transaksi</th>
                         <th class="nowrap">No. Faktur</th>
+                        <th class="nowrap">Bukti Faktur</th>
                         <th class="nowrap">Tanggal</th>
                         <th class="nowrap">Vendor</th>
                         <th class="nowrap">Item</th>
@@ -115,6 +116,22 @@
                             <td class="nowrap">
                                 @if($pembelian->nomor_faktur)
                                     {{ $pembelian->nomor_faktur }}
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="nowrap text-center">
+                                @if($pembelian->bukti_faktur)
+                                    @php
+                                        // Extract ID and filename from bukti_faktur path
+                                        // Format: bukti_faktur/{id}/{filename}
+                                        $parts = explode('/', $pembelian->bukti_faktur);
+                                        $userId = $parts[1] ?? '';
+                                        $filename = $parts[2] ?? '';
+                                    @endphp
+                                    <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Lihat Bukti Faktur">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                    </a>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -233,7 +250,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12" class="text-center py-4">
+                            <td colspan="13" class="text-center py-4">
                                 <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data pembelian</p>
                             </td>

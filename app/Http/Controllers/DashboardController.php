@@ -27,44 +27,44 @@ class DashboardController extends Controller
         $user = auth()->user();
         $userRole = $user->role;
         
-        // Master Data - Filter berdasarkan user untuk multi-tenant
-        $totalPegawai     = \Schema::hasTable('pegawais') ? Pegawai::where('user_id', $user->id)->count() : 0;
+        // Master Data - Filter berdasarkan user untuk multi-tenant dengan safety check
+        $totalPegawai     = $this->getCountByUser('pegawais', $user->id);
         $totalPresensi    = Presensi::count();
-        $totalProduk      = Produk::where('user_id', $user->id)->count();
-        $totalVendor      = Vendor::where('user_id', $user->id)->count();
-        $totalBahanBaku   = BahanBaku::where('user_id', $user->id)->count();
-        $totalSatuan      = \App\Models\Satuan::where('user_id', $user->id)->count();
-        $totalAset        = \App\Models\Aset::where('user_id', $user->id)->count();
-        $totalPelanggan   = \App\Models\Pelanggan::where('user_id', $user->id)->count();
+        $totalProduk      = $this->getCountByUser('produks', $user->id);
+        $totalVendor      = $this->getCountByUser('vendors', $user->id);
+        $totalBahanBaku   = $this->getCountByUser('bahan_bakus', $user->id);
+        $totalSatuan      = $this->getCountByUser('satuans', $user->id);
+        $totalAset        = $this->getCountByUser('asets', $user->id);
+        $totalPelanggan   = $this->getCountByUser('pelanggans', $user->id);
         
         // Handle case when bops table doesn't exist yet
         $totalBOP = 0;
         try {
             if (\Schema::hasTable('bops')) {
-                $totalBOP = Bop::where('user_id', $user->id)->count();
+                $totalBOP = $this->getCountByUser('bops', $user->id);
             }
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
         }
         
-        $totalBOM         = Bom::where('user_id', $user->id)->count();
-        $totalCOA         = Coa::where('user_id', $user->id)->count();
+        $totalBOM         = $this->getCountByUser('boms', $user->id);
+        $totalCOA         = $this->getCountByUser('coas', $user->id);
         
         // Handle case when produksis table doesn't exist
         $totalProduksi = 0;
         try {
             if (\Schema::hasTable('produksis')) {
-                $totalProduksi = \App\Models\Produksi::where('user_id', $user->id)->count();
+                $totalProduksi = $this->getCountByUser('produksis', $user->id);
             }
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
         }
 
         // Transaksi
-        $totalPembelian   = Pembelian::where('user_id', $user->id)->count();
-        $totalPenjualan   = Penjualan::where('user_id', $user->id)->count();
-        $totalRetur       = Retur::where('user_id', $user->id)->sum('jumlah');
-        $totalPenggajian  = Penggajian::where('user_id', $user->id)->count();
+        $totalPembelian   = $this->getCountByUser('pembelians', $user->id);
+        $totalPenjualan   = $this->getCountByUser('penjualans', $user->id);
+        $totalRetur       = $this->getCountByUser('returs', $user->id, 'jumlah');
+        $totalPenggajian  = $this->getCountByUser('penggajians', $user->id);
 
         // Financial Data
         $totalKasBank = $this->getTotalKasBank();
@@ -497,37 +497,19 @@ class DashboardController extends Controller
 
         switch ($type) {
             case 'penjualan':
-                $currentCount = Penjualan::whereMonth('tanggal', $currentMonth)
-                    ->whereYear('tanggal', $currentYear)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->count();
-                $lastCount = Penjualan::whereMonth('tanggal', $lastMonth)
-                    ->whereYear('tanggal', $lastMonthYear)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->count();
+                $currentCount = $this->getCountByUserAndDate('penjualans', $user->id, $currentMonth, $currentYear);
+                $lastCount = $this->getCountByUserAndDate('penjualans', $user->id, $lastMonth, $lastMonthYear);
                 break;
                 
             case 'pembelian':
-                $currentCount = Pembelian::whereMonth('tanggal', $currentMonth)
-                    ->whereYear('tanggal', $currentYear)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->count();
-                $lastCount = Pembelian::whereMonth('tanggal', $lastMonth)
-                    ->whereYear('tanggal', $lastMonthYear)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->count();
+                $currentCount = $this->getCountByUserAndDate('pembelians', $user->id, $currentMonth, $currentYear);
+                $lastCount = $this->getCountByUserAndDate('pembelians', $user->id, $lastMonth, $lastMonthYear);
                 break;
                 
             case 'produksi':
                 if (\Schema::hasTable('produksis')) {
-                    $currentCount = \App\Models\Produksi::whereMonth('tanggal', $currentMonth)
-                        ->whereYear('tanggal', $currentYear)
-                        ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                        ->count();
-                    $lastCount = \App\Models\Produksi::whereMonth('tanggal', $lastMonth)
-                        ->whereYear('tanggal', $lastMonthYear)
-                        ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                        ->count();
+                    $currentCount = $this->getCountByUserAndDate('produksis', $user->id, $currentMonth, $currentYear);
+                    $lastCount = $this->getCountByUserAndDate('produksis', $user->id, $lastMonth, $lastMonthYear);
                 } else {
                     $currentCount = 0;
                     $lastCount = 0;
@@ -535,14 +517,8 @@ class DashboardController extends Controller
                 break;
                 
             case 'retur':
-                $currentCount = Retur::whereMonth('tanggal', $currentMonth)
-                    ->whereYear('tanggal', $currentYear)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->count();
-                $lastCount = Retur::whereMonth('tanggal', $lastMonth)
-                    ->whereYear('tanggal', $lastMonthYear)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->count();
+                $currentCount = $this->getCountByUserAndDate('returs', $user->id, $currentMonth, $currentYear);
+                $lastCount = $this->getCountByUserAndDate('returs', $user->id, $lastMonth, $lastMonthYear);
                 break;
         }
 
@@ -629,11 +605,8 @@ class DashboardController extends Controller
                 $month = $date->month;
                 $year = $date->year;
                 
-                // Get total sales for this month
-                $total = Penjualan::whereMonth('tanggal', $month)
-                    ->whereYear('tanggal', $year)
-                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
-                    ->sum('total');
+                // Get total sales for this month with safety check
+                $total = $this->getSumByUserAndDate('penjualans', $user->id, $month, $year, 'total');
                 
                 $labels[] = $date->format('M Y');
                 $data[] = (float)$total;
@@ -650,5 +623,255 @@ class DashboardController extends Controller
                 'data' => []
             ];
         }
+    }
+
+    /**
+     * Local Development Dashboard - Mock data without database
+     */
+    private function localDashboard()
+    {
+        // Get user data from session (mock authentication)
+        $userId = session('user_id', 1);
+        $userRole = session('user_role', 'owner');
+        $userName = session('user_name', 'Local Developer');
+        $userEmail = session('user_email', 'local@example.com');
+        
+        // Mock data for local development - FILTERED BY USER_ID (Multi-Tenant)
+        $mockData = $this->getMultiTenantMockData($userId);
+        
+        // Master data counts
+        $totalPegawai = $mockData['pegawai'];
+        $totalPresensi = $mockData['presensi'];
+        $totalProduk = $mockData['produk'];
+        $totalVendor = $mockData['vendor'];
+        $totalBahanBaku = $mockData['bahan_baku'];
+        $totalSatuan = $mockData['satuan'];
+        $totalAset = $mockData['aset'];
+        $totalPelanggan = $mockData['pelanggan'];
+        
+        // Financial data - Calculate from bank accounts
+        $totalKasBank = array_sum(array_column($mockData['bank_accounts'], 'saldo_akhir'));
+        $pendapatanBulanIni = $mockData['sales_chart'][11]; // Latest month
+        $totalPiutang = $pendapatanBulanIni * 0.3; // 30% of monthly revenue as receivables
+        $totalUtang = $pendapatanBulanIni * 0.2; // 20% of monthly revenue as payables
+        
+        // Mock BOP data
+        $totalBop = 0;
+        $bopDetails = collect();
+        
+        // Mock BOM data
+        $totalBom = 0;
+        $bomDetails = collect();
+        
+        // Mock COA data
+        $totalCoa = 0;
+        $coaDetails = collect();
+        
+        // Mock chart data - FILTERED BY USER_ID
+        $salesChartData = [
+            'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            'data' => $mockData['sales_chart']
+        ];
+        
+        // Mock bank accounts - FILTERED BY USER_ID
+        $kasBankDetails = collect($mockData['bank_accounts']);
+        
+        return view('dashboard', compact(
+            'userRole',
+            'totalPegawai',
+            'totalPresensi', 
+            'totalProduk',
+            'totalVendor',
+            'totalBahanBaku',
+            'totalSatuan',
+            'totalAset',
+            'totalPelanggan',
+            'totalKasBank',
+            'pendapatanBulanIni',
+            'totalPiutang',
+            'totalUtang',
+            'totalBop',
+            'bopDetails',
+            'totalBom',
+            'bomDetails',
+            'totalCoa',
+            'coaDetails',
+            'salesChartData',
+            'kasBankDetails'
+        ));
+    }
+
+    /**
+     * Helper method untuk mendapatkan count dengan safety check untuk user_id column
+     */
+    private function getCountByUser($table, $userId, $column = 'id')
+    {
+        try {
+            if (!\Schema::hasTable($table)) {
+                return 0;
+            }
+            
+            // Check if user_id column exists
+            if (!\Schema::hasColumn($table, 'user_id')) {
+                // If no user_id column, return total count (for backward compatibility)
+                return \DB::table($table)->count();
+            }
+            
+            // If user_id column exists, filter by user_id
+            return \DB::table($table)->where('user_id', $userId)->count();
+            
+        } catch (\Exception $e) {
+            // Return 0 if any error occurs
+            return 0;
+        }
+    }
+
+    /**
+     * Helper method untuk mendapatkan count dengan safety check untuk user_id column dan tanggal
+     */
+    private function getCountByUserAndDate($table, $userId, $month, $year)
+    {
+        try {
+            if (!\Schema::hasTable($table)) {
+                return 0;
+            }
+            
+            $query = \DB::table($table);
+            
+            // Check if user_id column exists
+            if (\Schema::hasColumn($table, 'user_id')) {
+                $query->where('user_id', $userId);
+            }
+            
+            // Check if tanggal column exists (for returs table)
+            if (\Schema::hasColumn($table, 'tanggal')) {
+                $query->whereMonth('tanggal', $month)
+                      ->whereYear('tanggal', $year);
+            }
+            
+            return $query->count();
+            
+        } catch (\Exception $e) {
+            // Return 0 if any error occurs
+            return 0;
+        }
+    }
+
+    /**
+     * Helper method untuk mendapatkan sum dengan safety check untuk user_id column dan tanggal
+     */
+    private function getSumByUserAndDate($table, $userId, $month, $year, $column = 'total')
+    {
+        try {
+            if (!\Schema::hasTable($table)) {
+                return 0;
+            }
+            
+            $query = \DB::table($table);
+            
+            // Check if user_id column exists
+            if (\Schema::hasColumn($table, 'user_id')) {
+                $query->where('user_id', $userId);
+            }
+            
+            // Check if tanggal column exists
+            if (\Schema::hasColumn($table, 'tanggal')) {
+                $query->whereMonth('tanggal', $month)
+                      ->whereYear('tanggal', $year);
+            }
+            
+            // Check if the sum column exists
+            if (\Schema::hasColumn($table, $column)) {
+                return $query->sum($column);
+            }
+            
+            return 0;
+            
+        } catch (\Exception $e) {
+            // Return 0 if any error occurs
+            return 0;
+        }
+    }
+
+    /**
+     * Get mock data filtered by user_id for multi-tenant testing
+     */
+    private function getMultiTenantMockData($userId)
+    {
+        // Different data for each user to simulate multi-tenant behavior
+        $mockData = [
+            // User ID 1 (Owner - Arkan)
+            1 => [
+                'pegawai' => 15,
+                'presensi' => 120,
+                'produk' => 25,
+                'vendor' => 8,
+                'bahan_baku' => 30,
+                'satuan' => 10,
+                'aset' => 12,
+                'pelanggan' => 45,
+                'sales_chart' => [12000000, 15000000, 18000000, 14000000, 20000000, 22000000, 19000000, 25000000, 21000000, 23000000, 26000000, 28000000],
+                'bank_accounts' => [
+                    ['kode_akun' => '11100', 'nama_akun' => 'Kas', 'saldo_akhir' => 15000000],
+                    ['kode_akun' => '11200', 'nama_akun' => 'Bank BCA', 'saldo_akhir' => 45000000],
+                    ['kode_akun' => '11300', 'nama_akun' => 'Bank Mandiri', 'saldo_akhir' => 30000000]
+                ]
+            ],
+            
+            // User ID 2 (Kasir)
+            2 => [
+                'pegawai' => 8,
+                'presensi' => 65,
+                'produk' => 18,
+                'vendor' => 5,
+                'bahan_baku' => 22,
+                'satuan' => 8,
+                'aset' => 7,
+                'pelanggan' => 32,
+                'sales_chart' => [8000000, 9500000, 11000000, 9000000, 13000000, 14000000, 12000000, 16000000, 13500000, 14500000, 17000000, 18000000],
+                'bank_accounts' => [
+                    ['kode_akun' => '11100', 'nama_akun' => 'Kas', 'saldo_akhir' => 8000000],
+                    ['kode_akun' => '11200', 'nama_akun' => 'Bank BCA', 'saldo_akhir' => 25000000]
+                ]
+            ],
+            
+            // User ID 3 (Pegawai Pembelian)
+            3 => [
+                'pegawai' => 12,
+                'presensi' => 95,
+                'produk' => 20,
+                'vendor' => 12,
+                'bahan_baku' => 35,
+                'satuan' => 12,
+                'aset' => 9,
+                'pelanggan' => 28,
+                'sales_chart' => [10000000, 12000000, 14000000, 11000000, 16000000, 17000000, 15000000, 19000000, 16500000, 17500000, 20000000, 21000000],
+                'bank_accounts' => [
+                    ['kode_akun' => '11100', 'nama_akun' => 'Kas', 'saldo_akhir' => 12000000],
+                    ['kode_akun' => '11200', 'nama_akun' => 'Bank BCA', 'saldo_akhir' => 35000000],
+                    ['kode_akun' => '11300', 'nama_akun' => 'Bank Mandiri', 'saldo_akhir' => 20000000]
+                ]
+            ],
+            
+            // User ID 4 (Pegawai)
+            4 => [
+                'pegawai' => 6,
+                'presensi' => 48,
+                'produk' => 12,
+                'vendor' => 4,
+                'bahan_baku' => 18,
+                'satuan' => 6,
+                'aset' => 5,
+                'pelanggan' => 20,
+                'sales_chart' => [6000000, 7000000, 8000000, 6500000, 9000000, 10000000, 8500000, 11000000, 9500000, 10500000, 12000000, 13000000],
+                'bank_accounts' => [
+                    ['kode_akun' => '11100', 'nama_akun' => 'Kas', 'saldo_akhir' => 6000000],
+                    ['kode_akun' => '11200', 'nama_akun' => 'Bank BCA', 'saldo_akhir' => 18000000]
+                ]
+            ]
+        ];
+        
+        // Return data for the specific user, or default data if user not found
+        return $mockData[$userId] ?? $mockData[1];
     }
 }

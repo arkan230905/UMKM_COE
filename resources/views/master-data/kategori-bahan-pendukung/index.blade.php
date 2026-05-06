@@ -7,9 +7,14 @@
             <h1 class="h3 mb-1">Kategori Bahan Pendukung</h1>
             <p class="text-muted mb-0">Kelola kategori untuk bahan pendukung</p>
         </div>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
-            <i class="fas fa-plus me-1"></i> Tambah Kategori
-        </button>
+        <div class="d-flex gap-2">
+            <a href="{{ route('master-data.bahan-pendukung.create') }}" class="btn btn-success">
+                <i class="fas fa-arrow-left me-1"></i> Kembali ke Tambah Bahan Pendukung
+            </a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
+                <i class="fas fa-plus me-1"></i> Tambah Kategori
+            </button>
+        </div>
     </div>
 
     @if(session('success'))

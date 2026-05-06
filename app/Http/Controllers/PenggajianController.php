@@ -267,9 +267,8 @@ class PenggajianController extends Controller
                 'total_gaji' => $totalGaji,
             ]);
 
-            // STEP 5: Buat journal entry ke KEDUA sistem (journal_entries dan jurnal_umum)
+            // STEP 5: Buat journal entry ke sistem jurnal_umum
             $this->createJournalEntry($penggajian, $pegawai);
-            $this->createJournalEntryModern($penggajian, $pegawai);
 
             // Commit transaksi
             DB::commit();
@@ -384,7 +383,9 @@ class PenggajianController extends Controller
         try {
             DB::beginTransaction();
             
-            $penggajian = Penggajian::findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penggajian = Penggajian::where('user_id', auth()->id())
+                ->findOrFail($id);
 
             // Cegah hapus jika sudah dibayar
             if ($penggajian->status_pembayaran === 'lunas') {
@@ -393,13 +394,13 @@ class PenggajianController extends Controller
             }
 
             // Hapus journal entries terkait terlebih dahulu
-            $journalEntries = \App\Models\JournalEntry::where('ref_type', 'penggajian')
+            $journalEntries = \App\Models\JurnalUmum::where('ref_type', 'penggajian')
                 ->where('ref_id', $penggajian->id)
                 ->get();
 
             foreach ($journalEntries as $entry) {
                 // Hapus journal lines terlebih dahulu
-                \App\Models\JournalLine::where('journal_entry_id', $entry->id)->delete();
+                \App\Models\JurnalUmum::where('journal_entry_id', $entry->id)->delete();
                 // Kemudian hapus journal entry
                 $entry->delete();
             }
@@ -426,7 +427,9 @@ class PenggajianController extends Controller
     public function markAsPaid($id)
     {
         try {
-            $penggajian = Penggajian::findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penggajian = Penggajian::where('user_id', auth()->id())
+                ->findOrFail($id);
 
             // Hanya update jika status masih belum_lunas
             if ($penggajian->status_pembayaran === 'belum_lunas') {
@@ -653,67 +656,13 @@ class PenggajianController extends Controller
     /**
      * Buat journal entry di sistem modern (journal_entries + journal_lines)
      * Ini memastikan penggajian muncul di halaman jurnal umum
+     * METHOD DINONAKTIKAN - Menggunakan createJournalEntry() yang sudah bekerja dengan baik
      */
     private function createJournalEntryModern($penggajian, $pegawai)
     {
-        try {
-            $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
-            
-            // Get COA accounts
-            // Special handling untuk Bagian Gudang
-            if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
-                // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
-                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BIAYA TENAGA KERJA TIDAK LANGSUNG
-            } else if ($jenisPegawai === 'btkl') {
-                $coaBebanGaji = Coa::where('kode_akun', '52')->first(); // BIAYA TENAGA KERJA LANGSUNG
-            } else {
-                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BIAYA TENAGA KERJA TIDAK LANGSUNG
-            }
-            
-            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
-            
-            if (!$coaBebanGaji || !$coaKasBank) {
-                throw new \Exception('COA tidak ditemukan untuk penggajian');
-            }
-            
-            // Create journal entry
-            $journalEntry = \App\Models\JournalEntry::create([
-                'tanggal' => $penggajian->tanggal_penggajian,
-                'ref_type' => 'penggajian',
-                'ref_id' => $penggajian->id,
-                'memo' => "Penggajian {$pegawai->nama}",
-            ]);
-            
-            // Create journal lines
-            // DEBIT: Beban Gaji
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
-                'coa_id' => $coaBebanGaji->id,
-                'debit' => $penggajian->total_gaji,
-                'credit' => 0,
-                'memo' => "Beban Gaji {$pegawai->nama}",
-            ]);
-            
-            // CREDIT: Kas/Bank
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
-                'coa_id' => $coaKasBank->id,
-                'debit' => 0,
-                'credit' => $penggajian->total_gaji,
-                'memo' => "Pembayaran Gaji {$pegawai->nama}",
-            ]);
-            
-            \Log::info('Journal entry modern created for penggajian', [
-                'penggajian_id' => $penggajian->id,
-                'journal_entry_id' => $journalEntry->id,
-            ]);
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            \Log::error('Failed to create modern journal entry for penggajian: ' . $e->getMessage());
-            throw $e;
-        }
+        // Method ini dinonaktifkan karena createJournalEntry() sudah bekerja dengan baik
+        // dan tidak menyebabkan error field coa_id
+        return true;
     }
     
     /**
@@ -770,14 +719,20 @@ class PenggajianController extends Controller
      */
     public function edit($id)
     {
-        $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Cek apakah sudah diposting ke jurnal
         if ($penggajian->isPosted()) {
             return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat diedit.']);
         }
         
-        $pegawais = Pegawai::with('jabatanRelasi')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::with('jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->get();
         $coaKasBank = \App\Models\Coa::whereIn('kode_akun', ['111', '112'])->get();
         
         return view('transaksi.penggajian.edit', compact('penggajian', 'pegawais', 'coaKasBank'));
@@ -791,7 +746,10 @@ class PenggajianController extends Controller
         DB::beginTransaction();
 
         try {
-            $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+                ->where('user_id', auth()->id())
+                ->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
             if ($penggajian->isPosted()) {
@@ -915,7 +873,10 @@ class PenggajianController extends Controller
 
     public function show($id)
     {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         return view('transaksi.penggajian.show', compact('penggajian'));
     }
 
@@ -934,7 +895,10 @@ class PenggajianController extends Controller
      */
     public function generateSlip($id)
     {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Check permission: admin, owner, atau pegawai yang bersangkutan
         if (!in_array(auth()->user()->role, ['admin', 'owner']) && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
@@ -949,7 +913,10 @@ class PenggajianController extends Controller
      */
     public function downloadSlip($id)
     {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Check permission: admin, owner, atau pegawai yang bersangkutan
         if (!in_array(auth()->user()->role, ['admin', 'owner']) && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
@@ -969,7 +936,9 @@ class PenggajianController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $penggajian = Penggajian::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::where('user_id', auth()->id())
+            ->findOrFail($id);
         
         $request->validate([
             'action' => 'required|in:pay,cancel',
@@ -1011,7 +980,10 @@ class PenggajianController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk posting ke jurnal');
         }
 
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
 
         // Cegah double posting
         if ($penggajian->isPosted()) {

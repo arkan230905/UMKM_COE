@@ -90,11 +90,14 @@ class PembayaranBebanController extends Controller
                 'tanggal' => 'required|date',
                 'beban_operasional_id' => 'required|exists:beban_operasional,id',
                 'kode_akun_beban' => 'required|exists:coas,kode_akun',
+                'metode_pembayaran' => 'required|in:kas,transfer',
                 'nominal_pembayaran' => 'required|numeric|min:1',
                 'catatan' => 'nullable|string|max:255',
             ], [
                 'beban_operasional_id.exists' => 'Beban operasional tidak valid',
                 'kode_akun_beban.exists' => 'Akun beban tidak valid',
+                'metode_pembayaran.required' => 'Metode pembayaran harus dipilih',
+                'metode_pembayaran.in' => 'Metode pembayaran tidak valid',
                 'nominal_pembayaran.min' => 'Nominal pembayaran minimal adalah 1',
             ]);
             \Log::info('Validation passed successfully');
@@ -109,8 +112,12 @@ class PembayaranBebanController extends Controller
             // Dapatkan data COA dengan pengecekan yang lebih ketat
             $beban = Coa::where('kode_akun', $request->kode_akun_beban)->first();
             
-            // Otomatis pilih Kas Bank (111) untuk pembayaran beban
-            $kas = Coa::where('kode_akun', '111')->first(); // Kas Bank
+            // Pilih akun kas berdasarkan metode pembayaran
+            if ($request->metode_pembayaran === 'kas') {
+                $kas = Coa::where('kode_akun', '112')->first(); // Kas Tunai
+            } else {
+                $kas = Coa::where('kode_akun', '111')->first(); // Kas Bank (Transfer)
+            }
             
             // Validasi COA
             if (!$beban) {
@@ -118,7 +125,8 @@ class PembayaranBebanController extends Controller
             }
             
             if (!$kas) {
-                throw new \Exception('Akun kas (111) tidak ditemukan. Pastikan akun kas sudah dibuat di master COA.');
+                $kodeKas = $request->metode_pembayaran === 'kas' ? '112 (Kas Tunai)' : '111 (Kas Bank)';
+                throw new \Exception("Akun kas {$kodeKas} tidak ditemukan. Pastikan akun kas sudah dibuat di master COA.");
             }
             
             // Simpan pembayaran beban
@@ -146,6 +154,7 @@ class PembayaranBebanController extends Controller
                 'kredit' => 0,
                 'referensi' => $pembayaran->id,
                 'tipe_referensi' => 'pembayaran_beban',
+                'user_id' => auth()->id(), // MULTI-TENANT: Filter by user_id
                 'created_by' => auth()->id() ?? 1,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -160,6 +169,7 @@ class PembayaranBebanController extends Controller
                 'kredit' => $request->nominal_pembayaran,
                 'referensi' => $pembayaran->id,
                 'tipe_referensi' => 'pembayaran_beban',
+                'user_id' => auth()->id(), // MULTI-TENANT: Filter by user_id
                 'created_by' => auth()->id() ?? 1,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -168,8 +178,8 @@ class PembayaranBebanController extends Controller
             // Simpan jurnal ke jurnal_umum (bukan jurnal)
             \App\Models\JurnalUmum::insert([$jurnalBeban, $jurnalKas]);
             
-            // JUGA buat journal entry di sistem modern (journal_entries + journal_lines)
-            $this->createJournalEntryModern($pembayaran, $beban, $kas, $request->nominal_pembayaran);
+            // Jurnal sudah dibuat di jurnal_umum di atas, tidak perlu sistem modern
+            // $this->createJournalEntryModern($pembayaran, $beban, $kas, $request->nominal_pembayaran);
 
             DB::commit();
             
@@ -199,6 +209,7 @@ class PembayaranBebanController extends Controller
             
         $jurnals = \App\Models\JurnalUmum::where('referensi', $pembayaran->id)
             ->where('tipe_referensi', 'pembayaran_beban')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->with('coa')
             ->get();
             
@@ -243,6 +254,7 @@ class PembayaranBebanController extends Controller
             // Reverse journal entries dari jurnal_umum
             \App\Models\JurnalUmum::where('referensi', $pembayaran->id)
                 ->where('tipe_referensi', 'pembayaran_beban')
+                ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
                 ->delete();
             
             // Saldo akun tidak perlu diupdate langsung di tabel COA
@@ -349,50 +361,6 @@ class PembayaranBebanController extends Controller
         return (float) $journalKeluar;
     }
 
-    /**
-     * Buat journal entry di sistem modern (journal_entries + journal_lines)
-     * Ini memastikan pembayaran beban muncul di halaman jurnal umum
-     */
-    private function createJournalEntryModern($pembayaran, $beban, $kas, $nominal)
-    {
-        try {
-            // Create journal entry
-            $journalEntry = \App\Models\JournalEntry::create([
-                'tanggal' => $pembayaran->tanggal,
-                'ref_type' => 'pembayaran_beban',
-                'ref_id' => $pembayaran->id,
-                'memo' => 'Pembayaran Beban: ' . ($pembayaran->keterangan ?: 'Tanpa catatan'),
-            ]);
-            
-            // Create journal lines
-            // DEBIT: Beban
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
-                'coa_id' => $beban->id,
-                'debit' => $nominal,
-                'credit' => 0,
-                'memo' => 'Pembayaran Beban',
-            ]);
-            
-            // CREDIT: Kas
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
-                'coa_id' => $kas->id,
-                'debit' => 0,
-                'credit' => $nominal,
-                'memo' => 'Pembayaran Beban',
-            ]);
-            
-            \Log::info('Journal entry modern created for pembayaran beban', [
-                'pembayaran_id' => $pembayaran->id,
-                'journal_entry_id' => $journalEntry->id,
-            ]);
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            \Log::error('Failed to create modern journal entry for pembayaran beban: ' . $e->getMessage());
-            throw $e;
-        }
-    }
+    // Method createJournalEntryModern dihapus karena class JournalEntry tidak tersedia
+    // Jurnal pembayaran beban sudah dibuat di jurnal_umum di method store()
 }

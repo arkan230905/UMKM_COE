@@ -19,50 +19,15 @@ class ProdukController extends Controller
     {
         // Get all products
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $produks = Produk::with(['bomJobCosting'])
-            ->where('user_id', auth()->id())
+        $produks = Produk::where('user_id', auth()->id())
             ->get();
         
-        // Calculate HPP using ONLY data from BomJobCosting (same as harga-pokok-produksi page)
+        // Calculate HPP from Harga Pokok Produksi (BBB + BTKL + BOP)
         $hargaBom = [];
         foreach ($produks as $produk) {
-            $totalBiayaHPP = 0;
-            
-            $bomJobCosting = $produk->bomJobCosting;
-            
-            // Only use data if BomJobCosting exists AND has complete data
-            // This matches the logic in BomController@index for harga-pokok-produksi page
-            if ($bomJobCosting) {
-                // Check if this product would appear in harga-pokok-produksi page
-                // Complete means: has biaya bahan AND has BTKL AND has BOP
-                $hasBiayaBahan = ($bomJobCosting->total_bbb > 0) || ($bomJobCosting->total_bahan_pendukung > 0);
-                $hasBTKL = $bomJobCosting->total_btkl > 0;
-                $hasBOP = $bomJobCosting->total_bop > 0;
-                
-                // Only calculate HPP if product has complete data (same as harga-pokok-produksi page)
-                if ($hasBiayaBahan && $hasBTKL && $hasBOP) {
-                    // Use stored values from BomJobCosting table
-                    $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                    $totalBTKL = $bomJobCosting->total_btkl;
-                    $totalBOP = $bomJobCosting->total_bop;
-                    
-                    // Calculate total HPP: Biaya Bahan + BTKL + BOP
-                    $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
-                }
-            }
-            
-            // If no complete BomJobCosting data, HPP = 0 (same as harga-pokok-produksi page)
+            // Use getActualHPP() method which gets HPP from harga-pokok-produksi
+            $totalBiayaHPP = $produk->getActualHPP();
             $hargaBom[$produk->id] = $totalBiayaHPP;
-            
-            // Update harga_pokok in produks table if different
-            if ($produk->harga_pokok != $totalBiayaHPP) {
-                DB::table('produks')
-                    ->where('id', $produk->id)
-                    ->update([
-                        'harga_pokok' => $totalBiayaHPP,
-                        'updated_at' => now()
-                    ]);
-            }
         }
         
         return view('master-data.produk.index', compact('produks', 'hargaBom'));
@@ -92,7 +57,10 @@ class ProdukController extends Controller
     
     public function show($id)
     {
-        $produk = Produk::with(['boms.details.bahanBaku'])->findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $produk = Produk::with(['boms.details.bahanBaku'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Hitung total biaya BOM dari details
         $totalBiayaBom = 0;
@@ -129,6 +97,19 @@ class ProdukController extends Controller
         $fotoPath = null;
         if ($request->hasFile('foto')) {
             $fotoPath = $request->file('foto')->store('produk', 'public');
+            
+            // Copy file to public/storage for web access
+            $sourcePath = storage_path('app/public/' . $fotoPath);
+            $targetPath = public_path('storage/' . $fotoPath);
+            
+            // Ensure target directory exists
+            $targetDir = dirname($targetPath);
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            
+            // Copy file for web access
+            copy($sourcePath, $targetPath);
         }
 
         // Parse harga_jual from formatted string (remove dots)
@@ -139,10 +120,6 @@ class ProdukController extends Controller
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPath,
             'harga_jual' => $hargaJual,
-            'hpp' => $request->input('hpp', 0),
-            'bopb_method' => $request->input('bopb_method'),
-            'bopb_rate' => $request->input('bopb_rate'),
-            'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
             'btkl_per_unit' => $request->input('btkl_per_unit'),
             'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id
         ]);
@@ -153,6 +130,9 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
+        
         return view('master-data.produk.edit', compact('produk'));
     }
     
@@ -161,6 +141,9 @@ class ProdukController extends Controller
      */
     public function printBarcode(Produk $produk)
     {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
+        
         return view('master-data.produk.print-barcode', compact('produk'));
     }
     
@@ -169,12 +152,18 @@ class ProdukController extends Controller
      */
     public function printBarcodeAll()
     {
-        $produks = Produk::whereNotNull('barcode')->get();
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $produks = Produk::where('user_id', auth()->id())
+            ->whereNotNull('barcode')
+            ->get();
         return view('master-data.produk.print-barcode-bulk', compact('produks'));
     }
 
     public function update(Request $request, Produk $produk)
     {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
+        
         // Handle photo removal request
         if ($request->has('remove_photo')) {
             if ($produk->foto) {
@@ -259,24 +248,68 @@ class ProdukController extends Controller
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
-            'hpp' => $hppToUse,
-            'harga_bom' => $hppToUse, // Update harga_bom to match HPP
-            'bopb_method' => $request->input('bopb_method'),
-            'bopb_rate' => $request->input('bopb_rate'),
-            'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
             'btkl_per_unit' => $request->input('btkl_per_unit'),
         ];
 
         if ($request->hasFile('foto')) {
+            // Debug: Log file upload
+            \Log::info('ProdukController::update - Foto upload detected');
+            \Log::info('Original filename: ' . $request->file('foto')->getClientOriginalName());
+            \Log::info('File size: ' . $request->file('foto')->getSize());
+            
             // Delete old photo if exists
             if ($produk->foto) {
-                $oldPhotoPath = 'public/' . $produk->foto;
-                if (\Storage::exists($oldPhotoPath)) {
-                    \Storage::delete($oldPhotoPath);
+                $oldPhotoPath = 'produk/' . basename($produk->foto);
+                \Log::info('Deleting old photo: ' . $oldPhotoPath);
+                
+                // Try multiple path approaches
+                $pathsToDelete = [
+                    'public/' . $produk->foto,
+                    'produk/' . basename($produk->foto),
+                    $produk->foto
+                ];
+                
+                foreach ($pathsToDelete as $path) {
+                    if (\Storage::disk('public')->exists($path)) {
+                        \Storage::disk('public')->delete($path);
+                        \Log::info('Old photo deleted successfully: ' . $path);
+                        break;
+                    }
                 }
             }
             
-            $data['foto'] = $request->file('foto')->store('produk', 'public');
+            // Store new photo with explicit disk
+            $storedPath = $request->file('foto')->store('produk', 'public');
+            $data['foto'] = $storedPath;
+            
+            \Log::info('New photo stored at: ' . $storedPath);
+            \Log::info('Full storage path: ' . storage_path('app/public/' . $storedPath));
+            \Log::info('Public path: ' . public_path('storage/' . $storedPath));
+            
+            // Copy file to public/storage for web access
+            $sourcePath = storage_path('app/public/' . $storedPath);
+            $targetPath = public_path('storage/' . $storedPath);
+            
+            // Ensure target directory exists
+            $targetDir = dirname($targetPath);
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            
+            // Copy file for web access
+            if (copy($sourcePath, $targetPath)) {
+                \Log::info('File copied to public/storage for web access: ' . $targetPath);
+            } else {
+                \Log::error('Failed to copy file to public/storage: ' . $targetPath);
+            }
+            
+            // Verify file exists after storage
+            $fullPath = storage_path('app/public/' . $storedPath);
+            \Log::info('File exists after storage: ' . (file_exists($fullPath) ? 'YES' : 'NO'));
+            \Log::info('Public file exists: ' . (file_exists($targetPath) ? 'YES' : 'NO'));
+            
+            // Also verify via Storage facade
+            \Log::info('Storage exists check: ' . (\Storage::disk('public')->exists($storedPath) ? 'YES' : 'NO'));
         }
 
         $produk->update($data);
@@ -297,6 +330,9 @@ class ProdukController extends Controller
 
     public function destroy(Produk $produk)
     {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
+        
         // Cegah hapus jika masih dipakai transaksi atau master terkait
         $blockers = [];
         $pd = PenjualanDetail::where('produk_id', $produk->id)->count();
@@ -333,8 +369,7 @@ class ProdukController extends Controller
         }
 
         // Get products with stock and pricing info for current company
-        $query = Produk::with(['bomJobCosting'])
-            ->where('stok', '>=', 0); // Show all products including those with zero stock
+        $query = Produk::where('stok', '>=', 0); // Show all products including those with zero stock
 
         // Apply search filter
         if ($request->has('search') && !empty($request->search)) {
@@ -348,115 +383,19 @@ class ProdukController extends Controller
 
         $produks = $query->orderBy('nama_produk', 'asc')->get();
 
-        // Calculate HPP and Harga Jual for each product (same logic as master-data/produk)
+        // Use existing harga_pokok and harga_jual from produks table
         foreach ($produks as $produk) {
-            $totalBiayaBahan = 0;
-            $totalBTKL = 0;
-            $totalBOP = 0;
+            // Use existing harga_pokok from database
+            $totalBiayaHPP = $produk->harga_pokok ?? 0;
             
-            $bomJobCosting = $produk->bomJobCosting;
-            
-            if ($bomJobCosting) {
-                // Use data from BomJobCosting for bahan
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                
-                // Calculate BTKL real-time from bom_job_btkl with correct formula
-                $btklData = DB::table('bom_job_btkl')
-                    ->leftJoin('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
-                    ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-                    ->select(
-                        'bom_job_btkl.*',
-                        'btkls.kapasitas_per_jam',
-                        'jabatans.id as jabatan_id',
-                        'jabatans.tarif as tarif_jabatan'
-                    )
-                    ->get();
-                
-                $totalBTKL = 0;
-                foreach ($btklData as $btkl) {
-                    if ($btkl->jabatan_id) {
-                        // Get jumlah pegawai for this jabatan
-                        $jumlahPegawai = DB::table('pegawais')
-                            ->join('jabatans', 'pegawais.jabatan', '=', 'jabatans.nama')
-                            ->where('jabatans.id', $btkl->jabatan_id)
-                            ->count();
-                        
-                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
-                        $tarifBtkl = $jumlahPegawai * ($btkl->tarif_jabatan ?? 0);
-                        
-                        // Calculate biaya per produk: Tarif BTKL ÷ Kapasitas per Jam
-                        $kapasitasPerJam = $btkl->kapasitas_per_jam ?? 1;
-                        $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
-                        
-                        $totalBTKL += $biayaPerProduk;
-                    }
-                }
-                
-                // Calculate BOP using the same logic as HPP page
-                $bopData = DB::table('bom_job_bop')
-                    ->where('bom_job_bop.bom_job_costing_id', $bomJobCosting->id)
-                    ->select('bom_job_bop.*')
-                    ->get();
-                    
-                $totalBOP = 0;
-                if (!empty($bopData) && count($bopData) > 0) {
-                    // Group BOP by process and sum the tariffs
-                    $bopByProcess = [];
-                    foreach ($bopData as $bop) {
-                        $namaBiaya = strtolower($bop->nama_bop ?? '');
-                        $prosesName = 'Umum';
-                        
-                        if (stripos($namaBiaya, 'penggorengan') !== false) {
-                            $prosesName = 'Menggoreng';
-                        } elseif (stripos($namaBiaya, 'perbumbuan') !== false) {
-                            $prosesName = 'Perbumbuan';
-                        } elseif (stripos($namaBiaya, 'pengemasan') !== false) {
-                            $prosesName = 'Packing';
-                        }
-                        
-                        if (!isset($bopByProcess[$prosesName])) {
-                            $bopByProcess[$prosesName] = 0;
-                        }
-                        $bopByProcess[$prosesName] += $bop->tarif;
-                    }
-                    
-                    // Sum all BOP tariffs
-                    foreach ($bopByProcess as $prosesName => $totalTarif) {
-                        $totalBOP += $totalTarif;
-                    }
-                }
-                
-                // If BOP data is empty or incorrect, use standard BOP values
-                if ($totalBOP == 0 || $totalBOP > 50000) {
-                    $totalBOP = 0; // Set to 0 instead of 3.190
-                }
-            }
-            
-            // Calculate total HPP: Biaya Bahan + BTKL + BOP
-            $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
-            
-            // Get margin percentage (default 30%)
-            $margin = (float) ($produk->margin_percent ?? 30);
-            
-            // Calculate selling price: HPP + (HPP * margin%)
-            // Formula: Harga Jual = HPP * (1 + margin/100)
-            $hargaJual = $totalBiayaHPP * (1 + ($margin / 100));
-            
-            // Gunakan harga_jual yang sudah ada di database, jangan override dengan calculated
-            // Jika harga_jual kosong atau 0, maka gunakan calculated harga_jual
+            // Use existing harga_jual from database, or calculate if empty
             if (empty($produk->harga_jual) || $produk->harga_jual == 0) {
+                // Get margin percentage (default 30%)
+                $margin = 30; // Fixed margin since margin_percent column was removed
+                
+                // Calculate selling price: HPP + (HPP * margin%)
+                $hargaJual = $totalBiayaHPP * (1 + ($margin / 100));
                 $produk->harga_jual = $hargaJual;
-            }
-            
-            // Update harga_pokok saja, jangan update harga_jual yang sudah diset manual
-            if ($produk->harga_pokok != $totalBiayaHPP) {
-                DB::table('produks')
-                    ->where('id', $produk->id)
-                    ->update([
-                        'harga_pokok' => $totalBiayaHPP,
-                        'updated_at' => now()
-                    ]);
             }
         }
 

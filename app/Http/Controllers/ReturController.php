@@ -40,14 +40,20 @@ class ReturController extends Controller
         \App\Models\PurchaseReturn::clearBootedModels();
         \DB::reconnect();
         
+        // CRITICAL: Filter by user_id for multi-tenant
         $returs = \App\Models\PurchaseReturn::with([
                 'pembelian.vendor', 
                 'items.bahanBaku', 
                 'items.bahanPendukung'
             ])
-            ->withSum('items as calculated_total', 'subtotal')
-            ->oldest('created_at') // Changed from latest to oldest
+            ->where('user_id', auth()->id())
+            ->oldest('created_at')
             ->get();
+        
+        // Calculate total manually since withSum uses wrong table name
+        $returs->each(function($retur) {
+            $retur->calculated_total = $retur->items->sum('subtotal');
+        });
             
         // Handle new retur session - pastikan retur baru ada di collection
         if (session('new_retur_created') && session('new_retur_id')) {
@@ -59,10 +65,12 @@ class ReturController extends Controller
                     'pembelian.vendor', 
                     'items.bahanBaku', 
                     'items.bahanPendukung'
-                ])->withSum('items as calculated_total', 'subtotal')
+                ])
+                ->where('user_id', auth()->id())
                 ->find($newReturId);
                 
                 if ($newRetur) {
+                    $newRetur->calculated_total = $newRetur->items->sum('subtotal');
                     $returs = $returs->prepend($newRetur);
                     \Log::info('Added missing new retur to collection:', ['retur_id' => $newReturId]);
                 }

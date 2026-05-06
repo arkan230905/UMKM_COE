@@ -38,17 +38,17 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="name" class="form-label fw-bold">
+                                    <label for="nama_pelanggan" class="form-label fw-bold">
                                         <i class="fas fa-user me-1"></i> Nama Lengkap <span style="color: red;">*</span>
                                     </label>
                                     <input type="text" 
-                                           class="form-control @error('name') is-invalid @enderror" 
-                                           id="name" 
-                                           name="name" 
-                                           value="{{ old('name') }}" 
+                                           class="form-control @error('nama_pelanggan') is-invalid @enderror" 
+                                           id="nama_pelanggan" 
+                                           name="nama_pelanggan" 
+                                           value="{{ old('nama_pelanggan') }}" 
                                            placeholder="Masukkan nama lengkap pelanggan" 
                                            required>
-                                    @error('name')
+                                    @error('nama_pelanggan')
                                         <div class="invalid-feedback">
                                             {{ $message }}
                                         </div>
@@ -75,45 +75,19 @@
                                     @enderror
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="phone" class="form-label fw-bold">
-                                        <i class="fas fa-phone me-1"></i> No. Telepon <span style="color: red;">*</span>
-                                    </label>
-                                    <input type="tel" 
-                                           class="form-control @error('phone') is-invalid @enderror" 
-                                           id="phone" 
-                                           name="phone" 
-                                           value="{{ old('phone') }}" 
-                                           placeholder="Masukkan nomor telepon pelanggan" 
-                                           required>
-                                    @error('phone')
-                                        <div class="invalid-feedback">
-                                            {{ $message }}
-                                        </div>
-                                    @enderror
-                                </div>
-                            </div>
                             
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password" class="form-label fw-bold">
                                         <i class="fas fa-lock me-1"></i> Password <span style="color: red;">*</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="password" 
-                                               class="form-control @error('password') is-invalid @enderror" 
-                                               id="password" 
-                                               name="password" 
-                                               placeholder="Masukkan password minimal 6 karakter" 
-                                               required>
-                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                            <i class="fas fa-eye" id="passwordIcon"></i>
-                                        </button>
-                                    </div>
+                                    <input type="password" 
+                                           class="form-control @error('password') is-invalid @enderror" 
+                                           id="password" 
+                                           name="password" 
+                                           placeholder="Masukkan password minimal 6 karakter" 
+                                           value="{{ old('password') }}" 
+                                           required>
                                     @error('password')
                                         <div class="invalid-feedback">
                                             {{ $message }}
@@ -126,21 +100,56 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="password_confirmation" class="form-label fw-bold">
-                                        <i class="fas fa-lock me-1"></i> Konfirmasi Password <span style="color: red;">*</span>
+                                    <label for="telepon" class="form-label fw-bold">
+                                        <i class="fas fa-phone me-1"></i> No. Telepon <span style="color: red;">*</span>
                                     </label>
-                                    <div class="input-group">
-                                        <input type="password" 
-                                               class="form-control @error('password_confirmation') is-invalid @enderror" 
-                                               id="password_confirmation" 
-                                               name="password_confirmation" 
-                                               placeholder="Ulangi password" 
-                                               required>
-                                        <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
-                                            <i class="fas fa-eye" id="passwordConfirmIcon"></i>
-                                        </button>
-                                    </div>
-                                    @error('password_confirmation')
+                                    <input type="tel" 
+                                           class="form-control @error('telepon') is-invalid @enderror" 
+                                           id="telepon" 
+                                           name="telepon" 
+                                           value="{{ old('telepon') }}" 
+                                           placeholder="Masukkan nomor telepon pelanggan" 
+                                           required>
+                                    @error('telepon')
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="alamat" class="form-label fw-bold">
+                                        <i class="fas fa-map-marker-alt me-1"></i> Alamat <span style="color: red;">*</span>
+                                    </label>
+                                    <textarea class="form-control @error('alamat') is-invalid @enderror" 
+                                              id="alamat" 
+                                              name="alamat" 
+                                              rows="3" 
+                                              placeholder="Masukkan alamat lengkap pelanggan" 
+                                              required>{{ old('alamat') }}</textarea>
+                                    @error('alamat')
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="keterangan" class="form-label fw-bold">
+                                        <i class="fas fa-comment me-1"></i> Keterangan
+                                    </label>
+                                    <textarea class="form-control @error('keterangan') is-invalid @enderror" 
+                                              id="keterangan" 
+                                              name="keterangan" 
+                                              rows="2" 
+                                              placeholder="Masukkan keterangan tambahan (opsional)">{{ old('keterangan') }}</textarea>
+                                    @error('keterangan')
                                         <div class="invalid-feedback">
                                             {{ $message }}
                                         </div>

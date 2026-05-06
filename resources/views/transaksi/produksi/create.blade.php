@@ -101,17 +101,9 @@
                             <div class="card-body">
                                 <div class="row">
                                     <!-- Bahan Baku -->
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <h6 class="text-success mb-3">Bahan Baku</h6>
                                         <div id="bahan-baku-list">
-                                            <!-- Will be populated by JavaScript -->
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Bahan Pendukung -->
-                                    <div class="col-md-6">
-                                        <h6 class="text-warning mb-3">Bahan Pendukung</h6>
-                                        <div id="bahan-pendukung-list">
                                             <!-- Will be populated by JavaScript -->
                                         </div>
                                     </div>
@@ -120,7 +112,7 @@
                                 <div class="row mt-3">
                                     <div class="col-md-12">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h5 class="mb-0">Total</h5>
+                                            <h5 class="mb-0">Total Biaya Bahan</h5>
                                             <div>
                                                 <h5 class="mb-0 text-success" id="total-biaya-bahan">Rp 0</h5>
                                             </div>
@@ -158,14 +150,15 @@
                         <div class="card mb-3" id="bop-section" style="display: none;">
                             <div class="card-header bg-warning text-dark">
                                 <h6 class="mb-0">Biaya Overhead Pabrik (BOP)</h6>
+                                <small>Menampilkan detail komponen BOP per proses dengan akun COA otomatis</small>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
                                     <table class="table table-sm">
                                         <thead>
                                             <tr>
-                                                <th>Proses</th>
-                                                <th>Nominal Biaya</th>
+                                                <th>Komponen</th>
+                                                <th>Nominal Biaya & COA</th>
                                                 <th>Total</th>
                                             </tr>
                                         </thead>
@@ -292,17 +285,8 @@ function calculateCostBreakdown() {
         const totalPerProduksi = bahan.harga_per_unit * qty;
         const totalQtyTerpakai = bahan.qty * qty;
         
-        // Calculate stock reduction based on conversion
-        let stockReduction = totalQtyTerpakai;
-        let stockUnit = bahan.satuan;
-        
-        // If different units, show conversion
-        if (bahan.satuan !== bahan.satuan_bahan) {
-            // Show conversion info
-            const konversiInfo = bahan.konversi_info || `Konversi: ${bahan.satuan} → ${bahan.satuan_bahan}`;
-            stockReduction = `${totalQtyTerpakai} ${bahan.satuan}`;
-            stockUnit = bahan.satuan_bahan;
-        }
+        // Display stock reduction in recipe unit (satuan resep)
+        const stockReductionText = `${totalQtyTerpakai} ${bahan.satuan}`;
         
         totalBiayaBahan += totalPerProduksi;
         return `
@@ -311,29 +295,12 @@ function calculateCostBreakdown() {
                 <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi per hari)</small>
                 <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
                 ${bahan.konversi_info ? `<br><small class="text-warning">${bahan.konversi_info}</small>` : ''}
-                <br><small class="text-danger">Stok berkurang: ${stockReduction} ${stockUnit}</small>
-            </div>
-        `;
-    }).join('');
-    
-    // Bahan Pendukung
-    const bahanPendukungHtml = currentBomData.biaya_bahan.bahan_pendukung.map((bahan, index) => {
-        // harga_per_unit now contains the subtotal (total cost for the recipe)
-        const totalPerProduksi = bahan.harga_per_unit * qty;
-        const totalQtyTerpakai = bahan.qty * qty;
-        totalBiayaBahan += totalPerProduksi;
-        return `
-            <div class="mb-2">
-                <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
-                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi per hari)</small>
-                <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
-                <br><small class="text-danger">Stok berkurang: ${totalQtyTerpakai} ${bahan.satuan}</small>
+                <br><small class="text-danger">Stok berkurang: ${stockReductionText}</small>
             </div>
         `;
     }).join('');
     
     document.getElementById('bahan-baku-list').innerHTML = bahanBakuHtml || '<p class="text-muted">Tidak ada data bahan baku</p>';
-    document.getElementById('bahan-pendukung-list').innerHTML = bahanPendukungHtml || '<p class="text-muted">Tidak ada data bahan pendukung</p>';
     document.getElementById('total-biaya-bahan').textContent = formatRupiah(totalBiayaBahan);
     
     // Calculate BTKL
@@ -412,28 +379,66 @@ function calculateCostBreakdown() {
         document.getElementById('btkl-list').innerHTML = '<tr><td colspan="3" class="text-center text-muted">Tidak ada data BTKL</td></tr>';
     }
     
-    // Calculate BOP
+    // Calculate BOP - Group by process and show components
     let totalBop = 0;
-    const bopHtml = currentBomData.bop.map(bop => {
-        const totalPerProduksi = bop.harga_per_unit * qty;
-        totalBop += totalPerProduksi;
-        return `
-            <tr>
-                <td>${bop.nama}</td>
-                <td>
-                    ${formatRupiah(bop.harga_per_unit)}
-                    <br><small class="text-muted">(${formatRupiah(bop.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
-                </td>
-                <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
+    const bopByProcess = {};
+    
+    // Group BOP components by process
+    currentBomData.bop.forEach(bop => {
+        const namaProses = bop.nama_proses || 'BOP';
+        if (!bopByProcess[namaProses]) {
+            bopByProcess[namaProses] = [];
+        }
+        bopByProcess[namaProses].push(bop);
+        totalBop += bop.harga_per_unit;
+    });
+    
+    // Generate HTML for each process and its components
+    let bopHtml = '';
+    Object.keys(bopByProcess).forEach(namaProses => {
+        const komponenList = bopByProcess[namaProses];
+        let totalProses = 0;
+        
+        // Header for process
+        bopHtml += `
+            <tr class="table-light">
+                <td colspan="3" class="fw-bold text-primary">${namaProses}</td>
             </tr>
         `;
-    }).join('');
+        
+        // Components for this process
+        komponenList.forEach(komponen => {
+            const totalPerProduksi = komponen.harga_per_unit * qty;
+            totalProses += totalPerProduksi;
+            
+            bopHtml += `
+                <tr>
+                    <td class="ps-4">${komponen.nama_komponen}</td>
+                    <td>
+                        ${formatRupiah(komponen.harga_per_unit)}
+                        <br><small class="text-muted">(${formatRupiah(komponen.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
+                        <br><small class="text-info">COA: ${komponen.coa_kode} - ${komponen.coa_nama}</small>
+                    </td>
+                    <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
+                </tr>
+            `;
+        });
+        
+        // Subtotal for process
+        bopHtml += `
+            <tr class="table-secondary">
+                <td colspan="2" class="fw-bold ps-4">Subtotal ${namaProses}</td>
+                <td class="fw-bold">${formatRupiah(totalProses)}</td>
+            </tr>
+        `;
+    });
     
     if (bopHtml) {
+        const totalBopPerHari = totalBop * qty;
         document.getElementById('bop-list').innerHTML = bopHtml + `
             <tr class="table-warning">
                 <td colspan="2" class="fw-bold">Total BOP</td>
-                <td class="fw-bold">${formatRupiah(totalBop)}</td>
+                <td class="fw-bold">${formatRupiah(totalBopPerHari)}</td>
             </tr>
         `;
     } else {
@@ -441,7 +446,8 @@ function calculateCostBreakdown() {
     }
     
     // Calculate total
-    const totalKeseluruhan = totalBiayaBahan + totalBtkl + totalBop;
+    const totalBopPerHari = totalBop * qty;
+    const totalKeseluruhan = totalBiayaBahan + totalBtkl + totalBopPerHari;
     document.getElementById('harga-pokok').textContent = formatRupiah(totalKeseluruhan);
     document.getElementById('total-keseluruhan').textContent = formatRupiah(totalKeseluruhan);
     
@@ -449,7 +455,7 @@ function calculateCostBreakdown() {
     document.getElementById('submit-btn').disabled = false;
     
     // Generate jurnal preview
-    generateJurnalPreview(totalBiayaBahan, totalBtkl, totalBop, totalKeseluruhan, qty);
+    generateJurnalPreview(totalBiayaBahan, totalBtkl, totalBopPerHari, totalKeseluruhan, qty);
 }
 
 function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
@@ -557,33 +563,16 @@ function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
                 totalKredit += selisih;
             }
         } else {
-            // Fallback: Bahan Pendukung + Hutang Usaha
-            const totalBahanPendukung = currentBomData.biaya_bahan.bahan_pendukung.reduce((sum, b) => sum + (b.harga_per_unit * qty), 0);
-            
-            currentBomData.biaya_bahan.bahan_pendukung.forEach(bahan => {
-                const totalBahan = bahan.harga_per_unit * qty;
-                if (totalBahan > 0) {
-                    rows += `<tr>
-                        <td></td>
-                        <td class="ps-4 text-muted">${bahan.coa_persediaan_nama ?? bahan.nama}</td>
-                        <td class="text-muted">${bahan.coa_persediaan_kode ?? '1151'}</td>
-                        <td class="text-end">-</td>
-                        <td class="text-end text-danger">${formatRupiah(totalBahan)}</td>
-                    </tr>`;
-                    totalKredit += totalBahan;
-                }
-            });
-            
-            const sisaBOP = totalBOP - totalBahanPendukung;
-            if (sisaBOP > 0) {
+            // Fallback: Hutang Usaha untuk seluruh BOP
+            if (totalBOP > 0) {
                 rows += `<tr>
                     <td></td>
-                    <td class="ps-4 text-muted">Hutang Usaha (BOP Overhead)</td>
+                    <td class="ps-4 text-muted">Hutang Usaha (BOP)</td>
                     <td class="text-muted">210</td>
                     <td class="text-end">-</td>
-                    <td class="text-end text-danger">${formatRupiah(sisaBOP)}</td>
+                    <td class="text-end text-danger">${formatRupiah(totalBOP)}</td>
                 </tr>`;
-                totalKredit += sisaBOP;
+                totalKredit += totalBOP;
             }
         }
     }

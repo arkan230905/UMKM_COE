@@ -12,6 +12,7 @@ class BopProses extends Model
     protected $table = 'bop_proses';
 
     protected $fillable = [
+        'user_id',
         'proses_produksi_id',
         'listrik_per_jam',
         'gas_bbm_per_jam',
@@ -19,10 +20,14 @@ class BopProses extends Model
         'maintenance_per_jam',
         'gaji_mandor_per_jam',
         'lain_lain_per_jam',
-        'komponen_bop',
-        'total_bop_per_jam',
+        'komponen_bop', // JSON array of components with rate_per_produk
+        'total_bop_per_produk', // Total BOP per produk from components
+        'total_biaya_per_produk', // Total biaya per produk (BTKL + BOP)
+        'total_bop_per_jam', // Backward compatibility
         'kapasitas_per_jam', // Read-only dari BTKL
-        'bop_per_unit',
+        'bop_per_unit', // Same as total_bop_per_produk
+        'budget',
+        'aktual',
         'is_active'
     ];
 
@@ -34,51 +39,71 @@ class BopProses extends Model
         'gaji_mandor_per_jam' => 'decimal:2',
         'lain_lain_per_jam' => 'decimal:2',
         'komponen_bop' => 'array',
+        'total_bop_per_produk' => 'decimal:2',
+        'total_biaya_per_produk' => 'decimal:2',
         'total_bop_per_jam' => 'decimal:2',
         'kapasitas_per_jam' => 'integer',
         'bop_per_unit' => 'decimal:4',
+        'budget' => 'decimal:2',
+        'aktual' => 'decimal:2',
         'is_active' => 'boolean'
     ];
 
     /**
-     * Boot method untuk auto-calculate
+     * Boot method untuk auto-calculate dan multi-tenant
      */
     protected static function booted()
     {
+        static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+        
         static::saving(function ($model) {
-            // Calculate total BOP per jam from components
-            $totalBop = 0;
+            // Calculate total BOP per produk from komponen_bop JSON
+            $totalBopPerProduk = 0;
             
-            // Check if we have JSON komponen_bop (new structure)
-            if ($model->komponen_bop) {
-                $komponenBop = is_array($model->komponen_bop) ? $model->komponen_bop : json_decode($model->komponen_bop, true);
-                if (is_array($komponenBop) && isset($komponenBop[0]['rate_per_hour'])) {
-                    // New JSON structure
-                    $totalBop = array_sum(array_column($komponenBop, 'rate_per_hour'));
+            if ($model->komponen_bop && is_array($model->komponen_bop)) {
+                foreach ($model->komponen_bop as $komponen) {
+                    if (isset($komponen['rate_per_produk'])) {
+                        $totalBopPerProduk += floatval($komponen['rate_per_produk']);
+                    } elseif (isset($komponen['rate_per_hour'])) {
+                        // Fallback for old structure - treat rate_per_hour as rate_per_produk
+                        $totalBopPerProduk += floatval($komponen['rate_per_hour']);
+                    }
                 }
             }
             
-            // If no JSON data or total is 0, calculate from individual fields (old structure)
-            if ($totalBop == 0) {
-                $totalBop = 
-                    floatval($model->listrik_per_jam ?? 0) +
-                    floatval($model->gas_bbm_per_jam ?? 0) +
-                    floatval($model->penyusutan_mesin_per_jam ?? 0) +
-                    floatval($model->maintenance_per_jam ?? 0) +
-                    floatval($model->gaji_mandor_per_jam ?? 0) +
-                    floatval($model->lain_lain_per_jam ?? 0);
+            // Calculate BTKL per produk
+            $btklPerProduk = 0;
+            if ($model->prosesProduksi && $model->prosesProduksi->kapasitas_per_jam > 0) {
+                $btklPerProduk = floatval($model->prosesProduksi->tarif_btkl) / floatval($model->prosesProduksi->kapasitas_per_jam);
             }
             
-            $model->total_bop_per_jam = $totalBop;
+            // Calculate total biaya per produk (BTKL + BOP)
+            $totalBiayaPerProduk = $btklPerProduk + $totalBopPerProduk;
+            
+            // Calculate total BOP per jam (backward compatibility)
+            $totalBopPerJam = 
+                floatval($model->listrik_per_jam ?? 0) +
+                floatval($model->gas_bbm_per_jam ?? 0) +
+                floatval($model->penyusutan_mesin_per_jam ?? 0) +
+                floatval($model->maintenance_per_jam ?? 0) +
+                floatval($model->gaji_mandor_per_jam ?? 0) +
+                floatval($model->lain_lain_per_jam ?? 0);
+            
+            // Set calculated values
+            $model->total_bop_per_produk = $totalBopPerProduk;
+            $model->total_biaya_per_produk = $totalBiayaPerProduk;
+            $model->bop_per_unit = $totalBopPerProduk; // For backward compatibility
+            $model->total_bop_per_jam = $totalBopPerJam;
 
             // Auto-sync kapasitas dari BTKL
             if ($model->prosesProduksi) {
                 $model->kapasitas_per_jam = $model->prosesProduksi->kapasitas_per_jam;
             }
-
-            // Auto-calculate BOP per unit using per-product basis
-            // BOP per unit is same as total BOP (no division by capacity)
-            $model->bop_per_unit = $totalBop;
         });
     }
 

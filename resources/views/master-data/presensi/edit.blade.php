@@ -44,7 +44,7 @@
                                 <option value="{{ $pegawai->id }}" 
                                     {{ old('pegawai_id', $presensi->pegawai_id) == $pegawai->id ? 'selected' : '' }}
                                     >
-                                    {{ $pegawai->nama }} ({{ $pegawai->nomor_induk_pegawai }})
+                                    {{ $pegawai->nama }}{{ $pegawai->kode_pegawai ? ' (' . $pegawai->kode_pegawai . ')' : '' }}
                                 </option>
                             @endforeach
                         </select>

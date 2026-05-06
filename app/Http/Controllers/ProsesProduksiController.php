@@ -20,9 +20,16 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
-        // MULTI-TENANT: Filter by user_id
-        // Load with essential relationships only to avoid errors
-        $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
+        // 🔒 MULTI-TENANT: Filter by user_id
+        // Load with essential relationships only from logged-in user
+        $prosesProduksis = ProsesProduksi::with(['jabatan' => function($query) {
+                // 🔒 SECURITY: Only get jabatans from logged-in user
+                $query->where('user_id', auth()->id())
+                      ->with(['pegawais' => function($pegawaiQuery) {
+                          // 🔒 SECURITY: Only get pegawais from logged-in user
+                          $pegawaiQuery->where('user_id', auth()->id());
+                      }]);
+            }])
             ->where('user_id', auth()->id())
             ->orderBy('kode_proses')
             ->paginate(10);
@@ -35,8 +42,13 @@ class ProsesProduksiController extends Controller
      */
     public function create()
     {
-        $komponenBops = KomponenBop::active()->orderBy('nama_komponen')->get();
-        return view('master-data.proses-produksi.create', compact('komponenBops'));
+        // 🔒 MULTI-TENANT: Only get data from logged-in user
+        $komponenBops = KomponenBop::where('user_id', auth()->id())->active()->orderBy('nama_komponen')->get();
+        
+        // 🔒 MULTI-TENANT: Only get jabatans from logged-in user
+        $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
+        
+        return view('master-data.proses-produksi.create', compact('komponenBops', 'jabatans'));
     }
 
     /**
@@ -58,8 +70,13 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-            // Get jabatan data for verification
-            $jabatan = \App\Models\Jabatan::with('pegawais')->findOrFail($validated['jabatan_id']);
+            // 🔒 MULTI-TENANT SECURITY: Verify jabatan belongs to logged-in user
+            $jabatan = \App\Models\Jabatan::with(['pegawais' => function($query) {
+                // 🔒 SECURITY: Only get pegawais from logged-in user
+                $query->where('user_id', auth()->id());
+            }])
+            ->where('user_id', auth()->id())
+            ->findOrFail($validated['jabatan_id']);
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
@@ -137,14 +154,20 @@ class ProsesProduksiController extends Controller
      */
     public function edit(ProsesProduksi $prosesProduksi)
     {
-        // MULTI-TENANT: Check ownership
+        // 🔒 MULTI-TENANT: Check ownership
         if ($prosesProduksi->user_id != auth()->id()) {
             abort(404);
         }
         
         $prosesProduksi->load('prosesBops.komponenBop');
-        $komponenBops = KomponenBop::active()->orderBy('nama_komponen')->get();
-        return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'komponenBops'));
+        
+        // 🔒 MULTI-TENANT: Only get data from logged-in user
+        $komponenBops = KomponenBop::where('user_id', auth()->id())->active()->orderBy('nama_komponen')->get();
+        
+        // 🔒 MULTI-TENANT: Only get jabatans from logged-in user
+        $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
+        
+        return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'komponenBops', 'jabatans'));
     }
 
     /**
@@ -152,6 +175,11 @@ class ProsesProduksiController extends Controller
      */
     public function update(Request $request, ProsesProduksi $prosesProduksi)
     {
+        // 🔒 MULTI-TENANT: Check ownership
+        if ($prosesProduksi->user_id != auth()->id()) {
+            abort(404);
+        }
+        
         \Log::info('BTKL Update Request', [
             'id' => $prosesProduksi->id,
             'request_data' => $request->all()
@@ -167,8 +195,13 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-            // Get jabatan data for verification
-            $jabatan = \App\Models\Jabatan::with('pegawais')->findOrFail($validated['jabatan_id']);
+            // 🔒 MULTI-TENANT SECURITY: Verify jabatan belongs to logged-in user
+            $jabatan = \App\Models\Jabatan::with(['pegawais' => function($query) {
+                // 🔒 SECURITY: Only get pegawais from logged-in user
+                $query->where('user_id', auth()->id());
+            }])
+            ->where('user_id', auth()->id())
+            ->findOrFail($validated['jabatan_id']);
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();

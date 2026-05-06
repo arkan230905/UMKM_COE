@@ -111,7 +111,7 @@
         </div>
     @endif
 
-    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" onsubmit="debugFormData(this)">
+    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" enctype="multipart/form-data" onsubmit="debugFormData(this)">
         @csrf
         
         <!-- Header Information -->
@@ -132,8 +132,20 @@
                 </div>
                 
                 <div class="col-md-3">
-                    <label class="form-label">Nomor Faktur Pembelian</label>
-                    <input type="text" name="nomor_faktur" class="form-control" placeholder="0232000002" value="{{ old('nomor_faktur') }}">
+                    <label class="form-label">Nomor Faktur Pembelian <span class="text-danger">*</span></label>
+                    <input type="text" name="nomor_faktur" class="form-control" placeholder="0232000002" value="{{ old('nomor_faktur') }}" required>
+                    @error('nomor_faktur')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Bukti Faktur <span class="text-danger">*</span></label>
+                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,application/pdf" required>
+                    <small class="text-muted">Format: JPG, PNG, PDF (Max: 2MB)</small>
+                    @error('bukti_faktur')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
                 
                 <div class="col-md-3">

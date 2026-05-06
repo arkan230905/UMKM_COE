@@ -167,86 +167,59 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        // Auto-set date filter for purchase transactions
-        if ($refType === 'purchase' && $refId && !$from && !$to) {
-            $pembelian = \App\Models\Pembelian::find($refId);
-            if ($pembelian) {
-                // Set filter tanggal berdasarkan tanggal pembelian
-                $tanggalPembelian = \Carbon\Carbon::parse($pembelian->tanggal);
-                $from = $tanggalPembelian->format('Y-m-d');
-                $to = $tanggalPembelian->format('Y-m-d');
-                
-                \Log::info('Auto-set date filter for purchase journal', [
-                    'purchase_id' => $refId,
-                    'purchase_date' => $tanggalPembelian->format('Y-m-d'),
-                    'from' => $from,
-                    'to' => $to
-                ]);
-            }
-        }
-
-        // Auto-generate journal jika belum ada untuk purchase
-        if ($refType === 'purchase' && $refId) {
-            $this->ensurePurchaseJournalExists($refId);
-        }
-
-        // MULTI-TENANT: Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
-        $query = \DB::table('journal_entries as je')
-            ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
+        // MULTI-TENANT: Query jurnal_umum (flat structure)
+        $query = \DB::table('jurnal_umum as ju')
+            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
             ->select([
-                'je.*',
-                'jl.id as line_id',
-                'jl.debit',
-                'jl.credit',
-                'jl.memo as line_memo',
+                'ju.*',
                 'coas.kode_akun',
                 'coas.nama_akun',
                 'coas.tipe_akun'
             ])
-            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->where(function($q) {
-                $q->where('jl.debit', '!=', 0)
-                  ->orWhere('jl.credit', '!=', 0);
+                $q->where('ju.debit', '!=', 0)
+                  ->orWhere('ju.kredit', '!=', 0);
             })
-            ->orderBy('je.tanggal','asc')
-            ->orderBy('je.created_at','asc')
-            ->orderBy('je.id','asc')
-            ->orderBy('jl.id','asc');
+            ->orderBy('ju.tanggal','asc')
+            ->orderBy('ju.created_at','asc')
+            ->orderBy('ju.id','asc');
             
-        if ($from) { $query->whereDate('je.tanggal','>=',$from); }
-        if ($to)   { $query->whereDate('je.tanggal','<=',$to); }
-        if ($refType) { $query->where('je.ref_type', $refType); }
-        if ($refId)   { $query->where('je.ref_id', $refId); }
+        if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
+        if ($to)   { $query->whereDate('ju.tanggal','<=',$to); }
+        if ($refType) { $query->where('ju.tipe_referensi', $refType); }
+        if ($refId)   { $query->where('ju.referensi', $refId); }
         if ($accountCode) { 
             $query->where('coas.kode_akun', $accountCode);
         }
         
         $results = $query->get();
         
-        // Group results by journal entry untuk tampilan per transaksi
+        // Group results by date and reference for display
         $entries = collect();
-        $groupedResults = $results->groupBy('id');
+        $groupedResults = $results->groupBy(function($item) {
+            return $item->tanggal . '_' . ($item->tipe_referensi ?? 'manual') . '_' . ($item->referensi ?? $item->id);
+        });
         
-        foreach ($groupedResults as $entryId => $lines) {
+        foreach ($groupedResults as $groupKey => $lines) {
             $firstLine = $lines->first();
             
-            // Skip jika tidak ada lines yang valid
+            // Skip if no valid lines
             if ($lines->isEmpty()) continue;
             
             $entry = (object) [
                 'id' => $firstLine->id,
                 'tanggal' => $firstLine->tanggal,
                 'created_at' => $firstLine->created_at,
-                'ref_type' => $firstLine->ref_type,
-                'ref_id' => $firstLine->ref_id,
-                'memo' => $firstLine->memo,
+                'ref_type' => $firstLine->tipe_referensi,
+                'ref_id' => $firstLine->referensi,
+                'memo' => $firstLine->keterangan,
                 'lines' => $lines->map(function($line) {
                     return (object) [
-                        'id' => $line->line_id,
+                        'id' => $line->id,
                         'debit' => $line->debit,
-                        'credit' => $line->credit,
-                        'memo' => $line->line_memo,
+                        'credit' => $line->kredit,
+                        'memo' => $line->keterangan,
                         'account_code' => $line->kode_akun,
                         'account_name' => $line->nama_akun,
                         'account_type' => $line->tipe_akun,
@@ -261,168 +234,12 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
-        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan dan transaksi lain)
-        // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
-        $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
-            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
-            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-            ->select([
-                'ju.id',
-                'ju.tanggal',
-                'ju.keterangan as memo',
-                'ju.referensi',
-                'ju.tipe_referensi as ref_type',
-                'ju.debit',
-                'ju.kredit as credit',
-                'ju.created_at',
-                'coas.kode_akun',
-                'coas.nama_akun',
-                'coas.tipe_akun'
-            ])
-            ->where(function($q) {
-                $q->where('ju.debit', '>', 0)
-                  ->orWhere('ju.kredit', '>', 0);
-            })
-            // PERBAIKAN: Include pembelian transactions from jurnal_umum
-            ->whereIn('ju.tipe_referensi', [
-                'pembelian', // Include purchase transactions
-                'penyusutan', 'adjustment', 'manual' // Keep other manual entries
-            ])
-            ->orderBy('ju.tanggal','asc')
-            ->orderBy('ju.created_at','asc')
-            ->orderBy('ju.id','asc');
-            
-        if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
-        if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
-        
-        // Handle ref_type filtering for purchase transactions
-        if ($refType) { 
-            if ($refType === 'purchase') {
-                $jurnalUmumQuery->where('ju.tipe_referensi', 'pembelian');
-            } else {
-                $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
-            }
-        }
-        
-        // Handle ref_id filtering for purchase transactions
-        if ($refId && $refType === 'purchase') {
-            // Get the pembelian nomor_pembelian for filtering
-            $pembelian = \App\Models\Pembelian::find($refId);
-            if ($pembelian) {
-                $jurnalUmumQuery->where('ju.referensi', $pembelian->nomor_pembelian);
-            }
-        }
-        
-        if ($accountCode) { 
-            $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
-        }
-        
-        $jurnalUmumResults = $jurnalUmumQuery->get();
-        
-        // Group jurnal_umum results by kode_akun untuk menggabungkan debit/kredit dengan benar
-        $jurnalUmumGrouped = $jurnalUmumResults->groupBy('kode_akun');
-        
-        foreach ($jurnalUmumGrouped as $key => $group) {
-            $firstItem = $group->first();
-            
-            $entry = (object) [
-                'id' => 'ju_' . $firstItem->id, // Prefix untuk membedakan dengan journal_entries
-                'tanggal' => $firstItem->tanggal,
-                'created_at' => $firstItem->created_at,
-                'ref_type' => $firstItem->ref_type,
-                'ref_id' => null,
-                'memo' => $firstItem->memo,
-                'lines' => $group->map(function($item) {
-                    return (object) [
-                        'id' => $item->id,
-                        'debit' => $item->debit,
-                        'credit' => $item->credit,
-                        'memo' => null,
-                        'account_code' => $item->kode_akun,
-                        'account_name' => $item->nama_akun,
-                        'account_type' => $item->tipe_akun,
-                        'coa' => (object) [
-                            'kode_akun' => $item->kode_akun,
-                            'nama_akun' => $item->nama_akun,
-                            'tipe_akun' => $item->tipe_akun
-                        ]
-                    ];
-                })
-            ];
-            $entries->push($entry);
-        }
-        
         // Sort all entries by date and created_at
         $entries = $entries->sortBy(function($entry) {
             return $entry->tanggal . ' ' . $entry->created_at;
         });
         
         return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId','accountCode'));
-    }
-
-    /**
-     * Ensure purchase journal exists, create if not
-     */
-    private function ensurePurchaseJournalExists($purchaseId)
-    {
-        try {
-            \Log::info('Ensuring purchase journal exists', ['purchase_id' => $purchaseId]);
-            
-            // Get purchase data
-            $pembelian = \App\Models\Pembelian::with([
-                'vendor',
-                'details.bahanBaku',
-                'details.bahanPendukung'
-            ])->find($purchaseId);
-
-            if (!$pembelian) {
-                \Log::warning('Purchase not found for journal generation', ['id' => $purchaseId]);
-                return;
-            }
-
-            // Check if journal already exists in jurnal_umum table
-            $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
-                ->where('referensi', $pembelian->nomor_pembelian)
-                ->first();
-
-            if ($existingJournal) {
-                \Log::info('Journal already exists for purchase', [
-                    'purchase_id' => $purchaseId, 
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-                return; // Journal already exists, no need to recreate
-            }
-
-            \Log::info('Creating journal for purchase', [
-                'purchase_id' => $purchaseId,
-                'nomor_pembelian' => $pembelian->nomor_pembelian,
-                'total_harga' => $pembelian->total_harga,
-                'details_count' => $pembelian->details->count()
-            ]);
-
-            // Create journal using PembelianJournalService
-            $journalService = new \App\Services\PembelianJournalService();
-            $result = $journalService->createJournalFromPembelian($pembelian);
-
-            if ($result) {
-                \Log::info('Auto-generated journal for purchase', [
-                    'purchase_id' => $purchaseId,
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-            } else {
-                \Log::warning('Failed to generate journal for purchase', [
-                    'purchase_id' => $purchaseId,
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            \Log::error('Failed to auto-generate purchase journal', [
-                'purchase_id' => $purchaseId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-        }
     }
 
     public function jurnalUmumExportPdf(Request $request)
@@ -549,65 +366,55 @@ class AkuntansiController extends Controller
                 $saldoAwal = (float)($coa->saldo_awal ?? 0);
             }
 
-            // MULTI-TENANT: Simple query for journal entries (filtered by user_id)
-            $query = \DB::table('journal_entries as je')
-                ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-                ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
-                ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            // MULTI-TENANT: Query jurnal_umum untuk konsistensi dengan sistem lain
+            $query = \DB::table('jurnal_umum as ju')
+                ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+                ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->where('coas.kode_akun', $accountCode) // Filter akun yang dipilih
                 ->select([
-                    'je.*',
-                    'jl.id as line_id',
-                    'jl.debit',
-                    'jl.credit',
-                    'jl.memo as line_memo',
+                    'ju.*',
                     'coas.kode_akun',
                     'coas.nama_akun',
                     'coas.tipe_akun'
                 ])
                 ->where(function($q) {
-                    $q->where('jl.debit', '>', 0)
-                      ->orWhere('jl.credit', '>', 0);
+                    $q->where('ju.debit', '>', 0)
+                      ->orWhere('ju.kredit', '>', 0);
                 })
-                ->where('coas.kode_akun', $accountCode)
-                ->orderBy('je.tanggal','asc')
-                ->orderBy('je.id','asc')
-                ->orderBy('jl.id','asc');
+                ->orderBy('ju.tanggal','asc')
+                ->orderBy('ju.id','asc');
             
             if ($month && $year) {
-                $query->whereMonth('je.tanggal', $month)
-                       ->whereYear('je.tanggal', $year);
+                $query->whereMonth('ju.tanggal', $month)
+                       ->whereYear('ju.tanggal', $year);
             }
 
             $journalLines = $query->get();
 
-            // Group by journal entry untuk struktur yang sesuai dengan view
-            $groupedLines = $journalLines->groupBy('id');
-            
-            foreach ($groupedLines as $entryId => $entryLines) {
-                $firstLine = $entryLines->first();
-                
+            // DEBUG: Log query results untuk verifikasi multi-tenant
+            \Log::info('Buku Besar Query Results', [
+                'user_id' => auth()->id(),
+                'account_code' => $accountCode,
+                'total_lines' => $journalLines->count(),
+                'sample_data' => $journalLines->take(3)->toArray()
+            ]);
+
+            // Create lines structure untuk view buku besar
+            foreach ($journalLines as $line) {
                 $lines->push((object) [
-                    'id' => $firstLine->id,
-                    'tanggal' => $firstLine->tanggal,
-                    'memo' => $firstLine->memo,
-                    'lines' => $entryLines->map(function($line) {
-                        return (object) [
-                            'id' => $line->line_id,
-                            'debit' => $line->debit,
-                            'credit' => $line->credit,
-                            'memo' => $line->line_memo,
-                            'coa' => (object) [
-                                'kode_akun' => $line->kode_akun,
-                                'nama_akun' => $line->nama_akun,
-                                'tipe_akun' => $line->tipe_akun
-                            ]
-                        ];
-                    })
+                    'id' => $line->id,
+                    'tanggal' => $line->tanggal,
+                    'keterangan' => $line->keterangan,
+                    'debit' => $line->debit,
+                    'kredit' => $line->kredit,
+                    'kode_akun' => $line->kode_akun,
+                    'nama_akun' => $line->nama_akun,
+                    'tipe_akun' => $line->tipe_akun
                 ]);
             }
 
             $totalDebit = $journalLines->sum('debit');
-            $totalKredit = $journalLines->sum('credit');
+            $totalKredit = $journalLines->sum('kredit');
             $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
         }
 

@@ -9,6 +9,8 @@ Route::get('/test-blade', function() {
     return view('test-blade');
 });
 
+
+
 // IMPORT ALL STOCK FROM DATABASE TO STOCK MOVEMENTS
 Route::get('import-all-stock-from-database', function() {
     try {
@@ -1989,8 +1991,8 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     Route::prefix('master-data')->name('master-data.')->middleware('role:admin,owner')->group(function () {
         // Pelanggan
-        Route::resource('pelanggan', \App\Http\Controllers\MasterData\PelangganController::class);
-        Route::post('pelanggan/{id}/reset-password', [\App\Http\Controllers\MasterData\PelangganController::class, 'resetPassword'])->name('pelanggan.reset-password');
+        Route::resource('pelanggan', \App\Http\Controllers\MasterData\PelangganTableController::class);
+        Route::post('pelanggan/{id}/reset-password', [\App\Http\Controllers\MasterData\PelangganTableController::class, 'resetPassword'])->name('pelanggan.reset-password');
         
         // Bahan Baku
         Route::resource('bahan-baku', BahanBakuController::class);
@@ -2532,17 +2534,24 @@ Route::middleware('auth')->group(function () {
         // Biaya Bahan routes
         Route::prefix('biaya-bahan')->name('biaya-bahan.')->group(function () {
             Route::get('/', [BiayaBahanController::class, 'index'])->name('index');
-            Route::get('/create/{id}', [BiayaBahanController::class, 'create'])->name('create');
-            Route::post('/store/{id}', [BiayaBahanController::class, 'store'])->name('store');
-            Route::get('/show/{id}', [BiayaBahanController::class, 'show'])->name('show');
-            Route::get('/edit/{id}', [BiayaBahanController::class, 'edit'])->name('edit');
-            Route::put('/update/{id}', [BiayaBahanController::class, 'update'])->name('update');
+            Route::get('/create/{produk_id}', [BiayaBahanController::class, 'create'])->name('create');
+            Route::post('/', [BiayaBahanController::class, 'store'])->name('store');
+            Route::get('/{produk_id}/detail', [BiayaBahanController::class, 'detail'])->name('detail');
+            Route::get('/{produk_id}/edit', [BiayaBahanController::class, 'edit'])->name('edit');
+            Route::get('/{produk_id}/edit-simple', function($produk_id) {
+                $produk = \App\Models\Produk::where('id', $produk_id)->where('user_id', auth()->id())->firstOrFail();
+                $biayaBahanList = \App\Models\BiayaBahanBaku::where('user_id', auth()->id())
+                    ->where('produk_id', $produk_id)
+                    ->with(['bahanBaku.satuan'])
+                    ->get();
+                $bahanBakus = \App\Models\BahanBaku::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+                $satuans = \App\Models\Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
+                return view('master-data.biaya-bahan.edit-simple', compact('produk', 'biayaBahanList', 'bahanBakus', 'satuans'));
+            })->name('edit-simple');
+            Route::put('/{produk_id}', [BiayaBahanController::class, 'update'])->name('update');
+            Route::get('/item/{id}/edit', [BiayaBahanController::class, 'editItem'])->name('edit-item');
+            Route::put('/item/{id}', [BiayaBahanController::class, 'updateItem'])->name('update-item');
             Route::delete('/{id}', [BiayaBahanController::class, 'destroy'])->name('destroy');
-                        
-            // New routes for price change handling
-            Route::post('/update-on-price-change', [BiayaBahanController::class, 'updateOnPriceChange'])->name('update-on-price-change');
-            Route::get('/harga-change-report/{bahanBakuId}', [BiayaBahanController::class, 'getHargaChangeReport'])->name('harga-change-report');
-            Route::post('/manual-update-all', [BiayaBahanController::class, 'manualUpdateAll'])->name('manual-update-all');
         });
         
         // Harga Management routes
@@ -2552,6 +2561,103 @@ Route::middleware('auth')->group(function () {
             Route::post('/validate-all', [HargaController::class, 'validateAll'])->name('validate-all');
             Route::get('/purchase-history/{bahanBakuId}', [HargaController::class, 'purchaseHistory'])->name('purchase-history');
         });
+        
+        // API Routes for HPP Component Data (moved outside master-data group)
+        Route::get('api/bbb-data/{produk_id}', function ($produkId) {
+            try {
+                $bbbData = DB::table('bom_job_bbb as bbb')
+                    ->leftJoin('bahan_bakus as bb', 'bbb.bahan_baku_id', '=', 'bb.id')
+                    ->leftJoin('satuans as s', 'bb.satuan_id', '=', 's.id')
+                    ->where('bbb.user_id', auth()->id())
+                    ->where('bbb.produk_id', $produkId)
+                    ->select(
+                        'bbb.id',
+                        'bb.nama_bahan',
+                        'bbb.jumlah',
+                        'bbb.satuan',
+                        'bbb.harga_satuan',
+                        'bbb.subtotal',
+                        's.nama as satuan_nama'
+                    )
+                    ->orderBy('bbb.created_at', 'desc')
+                    ->get();
+                
+                return response()->json($bbbData);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        });
+        
+        Route::get('api/btkl-data/{produk_id}', function ($produkId) {
+            try {
+                // Debug: Log authentication status
+                \Log::info('BTKL API called', [
+                    'produk_id' => $produkId,
+                    'authenticated' => auth()->check(),
+                    'user_id' => auth()->id()
+                ]);
+                
+                // Get all BTKL processes from proses_produksis table
+                $btklData = DB::table('proses_produksis as pp')
+                    ->leftJoin('jabatans as j', 'pp.jabatan_id', '=', 'j.id')
+                    ->where('pp.user_id', auth()->id())
+                    ->select(
+                        'pp.id',
+                        'pp.kode_proses',
+                        'pp.nama_proses',
+                        'j.nama as nama_jabatan',
+                        'pp.tarif_btkl',
+                        'pp.satuan_btkl',
+                        'pp.kapasitas_per_jam',
+                        DB::raw('(pp.tarif_btkl / NULLIF(pp.kapasitas_per_jam, 0)) as btkl_per_produk'),
+                        DB::raw('0 as bop_per_produk')
+                    )
+                    ->orderBy('pp.nama_proses')
+                    ->get();
+                
+                \Log::info('BTKL data found', ['count' => $btklData->count()]);
+                
+                return response()->json($btklData);
+            } catch (\Exception $e) {
+                \Log::error('BTKL API error', ['error' => $e->getMessage()]);
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        });
+        
+        // BOP API Route (simple version)
+        Route::get('api/bop-details/{btkl_ids}', function ($btkl_ids) {
+            try {
+                $btklIdArray = explode(',', $btkl_ids);
+                
+                $rawBopData = DB::table('bop_proses as bp')
+                    ->whereIn('bp.proses_produksi_id', $btklIdArray)
+                    ->where('bp.user_id', auth()->id())
+                    ->select(
+                        'bp.id',
+                        'bp.komponen_bop',
+                        'bp.total_bop_per_produk',
+                        'bp.total_bop_per_jam'
+                    )
+                    ->orderBy('bp.id')
+                    ->get();
+                
+                $processedBopData = [];
+                foreach ($rawBopData as $bop) {
+                    $processedBopData[] = [
+                        'id' => $bop->id,
+                        'komponen_bop' => $bop->komponen_bop,
+                        'total_bop_per_produk' => $bop->total_bop_per_produk,
+                        'total_bop_per_jam' => $bop->total_bop_per_jam
+                    ];
+                }
+                
+                return response()->json($processedBopData);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        });
+        
+        
         
         // BOP Routes (Unified)
         Route::prefix('bop')->name('bop.')->group(function () {
@@ -2567,8 +2673,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create-proses', [\App\Http\Controllers\MasterData\BopController::class, 'createProses'])->name('create-proses');
             Route::post('/store-proses', [\App\Http\Controllers\MasterData\BopController::class, 'storeProses'])->name('store-proses');
             Route::post('/store-proses-simple', [\App\Http\Controllers\MasterData\BopController::class, 'storeProsesSimple'])->name('store-proses-simple');
-            Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
-            Route::get('/show-proses-modal/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProsesModal'])->name('show-proses-modal');
+                        Route::get('/show-proses-modal/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProsesModal'])->name('show-proses-modal');
             Route::get('/get-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getBopProses'])->name('get-proses');
             Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
@@ -2593,34 +2698,11 @@ Route::middleware('auth')->group(function () {
 
         // Harga Pokok Produksi Routes
         Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
-            Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
-            Route::post('update-from-stock/{produkId}', [BomController::class, 'updateBomFromStockReport'])->name('update-from-stock');
-            Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
-            Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
-            Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
-            
-            // Auto-population routes
-            Route::post('/populate-all', [BomController::class, 'populateAllBomData'])->name('populate-all');
-            Route::post('/sync/{produk}', [BomController::class, 'syncBomData'])->name('sync');
-            
-            // API routes for AJAX calls
-            Route::get('/get-bom-details/{produkId}', [BomController::class, 'getBomDetails'])->name('getBomDetails');
-            Route::get('/get-available-materials/{produkId}', [BomController::class, 'getAvailableMaterials'])->name('getAvailableMaterials');
-            Route::get('/get-product-info/{produkId}', [BomController::class, 'getProductInfo'])->name('getProductInfo');
-            Route::post('/update-costs', [BomController::class, 'updateBomCosts'])->name('updateCosts');
-            
-            // Resource routes with explicit names to avoid conflicts
             Route::get('/', [BomController::class, 'index'])->name('index');
             Route::get('/create', [BomController::class, 'create'])->name('create');
             Route::post('/', [BomController::class, 'store'])->name('store');
-            Route::get('/{id}/edit', [BomController::class, 'edit'])->name('edit');
-            Route::put('/{bom}', [BomController::class, 'update'])->name('update');
-            Route::get('/{id}', [BomController::class, 'show'])->name('show');
-            Route::get('/{id}/print', [BomController::class, 'print'])->name('print');
-            Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
-            Route::post('/update-bop', [BomController::class, 'updateBOP'])->name('update-bop');
-            Route::post('/update-bop-from-detail', [BomController::class, 'updateBOPFromDetail'])->name('update-bop-from-detail');
-            Route::post('/{produk}/update-bom-costs', [BomController::class, 'updateBomCosts'])->name('update-bom-costs');
+            Route::get('/{produk_id}', [BomController::class, 'show'])->name('show');
+            Route::delete('/{produk_id}', [BomController::class, 'destroy'])->name('destroy');
         });
         
         // BTKL Routes (Biaya Tenaga Kerja Langsung) - Using ProsesProduksiController
@@ -2765,7 +2847,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
 
             // Tandai sudah dibayar (owner/admin only)
-            Route::patch('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+            Route::post('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
 
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
@@ -5350,8 +5432,18 @@ Route::get('fix-coa-expense-payments', function() {
     }
 });
 
+    // API Routes for HPP Data
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/get-available-bbb/{produk_id}', [BomController::class, 'getAvailableBbb'])->name('get-available-bbb');
+        Route::get('/get-available-btkl/{produk_id}', [BomController::class, 'getAvailableBtkl'])->name('get-available-btkl');
+        Route::get('/get-available-bop', [BomController::class, 'getAvailableBop'])->name('get-available-bop');
+    });
 
 // Debug route untuk analisis duplikasi pembayaran beban
 Route::get('/debug/pembayaran-beban-analysis', function() {
     return view('debug.pembayaran_beban_analysis');
 });
+
+
+// Include storage routes
+require_once __DIR__ . '/storage.php';

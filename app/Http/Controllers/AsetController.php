@@ -261,6 +261,7 @@ class AsetController extends Controller
             $aset->tanggal_akuisisi = $request->tanggal_akuisisi ?: $request->tanggal_beli;
             $aset->status = 'aktif';
             $aset->keterangan = $request->keterangan;
+            $aset->user_id = auth()->id(); // 🔒 SECURITY: CRITICAL - Set user_id for multi-tenant
             $aset->updated_by = auth()->id();
             
             // Save COA fields
@@ -299,6 +300,12 @@ class AsetController extends Controller
      */
     public function show(Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Load relasi kategori dan jenis aset
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
@@ -464,6 +471,12 @@ class AsetController extends Controller
      */
     public function edit(Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
@@ -617,6 +630,12 @@ class AsetController extends Controller
      */
     public function update(Request $request, Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
@@ -756,6 +775,12 @@ class AsetController extends Controller
 
     public function destroy(Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')

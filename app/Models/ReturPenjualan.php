@@ -12,6 +12,7 @@ class ReturPenjualan extends Model
     protected $table = 'retur_penjualans';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_retur',
         'tanggal',
         'penjualan_id',
@@ -197,6 +198,13 @@ class ReturPenjualan extends Model
     protected static function boot()
     {
         parent::boot();
+        
+        // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+        static::creating(function ($returPenjualan) {
+            if (empty($returPenjualan->user_id) && auth()->check()) {
+                $returPenjualan->user_id = auth()->id();
+            }
+        });
         
         static::created(function ($returPenjualan) {
             // Create automatic journal entries for all return types except tukar_barang

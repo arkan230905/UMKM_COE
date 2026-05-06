@@ -2,8 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\JournalEntry;
-use App\Models\JournalLine;
+use App\Models\JurnalUmum;
 use App\Models\Coa;
 use Illuminate\Support\Facades\DB;
 
@@ -11,21 +10,18 @@ class JournalService
 {
     protected function coaId(string $code): int
     {
-        // Langsung gunakan COA saja, tidak perlu tabel accounts
         $coa = Coa::where('kode_akun', $code)->first();
         if ($coa) {
-            // Return the actual ID column, not the primary key
             return (int)$coa->getAttribute('id');
         }
 
-        // Jika COA tidak ditemukan, buat error yang informatif
         throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
     }
 
     /**
      * Post a balanced journal entry with given lines. Each line element: ['code'=>account_code, 'debit'=>float, 'credit'=>float, 'memo'=>string (optional)]
      */
-    public function post(string $tanggal, string $refType, int $refId, string $memo, array $lines): JournalEntry
+    public function post(string $tanggal, string $refType, int $refId, string $memo, array $lines)
     {
         return $this->postWithUser($tanggal, $refType, $refId, $memo, $lines, auth()->id());
     }
@@ -33,299 +29,71 @@ class JournalService
     /**
      * Post a balanced journal entry with specific user_id
      */
-    public function postWithUser(string $tanggal, string $refType, int $refId, string $memo, array $lines, $userId): JournalEntry
+    public function postWithUser(string $tanggal, string $refType, int $refId, string $memo, array $lines, $userId)
     {
         return DB::transaction(function () use ($tanggal, $refType, $refId, $memo, $lines, $userId) {
-            $entry = JournalEntry::create([
-                'tanggal' => $tanggal,
-                'ref_type' => $refType,
-                'ref_id' => $refId,
-                'memo' => $memo,
-                'user_id' => $userId, // CRITICAL: multi-tenant isolation
-            ]);
-
-            $totalDebit = 0.0; $totalCredit = 0.0;
+            $totalDebit = 0.0; 
+            $totalCredit = 0.0;
+            
             foreach ($lines as $ln) {
                 $aid = $this->coaId($ln['code']);
-                $debit = (float)($ln['debit'] ?? 0); $credit = (float)($ln['credit'] ?? 0);
-                $lineMemo = $ln['memo'] ?? null; // Support per-line memo
+                $debit = (float)($ln['debit'] ?? 0); 
+                $credit = (float)($ln['credit'] ?? 0);
+                $lineMemo = $ln['memo'] ?? $memo;
                 
-                JournalLine::create([
-                    'journal_entry_id' => $entry->id,
+                // Create journal entry using JurnalUmum
+                JurnalUmum::create([
+                    'user_id' => $userId,
                     'coa_id' => $aid,
+                    'tanggal' => $tanggal,
+                    'keterangan' => $lineMemo,
                     'debit' => $debit,
-                    'credit' => $credit,
-                    'memo' => $lineMemo, // Add memo to journal line if supported
+                    'kredit' => $credit,
+                    'referensi' => $refId,
+                    'tipe_referensi' => $refType,
+                    'created_by' => $userId,
                 ]);
-                $totalDebit += $debit; $totalCredit += $credit;
                 
-                // AUTOMATIC POSTING TO JURNAL UMUM (GENERAL LEDGER)
-                // This ensures all journal entries automatically appear in Buku Besar
-                // Check if entry already exists to prevent duplicates
-                $existingJurnalUmum = \App\Models\JurnalUmum::where('coa_id', $aid)
-                    ->where('tanggal', $tanggal)
-                    ->where('referensi', $refType . '#' . $refId)
-                    ->where('tipe_referensi', $refType)
-                    ->where('debit', $debit)
-                    ->where('kredit', $credit)
-                    ->first();
-                
-                if (!$existingJurnalUmum) {
-                    \App\Models\JurnalUmum::create([
-                        'user_id' => $userId, // CRITICAL: multi-tenant isolation
-                        'coa_id' => $aid,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $lineMemo ?? $memo,
-                        'debit' => $debit,
-                        'kredit' => $credit,
-                        'referensi' => $refType . '#' . $refId,
-                        'tipe_referensi' => $refType,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
+                $totalDebit += $debit;
+                $totalCredit += $credit;
             }
 
-            // Optional: basic balance check
-            if (round($totalDebit - $totalCredit, 2) !== 0.0) {
-                throw new \RuntimeException('Journal not balanced: debit != credit');
+            // Validate balance
+            if (abs($totalDebit - $totalCredit) > 0.01) {
+                throw new \RuntimeException("Journal entry must balance. Total debit: $totalDebit, Total credit: $totalCredit");
             }
 
-            return $entry;
+            return (object)['id' => $refId];
         });
     }
 
     /**
-     * Delete all journal entries for a given reference.
+     * Delete journal entries by reference
      */
-    public function deleteByRef(string $refType, int $refId): void
+    public function deleteByRef(string $refType, int $refId)
     {
-        DB::transaction(function () use ($refType, $refId) {
-            // Delete from JournalEntry system
-            $entries = JournalEntry::where('ref_type', $refType)->where('ref_id', $refId)->get();
-            foreach ($entries as $e) {
-                $e->delete(); // journal_lines will cascade
-            }
-            
-            // Delete from JurnalUmum system (General Ledger)
-            \App\Models\JurnalUmum::where('tipe_referensi', $refType)
-                ->where('referensi', $refType . '#' . $refId)
-                ->delete();
-        });
+        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', $refId)->delete();
     }
 
     /**
-     * Sync all COA accounts to Account table
+     * Get journal entries by reference
      */
-    public function syncCoaToAccounts(): array
+    public function getJournalEntries(string $refType, int $refId)
     {
-        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0];
-        
-        $coas = Coa::all();
-        foreach ($coas as $coa) {
-            $account = Account::where('code', $coa->kode_akun)->first();
-            
-            if (!$account) {
-                // Create new account from COA
-                $type = $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? ''));
-                Account::create([
-                    'code' => (string)$coa->kode_akun,
-                    'name' => (string)($coa->nama_akun ?? $coa->kode_akun),
-                    'type' => $type,
-                ]);
-                $stats['created']++;
-            } elseif ($account->name === (string)$coa->kode_akun || $account->name === $coa->kode_akun) {
-                // Update account with proper name from COA
-                $account->update([
-                    'name' => (string)($coa->nama_akun ?? $coa->kode_akun),
-                    'type' => $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? '')),
-                ]);
-                $stats['updated']++;
-            } else {
-                $stats['skipped']++;
-            }
-        }
-        
-        return $stats;
+        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', $refId)->with('coa')->get();
     }
 
     /**
-     * Ensure all accounts used in journal lines have proper names
+     * Get journal entries by date range for user
      */
-    public function ensureAccountNames(): array
+    public function getJournalEntriesByDateRange($userId, $startDate, $endDate)
     {
-        $stats = ['updated' => 0];
-        
-        // Get all accounts used in journal lines that might have generic names
-        $accounts = Account::where(function($query) {
-            $query->where('name', 'like', 'Akun %')
-                  ->orWhere('name', '=', 'code')
-                  ->orWhereRaw('name = code');
-        })->get();
-        
-        foreach ($accounts as $account) {
-            // Try to get name from COA
-            $coa = Coa::where('kode_akun', $account->code)->first();
-            if ($coa && !empty($coa->nama_akun)) {
-                $account->update(['name' => $coa->nama_akun]);
-                $stats['updated']++;
-            }
-        }
-        
-        return $stats;
-    }
-
-    /**
-     * Create journal entries from Pembelian (Purchase)
-     * Dr. Persediaan Bahan Baku/Pendukung | Cr. Kas/Bank/Utang Usaha
-     */
-    public static function createJournalFromPembelian($pembelian, $userId = null): void
-    {
-        $service = new static();
-        
-        // Delete existing journal entries for this pembelian
-        $service->deleteByRef('purchase', $pembelian->id);
-        
-        // Skip if no details
-        if (!$pembelian->details || $pembelian->details->isEmpty()) {
-            return;
-        }
-        
-        $lines = [];
-        $subtotalAmount = 0;
-        
-        // Create debit entries for each purchased item (Persediaan)
-        foreach ($pembelian->details as $detail) {
-            $amount = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-            $subtotalAmount += $amount;
-            
-            // Determine COA account based on item type
-            $coaAccount = null;
-            
-            if ($detail->bahan_baku_id && $detail->bahanBaku) {
-                // Use specific COA from bahan baku if available
-                $coaAccount = $detail->bahanBaku->coa_persediaan_id;
-                
-                // Fallback to general bahan baku account
-                if (!$coaAccount) {
-                    $coaAccount = '1104'; // Persediaan Bahan Baku
-                }
-            } elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
-                // Use specific COA from bahan pendukung if available
-                $coaAccount = $detail->bahanPendukung->coa_persediaan_id ?? null;
-                
-                // Fallback to general bahan pendukung account
-                if (!$coaAccount) {
-                    $coaAccount = '1107'; // Persediaan Bahan Pendukung
-                }
-            }
-            
-            // Default fallback
-            if (!$coaAccount) {
-                $coaAccount = '1104'; // Persediaan Bahan Baku
-            }
-            
-            $lines[] = [
-                'code' => $coaAccount,
-                'debit' => $amount,
-                'credit' => 0,
-                'memo' => 'Pembelian ' . ($detail->nama_bahan ?? 'Item')
-            ];
-        }
-        
-        // Add PPN Masukan entry if there's PPN
-        $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
-        if ($ppnNominal > 0) {
-            $lines[] = [
-                'code' => '127', // PPN Masukan
-                'debit' => $ppnNominal,
-                'credit' => 0,
-                'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 0) . '%'
-            ];
-        }
-        
-        // Add Biaya Kirim entry if there's shipping cost
-        $biayaKirim = (float) ($pembelian->biaya_kirim ?? 0);
-        if ($biayaKirim > 0) {
-            $lines[] = [
-                'code' => '511', // Biaya Kirim/Angkut
-                'debit' => $biayaKirim,
-                'credit' => 0,
-                'memo' => 'Biaya kirim pembelian'
-            ];
-        }
-        
-        // Calculate total amount (subtotal + PPN + biaya kirim)
-        $totalAmount = $subtotalAmount + $ppnNominal + $biayaKirim;
-        
-        // Create credit entry based on payment method
-        $creditAccount = null;
-        $creditMemo = '';
-        
-        switch ($pembelian->payment_method) {
-            case 'cash':
-                // Use specific bank account if provided, otherwise default to Kas
-                if ($pembelian->bank_id) {
-                    // bank_id is stored as COA ID, not code
-                    $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
-                    if ($bankCoa) {
-                        $creditAccount = $bankCoa->kode_akun;
-                        $creditMemo = 'Pembayaran tunai pembelian via ' . $bankCoa->nama_akun;
-                    } else {
-                        $creditAccount = '112'; // Kas
-                        $creditMemo = 'Pembayaran tunai pembelian';
-                    }
-                } else {
-                    $creditAccount = '112'; // Kas
-                    $creditMemo = 'Pembayaran tunai pembelian';
-                }
-                break;
-                
-            case 'transfer':
-                // Use specific bank account if provided, otherwise default to Kas di Bank
-                if ($pembelian->bank_id) {
-                    // bank_id is stored as COA ID, not code
-                    $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
-                    if ($bankCoa) {
-                        $creditAccount = $bankCoa->kode_akun;
-                        $creditMemo = 'Pembayaran transfer pembelian via ' . $bankCoa->nama_akun;
-                    } else {
-                        $creditAccount = '1102'; // Kas di Bank
-                        $creditMemo = 'Pembayaran transfer pembelian';
-                    }
-                } else {
-                    $creditAccount = '1102'; // Kas di Bank
-                    $creditMemo = 'Pembayaran transfer pembelian';
-                }
-                break;
-                
-            case 'credit':
-                $creditAccount = '210'; // Utang Usaha
-                $creditMemo = 'Pembelian kredit';
-                break;
-                
-            default:
-                $creditAccount = '210'; // Default to Utang Usaha
-                $creditMemo = 'Pembelian';
-        }
-        
-        $lines[] = [
-            'code' => $creditAccount,
-            'debit' => 0,
-            'credit' => $totalAmount,
-            'memo' => $creditMemo
-        ];
-        
-        // Create journal entry
-        $memo = 'Pembelian #' . $pembelian->nomor_pembelian . ' - ' . ($pembelian->vendor->nama_vendor ?? 'Vendor');
-        $tanggal = $pembelian->tanggal instanceof \Carbon\Carbon ? 
-                   $pembelian->tanggal->format('Y-m-d') : 
-                   $pembelian->tanggal;
-        
-        // Use provided userId or fallback to pembelian's user_id
-        $finalUserId = $userId ?? $pembelian->user_id ?? auth()->id();
-        
-        $service->postWithUser($tanggal, 'purchase', $pembelian->id, $memo, $lines, $finalUserId);
+        return JurnalUmum::where('user_id', $userId)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->with('coa')
+            ->orderBy('tanggal')
+            ->orderBy('created_at')
+            ->get();
     }
 
     /**
@@ -336,6 +104,14 @@ class JournalService
     public static function createJournalFromPenjualan($penjualan, $userId = null): void
     {
         $service = new static();
+        
+        // Refresh and load relationships to ensure we have latest data
+        $penjualan = $penjualan->fresh(['details.produk', 'produk']);
+        
+        if (!$penjualan) {
+            \Log::error('Penjualan not found when creating journal');
+            return;
+        }
         
         // Delete existing journal entries for this penjualan
         $service->deleteByRef('sale', $penjualan->id);
@@ -442,16 +218,40 @@ class JournalService
     {
         $lines = [];
         
-        // Get penjualan details
+        // Log for debugging
+        \Log::info('Creating HPP lines for penjualan', [
+            'penjualan_id' => $penjualan->id,
+            'has_details' => $penjualan->details ? $penjualan->details->count() : 0,
+            'has_produk' => $penjualan->produk ? true : false
+        ]);
+        
+        // PRIORITY 1: Use details if available (modern multi-item penjualan)
         if ($penjualan->details && $penjualan->details->count() > 0) {
             // Multi-item penjualan
             foreach ($penjualan->details as $detail) {
-                $lines = array_merge($lines, $this->createHPPLinesForDetail($detail, $penjualan));
+                $detailLines = $this->createHPPLinesForDetail($detail, $penjualan);
+                \Log::info('HPP lines for detail', [
+                    'detail_id' => $detail->id,
+                    'lines_count' => count($detailLines)
+                ]);
+                $lines = array_merge($lines, $detailLines);
             }
-        } else {
-            // Single-item penjualan
-            $lines = $this->createHPPLinesForSingleItem($penjualan);
+        } 
+        // PRIORITY 2: Use single produk_id (legacy single-item penjualan)
+        elseif ($penjualan->produk) {
+            $singleLines = $this->createHPPLinesForSingleItem($penjualan);
+            \Log::info('HPP lines for single item', [
+                'lines_count' => count($singleLines)
+            ]);
+            $lines = $singleLines;
         }
+        else {
+            \Log::warning('No details or produk found for penjualan', [
+                'penjualan_id' => $penjualan->id
+            ]);
+        }
+        
+        \Log::info('Total HPP lines created', ['count' => count($lines)]);
         
         return $lines;
     }
@@ -476,7 +276,7 @@ class JournalService
         if ($totalHPP > 0) {
             // Debit HPP account
             $lines[] = [
-                'code' => '560', // HARGA POKOK PENJUALAN (HPP)
+                'code' => '554', // HARGA POKOK PENJUALAN (HPP) - Updated from 560 to 554
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -504,7 +304,17 @@ class JournalService
         $qty = $penjualan->jumlah ?? 0;
         $product = $penjualan->produk;
         
+        \Log::info('createHPPLinesForSingleItem debug', [
+            'qty' => $qty,
+            'has_product' => $product ? true : false,
+            'product_id' => $product ? $product->id : null
+        ]);
+        
         if (!$product || $qty <= 0) {
+            \Log::warning('Skipping HPP for single item', [
+                'reason' => !$product ? 'no product' : 'qty <= 0',
+                'qty' => $qty
+            ]);
             return $lines;
         }
         
@@ -512,10 +322,16 @@ class JournalService
         $hppPerUnit = $product->getActualHPP($penjualan->tanggal);
         $totalHPP = $hppPerUnit * $qty;
         
+        \Log::info('HPP calculation for single item', [
+            'hpp_per_unit' => $hppPerUnit,
+            'qty' => $qty,
+            'total_hpp' => $totalHPP
+        ]);
+        
         if ($totalHPP > 0) {
             // Debit HPP account
             $lines[] = [
-                'code' => '560', // HARGA POKOK PENJUALAN (HPP)
+                'code' => '554', // HARGA POKOK PENJUALAN (HPP) - Updated from 560 to 554
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -529,6 +345,10 @@ class JournalService
                 'credit' => $totalHPP,
                 'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
             ];
+            
+            \Log::info('HPP lines created for single item', ['lines_count' => count($lines)]);
+        } else {
+            \Log::warning('HPP is zero, no lines created');
         }
         
         return $lines;
@@ -544,270 +364,17 @@ class JournalService
             return $product->coa_persediaan_id;
         }
         
-        // Default persediaan barang jadi COAs based on product type
-        if (strpos(strtolower($product->nama_produk), 'macdi') !== false) {
-            return '1161'; // Persediaan Ayam Crispy Macdi
-        } elseif (strpos(strtolower($product->nama_produk), 'bundo') !== false) {
-            return '1162'; // Persediaan Ayam Goreng Bundo
-        }
-        
-        // Default to general persediaan barang jadi
-        return '116'; // Persediaan Barang Jadi
-    }
-
-    /**
-     * Create journal entries from ExpensePayment
-     * Dr. Beban | Cr. Kas/Bank
-     */
-    public static function createJournalFromExpensePayment($expensePayment): void
-    {
-        $service = new static();
-        
-        // Delete existing journal entries for this expense payment
-        $service->deleteByRef('expense_payment', $expensePayment->id);
-        
-        $lines = [];
-        $amount = $expensePayment->nominal_pembayaran ?? 0;
-        
-        // Create debit entry for expense
-        $expenseAccount = $expensePayment->coa_beban_id; // Ambil dari database
-        
-        $lines[] = [
-            'code' => $expenseAccount,
-            'debit' => $amount,
-            'credit' => 0,
-            'memo' => 'Pembayaran beban'
-        ];
-        
-        // Create credit entry based on payment method
-        $creditAccount = $expensePayment->coa_kasbank; // Ambil dari database
-        
-        $lines[] = [
-            'code' => $creditAccount,
-            'debit' => 0,
-            'credit' => $amount,
-            'memo' => 'Pembayaran beban operasional'
-        ];
-        
-        // Create journal entry
-        $memo = 'Pembayaran Beban #' . $expensePayment->id;
-        $tanggal = $expensePayment->tanggal instanceof \Carbon\Carbon ? 
-                   $expensePayment->tanggal->format('Y-m-d') : 
-                   $expensePayment->tanggal;
-        
-        $service->post($tanggal, 'expense_payment', $expensePayment->id, $memo, $lines);
-    }
-
-    /**
-     * Create journal entry from pelunasan utang
-     */
-    public static function createJournalFromPelunasanUtang($pelunasanUtang): void
-    {
-        $service = new static();
-        
-        // Delete existing journal entries for this pelunasan utang
-        $service->deleteByRef('debt_payment', $pelunasanUtang->id);
-        
-        $lines = [];
-        $amount = $pelunasanUtang->jumlah ?? 0;
-        
-        // Debit: COA Pelunasan yang dipilih user (mengurangi utang)
-        $coaPelunasan = $pelunasanUtang->coaPelunasan;
-        $kodeCoaPelunasan = $coaPelunasan ? $coaPelunasan->kode_akun : '210'; // Default ke Hutang Usaha jika tidak ada
-        
-        $lines[] = [
-            'code' => $kodeCoaPelunasan,
-            'debit' => $amount,
-            'credit' => 0,
-            'memo' => 'Pelunasan utang - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor')
-        ];
-        
-        // Credit: Kas/Bank account (mengurangi kas/bank)
-        $akunKas = $pelunasanUtang->akunKas;
-        $kodeAkun = $akunKas ? $akunKas->kode_akun : '112'; // Default ke Kas jika tidak ada
-        
-        $lines[] = [
-            'code' => $kodeAkun,
-            'debit' => 0,
-            'credit' => $amount,
-            'memo' => 'Pembayaran utang via ' . ($akunKas->nama_akun ?? 'Kas')
-        ];
-        
-        // Create journal entry
-        $memo = 'Pelunasan Utang #' . $pelunasanUtang->kode_transaksi . ' - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor');
-        $tanggal = $pelunasanUtang->tanggal instanceof \Carbon\Carbon ? 
-                   $pelunasanUtang->tanggal->format('Y-m-d') : 
-                   $pelunasanUtang->tanggal;
-        
-        $service->post($tanggal, 'debt_payment', $pelunasanUtang->id, $memo, $lines);
-    }
-
-    /**
-     * Create journal entries from ReturPenjualan (Sales Return)
-     * Dr. Retur Penjualan | Cr. Kas/Bank (for refund)
-     * Dr. Persediaan | Cr. HPP (for stock return)
-     */
-    public static function createJournalFromReturPenjualan($returPenjualan): void
-    {
-        $service = new static();
-        
-        // Delete existing journal entries for this retur penjualan
-        $service->deleteByRef('sales_return', $returPenjualan->id);
-        
-        // Skip journal for tukar_barang (no financial impact)
-        if ($returPenjualan->jenis_retur === 'tukar_barang') {
-            return;
-        }
-        
-        $lines = [];
-        $totalAmount = $returPenjualan->total_retur ?? 0;
-        
-        // Create debit entry for sales return (Retur Penjualan account)
-        $returCoa = Coa::where('tipe_akun', 'Revenue')
+        // Default to standard persediaan barang jadi account
+        // Cari COA Persediaan Barang Jadi yang ada di database
+        $persediaanCoa = Coa::where('tipe_akun', 'Asset')
             ->where(function($query) {
-                $query->where('nama_akun', 'like', '%retur%')
-                      ->orWhere('nama_akun', 'like', '%return%');
+                $query->where('nama_akun', 'like', '%persediaan%barang%jadi%')
+                      ->orWhere('nama_akun', 'like', '%persediaan%produk%jadi%');
             })
-            ->orWhere('kode_akun', '4201')
+            ->orWhere('kode_akun', '116') // Persediaan Barang Jadi
+            ->orWhere('kode_akun', '1160')
             ->first();
         
-        $returAccount = $returCoa ? $returCoa->kode_akun : '4201'; // Retur Penjualan
-        
-        $lines[] = [
-            'code' => $returAccount,
-            'debit' => $totalAmount,
-            'credit' => 0,
-            'memo' => 'Retur penjualan - ' . $returPenjualan->jenis_retur
-        ];
-        
-        // Create credit entry based on return type
-        if ($returPenjualan->jenis_retur === 'refund') {
-            // Credit to Kas/Bank (cash refund)
-            $kasCoa = Coa::where('tipe_akun', 'Asset')
-                ->where(function($query) {
-                    $query->where('nama_akun', 'like', '%kas%')
-                          ->where('nama_akun', 'not like', '%bank%');
-                })
-                ->orWhere('kode_akun', '1101')
-                ->first();
-            
-            $kasAccount = $kasCoa ? $kasCoa->kode_akun : '1101';
-            
-            $lines[] = [
-                'code' => $kasAccount,
-                'debit' => 0,
-                'credit' => $totalAmount,
-                'memo' => 'Refund retur penjualan'
-            ];
-        } elseif ($returPenjualan->jenis_retur === 'kredit') {
-            // Credit to Piutang (credit note)
-            $piutangCoa = Coa::where('tipe_akun', 'Asset')
-                ->where(function($query) {
-                    $query->where('nama_akun', 'like', '%piutang%')
-                          ->orWhere('nama_akun', 'like', '%receivable%');
-                })
-                ->orWhere('kode_akun', '1103')
-                ->first();
-            
-            $piutangAccount = $piutangCoa ? $piutangCoa->kode_akun : '1103';
-            
-            $lines[] = [
-                'code' => $piutangAccount,
-                'debit' => 0,
-                'credit' => $totalAmount,
-                'memo' => 'Kredit note retur penjualan'
-            ];
-        }
-        
-        // Create journal entry
-        $memo = 'Retur Penjualan #' . $returPenjualan->nomor_retur . ' - ' . ucfirst($returPenjualan->jenis_retur);
-        $tanggal = $returPenjualan->tanggal instanceof \Carbon\Carbon ? 
-                   $returPenjualan->tanggal->format('Y-m-d') : 
-                   $returPenjualan->tanggal;
-        
-        $service->post($tanggal, 'sales_return', $returPenjualan->id, $memo, $lines);
-    }
-
-    /**
-     * Sync existing transactions to ensure all are posted to both journal systems
-     */
-    public static function syncAllTransactionsToJurnalUmum(): array
-    {
-        $stats = ['synced' => 0, 'errors' => 0, 'skipped' => 0];
-        
-        try {
-            // Sync all Penjualan transactions
-            $penjualans = \App\Models\Penjualan::all();
-            foreach ($penjualans as $penjualan) {
-                try {
-                    static::createJournalFromPenjualan($penjualan);
-                    $stats['synced']++;
-                } catch (\Exception $e) {
-                    $stats['errors']++;
-                    \Log::error('Error syncing penjualan journal: ' . $e->getMessage(), ['penjualan_id' => $penjualan->id]);
-                }
-            }
-            
-            // Sync all Pembelian transactions
-            $pembelians = \App\Models\Pembelian::all();
-            foreach ($pembelians as $pembelian) {
-                try {
-                    static::createJournalFromPembelian($pembelian);
-                    $stats['synced']++;
-                } catch (\Exception $e) {
-                    $stats['errors']++;
-                    \Log::error('Error syncing pembelian journal: ' . $e->getMessage(), ['pembelian_id' => $pembelian->id]);
-                    \Log::error('Error syncing pelunasan utang journal: ' . $e->getMessage(), ['pelunasan_id' => $pelunasan->id]);
-                }
-            }
-            
-        } catch (\Exception $e) {
-            \Log::error('Error in syncAllTransactionsToJurnalUmum: ' . $e->getMessage());
-            $stats['errors']++;
-        }
-        
-        return $stats;
-    }
-    
-    /**
-     * Sync HPP for existing sales that don't have HPP entries
-     */
-    public static function syncHPPForExistingSales(): array
-    {
-        $stats = ['synced' => 0, 'errors' => 0, 'skipped' => 0];
-        
-        try {
-            // Get all sales transactions
-            $penjualans = \App\Models\Penjualan::with(['details.produk', 'produk'])->get();
-            
-            foreach ($penjualans as $penjualan) {
-                try {
-                    // Check if this sale already has HPP entries
-                    $hasHppEntries = \App\Models\JournalLine::whereHas('entry', function($q) use ($penjualan) {
-                        $q->where('ref_type', 'sale')->where('ref_id', $penjualan->id);
-                    })->whereHas('coa', function($q) {
-                        $q->where('kode_akun', '560'); // HPP account
-                    })->exists();
-                    
-                    if (!$hasHppEntries) {
-                        // Create journal entries including HPP
-                        static::createJournalFromPenjualan($penjualan);
-                        $stats['synced']++;
-                        \Log::info('HPP synced for penjualan', ['penjualan_id' => $penjualan->id]);
-                    } else {
-                        $stats['skipped']++;
-                    }
-                    
-                } catch (\Exception $e) {
-                    $stats['errors']++;
-                    \Log::error('Error syncing HPP for penjualan: ' . $e->getMessage(), ['penjualan_id' => $penjualan->id]);
-                }
-            }
-            
-        } catch (\Exception $e) {
-            \Log::error('Error in syncHPPForExistingSales: ' . $e->getMessage());
-        }
-        
-        return $stats;
+        return $persediaanCoa ? $persediaanCoa->kode_akun : '116';
     }
 }

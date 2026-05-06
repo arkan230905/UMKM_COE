@@ -293,10 +293,14 @@ class PembelianJournalService
             $keterangan .= " - {$pembelian->vendor->nama_vendor}";
         }
         
+        // CRITICAL: Gunakan user_id dari pembelian untuk multi-tenant isolation
+        $userId = $pembelian->user_id ?? auth()->id() ?? 1;
+        
         // Buat jurnal entries untuk setiap line
         $journalData = [];
         foreach ($lines as $line) {
             $journalData[] = [
+                'user_id' => $userId,  // CRITICAL: Multi-tenant isolation
                 'coa_id' => $line['coa_id'],
                 'tanggal' => $tanggal,
                 'keterangan' => $keterangan,
@@ -304,16 +308,31 @@ class PembelianJournalService
                 'kredit' => $line['credit'],
                 'referensi' => $pembelian->nomor_pembelian,
                 'tipe_referensi' => 'pembelian',
-                'created_by' => 1,
+                'created_by' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ];
         }
         
         // Insert semua jurnal
         try {
             JurnalUmum::insert($journalData);
+            
+            Log::info("Jurnal entries inserted successfully", [
+                'pembelian_id' => $pembelian->id,
+                'user_id' => $userId,
+                'entries_count' => count($journalData),
+                'total_debit' => array_sum(array_column($journalData, 'debit')),
+                'total_kredit' => array_sum(array_column($journalData, 'kredit'))
+            ]);
+            
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to insert jurnal for pembelian: " . $e->getMessage());
+            Log::error("Failed to insert jurnal for pembelian: " . $e->getMessage(), [
+                'pembelian_id' => $pembelian->id,
+                'user_id' => $userId,
+                'trace' => $e->getTraceAsString()
+            ]);
             return false;
         }
     }

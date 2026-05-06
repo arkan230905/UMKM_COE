@@ -12,9 +12,28 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        @if($produk->foto)
+                        @php
+                            $fotoUrl = '';
+                            $fotoExists = false;
+                            if ($produk->foto) {
+                                // Use storage_url helper for proper URL generation
+                                $fotoUrl = storage_url($produk->foto);
+                                // Check if file exists in storage
+                                $fotoExists = storage_exists($produk->foto);
+                            }
+                        @endphp
+                        @if($produk->foto && $fotoExists)
                             <div class="mb-3 text-center">
-                                <img src="{{ Storage::url($produk->foto) }}" alt="Foto Produk" class="img-fluid" style="max-height: 200px; object-fit: contain;">
+                                <img src="{{ $fotoUrl }}" alt="Foto Produk" class="img-fluid" style="max-height: 200px; object-fit: contain; border: 1px solid #dee2e6; border-radius: 4px;">
+                            </div>
+                        @else
+                            <div class="mb-3 text-center">
+                                <div style="width: 200px; height: 200px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                    <div class="text-center">
+                                        <i class="fas fa-image text-muted" style="font-size: 48px;"></i>
+                                        <p class="text-muted mt-2 mb-0">Tidak ada foto</p>
+                                    </div>
+                                </div>
                             </div>
                         @endif
                         <h5>{{ $produk->nama_produk }}</h5>

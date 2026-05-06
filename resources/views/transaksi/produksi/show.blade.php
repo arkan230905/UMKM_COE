@@ -149,10 +149,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if($produksi->status === 'draft' && isset($produksi->bomBreakdown))
-                            {{-- Show BOM breakdown for draft status --}}
+                        @if($produksi->status === 'draft' && isset($produksi->detail_breakdown))
+                            {{-- Show breakdown from saved details --}}
                             @php $counter = 1; @endphp
-                            @foreach($produksi->bomBreakdown['biaya_bahan']['bahan_baku'] as $bahan)
+                            @foreach($produksi->detail_breakdown['biaya_bahan']['bahan_baku'] as $bahan)
                                 <tr>
                                     <td>{{ $counter++ }}</td>
                                     <td>
@@ -160,36 +160,13 @@
                                         <small class="text-muted">(Bahan Baku)</small>
                                     </td>
                                     <td>{{ rtrim(rtrim(number_format($bahan['qty_resep'],4,',','.'),'0'),',') }} {{ $bahan['satuan_resep'] }}</td>
-                                    <td>
-                                        {{ rtrim(rtrim(number_format($bahan['qty_konversi'],4,',','.'),'0'),',') }} {{ $bahan['satuan_bahan'] }}
-                                        @if($bahan['satuan_resep'] !== $bahan['satuan_bahan'])
-                                            <br><small class="text-info">{{ $bahan['konversi_info'] ?? 'Konversi: ' . $bahan['satuan_resep'] . ' → ' . $bahan['satuan_bahan'] }}</small>
-                                        @endif
-                                    </td>
-                                    <td>Rp {{ number_format($bahan['harga_satuan'],0,',','.') }} / {{ $bahan['satuan_resep'] }}</td>
-                                    <td>Rp {{ number_format($bahan['subtotal'],0,',','.') }}</td>
-                                </tr>
-                            @endforeach
-                            @foreach($produksi->bomBreakdown['biaya_bahan']['bahan_pendukung'] as $bahan)
-                                <tr>
-                                    <td>{{ $counter++ }}</td>
-                                    <td>
-                                        {{ $bahan['nama'] }}
-                                        <small class="text-muted">(Bahan Pendukung)</small>
-                                    </td>
-                                    <td>{{ rtrim(rtrim(number_format($bahan['qty_resep'],4,',','.'),'0'),',') }} {{ $bahan['satuan_resep'] }}</td>
-                                    <td>
-                                        {{ rtrim(rtrim(number_format($bahan['qty_konversi'],4,',','.'),'0'),',') }} {{ $bahan['satuan_bahan'] }}
-                                        @if($bahan['satuan_resep'] !== $bahan['satuan_bahan'])
-                                            <br><small class="text-info">Konversi: {{ $bahan['satuan_resep'] }} → {{ $bahan['satuan_bahan'] }}</small>
-                                        @endif
-                                    </td>
+                                    <td>-</td>
                                     <td>Rp {{ number_format($bahan['harga_satuan'],0,',','.') }} / {{ $bahan['satuan_resep'] }}</td>
                                     <td>Rp {{ number_format($bahan['subtotal'],0,',','.') }}</td>
                                 </tr>
                             @endforeach
                         @else
-                            {{-- Show actual consumed materials for completed production --}}
+                            {{-- Show actual consumed materials from produksi_details --}}
                             @foreach($produksi->details as $d)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
@@ -197,29 +174,13 @@
                                         @if($d->bahan_baku_id && $d->bahanBaku)
                                             {{ $d->bahanBaku->nama_bahan }}
                                             <small class="text-muted">(Bahan Baku)</small>
-                                        @elseif($d->bahan_pendukung_id && $d->bahanPendukung)
-                                            {{ $d->bahanPendukung->nama_bahan }}
-                                            <small class="text-muted">(Bahan Pendukung)</small>
                                         @else
                                             <span class="text-muted">Unknown</span>
                                         @endif
                                     </td>
                                     <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
-                                    <td>{{ rtrim(rtrim(number_format($d->qty_konversi_display ?? $d->qty_konversi,4,',','.'),'0'),',') }} 
-                                    @php
-                                        // Use the calculated display unit
-                                        $satuanKonversi = $d->satuan_bahan_display ?? ($d->satuan ?? 'unit');
-                                    @endphp
-                                    {{ $satuanKonversi }}
-                                    @if($d->satuan_resep !== $satuanKonversi)
-                                        <br><small class="text-info">Konversi: {{ $d->satuan_resep }} → {{ $satuanKonversi }}</small>
-                                    @endif</td>
-                                    <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / 
-                                    @php
-                                        // Untuk harga satuan, gunakan satuan resep
-                                        $satuanHarga = $d->satuan_resep ?? 'unit';
-                                    @endphp
-                                    {{ $satuanHarga }}</td>
+                                    <td>-</td>
+                                    <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / {{ $d->satuan_resep }}</td>
                                     <td>Rp {{ number_format($d->subtotal,0,',','.') }}</td>
                                 </tr>
                             @endforeach
@@ -267,9 +228,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if($produksi->status === 'draft' && isset($produksi->bomBreakdown))
+                        @if($produksi->status === 'draft' && isset($produksi->detail_breakdown))
                             {{-- Show planned BTKL for draft status --}}
-                            @foreach($produksi->bomBreakdown['btkl'] as $btkl)
+                            @foreach($produksi->detail_breakdown['btkl'] as $btkl)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $btkl['nama'] }}</td>
@@ -357,15 +318,30 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if($produksi->status === 'draft' && isset($produksi->bomBreakdown))
-                            {{-- Show planned BOP for draft status --}}
-                            @foreach($produksi->bomBreakdown['bop'] as $bop)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $bop['nama'] }}</td>
-                                    <td>Rp {{ number_format($bop['biaya_per_unit'],0,',','.') }}</td>
-                                    <td>Rp {{ number_format($bop['total_biaya'],0,',','.') }}</td>
+                        @if($produksi->status === 'draft' && isset($produksi->detail_breakdown))
+                            {{-- Show planned BOP for draft status with components --}}
+                            @php
+                                $groupedBop = [];
+                                foreach($produksi->detail_breakdown['bop'] as $bop) {
+                                    $proses = $bop['nama_proses'];
+                                    if (!isset($groupedBop[$proses])) {
+                                        $groupedBop[$proses] = [];
+                                    }
+                                    $groupedBop[$proses][] = $bop;
+                                }
+                            @endphp
+                            @foreach($groupedBop as $namaProses => $komponenList)
+                                <tr class="table-secondary">
+                                    <td colspan="4" class="fw-bold">{{ $namaProses }}</td>
                                 </tr>
+                                @foreach($komponenList as $komponen)
+                                    <tr>
+                                        <td>{{ $loop->parent->iteration }}.{{ $loop->iteration }}</td>
+                                        <td class="ps-4">{{ $komponen['nama_komponen'] }}</td>
+                                        <td>Rp {{ number_format($komponen['biaya_per_unit'],0,',','.') }}</td>
+                                        <td>Rp {{ number_format($komponen['total_biaya'],0,',','.') }}</td>
+                                    </tr>
+                                @endforeach
                             @endforeach
                         @else
                             {{-- Show actual BOP process for completed production --}}

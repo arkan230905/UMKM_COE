@@ -88,11 +88,23 @@ class JabatanController extends Controller
 
     public function edit(Jabatan $kualifikasi_tenaga_kerja)
     {
+        // 🔒 SECURITY: Check if user owns this jabatan (multi-tenant)
+        if ($kualifikasi_tenaga_kerja->user_id !== auth()->id()) {
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         return view('master-data.jabatan.edit', ['jabatan' => $kualifikasi_tenaga_kerja]);
     }
 
     public function update(Request $request, Jabatan $kualifikasi_tenaga_kerja)
     {
+        // 🔒 SECURITY: Check if user owns this jabatan (multi-tenant)
+        if ($kualifikasi_tenaga_kerja->user_id !== auth()->id()) {
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         $jabatan = $kualifikasi_tenaga_kerja;
 
         $request->merge([
@@ -148,12 +160,26 @@ class JabatanController extends Controller
 
     public function destroy(Jabatan $kualifikasi_tenaga_kerja)
     {
+        // 🔒 SECURITY: Check if user owns this jabatan (multi-tenant)
+        if ($kualifikasi_tenaga_kerja->user_id !== auth()->id()) {
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         try {
-            $pegawaiCount = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)->count();
+            // 🔒 SECURITY: Check pegawai count with safety check for user_id column
+            $pegawaiQuery = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
+                $pegawaiQuery->where('user_id', auth()->id());
+            }
+            $pegawaiCount = $pegawaiQuery->count();
 
             if ($pegawaiCount > 0) {
-                $pegawaiNames = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)
-                    ->pluck('nama')->implode(', ');
+                $pegawaiNameQuery = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama);
+                if (\Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
+                    $pegawaiNameQuery->where('user_id', auth()->id());
+                }
+                $pegawaiNames = $pegawaiNameQuery->pluck('nama')->implode(', ');
 
                 return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', [
                     'notify_error' => "Jabatan '{$kualifikasi_tenaga_kerja->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai: {$pegawaiNames}"
@@ -189,7 +215,8 @@ class JabatanController extends Controller
 
         // If kategori is numeric, it's a kategori_id
         if (is_numeric($kategori)) {
-            $kategoriPegawai = \App\Models\KategoriPegawai::find($kategori);
+            // 🔒 MULTI-TENANT: Only get kategori from logged-in user
+            $kategoriPegawai = \App\Models\KategoriPegawai::where('user_id', auth()->id())->find($kategori);
             if (!$kategoriPegawai) {
                 return response()->json(['success' => true, 'data' => []]);
             }

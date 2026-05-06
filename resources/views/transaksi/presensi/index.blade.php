@@ -335,7 +335,7 @@
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     @if($presensi->pegawai && $presensi->pegawai->foto)
-                                        <img src="{{ asset('storage/' . $presensi->pegawai->foto) }}"
+                                        <img src="{{ storage_url($presensi->pegawai->foto) }}"
                                              alt="Foto" class="employee-avatar">
                                     @else
                                         <div class="employee-avatar-placeholder">
@@ -343,7 +343,7 @@
                                         </div>
                                     @endif
                                     <span class="fw-semibold">
-                                        {{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }}
+                                        {{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }} - {{ $presensi->pegawai->jabatan ?? 'Tidak ada jabatan' }}
                                     </span>
                                 </div>
                             </td>

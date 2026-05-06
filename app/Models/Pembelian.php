@@ -16,6 +16,7 @@ class Pembelian extends Model
         'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_pembelian',
         'nomor_faktur',
+        'bukti_faktur',  // File path untuk bukti faktur
         'vendor_id',
         'kode_pembelian',
         'tanggal',
@@ -53,13 +54,13 @@ class Pembelian extends Model
     protected static function booted()
     {
         static::created(function ($pembelian) {
-            // Create automatic journal entries
-            \App\Services\JournalService::createJournalFromPembelian($pembelian);
+            // Journal akan dibuat manual di controller setelah semua detail tersimpan
+            // Tidak perlu auto-create di sini untuk menghindari jurnal dobel
         });
         
         static::updated(function ($pembelian) {
-            // Recreate journal entries if transaction is updated
-            \App\Services\JournalService::createJournalFromPembelian($pembelian);
+            // Journal akan diupdate manual di controller jika diperlukan
+            // Tidak perlu auto-update di sini
         });
         
         static::deleting(function ($pembelian) {
@@ -72,8 +73,16 @@ class Pembelian extends Model
             // Delete related pelunasan
             $pembelian->pelunasan()->delete();
             
-            // Delete journal entries
-            \App\Services\JournalService::deleteByRef('purchase', $pembelian->id);
+            // Delete journal entries menggunakan PembelianJournalService
+            try {
+                $journalService = new \App\Services\PembelianJournalService();
+                $journalService->deleteExistingJournal($pembelian->id);
+            } catch (\Exception $e) {
+                \Log::error('Failed to delete journal for pembelian', [
+                    'pembelian_id' => $pembelian->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
             
             // Update stock layers - reverse the stock movements
             foreach ($pembelian->pembelianDetails as $detail) {

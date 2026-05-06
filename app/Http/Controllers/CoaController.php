@@ -35,6 +35,17 @@ class CoaController extends Controller
             ->orderBy('kode_akun')
             ->get();
         
+        // Cek COA yang diperlukan untuk penggajian
+        $requiredCoas = ['52', '54', '513', '514', '515', '516', '111', '112'];
+        $existingCoas = $coas->pluck('kode_akun')->toArray();
+        $missingCoas = array_diff($requiredCoas, $existingCoas);
+        
+        // Tampilkan warning jika ada COA yang hilang
+        if (!empty($missingCoas)) {
+            session()->flash('warning', 'COA untuk penggajian yang belum ada: ' . implode(', ', $missingCoas) . 
+                '. Silakan tambahkan COA tersebut terlebih dahulu.');
+        }
+        
         // Get saldo untuk setiap COA berdasarkan periode
         $saldoPeriode = [];
         $posisiAkun = [];

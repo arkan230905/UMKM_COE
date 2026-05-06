@@ -3,18 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produk;
-use App\Models\Bom;
-use App\Models\BomDetail;
-use App\Models\BomJobCosting;
-use App\Models\BomJobBBB;
-use App\Models\BomJobBahanPendukung;
+use App\Models\BiayaBahanBaku;
 use App\Models\BahanBaku;
-use App\Models\BahanPendukung;
-use App\Models\BomJobBOP;
-use App\Models\BomJobBTKL;
-use App\Support\UnitConverter;
-use App\Services\BomSyncService;
-use App\Services\BiayaBahanConversionService;
+use App\Models\Satuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -31,193 +22,54 @@ class BiayaBahanController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
-        $query = Produk::query()->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
-        
-        // Filter by nama produk
-        if ($request->filled('nama_produk')) {
-            $query->where('nama_produk', 'like', '%' . $request->nama_produk . '%');
-        }
-        
-        // Filter by harga BOM range
-        if ($request->filled('harga_bom_min')) {
-            $query->where('harga_bom', '>=', $request->harga_bom_min);
-        }
-        if ($request->filled('harga_bom_max')) {
-            $query->where('harga_bom', '<=', $request->harga_bom_max);
-        }
-        
-        $produks = $query->orderBy('nama_produk')->paginate(10)->withQueryString();
-        
-        // LOGIKA SEDERHANA - AMBIL DATA LANGSUNG DARI DATABASE
-        $produkBiaya = [];
-        
-        foreach ($produks as $produk) {
-            // Get BomJobCosting untuk produk ini (yang utama)
-            $bomJobCosting = BomJobCosting::with(['detailBBB.bahanBaku', 'detailBahanPendukung.bahanPendukung'])
-                ->where('produk_id', $produk->id)
-                ->first();
+        try {
+            // Get products for logged in user
+            $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get();
             
-            // Get BOM untuk backup data (jika ada)
-            $bom = Bom::with('details.bahanBaku')
-                ->where('produk_id', $produk->id)
-                ->first();
+            $produkBiaya = [];
             
-            if ($bomJobCosting || $bom) {
-                // Prioritaskan BomJobCosting, fallback ke BOM
-                $totalBiayaBahanBaku = 0;
-                $detailBahanBaku = [];
+            foreach ($produks as $produk) {
+                // Get biaya bahan baku data for this product
+                $biayaBahanBaku = BiayaBahanBaku::where('user_id', auth()->id())
+                    ->where('produk_id', $produk->id)
+                    ->with(['bahanBaku.satuan'])
+                    ->get();
                 
-                if ($bomJobCosting && $bomJobCosting->detailBBB && $bomJobCosting->detailBBB->count() > 0) {
-                    $totalBiayaBahanBaku = $bomJobCosting->detailBBB->sum('subtotal') ?? 0;
-                    $detailBahanBaku = $bomJobCosting->detailBBB->map(function($detail) {
-                        $bahanBaku = $detail->bahanBaku;
-                        if (!$bahanBaku) {
-                            return [
-                                'nama_bahan' => 'Unknown',
-                                'qty' => $detail->jumlah ?? 0,
-                                'satuan' => $detail->satuan ?? 'unit',
-                                'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI
-                                'subtotal' => $detail->subtotal ?? 0,
-                                'tipe' => 'Bahan Baku'
-                            ];
-                        }
-                        
-                        // Cek apakah bahan ini dihapus
-                        $isDeleted = $detail->harga_satuan == 0 && !empty($detail->catatan_hapus);
-                        
-                        return [
-                            'nama_bahan' => is_string($bahanBaku->nama_bahan) ? $bahanBaku->nama_bahan : 'Unknown',
-                            'qty' => $detail->jumlah ?? 0,
-                            'satuan' => $detail->satuan ?? 'unit',
-                            'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI
-                            'subtotal' => $detail->subtotal ?? 0,
-                            'tipe' => 'Bahan Baku',
-                            'status' => $isDeleted ? 'dihapus' : 'aktif',
-                            'catatan_hapus' => $detail->catatan_hapus ?? null,
-                            'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
-                            'harga_terakhir' => $detail->harga_terakhir ?? null
-                        ];
-                    })->toArray() ?? [];
-                } elseif ($bom && $bom->details && $bom->details->count() > 0) {
-                    $totalBiayaBahanBaku = $bom->details->sum('total_harga') ?? 0;
-                    $detailBahanBaku = $bom->details->map(function($detail) {
-                        $bahanBaku = $detail->bahanBaku;
-                        if (!$bahanBaku) {
-                            return [
-                                'nama_bahan' => 'Unknown',
-                                'qty' => $detail->jumlah ?? 0,
-                                'satuan' => $detail->satuan ?? 'unit',
-                                'harga_satuan' => $detail->harga_per_satuan ?? 0, // SUDAH HARGA KONVERSI
-                                'subtotal' => $detail->total_harga ?? 0,
-                                'tipe' => 'Bahan Baku'
-                            ];
-                        }
-                        
-                        return [
-                            'nama_bahan' => is_string($bahanBaku->nama_bahan) ? $bahanBaku->nama_bahan : 'Unknown',
-                            'qty' => $detail->jumlah ?? 0,
-                            'satuan' => $detail->satuan ?? 'unit',
-                            'harga_satuan' => $detail->harga_per_satuan ?? 0, // SUDAH HARGA KONVERSI
-                            'subtotal' => $detail->total_harga ?? 0,
-                            'tipe' => 'Bahan Baku'
-                        ];
-                    })->toArray() ?? [];
-                }
+                $totalBiayaBahanBaku = $biayaBahanBaku->sum('subtotal');
                 
-                // 2. Hitung biaya dari Bahan Pendukung
-                $totalBiayaBahanPendukung = 0;
-                $detailBahanPendukung = [];
+                $detailBahanBaku = $biayaBahanBaku->map(function($detail) {
+                    return [
+                        'nama_bahan' => $detail->bahanBaku->nama_bahan ?? 'Unknown',
+                        'qty' => $detail->jumlah,
+                        'satuan' => $detail->bahanBaku->satuan->nama ?? $detail->satuan ?? 'unit',
+                        'harga_satuan' => $detail->harga_satuan,
+                        'subtotal' => $detail->subtotal,
+                        'tipe' => 'Bahan Baku',
+                        'status' => 'aktif'
+                    ];
+                })->toArray();
                 
-                // Cek apakah ada data bahan pendukung yang valid
-                if ($bomJobCosting && $bomJobCosting->detailBahanPendukung && $bomJobCosting->detailBahanPendukung->count() > 0) {
-                    $totalBiayaBahanPendukung = $bomJobCosting->detailBahanPendukung->sum('subtotal') ?? 0;
-                    $detailBahanPendukung = $bomJobCosting->detailBahanPendukung->map(function($pendukung) {
-                        $bahanPendukung = $pendukung->bahanPendukung;
-                        if (!$bahanPendukung) {
-                            // Skip jika bahan pendukung tidak ada
-                            Log::warning('Bahan pendukung tidak ditemukan untuk ID: ' . $pendukung->id);
-                            return null;
-                        }
-                        
-                        return [
-                            'nama_bahan' => is_string($bahanPendukung->nama_bahan) ? $bahanPendukung->nama_bahan : 'Unknown',
-                            'qty' => $pendukung->jumlah ?? 0,
-                            'satuan' => $pendukung->satuan ?? 'unit',
-                            'harga_satuan' => $pendukung->harga_satuan ?? 0, // SUDAH HARGA KONVERSI YANG BENAR
-                            'subtotal' => $pendukung->subtotal ?? 0,
-                            'tipe' => 'Bahan Pendukung',
-                            'status' => $pendukung->harga_satuan == 0 && !empty($pendukung->catatan_hapus) ? 'dihapus' : 'aktif',
-                            'catatan_hapus' => $pendukung->catatan_hapus ?? null,
-                            'nama_bahan_terhapus' => $pendukung->nama_bahan_terhapus ?? null,
-                            'harga_terakhir' => $pendukung->harga_terakhir ?? null
-                        ];
-                    })->filter()->toArray() ?? []; // Filter out null values
-                }
-                
-                // Total biaya bahan - HANYA HITUNG BAHAN BAKU SAJA
-                $totalBiayaBahan = 0;
-                
-                // Hitung dari BBB yang tidak dihapus (harga > 0) - BAHAN BAKU SAJA
-                if ($bomJobCosting && $bomJobCosting->detailBBB) {
-                    $totalBiayaBahan += $bomJobCosting->detailBBB
-                        ->where('harga_satuan', '>', 0)
-                        ->sum('subtotal') ?? 0;
-                }
-                
-                // Fallback ke BOM lama jika perlu (bahan baku saja)
-                if ($totalBiayaBahan == 0 && $bom && $bom->details) {
-                    $totalBiayaBahan = $bom->details
-                        ->where('harga_per_satuan', '>', 0)
-                        ->sum('total_harga') ?? 0;
-                }
-                
-                // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
-                $totalHPP = $totalBiayaBahan;
-                if ($bomJobCosting) {
-                    $totalHPP = $totalBiayaBahan + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
-                }
-                
-                // Update harga_bom produk jika berbeda (TANPA TRIGGER OBSERVER)
-                if ($produk->harga_bom != $totalHPP) {
-                    // Use DB::table to avoid triggering observers
-                    DB::table('produks')
-                        ->where('id', $produk->id)
-                        ->update([
-                            'harga_bom' => $totalHPP,
-                            'harga_pokok' => $totalHPP,  // Update harga_pokok untuk harga jual
-                            'updated_at' => now()
-                        ]);
-                    
-                    // Update the model instance for consistency
-                    $produk->harga_bom = $totalHPP;
-                    $produk->harga_pokok = $totalHPP;
-                }
-                
-                $allDetails = array_merge($detailBahanBaku, $detailBahanPendukung);
-                
-                $produkBiaya[$produk->id] = [
-                    'total_biaya' => $totalBiayaBahan,
+                // Add to produkBiaya
+                $produkBiaya[] = [
+                    'produk' => $produk,
+                    'total_biaya' => $totalBiayaBahanBaku,
                     'total_biaya_bahan_baku' => $totalBiayaBahanBaku,
-                    'total_biaya_bahan_pendukung' => $totalBiayaBahanPendukung,
-                    'detail_bahan' => $allDetails,
-                    'detail_bahan_baku' => $detailBahanBaku,
-                    'detail_bahan_pendukung' => $detailBahanPendukung
-                ];
-            } else {
-                // Produk tanpa BOM
-                $produkBiaya[$produk->id] = [
-                    'total_biaya' => 0,
-                    'total_biaya_bahan_baku' => 0,
                     'total_biaya_bahan_pendukung' => 0,
-                    'detail_bahan' => [],
-                    'detail_bahan_baku' => [],
-                    'detail_bahan_pendukung' => []
+                    'detail_bahan' => $detailBahanBaku,
+                    'detail_bahan_baku' => $detailBahanBaku,
+                    'detail_bahan_pendukung' => [],
+                    'total_biaya_bahan' => $totalBiayaBahanBaku,
+                    'bom_job_costing' => null
                 ];
             }
+            
+            return view('master-data.biaya-bahan.index', compact('produks', 'produkBiaya'));
+            
+        } catch (\Exception $e) {
+            Log::error("Error in BiayaBahanController@index: " . $e->getMessage());
+            
+            return back()->withError('Error loading biaya bahan data: ' . $e->getMessage());
         }
-        
-        return view('master-data.biaya-bahan.index', compact('produks', 'produkBiaya'));
     }
 
     /**
@@ -225,631 +77,317 @@ class BiayaBahanController extends Controller
      */
     public function create($id)
     {
-        $produk = Produk::with(['satuan'])->findOrFail($id);
+        $produk = Produk::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+        $bahanBakus = BahanBaku::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        // Get existing BOM details (for reference if any)
-        $bomDetails = BomDetail::with('bahanBaku.satuan')
-            ->where('bom_id', function($query) use ($produk) {
-                $query->select('id')->from('boms')->where('produk_id', $produk->id);
-            })
-            ->get();
-        
-        // Get existing Bahan Pendukung (for reference if any)
-        $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
-        $bomJobBahanPendukung = $bomJobCosting ? 
-            BomJobBahanPendukung::with('bahanPendukung.satuan')
-                ->where('bom_job_costing_id', $bomJobCosting->id)
-                ->get() : [];
-        
-        // Get available bahan baku and bahan pendukung for selection with sub satuan
-        // CRITICAL MULTI-TENANT: Only show bahan baku milik user yang login
-        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
-        
-        // Get all satuan for dropdown
-        $satuans = \App\Models\Satuan::orderBy('nama')->get();
-        
-        return view('master-data.biaya-bahan.create', compact(
-            'produk',
-            'bomDetails',
-            'bomJobBahanPendukung',
-            'bahanBakus',
-            'bahanPendukungs',
-            'satuans'
-        ));
+        return view('master-data.biaya-bahan.create', compact('produk', 'bahanBakus', 'satuans'));
     }
 
     /**
-     * Show biaya bahan details for a specific product
+     * Store a newly created biaya bahan
      */
-    public function show($id)
+    public function store(Request $request)
     {
-        $produk = Produk::with(['satuan'])->findOrFail($id);
-        
-        // Get BOM job costing (this is where biaya bahan data is stored)
-        $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)
-            ->with(['detailBBB.bahanBaku.satuan', 'detailBahanPendukung.bahanPendukung.satuan'])
-            ->first();
-        
-        if (!$bomJobCosting) {
-            return redirect()->route('master-data.biaya-bahan.create', $produk->id)
-                ->with('error', 'Belum ada data biaya bahan untuk produk ini. Silakan tambahkan biaya bahan terlebih dahulu.');
-        }
-        
-        // Prepare detail data - AMBIL LANGSUNG DARI DATABASE DENGAN PERHITUNGAN YANG BENAR
-        $detailBahanBaku = [];
-        
-        // Prioritaskan data dari BomJobBBB (primary storage)
-        if ($bomJobCosting && $bomJobCosting->detailBBB && $bomJobCosting->detailBBB->count() > 0) {
-            $detailBahanBaku = $bomJobCosting->detailBBB->map(function($detail) {
-                $bahanBaku = $detail->bahanBaku;
-                
-                // Cek apakah bahan ini dihapus atau tidak ada di database
-                $isDeleted = !$bahanBaku || ($detail->harga_satuan == 0 && !empty($detail->catatan_hapus));
-                
-                // Hitung stok real-time dari stock movements (konsisten dengan laporan stok)
-                $stokRealTime = 0;
-                if ($bahanBaku) {
-                    $stockIn = \App\Models\StockMovement::where('item_type', 'material')
-                        ->where('item_id', $bahanBaku->id)
-                        ->where('direction', 'in')
-                        ->sum('qty');
-                    
-                    $stockOut = \App\Models\StockMovement::where('item_type', 'material')
-                        ->where('item_id', $bahanBaku->id)
-                        ->where('direction', 'out')
-                        ->sum('qty');
-                    
-                    $stokRealTime = $stockIn - $stockOut;
-                }
-                
-                return [
-                    'id' => $detail->id,
-                    'nama_bahan' => $bahanBaku ? $bahanBaku->nama_bahan : ($detail->nama_bahan_terhapus ?? 'Unknown'),
-                    'qty' => $detail->jumlah ?? 0,
-                    'satuan' => $detail->satuan ?? 'unit',
-                    'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI YANG BENAR
-                    'subtotal' => $detail->subtotal ?? 0, // SUDAH PERHITUNGAN YANG BENAR
-                    'tipe' => 'Bahan Baku',
-                    'status' => $isDeleted ? 'dihapus' : 'aktif',
-                    'catatan_hapus' => $detail->catatan_hapus ?? null,
-                    'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
-                    'harga_terakhir' => $detail->harga_terakhir ?? null,
-                    'stok_tersedia' => $stokRealTime, // Stok real-time sesuai laporan stok
-                    'stok_master' => $bahanBaku ? $bahanBaku->stok : 0 // Stok dari master data untuk perbandingan
-                ];
-            })->toArray() ?? [];
-        } else {
-            // Fallback ke BomDetail jika tidak ada di BomJobBBB
-            if ($bom) {
-                $bomDetails = BomDetail::with('bahanBaku.satuan')->where('bom_id', $bom->id)->get();
-                if ($bomDetails && $bomDetails->count() > 0) {
-                    $detailBahanBaku = $bomDetails->map(function($detail) {
-                        $bahanBaku = $detail->bahanBaku;
-                        return [
-                            'id' => $detail->id,
-                            'nama_bahan' => $bahanBaku->nama_bahan ?? 'Unknown',
-                            'qty' => $detail->jumlah ?? 0,
-                            'satuan' => $detail->satuan ?? 'unit',
-                            'harga_satuan' => $detail->harga_per_satuan ?? 0,
-                            'subtotal' => $detail->total_harga ?? 0,
-                            'tipe' => 'Bahan Baku',
-                            'status' => 'aktif' // Default status untuk fallback data
-                        ];
-                    })->toArray() ?? [];
-                }
-            }
-        }
-        
-        $detailBahanPendukung = [];
-        if ($bomJobCosting && $bomJobCosting->detailBahanPendukung && $bomJobCosting->detailBahanPendukung->count() > 0) {
-            $detailBahanPendukung = $bomJobCosting->detailBahanPendukung->map(function($detail) {
-                $bahanPendukung = $detail->bahanPendukung;
-                
-                // Cek apakah bahan ini dihapus atau tidak ada di database
-                $isDeleted = !$bahanPendukung || ($detail->harga_satuan == 0 && !empty($detail->catatan_hapus));
-                
-                return [
-                    'id' => $detail->id,
-                    'nama_bahan' => $bahanPendukung ? $bahanPendukung->nama_bahan : ($detail->nama_bahan_terhapus ?? 'Unknown'),
-                    'qty' => $detail->jumlah ?? 0,
-                    'satuan' => $detail->satuan ?? 'unit',
-                    'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI YANG BENAR
-                    'subtotal' => $detail->subtotal ?? 0, // SUDAH PERHITUNGAN YANG BENAR
-                    'tipe' => 'Bahan Pendukung',
-                    'status' => $isDeleted ? 'dihapus' : 'aktif',
-                    'catatan_hapus' => $detail->catatan_hapus ?? null,
-                    'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
-                    'harga_terakhir' => $detail->harga_terakhir ?? null
-                ];
-            })->toArray() ?? [];
-        }
-        
-        $allDetails = array_merge($detailBahanBaku, $detailBahanPendukung);
-        
-        // Calculate totals - GUNAKAN DATA YANG SUDAH DIPERBAIKI
-        $totalBiayaBahanBaku = array_sum(array_column($detailBahanBaku, 'subtotal'));
-        $totalBiayaBahanPendukung = array_sum(array_column($detailBahanPendukung, 'subtotal'));
-        $totalBiaya = $totalBiayaBahanBaku + $totalBiayaBahanPendukung;
-        
-        // Alias untuk view compatibility
-        $totalBiayaBahan = $totalBiaya;
-        
-        return view('master-data.biaya-bahan.show', compact(
-            'produk',
-            'bomJobCosting',
-            'detailBahanBaku',
-            'detailBahanPendukung',
-            'allDetails',
-            'totalBiayaBahanBaku',
-            'totalBiayaBahanPendukung',
-            'totalBiaya',
-            'totalBiayaBahan'
-        ));
-    }
+        $request->validate([
+            'produk_id' => 'required|exists:produks,id',
+            'bahan_baku_id' => 'required|exists:bahan_bakus,id',
+            'jumlah' => 'required|numeric|min:0.0001',
+            'satuan' => 'required|string|max:20',
+            'harga_satuan' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string'
+        ]);
 
-    /**
-     * Store biaya bahan for a product - VERSI SEDERHANA YANG BENAR
-     */
-    public function store(Request $request, $id)
-    {
-        try {
-            $produk = Produk::findOrFail($id);
+        // Check if product belongs to user
+        $produk = Produk::where('id', $request->produk_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
 
-            $bahanBakuInput = $request->input('bahan_baku', []);
-            $bahanPendukungInput = $request->input('bahan_pendukung', []);
+        // Check if bahan baku belongs to user
+        $bahanBaku = BahanBaku::where('id', $request->bahan_baku_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
 
-            $validBahanBaku = [];
-            foreach ((array) $bahanBakuInput as $item) {
-                if (empty($item['id']) || empty($item['jumlah']) || (float) $item['jumlah'] <= 0 || empty($item['satuan'])) {
-                    continue;
-                }
-                $validBahanBaku[] = $item;
-            }
+        BiayaBahanBaku::create([
+            'user_id' => auth()->id(),
+            'produk_id' => $request->produk_id,
+            'bahan_baku_id' => $request->bahan_baku_id,
+            'jumlah' => $request->jumlah,
+            'satuan' => $request->satuan,
+            'harga_satuan' => $request->harga_satuan,
+            'keterangan' => $request->keterangan
+        ]);
 
-            $validBahanPendukung = [];
-            foreach ((array) $bahanPendukungInput as $item) {
-                if (empty($item['id']) || empty($item['jumlah']) || (float) $item['jumlah'] <= 0 || empty($item['satuan'])) {
-                    continue;
-                }
-                $validBahanPendukung[] = $item;
-            }
-
-            if (count($validBahanBaku) === 0 && count($validBahanPendukung) === 0) {
-                return back()->withInput()->withErrors([
-                    'error' => 'Tidak ada data yang valid untuk disimpan! Pastikan pilih bahan, isi jumlah, dan pilih satuan.'
-                ]);
-            }
-
-            DB::beginTransaction();
-
-            $converter = new UnitConverter();
-            $totalBiaya = 0;
-            $totalBiayaBahanBaku = 0;
-            $totalBiayaBahanPendukung = 0;
-            $savedCount = 0;
-
-            // GET OR CREATE BOM
-            $bom = Bom::where('produk_id', $produk->id)->first();
-            if (!$bom) {
-                $bom = new Bom();
-                $bom->produk_id = $produk->id;
-                $bom->kode_bom = 'BOM-' . str_pad($produk->id, 3, '0', STR_PAD_LEFT);
-                $bom->total_biaya = 0;
-                $bom->catatan = 'Bill of Materials untuk ' . $produk->nama_produk;
-                $bom->save();
-            }
-            
-            // GET OR CREATE BOM JOB COSTING
-            $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
-            if (!$bomJobCosting) {
-                $bomJobCosting = new BomJobCosting();
-                $bomJobCosting->produk_id = $produk->id;
-                $bomJobCosting->jumlah_produk = 1;
-                $bomJobCosting->save();
-            }
-            
-            // HAPUS SEMUA DATA LAMA
-            BomDetail::where('bom_id', $bom->id)->delete();
-            BomJobBBB::where('bom_job_costing_id', $bomJobCosting->id)->delete();
-            BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->delete();
-            
-            // SIMPAN BAHAN BAKU BARU
-            if (count($validBahanBaku) > 0) {
-                foreach ($validBahanBaku as $item) {
-                    
-                    // CRITICAL MULTI-TENANT: Verify bahan baku belongs to current user
-                    $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
-                    if (!$bahanBaku) continue;
-                    
-                    $jumlah = (float)$item['jumlah'];
-                    $satuanInput = (string)$item['satuan'];
-
-                    // Gunakan service untuk konversi
-                    $conversionService = new BiayaBahanConversionService();
-                    $result = $conversionService->convertBahanBakuToBase($bahanBaku, $jumlah, $satuanInput);
-                    
-                    $qtyBase = $result['qty_base'];
-                    $subtotal = $result['subtotal'];
-                    $hargaPerSatuanDipakai = $result['harga_per_satuan'];
-                    
-                    $totalBiaya += $subtotal;
-                    $totalBiayaBahanBaku += $subtotal;
-                    
-                    // Simpan ke BomJobBBB (primary storage)
-                    $bbbDetail = new BomJobBBB();
-                    $bbbDetail->bom_job_costing_id = $bomJobCosting->id;
-                    $bbbDetail->bahan_baku_id = $bahanBaku->id;
-                    $bbbDetail->jumlah = $jumlah;
-                    $bbbDetail->satuan = $item['satuan'];
-                    $bbbDetail->harga_satuan = $hargaPerSatuanDipakai; // Simpan harga konversi
-                    $bbbDetail->subtotal = $subtotal;
-                    $bbbDetail->save();
-                    
-                    // Juga simpan ke BomDetail untuk backup/kompatibilitas
-                    $bomDetail = new BomDetail();
-                    $bomDetail->bom_id = $bom->id;
-                    $bomDetail->bahan_baku_id = $bahanBaku->id;
-                    $bomDetail->jumlah = $jumlah;
-                    $bomDetail->satuan = $item['satuan'];
-                    $bomDetail->harga_per_satuan = $hargaPerSatuanDipakai; // Simpan harga konversi
-                    $bomDetail->total_harga = $subtotal;
-                    $bomDetail->save();
-                    
-                    $savedCount++;
-                }
-            }
-            
-            // SIMPAN BAHAN PENDUKUNG BARU
-            if (count($validBahanPendukung) > 0) {
-                foreach ($validBahanPendukung as $item) {
-                    
-                    // CRITICAL MULTI-TENANT: Verify bahan pendukung belongs to current user
-                    $bahanPendukung = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
-                    if (!$bahanPendukung) continue;
-                    
-                    $jumlah = (float)$item['jumlah'];
-                    $satuanInput = (string)$item['satuan'];
-
-                    // Gunakan service untuk konversi
-                    $conversionService = new BiayaBahanConversionService();
-                    $result = $conversionService->convertBahanPendukungToBase($bahanPendukung, $jumlah, $satuanInput);
-                    
-                    $qtyBase = $result['qty_base'];
-                    $subtotal = $result['subtotal'];
-                    $hargaPerSatuanDipakai = $result['harga_per_satuan'];
-                    
-                    $totalBiaya += $subtotal;
-                    $totalBiayaBahanPendukung += $subtotal;
-                    
-                    $pendukungDetail = new BomJobBahanPendukung();
-                    $pendukungDetail->bom_job_costing_id = $bomJobCosting->id;
-                    $pendukungDetail->bahan_pendukung_id = $bahanPendukung->id;
-                    $pendukungDetail->jumlah = $jumlah;
-                    $pendukungDetail->satuan = $item['satuan'];
-                    $pendukungDetail->harga_satuan = $hargaPerSatuanDipakai; // Simpan harga konversi
-                    $pendukungDetail->subtotal = $subtotal;
-                    $pendukungDetail->save();
-                    
-                    $savedCount++;
-                }
-            }
-            
-            // UPDATE TOTALS
-            $bom->update(['total_biaya' => $totalBiaya]);
-            
-            // UPDATE BomJobCosting dengan total biaya bahan
-            if ($bomJobCosting) {
-                $bomJobCosting->total_bbb = $totalBiayaBahanBaku;
-                $bomJobCosting->total_bahan_pendukung = $totalBiayaBahanPendukung;
-                $bomJobCosting->save();
-                
-                // Recalculate untuk update total_hpp
-                $bomJobCosting->recalculate();
-            }
-            
-            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
-            $totalHPP = $totalBiaya;
-            if ($bomJobCosting) {
-                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
-            }
-            
-            // Update harga_bom dan harga_pokok di tabel produks
-            $produk->update([
-                'harga_bom' => $totalHPP,
-                'harga_pokok' => $totalHPP  // Update harga_pokok untuk harga jual
-            ]);
-            
-            // Sync all BOMs to ensure consistency
-            BomSyncService::syncAllBoms();
-            
-            DB::commit();
-
-            $message = "Berhasil menyimpan biaya bahan untuk \"{$produk->nama_produk}\"!";
-            if ($savedCount > 0) {
-                $message .= " ({$savedCount} item tersimpan)";
-            }
-
-            return redirect()->route('master-data.biaya-bahan.index')->with('success', $message);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return back()->withInput()->withErrors([
-                'error' => 'ERROR: ' . $e->getMessage()
-            ]);
-        }
+        return redirect()->route('master-data.biaya-bahan.index')
+            ->withSuccess('Biaya bahan baku berhasil ditambahkan');
     }
 
     /**
      * Show the form for editing biaya bahan for a product
      */
-    public function edit($id)
+    public function edit($produk_id)
     {
-        $produk = Produk::with(['satuan'])->findOrFail($id);
+        // Get product with user filtering
+        $produk = Produk::where('id', $produk_id)->where('user_id', auth()->id())->firstOrFail();
         
-        // Get BomJobCosting untuk data utama
-        $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
+        // Get all biaya bahan baku for this product
+        $biayaBahanList = BiayaBahanBaku::where('user_id', auth()->id())
+            ->where('produk_id', $produk_id)
+            ->with(['bahanBaku.satuan'])
+            ->get();
+            
+        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
+            ->orderBy('nama_bahan')
+            ->get();
+        $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        // Get existing Bahan Baku dari BomJobBBB (primary storage)
-        $bomJobBBB = $bomJobCosting ? 
-            BomJobBBB::with('bahanBaku.satuan')
-                ->where('bom_job_costing_id', $bomJobCosting->id)
-                ->get() : [];
-        
-        // Get existing Bahan Pendukung
-        $bomJobBahanPendukung = $bomJobCosting ? 
-            BomJobBahanPendukung::with('bahanPendukung.satuan')
-                ->where('bom_job_costing_id', $bomJobCosting->id)
-                ->get() : [];
-        
-        // Get available bahan baku and bahan pendukung for selection with sub satuan
-        // CRITICAL MULTI-TENANT: Only show bahan baku milik user yang login
-        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
-        
-        // Get all satuan for dropdown
-        $satuans = \App\Models\Satuan::orderBy('nama')->get();
-        
-        return view('master-data.biaya-bahan.edit', compact(
-            'produk',
-            'bomJobBBB',
-            'bomJobBahanPendukung',
-            'bahanBakus',
-            'bahanPendukungs',
-            'satuans'
-        ));
+        return view('master-data.biaya-bahan.edit', compact('produk', 'biayaBahanList', 'bahanBakus', 'satuans'));
     }
 
     /**
-     * Update biaya bahan for a product - VERSI SEDERHANA YANG BENAR
+     * Show the form for editing individual biaya bahan baku
      */
-    public function update(Request $request, $id)
+    public function editItem($id)
     {
+        $biayaBahan = BiayaBahanBaku::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->with(['produk', 'bahanBaku'])
+            ->firstOrFail();
+            
+        $bahanBakus = BahanBaku::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
+        
+        return view('master-data.biaya-bahan.edit-item', compact('biayaBahan', 'bahanBakus', 'satuans'));
+    }
+
+    /**
+     * Update biaya bahan for a product (multiple records)
+     */
+    public function update(Request $request, $produk_id)
+    {
+        // DEBUG: Log received data
+        Log::info("=== BIAYA BAHAN UPDATE DEBUG ===");
+        Log::info("Product ID: " . $produk_id);
+        Log::info("Request data: " . json_encode($request->all()));
+        Log::info("Bahan baku data: " . json_encode($request->input('bahan_baku')));
+        
+        // Validate that product belongs to user
+        $produk = Produk::where('id', $produk_id)->where('user_id', auth()->id())->firstOrFail();
+        
+        // Get bahan baku data from request
+        $bahanBakuData = $request->input('bahan_baku', []);
+        
+        // Filter out empty entries
+        $validBahanBakuData = [];
+        foreach ($bahanBakuData as $key => $data) {
+            if (!empty($data['id']) && !empty($data['jumlah']) && !empty($data['satuan'])) {
+                $validBahanBakuData[$key] = $data;
+            }
+        }
+        
+        Log::info("Valid bahan baku data: " . json_encode($validBahanBakuData));
+        
+        // Check if we have any valid data
+        if (empty($validBahanBakuData)) {
+            return back()->withError('Tidak ada data bahan baku yang valid. Pastikan semua field terisi dengan benar.')
+                ->withInput();
+        }
+        
+        // Validate bahan baku data
+        $request->validate([
+            'bahan_baku' => 'required|array|min:1',
+            'bahan_baku.*.id' => 'required|exists:bahan_bakus,id',
+            'bahan_baku.*.jumlah' => 'required|numeric|min:0.0001',
+            'bahan_baku.*.satuan' => 'required|string|max:20',
+        ], [
+            'bahan_baku.*.id.required' => 'Kolom bahan baku id wajib diisi.',
+            'bahan_baku.*.id.exists' => 'Bahan baku yang dipilih tidak valid.',
+            'bahan_baku.*.jumlah.required' => 'Kolom jumlah wajib diisi.',
+            'bahan_baku.*.jumlah.numeric' => 'Jumlah harus berupa angka.',
+            'bahan_baku.*.jumlah.min' => 'Jumlah minimal 0.0001.',
+            'bahan_baku.*.satuan.required' => 'Kolom satuan wajib diisi.',
+        ]);
+
         try {
-            $produk = Produk::findOrFail($id);
-
-            $bahanBakuInput = $request->input('bahan_baku', []);
-            $bahanPendukungInput = $request->input('bahan_pendukung', []);
-
-            $validBahanBaku = [];
-            foreach ((array) $bahanBakuInput as $item) {
-                if (empty($item['id']) || empty($item['jumlah']) || (float) $item['jumlah'] <= 0 || empty($item['satuan'])) {
-                    continue;
-                }
-                $validBahanBaku[] = $item;
-            }
-
-            $validBahanPendukung = [];
-            foreach ((array) $bahanPendukungInput as $item) {
-                if (empty($item['id']) || empty($item['jumlah']) || (float) $item['jumlah'] <= 0 || empty($item['satuan'])) {
-                    continue;
-                }
-                $validBahanPendukung[] = $item;
-            }
-
-            if (count($validBahanBaku) === 0 && count($validBahanPendukung) === 0) {
-                return back()->withInput()->withErrors([
-                    'error' => 'Tidak ada data yang valid untuk disimpan! Pastikan pilih bahan, isi jumlah, dan pilih satuan.'
-                ]);
-            }
-
             DB::beginTransaction();
-
-            $converter = new UnitConverter();
-            $totalBiaya = 0;
-            $totalBiayaBahanBaku = 0;
-            $totalBiayaBahanPendukung = 0;
-            $savedCount = 0;
             
-            // GET OR CREATE BOM
-            $bom = Bom::where('produk_id', $produk->id)->first();
-            if (!$bom) {
-                $bom = new Bom();
-                $bom->produk_id = $produk->id;
-                $bom->kode_bom = 'BOM-' . str_pad($produk->id, 3, '0', STR_PAD_LEFT);
-                $bom->total_biaya = 0;
-                $bom->catatan = 'Bill of Materials untuk ' . $produk->nama_produk;
-                $bom->save();
-            }
+            // Delete existing biaya bahan for this product
+            BiayaBahanBaku::where('user_id', auth()->id())
+                ->where('produk_id', $produk_id)
+                ->delete();
             
-            // GET OR CREATE BOM JOB COSTING
-            $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
-            if (!$bomJobCosting) {
-                $bomJobCosting = new BomJobCosting();
-                $bomJobCosting->produk_id = $produk->id;
-                $bomJobCosting->save();
-            }
+            $createdCount = 0;
             
-            // HAPUS SEMUA DATA LAMA
-            BomDetail::where('bom_id', $bom->id)->delete();
-            BomJobBBB::where('bom_job_costing_id', $bomJobCosting->id)->delete();
-            BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->delete();
-            
-            // SIMPAN BAHAN BAKU BARU
-            if (count($validBahanBaku) > 0) {
-                foreach ($validBahanBaku as $item) {
-                    
-                    // CRITICAL MULTI-TENANT: Verify bahan baku belongs to current user
-                    $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
-                    if (!$bahanBaku) continue;
-                    
-                    $jumlah = (float)$item['jumlah'];
-                    $satuanInput = (string)$item['satuan'];
-
-                    // Gunakan service untuk konversi
-                    $conversionService = new BiayaBahanConversionService();
-                    $result = $conversionService->convertBahanBakuToBase($bahanBaku, $jumlah, $satuanInput);
-                    
-                    $qtyBase = $result['qty_base'];
-                    $subtotal = $result['subtotal'];
-                    $hargaPerSatuanDipakai = $result['harga_per_satuan'];
-                    
-                    $totalBiaya += $subtotal;
-                    $totalBiayaBahanBaku += $subtotal;
-                    
-                    // Simpan ke BomJobBBB (primary storage)
-                    $bbbDetail = new BomJobBBB();
-                    $bbbDetail->bom_job_costing_id = $bomJobCosting->id;
-                    $bbbDetail->bahan_baku_id = $bahanBaku->id;
-                    $bbbDetail->jumlah = $jumlah;
-                    $bbbDetail->satuan = $item['satuan'];
-                    $bbbDetail->harga_satuan = $hargaPerSatuanDipakai; // Simpan harga konversi
-                    $bbbDetail->subtotal = $subtotal;
-                    $bbbDetail->save();
-                    
-                    // Juga simpan ke BomDetail untuk backup/kompatibilitas
-                    $bomDetail = new BomDetail();
-                    $bomDetail->bom_id = $bom->id;
-                    $bomDetail->bahan_baku_id = $bahanBaku->id;
-                    $bomDetail->jumlah = $jumlah;
-                    $bomDetail->satuan = $item['satuan'];
-                    $bomDetail->harga_per_satuan = $hargaPerSatuanDipakai; // Simpan harga konversi
-                    $bomDetail->total_harga = $subtotal;
-                    $bomDetail->save();
-                    
-                    $savedCount++;
-                }
-            }
-            
-            // SIMPAN BAHAN PENDUKUNG BARU
-            if (count($validBahanPendukung) > 0) {
-                foreach ($validBahanPendukung as $item) {
-                    
-                    // CRITICAL MULTI-TENANT: Verify bahan pendukung belongs to current user
-                    $bahanPendukung = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
-                    if (!$bahanPendukung) continue;
-                    
-                    $jumlah = (float)$item['jumlah'];
-                    $satuanInput = (string)$item['satuan'];
-
-                    // Gunakan service untuk konversi
-                    $conversionService = new BiayaBahanConversionService();
-                    $result = $conversionService->convertBahanPendukungToBase($bahanPendukung, $jumlah, $satuanInput);
-                    
-                    $qtyBase = $result['qty_base'];
-                    $subtotal = $result['subtotal'];
-                    $hargaPerSatuanDipakai = $result['harga_per_satuan'];
-                    
-                    $totalBiaya += $subtotal;
-                    $totalBiayaBahanPendukung += $subtotal;
-                    
-                    $pendukungDetail = new BomJobBahanPendukung();
-                    $pendukungDetail->bom_job_costing_id = $bomJobCosting->id;
-                    $pendukungDetail->bahan_pendukung_id = $bahanPendukung->id;
-                    $pendukungDetail->jumlah = $jumlah;
-                    $pendukungDetail->satuan = $item['satuan'];
-                    $pendukungDetail->harga_satuan = $hargaPerSatuanDipakai; // Simpan harga konversi
-                    $pendukungDetail->subtotal = $subtotal;
-                    $pendukungDetail->save();
-                    
-                    $savedCount++;
-                }
-            }
-            
-            // UPDATE TOTALS
-            $bom->update(['total_biaya' => $totalBiaya]);
-            
-            // UPDATE BomJobCosting dengan total biaya bahan
-            if ($bomJobCosting) {
-                $bomJobCosting->total_bbb = $totalBiayaBahanBaku;
-                $bomJobCosting->total_bahan_pendukung = $totalBiayaBahanPendukung;
-                $bomJobCosting->save();
+            // Create new records
+            foreach ($validBahanBakuData as $bahanData) {
+                // Get bahan baku with sub satuan relationships
+                $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+                    ->where('id', $bahanData['id'])
+                    ->where('user_id', auth()->id())
+                    ->firstOrFail();
                 
-                // Recalculate untuk update total_hpp
-                $bomJobCosting->recalculate();
+                // Get base price from bahan baku master data
+                $hargaUtama = $bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan;
+                $satuanUtama = $bahanBaku->satuan->nama ?? 'Unit';
+                $satuanDipilih = $bahanData['satuan'];
+                
+                // Calculate converted price based on unit
+                $hargaSatuan = $hargaUtama; // Default to base price
+                
+                // Apply conversion if different units
+                if ($satuanUtama !== $satuanDipilih) {
+                    // Check for sub satuan conversions
+                    $conversionFactor = 1;
+                    
+                    // Check sub_satuan_1
+                    if ($bahanBaku->subSatuan1 && $bahanBaku->subSatuan1->nama === $satuanDipilih) {
+                        $konversi = $bahanBaku->sub_satuan_1_konversi ?? 1;
+                        $nilai = $bahanBaku->sub_satuan_1_nilai ?? 1;
+                        $conversionFactor = $konversi / $nilai;
+                    }
+                    // Check sub_satuan_2
+                    elseif ($bahanBaku->subSatuan2 && $bahanBaku->subSatuan2->nama === $satuanDipilih) {
+                        $konversi = $bahanBaku->sub_satuan_2_konversi ?? 1;
+                        $nilai = $bahanBaku->sub_satuan_2_nilai ?? 1;
+                        $conversionFactor = $konversi / $nilai;
+                    }
+                    // Check sub_satuan_3
+                    elseif ($bahanBaku->subSatuan3 && $bahanBaku->subSatuan3->nama === $satuanDipilih) {
+                        $konversi = $bahanBaku->sub_satuan_3_konversi ?? 1;
+                        $nilai = $bahanBaku->sub_satuan_3_nilai ?? 1;
+                        $conversionFactor = $konversi / $nilai;
+                    }
+                    
+                    $hargaSatuan = $hargaUtama * $conversionFactor;
+                    
+                    Log::info("Unit conversion applied: {$satuanUtama} -> {$satuanDipilih}, factor: {$conversionFactor}, price: {$hargaUtama} -> {$hargaSatuan}");
+                }
+                
+                BiayaBahanBaku::create([
+                    'user_id' => auth()->id(),
+                    'produk_id' => $produk_id,
+                    'bahan_baku_id' => $bahanData['id'],
+                    'jumlah' => $bahanData['jumlah'],
+                    'satuan' => $bahanData['satuan'],
+                    'harga_satuan' => $hargaSatuan,
+                    'keterangan' => $bahanData['keterangan'] ?? null
+                ]);
+                
+                $createdCount++;
             }
             
-            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
-            $totalHPP = $totalBiaya;
-            if ($bomJobCosting) {
-                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
-            }
-            
-            // Update harga_bom dan harga_pokok di tabel produks
-            $produk->update([
-                'harga_bom' => $totalHPP,
-                'harga_pokok' => $totalHPP  // Update harga_pokok untuk harga jual
-            ]);
-            
-            // Sync all BOMs to ensure consistency
-            BomSyncService::syncAllBoms();
-
             DB::commit();
             
-            $message = "Berhasil mengupdate biaya bahan untuk \"{$produk->nama_produk}\"!";
-            if ($savedCount > 0) {
-                $message .= " ({$savedCount} item tersimpan, Total: Rp " . number_format($totalBiaya, 0, ',', '.') . ")";
-            }
+            Log::info("Successfully created {$createdCount} biaya bahan records");
             
-            return redirect()->route('master-data.biaya-bahan.index')->with('success', $message);
-            
+            return redirect()->route('master-data.biaya-bahan.index')
+                ->withSuccess("Biaya bahan baku berhasil diperbarui. {$createdCount} item disimpan.");
+                
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::rollback();
+            Log::error("Error updating biaya bahan: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
             
-            return back()->withInput()->withErrors([
-                'error' => 'ERROR: ' . $e->getMessage()
-            ]);
+            return back()->withError('Gagal memperbarui biaya bahan: ' . $e->getMessage())
+                ->withInput();
         }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Update individual biaya bahan record
+     */
+    public function updateItem(Request $request, $id)
+    {
+        $request->validate([
+            'bahan_baku_id' => 'required|exists:bahan_bakus,id',
+            'jumlah' => 'required|numeric|min:0.0001',
+            'satuan' => 'required|string|max:20',
+            'harga_satuan' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string'
+        ]);
+
+        $biayaBahan = BiayaBahanBaku::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Check if bahan baku belongs to user
+        $bahanBaku = BahanBaku::where('id', $request->bahan_baku_id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $biayaBahan->update([
+            'bahan_baku_id' => $request->bahan_baku_id,
+            'jumlah' => $request->jumlah,
+            'satuan' => $request->satuan,
+            'harga_satuan' => $request->harga_satuan,
+            'keterangan' => $request->keterangan
+        ]);
+
+        return redirect()->route('master-data.biaya-bahan.index')
+            ->withSuccess('Biaya bahan baku berhasil diperbarui');
+    }
+
+    /**
+     * Remove biaya bahan
      */
     public function destroy($id)
     {
+        $biayaBahan = BiayaBahanBaku::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $biayaBahan->delete();
+
+        return redirect()->route('master-data.biaya-bahan.index')
+            ->withSuccess('Biaya bahan baku berhasil dihapus');
+    }
+
+    /**
+     * Show detail biaya bahan for a product
+     */
+    public function detail($id)
+    {
         try {
-            $produk = Produk::findOrFail($id);
+            // Get product with user filtering
+            $produk = Produk::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
             
-            DB::beginTransaction();
+            // Get biaya bahan baku data for this product
+            $bbbData = BiayaBahanBaku::where('user_id', auth()->id())
+                ->where('produk_id', $id)
+                ->with(['bahanBaku.satuan'])
+                ->orderBy('created_at', 'desc')
+                ->get();
             
-            // Hapus BOM details jika ada
-            $bom = Bom::where('produk_id', $produk->id)->first();
-            if ($bom) {
-                BomDetail::where('bom_id', $bom->id)->delete();
-                $bom->delete();
-            }
+            // Transform data to match expected format
+            $bbbData = $bbbData->map(function($detail) {
+                return (object)[
+                    'id' => $detail->id,
+                    'nama_bahan' => $detail->bahanBaku->nama_bahan ?? 'Unknown',
+                    'qty' => $detail->jumlah,
+                    'satuan' => $detail->satuan, // Use the actual unit from biaya_bahan_baku
+                    'harga_satuan' => $detail->harga_satuan,
+                    'subtotal' => $detail->subtotal,
+                    'keterangan' => $detail->keterangan ?? '',
+                    'created_at' => $detail->created_at,
+                    'satuan_nama' => $detail->satuan // Use the actual unit, not the base unit
+                ];
+            });
             
-            // Hapus BomJobCosting dan details jika ada
-            $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
-            if ($bomJobCosting) {
-                BomJobBBB::where('bom_job_costing_id', $bomJobCosting->id)->delete();
-                BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->delete();
-                $bomJobCosting->delete();
-            }
+            // Calculate totals
+            $totalJumlah = $bbbData->sum('qty');
+            $totalSubtotal = $bbbData->sum('subtotal');
             
-            // Reset harga_bom produk
-            $produk->update(['harga_bom' => 0]);
+            return view('master-data.biaya-bahan.detail', compact(
+                'produk',
+                'bbbData',
+                'totalJumlah',
+                'totalSubtotal'
+            ));
             
-            DB::commit();
-            
-            return redirect()->route('master-data.biaya-bahan.index')
-                ->with('success', "Biaya bahan untuk produk \"{$produk->nama_produk}\" telah dihapus dengan sempurna!");
-                
         } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return back()->with('error', 'ERROR: ' . $e->getMessage());
+            Log::error("Error in BiayaBahanController@detail: " . $e->getMessage());
+            return back()->withError('Error loading detail biaya bahan: ' . $e->getMessage());
         }
     }
 }

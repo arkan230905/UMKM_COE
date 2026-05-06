@@ -93,11 +93,11 @@
                             <div class="col-xl-3 col-lg-4 col-md-6 mb-4" data-photo-id="{{ $photo->id }}">
                                 <div class="card h-100 shadow-sm">
                                     <div class="position-relative">
-                                        <img src="{{ asset('storage/'.$photo->foto) }}" 
+                                        <img src="{{ storage_url($photo->foto) }}" 
                                              alt="Foto Catalog" 
                                              class="card-img-top" 
                                              style="height: 250px; object-fit: cover; cursor: pointer;"
-                                             onclick="showImageModal('{{ asset('storage/'.$photo->foto) }}', 'Foto Catalog')">
+                                             onclick="showImageModal('{{ storage_url($photo->foto) }}', 'Foto Catalog')">
                                         
                                         <!-- Action Button -->
                                         <div class="position-absolute top-0 end-0 p-2">

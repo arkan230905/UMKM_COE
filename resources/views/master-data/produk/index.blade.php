@@ -110,11 +110,22 @@
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
                                 <td class="text-center">
-                                    @if($produk->foto)
+                                    @php
+                                        $fotoPath = null;
+                                        $fotoExists = false;
+                                        $fotoUrl = '';
+                                        if ($produk->foto) {
+                                            // Use storage_url helper for proper URL generation
+                                            $fotoUrl = storage_url($produk->foto);
+                                            // Check if file exists in storage
+                                            $fotoExists = storage_exists($produk->foto);
+                                        }
+                                    @endphp
+                                    @if($produk->foto && $fotoExists)
                                         <div class="product-image-wrapper" 
-                                             onclick="showImageModal('{{ asset('storage/' . $produk->foto) }}', '{{ addslashes($produk->nama_produk) }}')"
+                                             onclick="showImageModal('{{ $fotoUrl }}', '{{ addslashes($produk->nama_produk) }}')"
                                              style="width: 35px !important; height: 35px !important; cursor: pointer; position: relative; display: inline-block;">
-                                            <img src="{{ asset('storage/' . $produk->foto) }}" 
+                                            <img src="{{ $fotoUrl }}" 
                                                  alt="{{ $produk->nama_produk }}" 
                                                  class="product-thumbnail"
                                                  style="width: 35px !important; height: 35px !important; object-fit: cover; border-radius: 4px;"
@@ -124,8 +135,8 @@
                                             </div>
                                         </div>
                                     @else
-                                        <div class="no-image-placeholder" style="width: 35px !important; height: 35px !important;">
-                                            <i class="fas fa-image" style="font-size: 12px;"></i>
+                                        <div class="no-image-placeholder" style="width: 35px !important; height: 35px !important; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-image text-muted" style="font-size: 12px;"></i>
                                         </div>
                                     @endif
                                 </td>

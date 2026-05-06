@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Coa;
 use App\Models\JournalEntry;
-use App\Models\JournalLine;
 use App\Models\Penjualan;
 use App\Models\Pembelian;
 use App\Models\ExpensePayment;
@@ -123,11 +122,12 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
-        // Sistem jurnal baru (JournalLine)
-        $journalMasukBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->sum('journal_lines.debit') ?? 0;
+        // Sistem jurnal baru (jurnal_umum)
+        $journalMasukBaru = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->sum('ju.debit') ?? 0;
         
         // Sistem jurnal lama (JurnalUmum) - untuk transaksi yang belum migrasi
         $journalMasukLama = \App\Models\JurnalUmum::where('coa_id', $akun->id)
@@ -145,11 +145,12 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
-        // Sistem jurnal baru (JournalLine)
-        $journalKeluarBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->sum('journal_lines.credit') ?? 0;
+        // Sistem jurnal baru (jurnal_umum)
+        $journalKeluarBaru = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->sum('ju.kredit') ?? 0;
         
         // Sistem jurnal lama (JurnalUmum) - untuk transaksi yang belum migrasi
         $journalKeluarLama = \App\Models\JurnalUmum::where('coa_id', $akun->id)
@@ -197,32 +198,34 @@ class LaporanKasBankController extends Controller
         
         $transaksi = collect();
         
-        // Ambil transaksi masuk (debit) dari journal_lines (sistem jurnal baru)
-        $transaksiBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->where('journal_lines.debit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
+        // Ambil transaksi masuk (debit) dari jurnal_umum (sistem jurnal)
+        $transaksiBaru = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $coa->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->where('ju.debit', '>', 0)
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->orderBy('ju.tanggal', 'desc')
+            ->orderBy('ju.id', 'desc')
             ->select(
-                'journal_entries.tanggal',
-                'journal_entries.memo',
-                'journal_entries.ref_type',
-                'journal_entries.ref_id',
-                'journal_lines.debit',
-                'journal_lines.memo as line_memo'
+                'ju.tanggal',
+                'ju.keterangan',
+                'ju.tipe_referensi',
+                'ju.referensi',
+                'ju.debit'
             )
             ->get()
             ->map(function($line) {
                 // Get detailed information based on ref_type
-                $detailInfo = $this->getTransactionDetail($line->ref_type, $line->ref_id);
+                $detailInfo = $this->getTransactionDetail($line->tipe_referensi, $line->referensi);
                 
                 return [
                     'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $detailInfo['nomor_transaksi'] ?? $line->memo,
-                    'jenis' => $detailInfo['jenis'] ?? ucfirst(str_replace('_', ' ', $line->ref_type)),
-                    'keterangan' => $line->line_memo ?? $line->memo ?? $detailInfo['keterangan'] ?? '-',
-                    'nominal' => (float)$line->debit
+                    'nomor_transaksi' => $detailInfo['nomor_transaksi'] ?? $line->keterangan,
+                    'keterangan' => $line->keterangan,
+                    'nominal' => $line->debit,
+                    'tipe' => 'debit',
+                    'referensi' => $detailInfo['referensi'] ?? null,
+                    'sistem' => 'new'
                 ];
             });
 
@@ -246,17 +249,18 @@ class LaporanKasBankController extends Controller
             });
 
         // Add raw data to transactions for proper deduplication
-        $transaksiBaruWithRaw = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->where('journal_lines.debit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
+        $transaksiBaruWithRaw = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $coa->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->where('ju.debit', '>', 0)
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->orderBy('ju.tanggal', 'desc')
+            ->orderBy('ju.id', 'desc')
             ->select(
-                'journal_entries.tanggal',
-                'journal_entries.ref_type',
-                'journal_entries.ref_id',
-                'journal_lines.debit'
+                'ju.tanggal',
+                'ju.tipe_referensi',
+                'ju.referensi',
+                'ju.debit'
             )
             ->get();
 
@@ -279,24 +283,24 @@ class LaporanKasBankController extends Controller
                 if ($jlDate === $juDate && abs($jl->debit - $ju->debit) < 0.01) {
                     // Check ref type match
                     $refTypeMatch = (
-                        ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
-                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
-                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
-                        ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
-                        ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+                        ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
+                        ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+                        ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->tipe_referensi === 'penggajian' && $ju->tipe_referensi === 'penggajian')
                     );
                     
                     // Check penjualan match
                     $penjualanMatch = false;
-                    if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
+                    if ($jl->tipe_referensi === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
                         if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
-                            if ($jl->ref_id == $penjualanId) {
+                            if ($jl->referensi == $penjualanId) {
                                 $penjualanMatch = true;
                             }
                         } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
-                            if ($jl->ref_id == $penjualanId) {
+                            if ($jl->referensi == $penjualanId) {
                                 $penjualanMatch = true;
                             }
                         }
@@ -361,38 +365,34 @@ class LaporanKasBankController extends Controller
         $transaksi = collect();
         $processedTransactions = collect(); // Track processed transactions to avoid duplicates
         
-        // Ambil transaksi keluar (credit) dari journal_lines (sistem jurnal baru)
-        $transaksiBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->where('journal_lines.credit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
+        // Ambil transaksi keluar (kredit) dari jurnal_umum (sistem jurnal)
+        $transaksiBaru = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $coa->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->where('ju.kredit', '>', 0)
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->orderBy('ju.tanggal', 'desc')
+            ->orderBy('ju.id', 'desc')
             ->select(
-                'journal_entries.tanggal',
-                'journal_entries.memo',
-                'journal_entries.ref_type',
-                'journal_entries.ref_id',
-                'journal_lines.credit',
-                'journal_lines.memo as line_memo'
+                'ju.tanggal',
+                'ju.keterangan',
+                'ju.tipe_referensi',
+                'ju.referensi',
+                'ju.kredit'
             )
             ->get()
-            ->map(function($line) use ($processedTransactions) {
+            ->map(function($line) {
                 // Get detailed information based on ref_type
-                $detailInfo = $this->getTransactionDetail($line->ref_type, $line->ref_id);
-                
-                // Create unique key for deduplication (date + amount + type)
-                $uniqueKey = date('Y-m-d', strtotime($line->tanggal)) . '_' . $line->credit . '_' . $line->ref_type . '_' . $line->ref_id;
-                
-                // Mark as processed
-                $processedTransactions->push($uniqueKey);
+                $detailInfo = $this->getTransactionDetail($line->tipe_referensi, $line->referensi);
                 
                 return [
                     'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $detailInfo['nomor_transaksi'] ?? $line->memo,
-                    'jenis' => $detailInfo['jenis'] ?? ucfirst(str_replace('_', ' ', $line->ref_type)),
-                    'keterangan' => $line->line_memo ?? $line->memo ?? $detailInfo['keterangan'] ?? '-',
-                    'nominal' => (float)$line->credit
+                    'nomor_transaksi' => $detailInfo['nomor_transaksi'] ?? $line->keterangan,
+                    'keterangan' => $line->keterangan,
+                    'nominal' => $line->kredit,
+                    'tipe' => 'kredit',
+                    'referensi' => $detailInfo['referensi'] ?? null,
+                    'sistem' => 'new'
                 ];
             });
 
@@ -416,17 +416,18 @@ class LaporanKasBankController extends Controller
             });
 
         // Add raw data to transactions for proper deduplication
-        $transaksiBaruWithRaw = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->where('journal_lines.credit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
+        $transaksiBaruWithRaw = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $coa->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->where('ju.kredit', '>', 0)
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->orderBy('ju.tanggal', 'desc')
+            ->orderBy('ju.id', 'desc')
             ->select(
-                'journal_entries.tanggal',
-                'journal_entries.ref_type',
-                'journal_entries.ref_id',
-                'journal_lines.credit'
+                'ju.tanggal',
+                'ju.tipe_referensi',
+                'ju.referensi',
+                'ju.kredit'
             )
             ->get();
 
@@ -449,24 +450,24 @@ class LaporanKasBankController extends Controller
                 if ($jlDate === $juDate && abs($jl->credit - $ju->kredit) < 0.01) {
                     // Check ref type match
                     $refTypeMatch = (
-                        ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
-                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
-                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
-                        ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
-                        ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+                        ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
+                        ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+                        ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->tipe_referensi === 'penggajian' && $ju->tipe_referensi === 'penggajian')
                     );
                     
                     // Check penjualan match
                     $penjualanMatch = false;
-                    if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
+                    if ($jl->tipe_referensi === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
                         if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
-                            if ($jl->ref_id == $penjualanId) {
+                            if ($jl->referensi == $penjualanId) {
                                 $penjualanMatch = true;
                             }
                         } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
-                            if ($jl->ref_id == $penjualanId) {
+                            if ($jl->referensi == $penjualanId) {
                                 $penjualanMatch = true;
                             }
                         }
@@ -882,7 +883,7 @@ class LaporanKasBankController extends Controller
     }
 
     /**
-     * Detect duplicate transactions between JournalLine and JurnalUmum
+     * Detect duplicate transactions between jurnal_umum systems
      */
     private function detectDuplicateTransactions($akun, $startDate, $endDate, $type)
     {
@@ -890,11 +891,12 @@ class LaporanKasBankController extends Controller
         
         // Get transactions from both systems
         if ($type === 'debit') {
-            $journalLines = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-                ->where('journal_lines.coa_id', $akun->id)
-                ->where('journal_lines.debit', '>', 0)
-                ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-                ->select('journal_entries.tanggal', 'journal_entries.ref_type', 'journal_entries.ref_id', 'journal_lines.debit as amount')
+            $journalLines = \DB::table('jurnal_umum as ju')
+                ->where('ju.coa_id', $akun->id)
+                ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->where('ju.debit', '>', 0)
+                ->whereBetween('ju.tanggal', [$startDate, $endDate])
+                ->select('ju.tanggal', 'ju.tipe_referensi', 'ju.referensi', 'ju.debit as amount')
                 ->get();
                 
             $jurnalUmum = \App\Models\JurnalUmum::where('coa_id', $akun->id)
@@ -903,11 +905,12 @@ class LaporanKasBankController extends Controller
                 ->select('tanggal', 'tipe_referensi', 'referensi', 'debit as amount')
                 ->get();
         } else {
-            $journalLines = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-                ->where('journal_lines.coa_id', $akun->id)
-                ->where('journal_lines.credit', '>', 0)
-                ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-                ->select('journal_entries.tanggal', 'journal_entries.ref_type', 'journal_entries.ref_id', 'journal_lines.credit as amount')
+            $journalLines = \DB::table('jurnal_umum as ju')
+                ->where('ju.coa_id', $akun->id)
+                ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->where('ju.kredit', '>', 0)
+                ->whereBetween('ju.tanggal', [$startDate, $endDate])
+                ->select('ju.tanggal', 'ju.tipe_referensi', 'ju.referensi', 'ju.kredit as amount')
                 ->get();
                 
             $jurnalUmum = \App\Models\JurnalUmum::where('coa_id', $akun->id)
@@ -927,26 +930,26 @@ class LaporanKasBankController extends Controller
                 if ($jlDate === $juDate && abs($jl->amount - $ju->amount) < 0.01) {
                     // Additional check: if ref_type matches tipe_referensi
                     $refTypeMatch = (
-                        ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
-                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
-                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
-                        ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
-                        ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+                        ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
+                        ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+                        ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->tipe_referensi === 'penggajian' && $ju->tipe_referensi === 'penggajian')
                     );
                     
                     // Also check for penjualan reference match by comparing ref_id with referensi
                     $penjualanMatch = false;
-                    if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
-                        // Check if JournalLine ref_id matches the penjualan ID from referensi
+                    if ($jl->tipe_referensi === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
+                        // Check if jurnal_umum referensi matches penjualan ID from referensi
                         // Handle both formats: "sale#1" and "SJ-20260421-001"
                         if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
-                            if ($jl->ref_id == $penjualanId) {
+                            if ($jl->referensi == $penjualanId) {
                                 $penjualanMatch = true;
                             }
                         } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
-                            if ($jl->ref_id == $penjualanId) {
+                            if ($jl->referensi == $penjualanId) {
                                 $penjualanMatch = true;
                             }
                         }

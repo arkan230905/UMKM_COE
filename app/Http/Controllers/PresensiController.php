@@ -150,14 +150,17 @@ class PresensiController extends Controller
     
     public function show($id)
     {
-        $presensi = Presensi::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $presensi = Presensi::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         return view('transaksi.presensi.show', compact('presensi'));
     }
     
     public function edit($id)
     {
-        $presensi = Presensi::findOrFail($id);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
         $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.edit', compact('presensi', 'pegawais'));
     }
@@ -173,7 +176,8 @@ class PresensiController extends Controller
             'keterangan' => 'nullable|string',
         ]);
         
-        $presensi = Presensi::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
         $data = $request->all();
         
         // Calculate working hours if both times are provided
@@ -193,7 +197,8 @@ class PresensiController extends Controller
     
     public function destroy(Request $request, $id)
     {
-        $presensi = Presensi::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
         $presensi->delete();
 
         $params = [];
@@ -211,8 +216,12 @@ class PresensiController extends Controller
     // Face verification methods
     public function verifikasiWajahIndex()
     {
-        $pegawais = Pegawai::all();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::where('user_id', auth()->id())->get();
         $verifikasiWajahs = VerifikasiWajah::with('pegawai')
+            ->whereHas('pegawai', function($query) {
+                $query->where('user_id', auth()->id());
+            })
             ->orderBy('tanggal_verifikasi', 'desc')
             ->paginate(10);
         
@@ -222,7 +231,8 @@ class PresensiController extends Controller
     
     public function verifikasiWajahCreate()
     {
-        $pegawais = Pegawai::all();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.verifikasi-wajah.create', compact('pegawais'));
     }
     
@@ -384,8 +394,13 @@ class PresensiController extends Controller
     
     public function verifikasiWajahEdit($id)
     {
-        $verifikasi = VerifikasiWajah::findOrFail($id);
-        $pegawais = Pegawai::all();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $verifikasi = VerifikasiWajah::with('pegawai')
+            ->whereHas('pegawai', function($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->findOrFail($id);
+        $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.verifikasi-wajah.edit', 
             compact('verifikasi', 'pegawais'));
     }
@@ -469,7 +484,9 @@ class PresensiController extends Controller
             
             // 3️⃣ CEK PRESENSI HARI INI
             $today = now()->toDateString();
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $presensi = Presensi::where('pegawai_id', $pegawaiId)
+                ->where('user_id', auth()->id())
                 ->whereDate('tgl_presensi', $today)
                 ->first();
             
@@ -510,6 +527,7 @@ class PresensiController extends Controller
                 \Log::info('Creating new attendance (JAM MASUK)...');
                 
                 $newPresensi = Presensi::create([
+                    'user_id' => auth()->id(), // CRITICAL: multi-tenant isolation
                     'pegawai_id' => $pegawaiId,
                     'tgl_presensi' => $today,
                     'jam_masuk' => $currentTime,
@@ -646,7 +664,9 @@ class PresensiController extends Controller
         }
 
         $today = now()->toDateString();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $attendances = Presensi::where('pegawai_id', $pegawai->id)
+            ->where('user_id', auth()->id())
             ->whereDate('tgl_presensi', $today)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -714,13 +734,16 @@ class PresensiController extends Controller
                 }
             }
 
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $presensi = Presensi::where('pegawai_id', $pegawai->id)
+                ->where('user_id', auth()->id())
                 ->whereDate('tgl_presensi', $today)
                 ->first();
 
             if (!$presensi) {
                 // Jam masuk
                 $newPresensi = Presensi::create([
+                    'user_id'           => auth()->id(), // CRITICAL: multi-tenant isolation
                     'pegawai_id'        => $pegawai->id,
                     'tgl_presensi'      => $today,
                     'jam_masuk'         => $currentTime,
@@ -799,7 +822,9 @@ class PresensiController extends Controller
     {
         try {
             $today = Carbon::today();
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $attendances = Presensi::with('pegawai')
+                ->where('user_id', auth()->id())
                 ->whereDate('tgl_presensi', $today)
                 ->orderBy('created_at', 'desc')
                 ->get();

@@ -247,7 +247,7 @@
                 <div class="product-card">
                     <div class="product-image-container">
                         @if($favP->foto)
-                        <img src="{{ asset('storage/' . $favP->foto) }}" class="product-image" alt="{{ $favP->nama_produk }}">
+                        <img src="{{ storage_url($favP->foto) }}" class="product-image" alt="{{ $favP->nama_produk }}">
                         @else
                         <div class="product-image-placeholder">
                             <i class="fas fa-image"></i>
@@ -289,7 +289,7 @@
                 <div class="product-card">
                     <div class="product-image-container">
                         @if($produk->foto)
-                        <img src="{{ asset('storage/' . $produk->foto) }}" class="product-image" alt="{{ $produk->nama_produk }}">
+                        <img src="{{ storage_url($produk->foto) }}" class="product-image" alt="{{ $produk->nama_produk }}">
                         @else
                         <div class="product-image-placeholder">
                             <i class="fas fa-image"></i>

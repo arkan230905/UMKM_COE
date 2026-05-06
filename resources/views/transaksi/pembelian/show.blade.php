@@ -91,6 +91,19 @@
             </div>
             
             <div class="col-md-3">
+                <label class="form-label fw-bold">Bukti Faktur</label>
+                <div class="info-display">
+                    @if($pembelian->bukti_faktur)
+                        <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="bi bi-file-earmark-text"></i> Lihat Bukti
+                        </a>
+                    @else
+                        <span class="text-muted">Tidak ada bukti</span>
+                    @endif
+                </div>
+            </div>
+            
+            <div class="col-md-3">
                 <label class="form-label fw-bold">Tanggal</label>
                 <div class="info-display">
                     {{ $pembelian->tanggal?->format('d-m-Y') ?? '-' }}
