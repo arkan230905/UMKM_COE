@@ -5649,3 +5649,6 @@ Route::get('/debug/pembayaran-beban-analysis', function() {
 
 // Include storage routes
 require_once __DIR__ . '/storage.php';
+
+// Test auth route - REMOVE AFTER TESTING
+require_once __DIR__ . '/test-auth.php';
