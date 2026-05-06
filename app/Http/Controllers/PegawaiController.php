@@ -46,32 +46,17 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-
-        // 🔒 SECURITY: Filter jabatans by user_id with safety check
-        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif');
+        // CRITICAL: Filter jabatans by user_id for multi-tenant
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_per_jam as tarif')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama')
+            ->get();
         
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $jabatanQuery->where('user_id', auth()->id());
-        } else {
-            // If no user_id column, return empty collection to prevent global data access
-            $jabatans = collect();
-            $kategoris = collect();
-            return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
-        }
-        
-        $jabatans = $jabatanQuery->orderBy('nama')->get();
-        
-        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
-        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
-            ->where('kategori', '!=', '');
-        
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $kategoriQuery->where('user_id', auth()->id());
-        }
-        
-        $kategoris = $kategoriQuery->distinct()
+        // Get unique kategori values from Jabatan table
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
             ->pluck('kategori')
             ->map(function($k) {
                 return strtolower($k);
@@ -79,9 +64,7 @@ class PegawaiController extends Controller
             ->unique()
             ->values();
         
-        // IMPORTANT: Do NOT provide default categories if user has no data
-        // This prevents mixing user data with global data
-return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
+        return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
 
     // Simpan data baru
@@ -220,33 +203,18 @@ return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-
-        // 🔒 SECURITY: Filter jabatans by user_id with safety check
-        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam');
+        // CRITICAL: Filter jabatans by user_id for multi-tenant
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama')
+            ->get();
         
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $jabatanQuery->where('user_id', auth()->id());
-        } else {
-            // If no user_id column, return empty collection to prevent global data access
-            $jabatans = collect();
-            $kategoris = collect();
-            return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
-        }
-        
-        $jabatans = $jabatanQuery->orderBy('nama')->get();
-        
-        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
-        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
-            ->where('kategori', '!=', '');
-        
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $kategoriQuery->where('user_id', auth()->id());
-        }
-        
-        $kategoris = $kategoriQuery->distinct()
-->orderBy('kategori')
+        // Get unique kategori values from Jabatan table
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
+            ->orderBy('kategori')
             ->pluck('kategori');
         
         return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
