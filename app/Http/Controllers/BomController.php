@@ -250,11 +250,20 @@ return [
     // API endpoints for data
     public function getAvailableBbb($produk_id)
     {
-        // Get biaya bahan baku data from the new table structure
-        $biayaBahanBaku = \App\Models\BiayaBahanBaku::where('produk_id', $produk_id)
-            ->where('user_id', auth()->id())
-            ->with(['bahanBaku.satuan'])
-            ->get();
+        // Cache for 5 minutes to improve performance
+        $cacheKey = 'bbb_' . auth()->id() . '_' . $produk_id;
+        
+        $biayaBahanBaku = cache()->remember($cacheKey, 300, function() use ($produk_id) {
+            return \App\Models\BiayaBahanBaku::where('produk_id', $produk_id)
+                ->where('user_id', auth()->id())
+                ->with(['bahanBaku' => function($query) {
+                    $query->select('id', 'nama_bahan', 'stok');
+                }, 'bahanBaku.satuan' => function($query) {
+                    $query->select('id', 'nama');
+                }])
+                ->select('id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan')
+                ->get();
+        });
             
         // Transform data to match expected format
         $transformedData = $biayaBahanBaku->map(function($item) {
@@ -275,10 +284,14 @@ return [
 
     public function getAvailableBtkl($produk_id)
     {
-        // Get all BTKL (proses produksi) data for the user
-        // Since proses_produksis doesn't have produk_id, we get all for the user
-        $prosesProduksi = \App\Models\ProsesProduksi::where('user_id', auth()->id())
-            ->get();
+        // Cache for 5 minutes to improve performance
+        $cacheKey = 'btkl_' . auth()->id();
+        
+        $prosesProduksi = cache()->remember($cacheKey, 300, function() {
+            return \App\Models\ProsesProduksi::where('user_id', auth()->id())
+                ->select('id', 'nama_proses', 'tarif_btkl', 'kapasitas_per_jam', 'jumlah_produksi_per_jam', 'satuan_btkl', 'deskripsi', 'kode_proses')
+                ->get();
+        });
             
         // Transform data to include calculated costs
         $transformedData = $prosesProduksi->map(function($item) {
@@ -307,10 +320,15 @@ return [
 
     public function getAvailableBop()
     {
-        // 🔒 MULTI-TENANT: Get BOP data for the logged-in user only
-        $bopProses = \App\Models\BopProses::where('user_id', auth()->id())
-            ->where('is_active', true)
-            ->get();
+        // Cache for 5 minutes to improve performance
+        $cacheKey = 'bop_' . auth()->id();
+        
+        $bopProses = cache()->remember($cacheKey, 300, function() {
+            return \App\Models\BopProses::where('user_id', auth()->id())
+                ->where('is_active', true)
+                ->select('id', 'nama_bop_proses', 'komponen_bop', 'bop_per_unit', 'total_bop_per_produk', 'keterangan')
+                ->get();
+        });
         
         // Transform data to match expected format
         $transformedData = $bopProses->map(function($item) {
