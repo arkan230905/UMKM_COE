@@ -66,9 +66,15 @@
                                                     @php
                                                         $coverSrc = '';
                                                         if (!empty($catalogSections['cover']['cover_photo'])) {
+<<<<<<< HEAD
+                                                            $coverSrc = ($company && $company->foto) ? asset('storage/'.$company->foto) : '';
+                                                        } elseif ($company && $company->foto) {
+                                                            $coverSrc = asset('storage/'.$company->foto);
+=======
                                                             $coverSrc = ($company && $company->foto) ? storage_url($company->foto) : '';
                                                         } elseif ($company && $company->foto) {
                                                             $coverSrc = storage_url($company->foto);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                                         }
                                                     @endphp
                                                     <img id="coverPreviewImage" src="{{ $coverSrc }}" alt="Preview" class="preview-img">
@@ -180,7 +186,11 @@
                                             <div class="product-card">
                                                 <div class="product-image">
                                                     @if($produk->foto)
+<<<<<<< HEAD
+                                                        <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
+=======
                                                         <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                                     @else
                                                         <div class="no-image">
                                                             <i class="fas fa-image"></i>

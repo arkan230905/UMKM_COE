@@ -16,29 +16,41 @@ class PegawaiDashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $pegawai = $user->pegawai;
+        $pegawai = Pegawai::where('user_id', $user->id)->first();
 
         if (!$pegawai) {
             return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
         }
 
         // Get today's attendance
-        $todayAttendance = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
+        $todayAttendance = Presensi::where('pegawai_id', $pegawai->id)
             ->whereDate('tgl_presensi', now())
             ->first();
 
-        // Get this month attendance summary
-        $thisMonthAttendance = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
-            ->whereMonth('tgl_presensi', now()->month)
-            ->whereYear('tgl_presensi', now()->year)
-            ->get();
+        // Get this month statistics using Penggajian::getMonthlyStats
+        $bulan = now()->month;
+        $tahun = now()->year;
+        $monthlyStats = Penggajian::getMonthlyStats($pegawai->id, $bulan, $tahun);
+
+        // Target hari kerja (default 26 days, bisa diubah sesuai kebutuhan)
+        $targetHariKerja = 26;
+
+        // Calculate persentase kehadiran
+        $persentaseKehadiran = $targetHariKerja > 0
+            ? round(($monthlyStats['total_hari_hadir'] / $targetHariKerja) * 100, 1)
+            : 0;
 
         $stats = [
-            'total_hadir' => $thisMonthAttendance->where('status', 'hadir')->count(),
-            'total_hari_kerja' => now()->daysInMonth,
-            'persentasi_kehadiran' => $thisMonthAttendance->count() > 0 
-                ? round(($thisMonthAttendance->where('status', 'hadir')->count() / $thisMonthAttendance->count()) * 100, 1)
-                : 0,
+            'total_hadir' => $monthlyStats['total_hari_hadir'] ?? 0,
+            'total_hari_hadir' => $monthlyStats['total_hari_hadir'] ?? 0, // Backward compatibility
+            'total_alpha' => $monthlyStats['total_alpha'] ?? 0,
+            'total_jam_bulanan' => $monthlyStats['total_jam'] ?? 0,
+            'total_hari_kerja' => $targetHariKerja,
+            'target_hari_kerja' => $targetHariKerja, // Backward compatibility
+            'persentasi_kehadiran' => $persentaseKehadiran, // Typo in view
+            'persentase_kehadiran' => $persentaseKehadiran,
+            'estimasi_gaji' => $monthlyStats['estimasi_gaji'] ?? 0,
+            'tarif_per_jam' => $monthlyStats['tarif_per_jam'] ?? 0,
             'today_status' => $todayAttendance ? [
                 'jam_masuk' => $todayAttendance->jam_masuk,
                 'jam_keluar' => $todayAttendance->jam_keluar,
@@ -48,7 +60,7 @@ class PegawaiDashboardController extends Controller
         ];
 
         // Get recent attendance (last 7 days)
-        $recentAttendance = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
+        $recentAttendance = Presensi::where('pegawai_id', $pegawai->id)
             ->whereDate('tgl_presensi', '>=', now()->subDays(7))
             ->orderBy('tgl_presensi', 'desc')
             ->get();
@@ -61,24 +73,34 @@ class PegawaiDashboardController extends Controller
      */
     public function riwayatPresensi(Request $request)
     {
-        $user = Auth::user();
-        $pegawai = $user->pegawai;
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+            }
 
-        if (!$pegawai) {
-            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
-        }
+            $pegawai = Pegawai::withoutGlobalScopes()->where('user_id', $user->id)->first();
 
-        $query = Presensi::where('pegawai_id', $pegawai->id);
-        
-        // Filter by month/year if provided
-        if ($request->has('month') && $request->has('year')) {
-            $query->whereMonth('tgl_presensi', $request->month)
-                  ->whereYear('tgl_presensi', $request->year);
+            if (!$pegawai) {
+                return redirect()->route('pegawai.dashboard')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+            }
+
+            $query = Presensi::withoutGlobalScopes()->where('pegawai_id', $pegawai->id);
+
+            // Filter by month/year if provided
+            if ($request->has('month') && $request->has('year')) {
+                $query->whereMonth('tgl_presensi', $request->month)
+                      ->whereYear('tgl_presensi', $request->year);
+            }
+
+            $attendances = $query->orderBy('tgl_presensi', 'desc')->paginate(20);
+
+            return view('pegawai.riwayat-presensi', compact('pegawai', 'attendances'));
+        } catch (\Exception $e) {
+            \Log::error('Error in riwayatPresensi: ' . $e->getMessage());
+            return redirect()->route('pegawai.dashboard')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-        
-        $attendances = $query->orderBy('tgl_presensi', 'desc')->paginate(20);
-        
-        return view('pegawai.riwayat-presensi', compact('pegawai', 'attendances'));
     }
 
     /**

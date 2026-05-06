@@ -9,14 +9,40 @@
             <i class="fas fa-eye me-2"></i>Detail Transaksi Penjualan
         </h3>
         <div>
-            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-warning">
-                <i class="fas fa-edit me-2"></i>Edit
-            </a>
             <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Kembali
             </a>
         </div>
     </div>
+
+    {{-- Notifikasi jurnal belum bisa dibuat --}}
+    @if(session('warning_jurnal'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-start gap-3">
+                <i class="fas fa-exclamation-triangle fa-lg mt-1 flex-shrink-0"></i>
+                <div class="flex-grow-1">
+                    <strong>Jurnal Akuntansi Belum Dapat Dibuat</strong>
+                    <div class="mt-1" style="white-space: pre-line;">{{ session('warning_jurnal') }}</div>
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <a href="{{ route('transaksi.penjualan.jurnal', $penjualan->id) }}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-book me-1"></i>Lihat Detail Jurnal
+                        </a>
+                        <a href="{{ route('master-data.coa.create') }}" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-plus me-1"></i>Tambah Akun COA
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     @php
         $detailCount = $penjualan->details->count();
@@ -28,7 +54,12 @@
                 $totalSubtotal += $sub;
                 $totalHPP += $hpp * $d->jumlah;
                 $totalProfit += ($d->harga_satuan - $hpp) * $d->jumlah;
-                $totalDiskon += $d->diskon_nominal ?? 0;
+                // Hitung diskon: pakai diskon_nominal jika ada, fallback dari diskon_persen
+                $diskonBaris = (float)($d->diskon_nominal ?? 0);
+                if ($diskonBaris == 0 && ($d->diskon_persen ?? 0) > 0) {
+                    $diskonBaris = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                }
+                $totalDiskon += $diskonBaris;
             }
         } else {
             $hpp = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
@@ -44,11 +75,14 @@
         
         // Additional costs
         $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
-        $biayaServis = $penjualan->biaya_servis ?? 0;
-        $biayaPPN = $totalSubtotal * 0.11; // 11% PPN
+        // Pakai biaya_ppn dari DB, fallback hitung 11% jika belum tersimpan
+        $biayaPPN = ($penjualan->biaya_ppn ?? 0) > 0
+            ? (float)$penjualan->biaya_ppn
+            : round(($totalSubtotal + $biayaOngkir) * 0.11);
         
         // Calculate grand total
-        $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir + $biayaServis - $totalDiskon;
+        $grandTotal = $penjualan->grand_total
+            ?: ($totalSubtotal + $biayaPPN + $biayaOngkir - $totalDiskon);
     @endphp
 
     {{-- Row 1: Informasi Transaksi + Ringkasan --}}
@@ -142,28 +176,23 @@
                     </div>
                     @endif
                     
-                    @if($biayaServis > 0)
+                    @if($biayaPPN > 0)
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
-                            <span>Biaya Servis:</span>
-                            <strong class="text-secondary">Rp {{ number_format($biayaServis, 0, ',', '.') }}</strong>
-                        </div>
-                    </div>
-                    @endif
-                    
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Biaya PPN (11%):</span>
+                            <span>Biaya PPN:</span>
                             <strong class="text-warning">Rp {{ number_format($biayaPPN, 0, ',', '.') }}</strong>
                         </div>
                     </div>
-                    
+                    @endif
+
+                    @if($totalDiskon > 0)
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Total Diskon:</span>
                             <strong class="text-danger">-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</strong>
                         </div>
                     </div>
+                    @endif
                     
                     <hr>
                     <div class="mb-0">
@@ -224,7 +253,7 @@
                                                     <th class="text-end">Harga</th>
                                                     <th class="text-end">HPP</th>
                                                     <th class="text-end">Profit</th>
-                                                    <th class="text-end">Diskon</th>
+                                                    @if($totalDiskon > 0)<th class="text-end">Diskon</th>@endif
                                                     <th class="text-end">Subtotal</th>
                                                 </tr>
                                             </thead>
@@ -234,7 +263,11 @@
                                                         @php
                                                             $actualHPP = $detail->produk->getHPPForSaleDate($penjualan->tanggal) ?? 0;
                                                             $margin = ($detail->harga_satuan - $actualHPP) * $detail->jumlah;
-                                                            $subtotal = $detail->subtotal ?? ($detail->jumlah * $detail->harga_satuan - ($detail->diskon_nominal ?? 0));
+                                                            $diskonNomDetail = (float)($detail->diskon_nominal ?? 0);
+                                                            if ($diskonNomDetail == 0 && ($detail->diskon_persen ?? 0) > 0) {
+                                                                $diskonNomDetail = round($detail->harga_satuan * $detail->jumlah * $detail->diskon_persen / 100);
+                                                            }
+                                                            $subtotal = $detail->subtotal ?? ($detail->jumlah * $detail->harga_satuan - $diskonNomDetail);
                                                         @endphp
                                                         <tr>
                                                             <td>{{ $detail->produk->nama_produk ?? '-' }}</td>
@@ -242,11 +275,16 @@
                                                             <td class="text-end">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
                                                             <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
                                                             <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
-                                                            <td class="text-end">
-                                                                @if($detail->diskon_persen > 0) {{ number_format($detail->diskon_persen, 2, ',', '.') }}% @endif
-                                                                @if($detail->diskon_nominal > 0) (Rp {{ number_format($detail->diskon_nominal, 0, ',', '.') }}) @endif
-                                                                @if($detail->diskon_persen == 0 && $detail->diskon_nominal == 0) - @endif
+                                                            @if($totalDiskon > 0)
+                                                            <td class="text-end text-danger">
+                                                                @if(($detail->diskon_persen ?? 0) > 0)
+                                                                    {{ number_format($detail->diskon_persen, 0) }}%
+                                                                    @if($diskonNomDetail > 0)<br><small>-Rp {{ number_format($diskonNomDetail, 0, ',', '.') }}</small>@endif
+                                                                @else
+                                                                    -
+                                                                @endif
                                                             </td>
+                                                            @endif
                                                             <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                                         </tr>
                                                     @endforeach
@@ -255,7 +293,7 @@
                                                         $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
                                                         $hdrHarga = $penjualan->harga_satuan;
                                                         if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                                        $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                                            $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
                                                         }
                                                         $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
                                                     @endphp
@@ -265,9 +303,11 @@
                                                         <td class="text-end">Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}</td>
                                                         <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
                                                         <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
-                                                        <td class="text-end">
-                                                            @if($penjualan->diskon_nominal > 0) Rp {{ number_format($penjualan->diskon_nominal, 0, ',', '.') }} @else - @endif
+                                                        @if($totalDiskon > 0)
+                                                        <td class="text-end text-danger">
+                                                            -Rp {{ number_format($totalDiskon, 0, ',', '.') }}
                                                         </td>
+                                                        @endif
                                                         <td class="text-end">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
                                                     </tr>
                                                 @endif
@@ -308,16 +348,15 @@
                                             <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn btn-outline-info btn-sm flex-fill text-center">
                                                 <i class="fas fa-undo d-block mb-1"></i><small>Retur</small>
                                             </a>
-                                            <div class="flex-fill">
-                                                <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" onsubmit="return confirm('Yakin ingin hapus transaksi ini?')" class="h-100">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 h-100 text-center">
-                                                        <i class="fas fa-trash d-block mb-1"></i><small>Hapus</small>
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <button type="button" onclick="confirmDeletePenjualan({{ $penjualan->id }})" class="btn btn-outline-danger btn-sm flex-fill text-center">
+                                                <i class="fas fa-trash d-block mb-1"></i><small>Hapus</small>
+                                            </button>
                                         </div>
+                                        <!-- Hidden form for delete -->
+                                        <form id="deletePenjualanForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
+                                            @csrf
+                                            @method('DELETE')
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -435,12 +474,11 @@
                     <div class="row justify-content-center">
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="card">
-                                <div class="card-header text-center">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Struk Penjualan</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="printStruk()">
-                                        <i class="fas fa-print me-1"></i>Print (Ctrl+P)
+                                    <button type="button" class="btn btn-primary" onclick="printStruk()">
+                                        <i class="fas fa-print me-2"></i>Cetak Struk
                                     </button>
-                                    <small class="text-muted d-block mt-1">Tab struk berhasil dimuat</small>
                                 </div>
                                 <div class="card-body d-flex justify-content-center p-2">
                                     <div id="strukContent" class="struk-container">
@@ -535,21 +573,29 @@
                                         {{-- Summary --}}
                                         <div class="summary-section">
                                             <div class="summary-row">
-                                                <span>Subtotal</span>
+                                                <span>Subtotal Produk:</span>
                                                 <span>Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</span>
                                             </div>
-                                            @if($totalDiskon > 0)
-                                                <div class="summary-row">
-                                                    <span>Total Diskon</span>
-                                                    <span>-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</span>
-                                                </div>
+                                            @if($biayaOngkir > 0)
+                                            <div class="summary-row">
+                                                <span>Biaya Ongkir:</span>
+                                                <span>Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</span>
+                                            </div>
                                             @endif
+                                            <div class="summary-row">
+                                                <span>Biaya PPN (11%):</span>
+                                                <span>Rp {{ number_format($biayaPPN, 0, ',', '.') }}</span>
+                                            </div>
+                                            <div class="summary-row">
+                                                <span>Total Diskon:</span>
+                                                <span>-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</span>
+                                            </div>
                                         </div>
                                         
                                         <div class="total-section">
                                             <div class="total-row">
-                                                <span>TOTAL:</span>
-                                                <span>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</span>
+                                                <span>Total Pembayaran:</span>
+                                                <span>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
                                             </div>
                                         </div>
                                         
@@ -1330,6 +1376,13 @@ window.addEventListener('error', function(e) {
         e.preventDefault();
     }
 });
+
+// Function to confirm delete penjualan
+function confirmDeletePenjualan(penjualanId) {
+    if (confirm('Yakin ingin hapus transaksi ini?')) {
+        document.getElementById('deletePenjualanForm' + penjualanId).submit();
+    }
+}
 </script>
 
 @endsection

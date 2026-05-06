@@ -76,8 +76,13 @@
                                     </div>
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
+<<<<<<< HEAD
+                                <td>{{ $pelanggan->phone ?? '-' }}</td>
+                                <td>{{ $pelanggan->address ? \Illuminate\Support\Str::limit($pelanggan->address, 40) : '-' }}</td>
+=======
                                 <td>{{ $pelanggan->telepon ?? '-' }}</td>
                                 <td>{{ $pelanggan->alamat ?? '-' }}</td>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 <td>
                                     @if($pelanggan->password)
                                         <div class="d-flex align-items-center gap-2">
@@ -120,7 +125,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pelanggan</p>
                                 </td>

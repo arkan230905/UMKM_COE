@@ -121,7 +121,7 @@
                             @endphp
                             <tr>
                                 <td class="text-center">PGJ{{ str_pad($gaji->id, 6, '0', STR_PAD_LEFT) }}</td>
-                                <td>{{ $tanggal->format('d M Y') }}</td>
+                                <td class="text-center">{{ $tanggal->format('d/m/Y') }}</td>
                                 <td>{{ $bulanPenggajian }}</td>
                                 <td>
                                     <div>
@@ -159,6 +159,7 @@
                                                 </form>
                                                 <form action="{{ route('transaksi.penggajian.markAsPaid', $gaji->id) }}" method="POST" class="m-0 d-inline">
                                                     @csrf
+                                                    @method('PATCH')
                                                     <button type="submit" class="btn btn-outline-success btn-sm" title="Tandai sebagai Sudah Dibayar">
                                                         <i class="fas fa-check-circle"></i>
                                                     </button>

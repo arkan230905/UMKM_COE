@@ -278,10 +278,10 @@ async function processAttendance(action) {
             if (base64Image) {
                 showPhotoPreview(base64Image);
             }
-            
-            // Refresh page after 2 seconds
+
+            // Redirect to dashboard after 2 seconds
             setTimeout(() => {
-                window.location.reload();
+                window.location.href = '{{ route("pegawai.dashboard") }}';
             }, 2000);
             
         } else {

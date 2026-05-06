@@ -23,13 +23,21 @@ class DepreciationCalculationService
 
     /**
      * Hitung penyusutan menggunakan metode saldo menurun ganda (Double Declining Balance)
-     * Beban penyusutan = Nilai Buku Awal × (2 / Umur Manfaat) -> ini adalah tarif tahunan
+     *
+     * RUMUS BENAR:
+     * - Tarif tahunan = 2 / umur_manfaat (misal 5 tahun → 40%)
+     * - Beban tahunan = nilai_buku_awal_tahun × tarif_tahunan
+     * - Beban bulanan = beban_tahunan / jumlah_bulan_dalam_tahun_itu
+     *   (tahun pertama parsial: beban_tahunan × bulan_tersisa / 12, lalu bagi bulan_tersisa)
+     *
+     * BUKAN: nilai_buku × (tarif/12) per bulan — itu menghasilkan angka berbeda tiap bulan
      */
     public function hitungSaldoMenurun(Aset $aset, float $nilaiBukuAwal): float
     {
-        $tarifTahunan = 2 / $aset->umur_manfaat; // Double declining rate (decimal per tahun)
-        $tarifBulanan = $tarifTahunan / 12; // Monthly rate
-        return $nilaiBukuAwal * $tarifBulanan; // Return monthly depreciation based on current book value
+        // Kembalikan beban TAHUNAN penuh (bukan bulanan)
+        // Pemanggil yang bertanggung jawab membagi dengan jumlah bulan
+        $tarifTahunan = 2 / $aset->umur_manfaat;
+        return $nilaiBukuAwal * $tarifTahunan;
     }
 
     /**
@@ -48,199 +56,170 @@ class DepreciationCalculationService
     }
 
     /**
-     * Generate jadwal penyusutan per bulan untuk semua metode
-     * Sesuai dengan aturan:
-     * - Jika tanggal > 15, mulai bulan berikutnya
-     * - Jika tanggal ≤ 15, mulai bulan tersebut
+     * Generate jadwal penyusutan per bulan untuk semua metode.
+     *
+     * LOGIKA SALDO MENURUN GANDA (DDB):
+     * 1. Tentukan tanggal mulai (aturan: tgl > 15 → mulai bulan berikutnya).
+     * 2. Hitung beban TAHUNAN: depr_year = book_value_awal_tahun × (2/umur).
+     * 3. Tahun pertama parsial: depr_year_1 = depr_year_full × (sisa_bulan/12).
+     * 4. Beban bulanan = depr_year_n / jumlah_bulan_dalam_tahun_n (konsisten).
+     * 5. Bulan terakhir: adjust agar book_value = nilai_residu.
      */
     public function generateMonthlySchedule(Aset $aset): array
     {
         $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
-        $nilaiResidu = (float)($aset->nilai_residu ?? 0);
-        $umurManfaat = (int)($aset->umur_manfaat ?? 0);
-        
-        if ($umurManfaat <= 0 || $totalPerolehan <= 0) {
-            return [];
+        $nilaiResidu    = (float)($aset->nilai_residu ?? 0);
+        $umurManfaat    = (int)($aset->umur_manfaat ?? 0);
+
+        if ($umurManfaat <= 0 || $totalPerolehan <= 0) return [];
+
+        $tanggalMulai = $aset->tanggal_akuisisi ?? $aset->tanggal_beli;
+        if (!$tanggalMulai) return [];
+
+        $startDate = Carbon::parse($tanggalMulai)->startOfDay();
+
+        // Aturan: tgl > 15 → mulai bulan berikutnya
+        if ($startDate->day > 15) {
+            $startDate = $startDate->addMonthNoOverflow()->startOfMonth();
         }
 
-        // Tentukan tanggal mulai penyusutan
-        $tanggalMulai = $aset->tanggal_akuisisi ?? $aset->tanggal_beli;
-        if (!$tanggalMulai) {
-            return [];
-        }
-        
-        $startDate = Carbon::parse($tanggalMulai);
-        
-        // Aturan: jika tanggal > 15, mulai bulan berikutnya
-        if ($startDate->day > 15) {
-            $startDate->addMonth()->day(1);
-        }
-        
         $schedule = [];
-        $currentDate = $startDate->copy();
-        $akumulasiPenyusutan = 0;
-        $nilaiBuku = $totalPerolehan;
-        $bulanKe = 0;
-        
-        // Tambahkan baris awal (Harga Perolehan)
+
+        // Baris awal: Harga Perolehan
         $schedule[] = [
-            'tahun_bulan' => 'HP',
-            'penyusutan' => 0,
+            'tahun_bulan'          => 'HP',
+            'penyusutan'           => 0,
             'akumulasi_penyusutan' => 0,
-            'nilai_buku' => $totalPerolehan,
-            'rincian' => null
+            'nilai_buku'           => $totalPerolehan,
+            'rincian'              => null,
         ];
-        
-        // Hitung jadwal per bulan
-        $tahunPenyusutanKe = 1;
-        $bulanDalamTahunPenyusutan = 0;
-        $totalBulan = $umurManfaat * 12;
-        
-        // Loop maksimal sesuai umur manfaat (60 bulan untuk 5 tahun)
-        for ($i = 0; $i < $totalBulan; $i++) {
-            $bulanKe++;
-            $bulanDalamTahunPenyusutan++;
-            
-            // Reset counter tahun penyusutan jika sudah 12 bulan
-            if ($bulanDalamTahunPenyusutan > 12) {
-                $tahunPenyusutanKe++;
-                $bulanDalamTahunPenyusutan = 1;
-            }
-            
-            // Hitung penyusutan bulan ini sesuai metode
-            $penyusutanBulanan = $this->hitungPenyusutanBulanan(
-                $aset, 
-                $tahunPenyusutanKe, 
-                $bulanDalamTahunPenyusutan, 
-                $nilaiBuku, 
-                $bulanKe
-            );
-            
-            // ATURAN KHUSUS UNTUK SALDO MENURUN GANDA
-            if ($aset->metode_penyusutan === 'saldo_menurun') {
-                // Hitung rate tahunan (40% untuk umur 5 tahun)
-                $rateTahunan = 2 / $aset->umur_manfaat;
-                
-                // Hitung penyusutan normal bulan ini
-                $penyusutanNormal = ($rateTahunan * $nilaiBuku) / 12;
-                
-                // Cek apakah ini bulan terakhir umur manfaat
-                $isBulanTerakhir = ($i == $totalBulan - 1);
-                
-                // Cek apakah akan melewati nilai residu
-                $akanLewatiResidu = ($nilaiBuku - $penyusutanNormal) <= $nilaiResidu;
-                
-                if ($akanLewatiResidu || $isBulanTerakhir) {
-                    // Pakai selisih langsung, bukan rate
-                    $penyusutanBulanan = $nilaiBuku - $nilaiResidu;
-                    $nilaiBukuBaru = $nilaiResidu; // tepat balance
-                    
-                    // Tambahkan baris terakhir
-                    $akumulasiPenyusutan += $penyusutanBulanan;
-                    $schedule[] = [
-                        'tahun_bulan' => $currentDate->format('M Y'),
-                        'penyusutan' => $penyusutanBulanan,
-                        'akumulasi_penyusutan' => $akumulasiPenyusutan,
-                        'nilai_buku' => $nilaiBukuBaru,
-                        'rincian' => null
-                    ];
-                    break; // STOP → tidak ada baris setelah ini
-                } else {
-                    // Gunakan penyusutan normal
-                    $penyusutanBulanan = $penyusutanNormal;
-                }
-            } elseif ($aset->metode_penyusutan === 'sum_of_years_digits') {
-                // ATURAN KHUSUS UNTUK SUM OF YEARS DIGITS
-                // Cek apakah ini bulan terakhir umur manfaat
-                $isBulanTerakhir = ($i == $totalBulan - 1);
-                
-                if ($isBulanTerakhir) {
-                    // Bulan terakhir: pastikan akumulasi tepat = total_disusutkan
-                    $targetAkumulasi = $totalPerolehan - $nilaiResidu;
-                    $penyusutanBulanan = $targetAkumulasi - $akumulasiPenyusutan;
-                    $nilaiBukuBaru = $nilaiResidu; // tepat balance
-                    
-                    // Tambahkan baris terakhir
-                    $akumulasiPenyusutan += $penyusutanBulanan;
-                    $schedule[] = [
-                        'tahun_bulan' => $currentDate->format('M Y'),
-                        'penyusutan' => $penyusutanBulanan,
-                        'akumulasi_penyusutan' => $akumulasiPenyusutan,
-                        'nilai_buku' => $nilaiBukuBaru,
-                        'rincian' => null
-                    ];
-                    break; // STOP → tidak ada baris setelah ini
-                }
+
+        $nilaiBuku          = $totalPerolehan;
+        $akumulasiPenyusutan = 0;
+        $totalBulan         = $umurManfaat * 12;
+        $currentDate        = $startDate->copy();
+
+        // Hitung bulan tersisa di tahun kalender pertama (inklusif bulan mulai)
+        $bulanTersisaTahunPertama = 13 - $startDate->month; // Sep=9 → 13-9=4
+
+        // ── Bangun daftar segmen tahunan ──────────────────────────────────────
+        // Setiap segmen: [jumlah_bulan, book_value_awal_tahun]
+        // Ini memudahkan kita menghitung depr_month = depr_year / jumlah_bulan
+        $segmen = [];
+        $bvAwal = $totalPerolehan;
+        $bulanTerpakai = 0;
+
+        for ($t = 1; $t <= $umurManfaat + 1; $t++) {
+            if ($bulanTerpakai >= $totalBulan) break;
+
+            if ($t === 1) {
+                $jmlBulan = min($bulanTersisaTahunPertama, $totalBulan);
             } else {
-                // Untuk metode lain, gunakan logic yang sudah ada
-                // Pastikan tidak melebihi batas
-                $maksPenyusutan = $nilaiBuku - $nilaiResidu;
-                if ($penyusutanBulanan > $maksPenyusutan) {
-                    $penyusutanBulanan = $maksPenyusutan;
-                }
-                
-                // Jika sudah mencapai nilai residu, hentikan perhitungan
-                if ($nilaiBuku <= $nilaiResidu) {
-                    $akumulasiPenyusutan = $totalPerolehan - $nilaiResidu;
-                    $nilaiBuku = $nilaiResidu;
-                    
-                    // Tambahkan bulan terakhir
-                    $schedule[] = [
-                        'tahun_bulan' => $currentDate->format('M Y'),
-                        'penyusutan' => $penyusutanBulanan,
-                        'akumulasi_penyusutan' => $akumulasiPenyusutan,
-                        'nilai_buku' => $nilaiBuku,
-                        'rincian' => null
-                    ];
-                    break;
-                }
+                $jmlBulan = min(12, $totalBulan - $bulanTerpakai);
             }
-            
-            $akumulasiPenyusutan += $penyusutanBulanan;
-            $nilaiBuku -= $penyusutanBulanan;
-            
-            $schedule[] = [
-                'tahun_bulan' => $currentDate->format('M Y'),
-                'penyusutan' => $penyusutanBulanan,
-                'akumulasi_penyusutan' => $akumulasiPenyusutan,
-                'nilai_buku' => $nilaiBuku,
-                'rincian' => null
+            if ($jmlBulan <= 0) break;
+
+            // Beban tahunan penuh untuk nilai buku saat ini
+            $deprYearFull = $this->hitungDeprTahunan($aset, $bvAwal, $nilaiResidu);
+
+            // Tahun pertama: pro-rata
+            if ($t === 1) {
+                $deprYear = $deprYearFull * ($bulanTersisaTahunPertama / 12);
+            } else {
+                $deprYear = $deprYearFull;
+            }
+
+            // Pastikan tidak melebihi sisa yang bisa disusutkan
+            $maxDepr = $bvAwal - $nilaiResidu;
+            $deprYear = min($deprYear, $maxDepr);
+
+            $deprMonth = $jmlBulan > 0 ? $deprYear / $jmlBulan : 0;
+
+            $segmen[] = [
+                'jumlah_bulan' => $jmlBulan,
+                'depr_month'   => $deprMonth,
+                'bv_awal'      => $bvAwal,
             ];
-            
-            $currentDate->addMonth();
+
+            $bvAwal -= $deprYear;
+            $bulanTerpakai += $jmlBulan;
+
+            if ($bvAwal <= $nilaiResidu) break;
         }
-        
+
+        // ── Bangun jadwal bulanan dari segmen ────────────────────────────────
+        $bulanGlobal = 0;
+        foreach ($segmen as $seg) {
+            for ($b = 0; $b < $seg['jumlah_bulan']; $b++) {
+                $bulanGlobal++;
+                $isBulanTerakhir = ($bulanGlobal === $totalBulan);
+
+                $deprBulanIni = $seg['depr_month'];
+
+                // Bulan terakhir: adjust agar book_value tepat = nilai_residu
+                if ($isBulanTerakhir || ($nilaiBuku - $deprBulanIni) < $nilaiResidu) {
+                    $deprBulanIni = max(0, $nilaiBuku - $nilaiResidu);
+                }
+
+                $akumulasiPenyusutan += $deprBulanIni;
+                $nilaiBuku           -= $deprBulanIni;
+
+                $schedule[] = [
+                    'tahun_bulan'          => $currentDate->format('M Y'),
+                    'penyusutan'           => round($deprBulanIni, 2),
+                    'akumulasi_penyusutan' => round($akumulasiPenyusutan, 2),
+                    'nilai_buku'           => round($nilaiBuku, 2),
+                    'rincian'              => null,
+                ];
+
+                $currentDate->addMonthNoOverflow();
+
+                if ($nilaiBuku <= $nilaiResidu) goto done;
+            }
+        }
+        done:
+
         return $schedule;
     }
-    
+
     /**
-     * Hitung penyusutan bulanan berdasarkan metode
+     * Hitung beban penyusutan TAHUNAN PENUH berdasarkan metode.
+     * Untuk DDB: depr = book_value × (2/umur).
+     * Untuk garis lurus: depr = (cost - residu) / umur.
+     * Untuk SYD: depr = (sisa_umur / sum_of_years) × (cost - residu).
      */
-    private function hitungPenyusutanBulanan(
-        Aset $aset, 
-        int $tahunPenyusutanKe, 
-        int $bulanDalamTahunPenyusutan, 
-        float $nilaiBuku, 
-        int $bulanKe
-    ): float {
-        $metode = $aset->metode_penyusutan;
-        
-        switch ($metode) {
-            case 'garis_lurus':
-                return $this->hitungGarisLurus($aset, $bulanKe);
-                
+    private function hitungDeprTahunan(Aset $aset, float $nilaiBuku, float $nilaiResidu): float
+    {
+        $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
+        $umurManfaat    = (int)$aset->umur_manfaat;
+
+        switch ($aset->metode_penyusutan) {
             case 'saldo_menurun':
-                // Untuk saldo menurun, hitung tahunan lalu bagi 12
-                $penyusutanTahunan = $this->hitungSaldoMenurun($aset, $nilaiBuku);
-                return $penyusutanTahunan / 12;
-                
+                // DDB: tarif = 2/umur, beban = book_value × tarif
+                return $nilaiBuku * (2 / $umurManfaat);
+
+            case 'garis_lurus':
+                return ($totalPerolehan - $nilaiResidu) / $umurManfaat;
+
             case 'sum_of_years_digits':
-                // Hitung penyusutan tahunan untuk tahun penyusutan ke-n, lalu bagi 12
-                $penyusutanTahunan = $this->hitungSumOfYearsDigits($aset, $tahunPenyusutanKe);
-                return $penyusutanTahunan / 12;
-                
+                // Hitung tahun ke berapa berdasarkan book value
+                $totalDisusutkan = $totalPerolehan - $nilaiResidu;
+                $sudahDisusutkan = $totalPerolehan - $nilaiBuku;
+                $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                // Estimasi tahun ke-n dari akumulasi
+                $tahunKe = 1;
+                $akum = 0;
+                for ($t = 1; $t <= $umurManfaat; $t++) {
+                    $sisaUmur = $umurManfaat - $t + 1;
+                    $depr = ($totalDisusutkan * $sisaUmur) / $sumOfYears;
+                    $akum += $depr;
+                    if ($akum >= $sudahDisusutkan) { $tahunKe = $t; break; }
+                }
+                $sisaUmur = $umurManfaat - $tahunKe + 1;
+                return ($totalDisusutkan * $sisaUmur) / $sumOfYears;
+
             default:
-                return $this->hitungGarisLurus($aset, $bulanKe);
+                return ($totalPerolehan - $nilaiResidu) / $umurManfaat;
         }
     }
 

@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Jabatan extends Model
 {
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
+    
     protected $fillable = [
         'user_id',
         'kode_jabatan', 
@@ -20,7 +32,8 @@ class Jabatan extends Model
         'asuransi', 
         'tarif',
         'tarif_per_jam', 
-        'deskripsi'
+        'deskripsi',
+        'user_id'
     ];
     
     
@@ -43,7 +56,11 @@ class Jabatan extends Model
     }
 
     /**
+<<<<<<< HEAD
+     * Relasi ke pegawai - using proper foreign key relationship
+=======
      * Relasi ke pegawai dengan multi-tenant isolation
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
      */
     public function pegawais(): HasMany
     {

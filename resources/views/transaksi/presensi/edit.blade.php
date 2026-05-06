@@ -42,9 +42,14 @@
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach($pegawais as $pegawai)
                                 <option value="{{ $pegawai->id }}" 
+<<<<<<< HEAD
+                                    {{ old('pegawai_id', $presensi->pegawai_id) == $pegawai->id ? 'selected' : '' }}>
+                                    {{ $pegawai->nama }}
+=======
                                     {{ old('pegawai_id', $presensi->pegawai_id) == $pegawai->id ? 'selected' : '' }}
                                     >
                                     {{ $pegawai->nama }} - {{ $pegawai->jabatan ?? 'Tidak ada jabatan' }}{{ $pegawai->kode_pegawai ? ' (' . $pegawai->kode_pegawai . ')' : '' }}
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 </option>
                             @endforeach
                         </select>

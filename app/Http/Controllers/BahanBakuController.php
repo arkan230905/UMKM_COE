@@ -77,12 +77,16 @@ class BahanBakuController extends Controller
         $this->convertCommaToDecimal($request);
         
         $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => 'required|string|max:255|unique:bahan_bakus,nama_bahan,NULL,id,user_id,'.auth()->id(),
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
+<<<<<<< HEAD
+            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,'.auth()->id(),
+=======
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,' . auth()->id(),
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'stok_minimum' => 'nullable|numeric|min:0',
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
@@ -129,6 +133,7 @@ class BahanBakuController extends Controller
             'coa_pembelian_id' => $request->coa_pembelian_id,
             'coa_persediaan_id' => $request->coa_persediaan_id,
             'coa_hpp_id' => $request->coa_hpp_id,
+            'user_id' => auth()->id(),
         ]);
 
         // Create initial stock movement if stock > 0
@@ -346,16 +351,27 @@ class BahanBakuController extends Controller
             return 0;
         }
         
-        // Hitung total harga dan total quantity
+        // Hitung total harga dan total quantity dalam satuan utama
         $totalHarga = 0;
         $totalQuantity = 0;
         
         foreach ($details as $detail) {
-            $totalHarga += ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
-            $totalQuantity += ($detail->jumlah ?? 0);
+            // Gunakan jumlah_dalam_satuan_utama untuk perhitungan yang benar
+            $quantityInMainUnit = $detail->jumlah_dalam_satuan_utama ?? 0;
+            
+            // Jika jumlah_dalam_satuan_utama = 0, skip detail ini
+            if ($quantityInMainUnit <= 0) {
+                continue;
+            }
+            
+            // Hitung total harga untuk detail ini
+            $detailTotalHarga = ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            
+            $totalHarga += $detailTotalHarga;
+            $totalQuantity += $quantityInMainUnit;
         }
         
-        // Hitung harga rata-rata
+        // Hitung harga rata-rata per satuan utama
         $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
         
         return $averageHarga;

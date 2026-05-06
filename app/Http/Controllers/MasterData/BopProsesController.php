@@ -127,19 +127,19 @@ class BopProsesController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'listrik_per_jam' => 'required|numeric|min:0',
-            'gas_bbm_per_jam' => 'required|numeric|min:0',
-            'penyusutan_mesin_per_jam' => 'required|numeric|min:0',
-            'maintenance_per_jam' => 'required|numeric|min:0',
-            'gaji_mandor_per_jam' => 'required|numeric|min:0',
-            'lain_lain_per_jam' => 'nullable|numeric|min:0',
+            'komponen_bop' => 'required|array|min:1',
+            'komponen_bop.*.component' => 'required|string',
+            'komponen_bop.*.rate_per_hour' => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
         
         try {
             $bopProses = BopProses::findOrFail($id);
-            $bopProses->update($validated);
+            
+            // Update komponen_bop
+            $bopProses->komponen_bop = $validated['komponen_bop'];
+            $bopProses->save();
 
             DB::commit();
 

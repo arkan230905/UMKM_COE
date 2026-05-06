@@ -15,13 +15,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Setup awal: COA Template dan Satuan (untuk user baru yang daftar)
+        // Setup awal: Company untuk multi-tenant
         $this->call([
-            CoaTemplateSeeder::class,  // COA template yang akan di-copy saat registrasi
-            JasukeCoaSeeder::class,    // COA Jasuke lengkap (94 akun)
-            SatuanSeeder::class,       // Satuan (global, tidak per company)
-            JabatanSeeder::class,      // Jabatan/Kualifikasi Tenaga Kerja (global, tidak per company)
-            PegawaiSeeder::class,      // Pegawai default (global, tidak per company)
+            CompanySeeder::class,     // Create companies for multi-tenant
+        ]);
+
+        // Setup awal: Multi-tenant COA Template dan Satuan (untuk setiap perusahaan)
+        $this->call([
+            CoaDefaultSeeder::class,  // COA Default untuk multi-tenant (50 akun)
+            SatuanDefaultSeeder::class, // Satuan Default untuk multi-tenant (16 satuan)
+            JasukeCoaSeeder::class,    // COA Jasuke lengkap (94 akun) - backup
+            SatuanSeeder::class,       // Satuan (global, tidak per company) - backup
+            JabatanSeeder::class,      // Jabatan/Kualifikasi Tenaga Kerja
             InitialSetupSeeder::class, // Jenis Aset, Kategori Aset
         ]);
 

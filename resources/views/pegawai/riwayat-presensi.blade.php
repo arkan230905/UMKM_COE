@@ -122,7 +122,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="6" class="text-center py-4">
+                                        <td colspan="7" class="text-center py-4">
                                             <i class="bi bi-calendar-x fs-1 text-info"></i>
                                             <p class="mt-2 text-primary">Belum ada data presensi</p>
                                             <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="btn btn-primary">

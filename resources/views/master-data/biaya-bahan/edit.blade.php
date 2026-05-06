@@ -250,7 +250,13 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
+<<<<<<< HEAD
+                        <small class="text-muted">
+                            BBB: <span id="summaryBahanBaku">Rp 0</span>
+                        </small>
+=======
                         <small class="text-muted">BBB: <span id="summaryBahanBaku">Rp 0</span></small>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                     </div>
                     <div>
                         <button type="submit" class="btn btn-success" id="submitBtn">
@@ -445,7 +451,7 @@ function getConversionFactor(fromUnit, toUnit, subSatuanData = []) {
 function calculateRowSubtotal(row) {
     console.log("🧮 calculateRowSubtotal called");
     
-    const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+    const bahanSelect = row.querySelector(".bahan-baku-select");
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const subtotalDisplay = row.querySelector(".subtotal-display");
@@ -504,12 +510,11 @@ function calculateRowSubtotal(row) {
     setTimeout(calculateTotals, 50);
 }
 
-// Calculate all totals - FIXED VERSION
+// Calculate all totals - FIXED VERSION (BBB Only)
 function calculateTotals() {
     let totalBB = 0;
-    let totalBP = 0;
     
-    // Bahan Baku
+    // Bahan Baku only
     document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)").forEach(row => {
         const subtotalText = row.querySelector(".subtotal-display")?.textContent || "";
         const cleanText = subtotalText.replace(/[^\d]/g, "");
@@ -517,37 +522,25 @@ function calculateTotals() {
         totalBB += subtotal;
     });
     
-    // Bahan Pendukung
-    document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)").forEach(row => {
-        const subtotalText = row.querySelector(".subtotal-display")?.textContent || "";
-        const cleanText = subtotalText.replace(/[^\d]/g, "");
-        const subtotal = parseFloat(cleanText) || 0;
-        totalBP += subtotal;
-    });
-    
-    const total = totalBB + totalBP;
+    const total = totalBB; // Only BBB now
     
     console.log("📊 Totals calculated:", { bb: totalBB, bp: totalBP, total: total });
     
     // Update displays
     const elements = {
         totalBahanBaku: document.getElementById("totalBahanBaku"),
-        totalBahanPendukung: document.getElementById("totalBahanPendukung"),
         summaryBahanBaku: document.getElementById("summaryBahanBaku"),
-        summaryBahanPendukung: document.getElementById("summaryBahanPendukung"),
         summaryTotalBiaya: document.getElementById("summaryTotalBiaya")
     };
     
     if (elements.totalBahanBaku) elements.totalBahanBaku.textContent = formatRupiah(totalBB);
-    if (elements.totalBahanPendukung) elements.totalBahanPendukung.textContent = formatRupiah(totalBP);
     if (elements.summaryBahanBaku) elements.summaryBahanBaku.textContent = formatRupiah(totalBB);
-    if (elements.summaryBahanPendukung) elements.summaryBahanPendukung.textContent = formatRupiah(totalBP);
     if (elements.summaryTotalBiaya) elements.summaryTotalBiaya.textContent = formatRupiah(total);
 }
 
 // Add event listeners to row - ENHANCED VERSION
 function addRowEventListeners(row) {
-    const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+    const bahanSelect = row.querySelector(".bahan-baku-select");
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const removeBtn = row.querySelector(".remove-item");
@@ -607,7 +600,7 @@ function addRowEventListeners(row) {
     if (satuanSelect) {
         satuanSelect.addEventListener("change", function() {
             console.log("🔄 Satuan changed:", this.value);
-            const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+            const bahanSelect = row.querySelector(".bahan-baku-select");
             if (bahanSelect && bahanSelect.value) {
                 const option = bahanSelect.options[bahanSelect.selectedIndex];
                 updateConversionDisplay(row, option);
@@ -656,34 +649,6 @@ function addBahanBakuRow() {
     return false;
 }
 
-function addBahanPendukungRow() {
-    console.log("➕ Adding Bahan Pendukung row");
-    
-    const newRow = document.getElementById("newBahanPendukungRow");
-    if (!newRow) {
-        console.error("❌ Template row not found");
-        return false;
-    }
-    
-    const tbody = newRow.parentElement;
-    const clone = newRow.cloneNode(true);
-    clone.classList.remove("d-none");
-    clone.id = "bahanPendukung_" + Date.now();
-    
-    // Update name attributes
-    const timestamp = Date.now();
-    clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
-        const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
-        input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
-        input.value = "";
-    });
-    
-    tbody.insertBefore(clone, newRow);
-    addRowEventListeners(clone);
-    
-    console.log("✅ Bahan Pendukung row added");
-    return false;
-}
 
 // Test functions for debugging
 function testConversionFunction() {
@@ -843,7 +808,6 @@ function emergencyDebug() {
 
 // Make functions global
 window.addBahanBakuRow = addBahanBakuRow;
-window.addBahanPendukungRow = addBahanPendukungRow;
 window.emergencyDebug = emergencyDebug;
 window.testConversionFunction = testConversionFunction;
 window.testSubtotalCalculation = testSubtotalCalculation;
@@ -894,7 +858,6 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Attach button listeners
     const addBBBtn = document.getElementById("addBahanBaku");
-    const addBPBtn = document.getElementById("addBahanPendukung");
     
     if (addBBBtn) {
         addBBBtn.addEventListener("click", function(e) {
@@ -902,14 +865,6 @@ document.addEventListener("DOMContentLoaded", function() {
             addBahanBakuRow();
         });
         console.log("✅ BB button attached");
-    }
-    
-    if (addBPBtn) {
-        addBPBtn.addEventListener("click", function(e) {
-            e.preventDefault();
-            addBahanPendukungRow();
-        });
-        console.log("✅ BP button attached");
     }
     
     // CRITICAL: Initialize existing rows from database
@@ -942,32 +897,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
         
-        // Initialize existing Bahan Pendukung rows
-        const existingBPRows = document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)");
-        console.log(`📦 Found ${existingBPRows.length} existing Bahan Pendukung rows`);
-        
-        existingBPRows.forEach((row, index) => {
-            console.log(`🔧 Initializing BP row ${index + 1}`);
-            
-            // Add event listeners to the row
-            addRowEventListeners(row);
-            
-            // Trigger initial calculations
-            const bahanSelect = row.querySelector(".bahan-pendukung-select");
-            const satuanSelect = row.querySelector(".satuan-select");
-            
-            if (bahanSelect && bahanSelect.value) {
-                const option = bahanSelect.options[bahanSelect.selectedIndex];
-                if (option && option.dataset.harga) {
-                    // Update conversion display
-                    updateConversionDisplay(row, option);
-                    
-                    // Calculate subtotal
-                    calculateRowSubtotal(row);
-                }
-            }
-        });
-        
         // Calculate totals after all rows initialized
         setTimeout(() => {
             calculateTotals();
@@ -978,11 +907,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (existingBBRows.length === 0) {
             console.log("🚀 Auto-adding first Bahan Baku row");
             addBahanBakuRow();
-        }
-        
-        if (existingBPRows.length === 0) {
-            console.log("🚀 Auto-adding first Bahan Pendukung row");
-            addBahanPendukungRow();
         }
     }, 500);
     

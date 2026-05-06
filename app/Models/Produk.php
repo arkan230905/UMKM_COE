@@ -21,6 +21,7 @@ class Produk extends Model
         'satuan_id',
         'harga_jual',
         'stok',
+        'is_unlimited_stok',
         'stok_minimum',
         'btkl_per_unit',
         'coa_persediaan_id',
