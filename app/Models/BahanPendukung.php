@@ -10,6 +10,18 @@ class BahanPendukung extends Model
     use HasFactory;
 
     protected $table = 'bahan_pendukungs';
+    
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
 
     protected $fillable = [
         'user_id',  // CRITICAL: multi-tenant isolation
@@ -35,7 +47,8 @@ class BahanPendukung extends Model
         'sub_satuan_3_nilai',
         'coa_pembelian_id',    // COA untuk pembelian
         'coa_persediaan_id',    // COA untuk persediaan
-        'coa_hpp_id'           // COA untuk HPP
+        'coa_hpp_id',          // COA untuk HPP
+        'user_id',             // Multi-tenant support
     ];
 
     protected $casts = [
@@ -99,6 +112,18 @@ class BahanPendukung extends Model
      */
     public function setStokAttribute($value)
     {
+        // IMPORTANT: This setter should NOT be used for normal stock operations
+        // Stock should be managed through StockMovement records only
+        // This setter is only for emergency manual adjustments
+        
+        // Skip if we're in a purchase processing context to avoid duplicates
+        if (request()->routeIs('transaksi.pembelian.*') || 
+            request()->routeIs('api.pembelian.*') ||
+            app()->runningInConsole()) {
+            \Log::info("Skipping legacy stock setter during purchase processing or console command for BahanPendukung ID {$this->id}");
+            return;
+        }
+        
         // For legacy compatibility, we'll create a stock movement
         // But this should be avoided in new code
         $currentStock = $this->stok_real_time;
@@ -114,7 +139,9 @@ class BahanPendukung extends Model
             \Log::warning("Legacy stok setter used for BahanPendukung ID {$this->id}. Use StockService instead.", [
                 'current_stock' => $currentStock,
                 'new_value' => $value,
-                'difference' => $difference
+                'difference' => $difference,
+                'route' => request()->route()?->getName(),
+                'user_agent' => request()->userAgent()
             ]);
             
             // Create a stock movement for the difference
@@ -126,10 +153,10 @@ class BahanPendukung extends Model
                 'unit' => $this->satuanRelation->nama ?? 'unit',
                 'unit_cost' => $this->harga_satuan ?? 0,
                 'total_cost' => ($this->harga_satuan ?? 0) * abs($difference),
-                'ref_type' => 'adjustment',
+                'ref_type' => 'manual_adjustment',
                 'ref_id' => null,
                 'tanggal' => now()->format('Y-m-d'),
-                'keterangan' => 'Legacy stock adjustment via model setter'
+                'keterangan' => 'Manual stock adjustment via legacy model setter'
             ]);
         }
     }

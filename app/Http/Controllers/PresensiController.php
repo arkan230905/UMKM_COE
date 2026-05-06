@@ -2,19 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Presensi;
-use App\Models\VerifikasiWajah;
 use App\Models\Pegawai;
+use App\Models\RekapPresensiBulanan;
+use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Cache;
 
 class PresensiController extends Controller
 {
+    /**
+     * Display presensi harian
+     */
     public function index(Request $request)
     {
+<<<<<<< HEAD
+        $filters = [
+            'pegawai_id' => $request->get('pegawai_id'),
+            'bulan' => $request->get('bulan'),
+            'tahun' => $request->get('tahun'),
+            'status' => $request->get('status'),
+            'search' => $request->get('search'),
+        ];
+
+        $query = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc');
+
+        // Filter by pegawai
+        if ($filters['pegawai_id']) {
+            $query->where('pegawai_id', $filters['pegawai_id']);
+=======
         $search = $request->get('search');
         $dateFilter = $request->get('date_filter');
         
@@ -28,28 +43,73 @@ class PresensiController extends Controller
         // Apply date filter
         if ($dateFilter) {
             $query->whereDate('tgl_presensi', $dateFilter);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         }
-        
-        // Apply search
-        if ($search) {
-            $query->whereHas('pegawai', function($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('kode_pegawai', 'like', "%{$search}%");
+
+        // Filter by periode
+        if ($filters['bulan']) {
+            $query->where('periode_bulan', $filters['bulan']);
+        }
+
+        if ($filters['tahun']) {
+            $query->where('periode_tahun', $filters['tahun']);
+        }
+
+        // Filter by status
+        if ($filters['status']) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Filter by search
+        if ($filters['search']) {
+            $query->whereHas('pegawai', function($q) use ($filters) {
+                $q->where('nama', 'like', '%' . $filters['search'] . '%');
             });
         }
-        
-        $presensis = $query->paginate(15);
-        
+
+        $presensiList = $query->paginate(20);
+
+        // Get list pegawai untuk filter
+        $pegawaiList = Pegawai::orderBy('nama')
+            ->get();
+
+        // Get list bulan dan tahun untuk filter
+        $bulanList = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        $tahunList = range(Carbon::now()->year - 2, Carbon::now()->year + 1);
+
+        // For backward compatibility with old view
+        $search = $filters['search'] ?? '';
+        $presensis = $presensiList; // Old view uses $presensis
+
         return view('transaksi.presensi.index', compact(
-            'presensis',
+            'presensiList',
+            'pegawaiList',
+            'bulanList',
+            'tahunList',
+            'filters',
             'search',
-            'dateFilter'
+            'presensis'
         ));
     }
 
     /**
-     * Cetak laporan presensi (owner/admin only)
+     * Show form untuk input presensi
      */
+<<<<<<< HEAD
+    public function create()
+    {
+        $pegawaiList = Pegawai::orderBy('nama')
+            ->get();
+        
+        $pegawais = $pegawaiList; // Alias for old view
+
+        return view('transaksi.presensi.create', compact('pegawaiList', 'pegawais'));
+=======
     public function cetak(Request $request)
     {
         $search = $request->get('search');
@@ -87,33 +147,32 @@ class PresensiController extends Controller
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.create', compact('pegawais'));
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
-    
-    public function faceAttendance()
-    {
-        return view('transaksi.presensi.face-attendance');
-    }
-    
+
+    /**
+     * Store presensi baru
+     */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'pegawai_id' => 'required|exists:pegawais,id',
             'tgl_presensi' => 'required|date',
-            'jam_masuk' => 'nullable',
-            'jam_keluar' => 'nullable',
-            'status' => 'required|in:hadir,terlambat,izin,sakit,alpha',
+            'jam_masuk' => 'nullable|date_format:H:i',
+            'jam_keluar' => 'nullable|date_format:H:i',
             'keterangan' => 'nullable|string',
         ]);
-        
-        $data = $request->all();
 
-        // Normalize empty strings to null (prevents false negatives in duplicate detection)
-        foreach (['jam_masuk', 'jam_keluar', 'keterangan'] as $key) {
-            if (array_key_exists($key, $data)) {
-                $value = is_string($data[$key]) ? trim($data[$key]) : $data[$key];
-                $data[$key] = ($value === '' ? null : $value);
-            }
+        try {
+            $presensi = Presensi::create($validated);
+
+            return redirect()->route('presensi.index')
+                ->with('success', 'Presensi berhasil dicatat');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error: ' . $e->getMessage());
         }
+<<<<<<< HEAD
+=======
         $data['jumlah_jam'] = 0;
         
         // CRITICAL: Set user_id untuk multi-tenant isolation
@@ -146,35 +205,79 @@ class PresensiController extends Controller
 
         return redirect()->route('transaksi.presensi.index', [
         ])->with('success', $isFirst ? 'Data presensi berhasil ditambahkan' : 'Duplikat terdeteksi: data presensi tidak ditambahkan lagi');
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
-    
+
+    /**
+     * Show detail presensi
+     */
     public function show($id)
     {
+<<<<<<< HEAD
+        $presensi = Presensi::with('pegawai')->find($id);
+
+        if (!$presensi) {
+            return redirect()->route('presensi.index')
+                ->with('error', 'Presensi tidak ditemukan');
+        }
+
+=======
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $presensi = Presensi::with('pegawai')
             ->where('user_id', auth()->id())
             ->findOrFail($id);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         return view('transaksi.presensi.show', compact('presensi'));
     }
-    
+
+    /**
+     * Show form edit presensi
+     */
     public function edit($id)
     {
+<<<<<<< HEAD
+        $presensi = Presensi::find($id);
+
+        if (!$presensi) {
+            return redirect()->route('presensi.index')
+                ->with('error', 'Presensi tidak ditemukan');
+        }
+
+        $pegawaiList = Pegawai::orderBy('nama')
+            ->get();
+        
+        $pegawais = $pegawaiList; // Alias for old view
+
+        return view('transaksi.presensi.edit', compact('presensi', 'pegawaiList', 'pegawais'));
+=======
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
         $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.edit', compact('presensi', 'pegawais'));
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
-    
+
+    /**
+     * Update presensi
+     */
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $presensi = Presensi::find($id);
+
+        if (!$presensi) {
+            return redirect()->route('presensi.index')
+                ->with('error', 'Presensi tidak ditemukan');
+        }
+
+        $validated = $request->validate([
             'pegawai_id' => 'required|exists:pegawais,id',
             'tgl_presensi' => 'required|date',
-            'jam_masuk' => 'nullable',
-            'jam_keluar' => 'nullable',
-            'status' => 'required|in:hadir,terlambat,izin,sakit,alpha',
+            'jam_masuk' => 'nullable|date_format:H:i',
+            'jam_keluar' => 'nullable|date_format:H:i',
             'keterangan' => 'nullable|string',
         ]);
+<<<<<<< HEAD
+=======
         
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
@@ -190,25 +293,61 @@ class PresensiController extends Controller
         }
         
         $presensi->update($data);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 
-        return redirect()->route('transaksi.presensi.index')
-            ->with('success', 'Data presensi berhasil diperbarui');
+        try {
+            $presensi->update($validated);
+
+            return redirect()->route('presensi.index')
+                ->with('success', 'Presensi berhasil diperbarui');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error: ' . $e->getMessage());
+        }
     }
-    
-    public function destroy(Request $request, $id)
+
+    /**
+     * Delete presensi
+     */
+    public function destroy($id)
     {
+<<<<<<< HEAD
+        $presensi = Presensi::find($id);
+
+        if (!$presensi) {
+            return redirect()->route('presensi.index')
+                ->with('error', 'Presensi tidak ditemukan');
+        }
+
+=======
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         $presensi->delete();
 
-        $params = [];
-        if ($request->filled('date_filter')) {
-            $params['date_filter'] = $request->input('date_filter');
-        }
-        if ($request->filled('search')) {
-            $params['search'] = $request->input('search');
+        return redirect()->route('presensi.index')
+            ->with('success', 'Presensi berhasil dihapus');
+    }
+
+    /**
+     * Get rekap presensi bulanan untuk pegawai
+     */
+    public function getRekapBulanan($pegawaiId, $bulan, $tahun)
+    {
+        $rekap = RekapPresensiBulanan::where('pegawai_id', $pegawaiId)
+            ->where('periode_bulan', $bulan)
+            ->where('periode_tahun', $tahun)
+            ->first();
+
+        if (!$rekap) {
+            // Generate if not exists
+            $rekap = RekapPresensiBulanan::generateRekap($pegawaiId, $bulan, $tahun);
         }
 
+<<<<<<< HEAD
+        return response()->json([
+            'success' => true,
+            'data' => $rekap
+=======
         return redirect()->route('transaksi.presensi.index', $params)
             ->with('success', 'Data presensi berhasil dihapus');
     }
@@ -282,34 +421,52 @@ class PresensiController extends Controller
             'pegawai' => $selectedPegawai,
             'hasFaceData' => !is_null($verifikasiWajah),
             'verifikasiData' => $verifikasiWajah
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ]);
     }
-    
-    public function verifikasiWajahStore(Request $request)
+
+    /**
+     * Get presensi detail untuk periode tertentu
+     */
+    public function getDetailPeriode($pegawaiId, $bulan, $tahun)
     {
-        \Log::info('=== VERIFIKASI WAJAH STORE START ===');
-        \Log::info('Request method:', ['method' => $request->method()]);
-        \Log::info('Request input:', $request->all());
-        \Log::info('Request files:', $request->files->all());
-        \Log::info('AJAX check:', ['ajax' => $request->ajax(), 'wantsJson' => $request->wantsJson(), 'expectsJson' => $request->expectsJson()]);
-        
-        $request->validate([
-            'kode_pegawai' => 'required|exists:pegawais,kode_pegawai',
-            'foto_wajah' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'encoding_wajah' => 'nullable|string|max:5000', // Batasi max 5000 chars
-        ], [
-            'kode_pegawai.required' => 'Kode pegawai wajib diisi.',
-            'kode_pegawai.exists' => 'Pegawai tidak ditemukan di database.',
-            'foto_wajah.required' => 'Foto wajah wajib diupload.',
-            'foto_wajah.image' => 'File harus berupa gambar.',
-            'foto_wajah.mimes' => 'Format gambar harus jpeg, png, atau jpg.',
-            'foto_wajah.max' => 'Ukuran gambar maksimal 2MB.',
-            'encoding_wajah.max' => 'Face encoding terlalu besar. Silakan coba lagi.',
+        $presensiList = Presensi::where('pegawai_id', $pegawaiId)
+            ->where('periode_bulan', $bulan)
+            ->where('periode_tahun', $tahun)
+            ->orderBy('tgl_presensi')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $presensiList
         ]);
-        
-        \Log::info('Validation passed');
-        
+    }
+
+    /**
+     * Bulk import presensi dari file
+     */
+    public function bulkImport(Request $request)
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,xlsx',
+        ]);
+
+        // TODO: Implement bulk import functionality
+        return back()->with('success', 'Bulk import functionality coming soon');
+    }
+
+    /**
+     * Halaman absen wajah untuk pegawai (login-based)
+     */
+    public function pegawaiAbsenWajah()
+    {
         try {
+<<<<<<< HEAD
+            // Debug: Log that method is called
+            \Log::info('pegawaiAbsenWajah called');
+
+            // Get pegawai data from logged in user
+=======
             // Debug log
             \Log::info('Starting verifikasi wajah store', [
                 'kode_pegawai' => $request->kode_pegawai,
@@ -459,25 +616,59 @@ class PresensiController extends Controller
                 ], 401);
             }
             
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             $user = auth()->user();
-            if (!$user->pegawai_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akun Anda tidak terhubung dengan data pegawai'
-                ], 400);
+            \Log::info('User ID: ' . ($user ? $user->id : 'null'));
+
+            $pegawai = Pegawai::withoutGlobalScopes()->where('user_id', $user->id)->first();
+            \Log::info('Pegawai: ' . ($pegawai ? $pegawai->nama : 'null'));
+
+            if (!$pegawai) {
+                \Log::info('Pegawai not found, redirecting to dashboard');
+                return redirect()->route('pegawai.dashboard')
+                    ->with('error', 'Data pegawai tidak ditemukan');
             }
-            
-            // 2️⃣ AMBIL DATA PEGAWAI (Tanpa Face Recognition)
-            $pegawai = Pegawai::where('nomor_induk_pegawai', $user->pegawai_id)
-                ->orWhere('id', $user->pegawai_id)
-                ->first();
-            
+
+            // Get today's attendance
+            $today = Carbon::today();
+            $attendances = Presensi::withoutGlobalScopes()
+                ->where('pegawai_id', $pegawai->id)
+                ->whereDate('tgl_presensi', $today)
+                ->get();
+
+            \Log::info('Attendances count: ' . $attendances->count());
+
+            return view('pegawai.presensi.absen-wajah', compact('pegawai', 'attendances'));
+        } catch (\Exception $e) {
+            \Log::error('Error in pegawaiAbsenWajah: ' . $e->getMessage());
+            return redirect()->route('pegawai.dashboard')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API untuk absen wajah pegawai (login-based)
+     */
+    public function pegawaiApiAbsenWajah(Request $request)
+    {
+        try {
+            // Get pegawai data from logged in user
+            $user = auth()->user();
+            $pegawai = Pegawai::where('user_id', $user->id)->first();
+
             if (!$pegawai) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Data pegawai tidak ditemukan'
                 ], 404);
             }
+<<<<<<< HEAD
+
+            $today = Carbon::today();
+            $now = Carbon::now();
+
+            // Check existing attendance today
+            $existingAttendance = Presensi::where('pegawai_id', $pegawai->id)
+=======
             
             $pegawaiId = $pegawai->nomor_induk_pegawai;
             \Log::info('Processing attendance for: ' . $pegawai->nama . ' (ID: ' . $pegawaiId . ')');
@@ -487,45 +678,35 @@ class PresensiController extends Controller
             // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $presensi = Presensi::where('pegawai_id', $pegawaiId)
                 ->where('user_id', auth()->id())
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->whereDate('tgl_presensi', $today)
                 ->first();
-            
-            $currentTime = now()->format('H:i:s');
-            $now = now();
-            
-            \Log::info('Attendance check:', [
-                'pegawai_id' => $pegawaiId,
-                'today' => $today,
-                'existing_presensi' => $presensi ? 'YES' : 'NO',
-                'jam_masuk' => $presensi ? $presensi->jam_masuk : null,
-                'jam_keluar' => $presensi ? $presensi->jam_keluar : null
-            ]);
-            
-            // 4️⃣ PROSES FOTO (Optional - Tanpa Face Recognition)
-            $fotoPath = null;
-            if ($request->has('foto_wajah')) {
-                $base64Image = $request->foto_wajah;
-                \Log::info('Processing attendance photo...', [
-                    'has_photo' => !empty($base64Image),
-                    'photo_length' => strlen($base64Image)
-                ]);
+
+            // Determine action: clock_in or clock_out
+            if (!$existingAttendance) {
+                // Clock in
+                $presensi = new Presensi();
+                $presensi->pegawai_id = $pegawai->id;
+                $presensi->tgl_presensi = $today;
+                $presensi->jam_masuk = $now->format('H:i:s');
+                $presensi->periode_bulan = $today->month;
+                $presensi->periode_tahun = $today->year;
+                $presensi->status = 'hadir';
+                $presensi->keterangan = 'Absen wajah - Clock in';
                 
-                // Decode dan simpan foto
-                $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Image));
-                if ($imageData) {
-                    $filename = 'absen_' . $pegawaiId . '_' . now()->format('Ymd_His') . '.jpg';
-                    $path = 'presensi-foto/' . $filename;
-                    Storage::disk('public')->put($path, $imageData);
-                    $fotoPath = $path;
-                    \Log::info('Attendance photo saved: ' . $path);
+                // Optional: Save photo if provided
+                if ($request->has('foto_wajah')) {
+                    // TODO: Save photo to storage if needed
+                    // $presensi->foto_masuk = $this->saveBase64Image($request->foto_wajah);
                 }
-            }
-            
-            // 5️⃣ LOGIKA PRESENSI SEDERHANA
-            if (!$presensi) {
-                // CREATE NEW ATTENDANCE (JAM MASUK)
-                \Log::info('Creating new attendance (JAM MASUK)...');
                 
+<<<<<<< HEAD
+                // Optional: Save location if provided
+                if ($request->has('latitude') && $request->has('longitude')) {
+                    $presensi->latitude_masuk = $request->latitude;
+                    $presensi->longitude_masuk = $request->longitude;
+                }
+=======
                 $newPresensi = Presensi::create([
                     'user_id' => auth()->id(), // CRITICAL: multi-tenant isolation
                     'pegawai_id' => $pegawaiId,
@@ -545,31 +726,63 @@ class PresensiController extends Controller
                     'jam_masuk' => $currentTime,
                     'has_photo' => !empty($fotoPath)
                 ]);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 
+                $presensi->save();
+
                 return response()->json([
                     'success' => true,
-                    'message' => 'Absen masuk berhasil! Selamat bekerja, ' . $pegawai->nama,
                     'action' => 'clock_in',
-                    'presensi' => [
-                        'id' => $newPresensi->id,
-                        'pegawai_nama' => $pegawai->nama,
-                        'pegawai_id' => $pegawaiId,
-                        'tanggal' => $today,
-                        'jam_masuk' => $currentTime,
-                        'jam_keluar' => null,
-                        'status' => 'hadir',
-                        'verifikasi_wajah' => $newPresensi->verifikasi_wajah,
-                        'foto_wajah' => $fotoPath
-                    ],
-                    'pegawai' => [
-                        'nama' => $pegawai->nama,
-                        'nomor_induk_pegawai' => $pegawai->nomor_induk_pegawai,
-                        'jabatan' => $pegawai->jabatan ?? '-',
-                    ],
-                    'time' => $currentTime
+                    'message' => 'Clock in berhasil! Selamat bekerja.',
+                    'data' => [
+                        'jam_masuk' => $presensi->jam_masuk,
+                        'tgl_presensi' => $presensi->tgl_presensi->format('d/m/Y')
+                    ]
                 ]);
+
+            } elseif ($existingAttendance && !$existingAttendance->jam_keluar) {
+                // Clock out
+                $existingAttendance->jam_keluar = $now->format('H:i:s');
+                $existingAttendance->keterangan = ($existingAttendance->keterangan ?? '') . ' | Absen wajah - Clock out';
                 
+                // Optional: Save photo if provided
+                if ($request->has('foto_wajah')) {
+                    // TODO: Save photo to storage if needed
+                    // $existingAttendance->foto_keluar = $this->saveBase64Image($request->foto_wajah);
+                }
+                
+                // Optional: Save location if provided
+                if ($request->has('latitude') && $request->has('longitude')) {
+                    $existingAttendance->latitude_keluar = $request->latitude;
+                    $existingAttendance->longitude_keluar = $request->longitude;
+                }
+                
+                $existingAttendance->save();
+
+                return response()->json([
+                    'success' => true,
+                    'action' => 'clock_out',
+                    'message' => 'Clock out berhasil! Terima kasih atas kerja keras Anda.',
+                    'data' => [
+                        'jam_masuk' => $existingAttendance->jam_masuk,
+                        'jam_keluar' => $existingAttendance->jam_keluar,
+                        'tgl_presensi' => $existingAttendance->tgl_presensi->format('d/m/Y')
+                    ]
+                ]);
+
             } else {
+<<<<<<< HEAD
+                // Already complete
+                return response()->json([
+                    'success' => false,
+                    'action' => 'already_complete',
+                    'message' => 'Presensi hari ini sudah lengkap (Clock in & Clock out sudah tercatat)',
+                    'data' => [
+                        'jam_masuk' => $existingAttendance->jam_masuk,
+                        'jam_keluar' => $existingAttendance->jam_keluar,
+                        'tgl_presensi' => $existingAttendance->tgl_presensi->format('d/m/Y')
+                    ]
+=======
                 // UPDATE EXISTING ATTENDANCE
                 if (empty($presensi->jam_keluar)) {
                     // UPDATE JAM KELUAR
@@ -767,55 +980,19 @@ class PresensiController extends Controller
                         'foto_wajah'          => $fotoPath,
                     ],
                     'time'      => $currentTime,
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ]);
             }
 
-            if (empty($presensi->jam_keluar)) {
-                // Jam keluar
-                $presensi->update([
-                    'jam_keluar'       => $currentTime,
-                    'latitude_keluar'  => $request->latitude,
-                    'longitude_keluar' => $request->longitude,
-                ]);
-
-                return response()->json([
-                    'success'   => true,
-                    'message'   => 'Absen keluar berhasil.',
-                    'action'    => 'clock_out',
-                    'presensi'  => $presensi->fresh(),
-                    'pegawai'   => [
-                        'nama'                => $pegawai->nama,
-                        'kode_pegawai'        => $pegawai->kode_pegawai,
-                        'jabatan'             => $pegawai->jabatan ?? '-',
-                        'foto_wajah'          => $presensi->foto_wajah,
-                    ],
-                    'time'      => $currentTime,
-                ]);
-            }
-
-            // Sudah lengkap
-            return response()->json([
-                'success'  => false,
-                'message'  => 'Presensi hari ini sudah lengkap (masuk & keluar).',
-                'action'   => 'already_complete',
-                'presensi' => $presensi,
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal: ' . implode(', ', $e->errors())
-            ], 422);
         } catch (\Exception $e) {
-            \Log::error('Error pegawaiApiAbsenWajah: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses presensi.'
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
     }
+<<<<<<< HEAD
+=======
     
     // API untuk recent attendance
     public function apiRecentAttendance()
@@ -1031,4 +1208,5 @@ class PresensiController extends Controller
         
         return sqrt($sum);
     }
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 }

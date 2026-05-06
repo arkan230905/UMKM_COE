@@ -74,37 +74,36 @@ class CoaController extends Controller
     
     /**
      * Get saldo awal inventory untuk COA tertentu
-     * Mengambil dari bahan_bakus atau bahan_pendukungs berdasarkan kode_akun
+     * Mengambil dari bahan_bakus atau bahan_pendukungs berdasarkan coa_persediaan_id = kode_akun
      */
     private function getInventorySaldoAwalForCoa($kodeAkun)
     {
-        // Mapping kode akun Jasuke ke bahan baku
-        $bahanBakuMapping = [
-            '1141' => 'Jagung',
-        ];
+        $userId = auth()->id();
 
-        // Mapping kode akun Jasuke ke bahan pendukung
-        $bahanPendukungMapping = [
-            '1151' => 'Susu',
-            '1152' => 'Keju',
-            '1153' => 'Kemasan',
-        ];
+        // Cari di bahan_bakus milik user ini
+        $bahanBakus = \App\Models\BahanBaku::where('user_id', $userId)
+            ->where('coa_persediaan_id', $kodeAkun)
+            ->get();
 
-        if (isset($bahanBakuMapping[$kodeAkun])) {
-            $bahan = \App\Models\BahanBaku::where('nama_bahan', $bahanBakuMapping[$kodeAkun])->first();
-            if ($bahan) {
-                return $bahan->saldo_awal * $bahan->harga_satuan;
-            }
+        $total = 0;
+        $found = false;
+
+        foreach ($bahanBakus as $bahan) {
+            $total += ($bahan->saldo_awal ?? 0) * ($bahan->harga_satuan ?? 0);
+            $found = true;
         }
 
-        if (isset($bahanPendukungMapping[$kodeAkun])) {
-            $bahan = \App\Models\BahanPendukung::where('nama_bahan', $bahanPendukungMapping[$kodeAkun])->first();
-            if ($bahan) {
-                return $bahan->saldo_awal * $bahan->harga_satuan;
-            }
+        // Cari di bahan_pendukungs milik user ini
+        $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', $userId)
+            ->where('coa_persediaan_id', $kodeAkun)
+            ->get();
+
+        foreach ($bahanPendukungs as $bahan) {
+            $total += ($bahan->saldo_awal ?? 0) * ($bahan->harga_satuan ?? 0);
+            $found = true;
         }
 
-        return null;
+        return $found ? $total : null;
     }
     
     /**
@@ -153,11 +152,16 @@ class CoaController extends Controller
 
     public function create()
     {
+<<<<<<< HEAD
+        // Ambil COA milik user yang login sebagai pilihan akun induk
+        $parentCoas = Coa::whereNotNull('nama_akun')
+=======
         // Ambil semua COA sebagai pilihan akun induk, urut hierarkis
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $parentCoas = Coa::withoutGlobalScopes()
             ->where('user_id', auth()->id())
             ->whereNotNull('nama_akun')
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->where('nama_akun', '!=', '')
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
@@ -169,38 +173,54 @@ class CoaController extends Controller
     {
         // Jika user memilih akun induk dan mode auto-generate
         if ($request->filled('parent_coa_id') && $request->boolean('auto_generate_kode')) {
+<<<<<<< HEAD
+            $parentCoa = Coa::find($request->parent_coa_id);
+=======
             // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $parentCoa = Coa::withoutGlobalScopes()
                 ->where('user_id', auth()->id())
                 ->find($request->parent_coa_id);
                 
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             if ($parentCoa) {
                 $generatedKode = Coa::generateChildCode($parentCoa->kode_akun);
                 $request->merge(['kode_akun' => $generatedKode]);
             }
         }
 
-        // Define allowed tipe_akun values
-        $allowedTipeAkun = [
-            'Asset', 'Aset', 'ASET',
-            'Liability', 'Kewajiban', 'KEWAJIBAN', 
-            'Equity', 'Ekuitas', 'Modal', 'MODAL',
-            'Revenue', 'Pendapatan', 'PENDAPATAN',
-            'Expense', 'Beban', 'BEBAN', 'Biaya',
-            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
-            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
-            'BOP Tidak Langsung Lainnya'
+        // Normalize tipe_akun: map alias ke nilai enum DB
+        $tipeAkunMap = [
+            'ASET'       => 'Asset',
+            'Aset'       => 'Asset',
+            'KEWAJIBAN'  => 'Liability',
+            'Kewajiban'  => 'Liability',
+            'MODAL'      => 'Equity',
+            'Modal'      => 'Equity',
+            'Ekuitas'    => 'Equity',
+            'PENDAPATAN' => 'Revenue',
+            'Pendapatan' => 'Revenue',
+            'BEBAN'      => 'Expense',
+            'Beban'      => 'Expense',
+            'Biaya'      => 'Expense',
         ];
+        if (isset($tipeAkunMap[$request->tipe_akun])) {
+            $request->merge(['tipe_akun' => $tipeAkunMap[$request->tipe_akun]]);
+        }
 
         // CRITICAL: Add user_id to unique validation for multi-tenant isolation
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
+<<<<<<< HEAD
+                \Illuminate\Validation\Rule::unique('coas', 'kode_akun')
+                    ->where('user_id', auth()->id()),
+=======
                 'unique:coas,kode_akun,NULL,id,user_id,' . auth()->id(),
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:' . implode(',', $allowedTipeAkun),
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -211,17 +231,19 @@ class CoaController extends Controller
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
-            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Asset, Liability, Equity, Revenue, Expense',
         ]);
 
         $coaData = [
-            'kode_akun' => $validated['kode_akun'],
-            'nama_akun' => $validated['nama_akun'],
-            'tipe_akun' => $validated['tipe_akun'],
-            'saldo_normal' => $request->saldo_normal ?? 'debit',
-            'saldo_awal' => $request->saldo_awal ?? 0,
-            'keterangan' => $request->keterangan,
+            'kode_akun'      => $validated['kode_akun'],
+            'nama_akun'      => $validated['nama_akun'],
+            'tipe_akun'      => $validated['tipe_akun'],
+            'kategori_akun'  => $request->kategori_akun ?? '-',
+            'saldo_normal'   => $request->saldo_normal ?? 'debit',
+            'saldo_awal'     => $request->saldo_awal ?? 0,
+            'keterangan'     => $request->keterangan,
             'posted_saldo_awal' => $request->boolean('posted_saldo_awal') ? 1 : 0,
+            'company_id'     => auth()->user()->company_id ?? 1,
         ];
 
         if ($request->has('tanggal_saldo_awal') && $request->tanggal_saldo_awal) {
@@ -243,10 +265,15 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
+<<<<<<< HEAD
+        // Ambil COA milik user yang login (kecuali dirinya sendiri)
+        $parentCoas = Coa::whereNotNull('nama_akun')
+=======
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $parentCoas = Coa::withoutGlobalScopes()
             ->where('user_id', auth()->id())
             ->whereNotNull('nama_akun')
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->where('nama_akun', '!=', '')
             ->where('id', '!=', $coa->id)
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
@@ -257,27 +284,40 @@ class CoaController extends Controller
 
     public function update(Request $request, Coa $coa)
     {
-        // Define allowed tipe_akun values
-        $allowedTipeAkun = [
-            'Asset', 'Aset', 'ASET',
-            'Liability', 'Kewajiban', 'KEWAJIBAN', 
-            'Equity', 'Ekuitas', 'Modal', 'MODAL',
-            'Revenue', 'Pendapatan', 'PENDAPATAN',
-            'Expense', 'Beban', 'BEBAN', 'Biaya',
-            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
-            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
-            'BOP Tidak Langsung Lainnya'
+        // Normalize tipe_akun: map uppercase/alias ke nilai enum DB
+        $tipeAkunMap = [
+            'ASET'       => 'Asset',
+            'Aset'       => 'Asset',
+            'KEWAJIBAN'  => 'Liability',
+            'Kewajiban'  => 'Liability',
+            'MODAL'      => 'Equity',
+            'Modal'      => 'Equity',
+            'Ekuitas'    => 'Equity',
+            'PENDAPATAN' => 'Revenue',
+            'Pendapatan' => 'Revenue',
+            'BEBAN'      => 'Expense',
+            'Beban'      => 'Expense',
+            'Biaya'      => 'Expense',
         ];
+        if (isset($tipeAkunMap[$request->tipe_akun])) {
+            $request->merge(['tipe_akun' => $tipeAkunMap[$request->tipe_akun]]);
+        }
 
         // CRITICAL: Add user_id to unique validation for multi-tenant isolation
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
+<<<<<<< HEAD
+                \Illuminate\Validation\Rule::unique('coas', 'kode_akun')
+                    ->where('user_id', auth()->id())
+                    ->ignore($coa->id),
+=======
                 'unique:coas,kode_akun,' . $coa->id . ',id,user_id,' . auth()->id(),
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:' . implode(',', $allowedTipeAkun),
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -288,7 +328,7 @@ class CoaController extends Controller
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
-            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Asset, Liability, Equity, Revenue, Expense',
         ]);
 
         $coa->update([
@@ -307,78 +347,75 @@ class CoaController extends Controller
 
     public function destroy(Coa $coa)
     {
-        // Cek apakah akun ini digunakan dalam transaksi
-        // Cek dulu kolom yang ada di journal_lines
         $coaColumn = \Illuminate\Support\Facades\Schema::hasColumn('journal_lines', 'coa_id') ? 'coa_id' : 'account_id';
-        
-        $journalCount = \App\Models\JournalLine::where($coaColumn, $coa->id)->count();
-        if ($journalCount > 0) {
+
+        // Cek apakah punya child accounts
+        $childCount = \Illuminate\Support\Facades\DB::table('coas')
+            ->where('kode_induk', $coa->kode_akun)
+            ->where('company_id', $coa->company_id)
+            ->count();
+        if ($childCount > 0) {
             return redirect()->route('master-data.coa.index')
-                ->with('error', 'Tidak dapat menghapus akun ini karena sudah digunakan dalam transaksi jurnal.');
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih memiliki {$childCount} sub-akun. Hapus sub-akun terlebih dahulu.");
         }
-        
-        // Cek apakah akun ini digunakan di bahan_bakus (hanya jika masih ada yang menggunakan)
+
+        // Cek journal_lines
+        if (\App\Models\JournalLine::where($coaColumn, $coa->id)->count() > 0) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena sudah digunakan dalam transaksi jurnal.");
+        }
+
+        // Cek pembayaran_beban
+        $pembayaranCount = \Illuminate\Support\Facades\DB::table('pembayaran_beban')
+            ->where('akun_kas_id', $coa->id)
+            ->orWhere('akun_beban_id', $coa->id)
+            ->count();
+        if ($pembayaranCount > 0) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan di {$pembayaranCount} data pembayaran beban.");
+        }
+
+        // Cek bahan_bakus
         $bahanBakuCount = \Illuminate\Support\Facades\DB::table('bahan_bakus')
             ->where('coa_persediaan_id', $coa->kode_akun)
             ->orWhere('coa_hpp_id', $coa->kode_akun)
             ->orWhere('coa_pembelian_id', $coa->kode_akun)
             ->count();
-        
         if ($bahanBakuCount > 0) {
-            $bahanNames = \Illuminate\Support\Facades\DB::table('bahan_bakus')
-                ->where('coa_persediaan_id', $coa->kode_akun)
-                ->orWhere('coa_hpp_id', $coa->kode_akun)
-                ->orWhere('coa_pembelian_id', $coa->kode_akun)
-                ->pluck('nama_bahan')
-                ->take(3)
-                ->implode(', ');
-            
             return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus akun ini karena masih digunakan oleh bahan baku: {$bahanNames}" . ($bahanBakuCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di bahan baku terlebih dahulu.");
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan oleh {$bahanBakuCount} bahan baku.");
         }
-        
-        // Cek apakah akun ini digunakan di bahan_pendukungs (hanya jika masih ada yang menggunakan)
+
+        // Cek bahan_pendukungs
         $bahanPendukungCount = \Illuminate\Support\Facades\DB::table('bahan_pendukungs')
             ->where('coa_persediaan_id', $coa->kode_akun)
             ->orWhere('coa_hpp_id', $coa->kode_akun)
             ->orWhere('coa_pembelian_id', $coa->kode_akun)
             ->count();
-        
         if ($bahanPendukungCount > 0) {
-            $bahanNames = \Illuminate\Support\Facades\DB::table('bahan_pendukungs')
-                ->where('coa_persediaan_id', $coa->kode_akun)
-                ->orWhere('coa_hpp_id', $coa->kode_akun)
-                ->orWhere('coa_pembelian_id', $coa->kode_akun)
-                ->pluck('nama_bahan')
-                ->take(3)
-                ->implode(', ');
-            
             return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus akun ini karena masih digunakan oleh bahan pendukung: {$bahanNames}" . ($bahanPendukungCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di bahan pendukung terlebih dahulu.");
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan oleh {$bahanPendukungCount} bahan pendukung.");
         }
-        
-        // Cek apakah akun ini digunakan di produks
+
+        // Cek produks
         $produkCount = \Illuminate\Support\Facades\DB::table('produks')
             ->where('coa_persediaan_id', $coa->id)
             ->orWhere('coa_hpp_id', $coa->id)
             ->count();
-        
         if ($produkCount > 0) {
-            $produkNames = \Illuminate\Support\Facades\DB::table('produks')
-                ->where('coa_persediaan_id', $coa->id)
-                ->orWhere('coa_hpp_id', $coa->id)
-                ->pluck('nama_produk')
-                ->take(3)
-                ->implode(', ');
-            
             return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus akun ini karena masih digunakan oleh produk: {$produkNames}" . ($produkCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di produk terlebih dahulu.");
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan oleh {$produkCount} produk.");
         }
-        
-        // Jika semua validasi lolos, hapus akun
-        $coa->delete();
-        return redirect()->route('master-data.coa.index')
-            ->with('success', "COA {$coa->kode_akun} - {$coa->nama_akun} berhasil dihapus.");
+
+        // Hapus dengan try-catch untuk tangkap FK violation yang tidak terduga
+        try {
+            $coa->delete();
+            return redirect()->route('master-data.coa.index')
+                ->with('success', "COA {$coa->kode_akun} - {$coa->nama_akun} berhasil dihapus.");
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan di data lain.");
+        }
     }
 
     /**

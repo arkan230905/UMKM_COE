@@ -11,7 +11,25 @@ class Perusahaan extends Model
 
     protected $table = 'perusahaan';
 
-    protected $fillable = ['nama', 'alamat', 'email', 'telepon', 'kode', 'foto', 'catalog_description', 'maps_link', 'latitude', 'longitude'];
+    protected $fillable = [
+        'nama', 
+        'alamat', 
+        'email', 
+        'telepon', 
+        'kode', 
+        'foto', 
+        'catalog_description', 
+        'maps_link', 
+        'latitude', 
+        'longitude',
+        'background_type',
+        'background_color',
+        'gradient_color_1',
+        'gradient_color_2',
+        'gradient_direction',
+        'background_image',
+        'background_opacity'
+    ];
 
     public function kasirs()
     {
@@ -29,6 +47,14 @@ class Perusahaan extends Model
     public function catalogPhotos()
     {
         return $this->hasMany(CatalogPhoto::class)->ordered();
+    }
+
+    /**
+     * Get catalog sections for the company
+     */
+    public function catalogSections()
+    {
+        return $this->hasMany(CatalogSection::class)->orderBy('order', 'asc');
     }
 
     /**

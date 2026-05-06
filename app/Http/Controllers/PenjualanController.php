@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Penjualan;
 use App\Models\Produk;
 use App\Models\BuktiPembayaran;
+use App\Models\OngkirSetting;
+use App\Models\PaketMenu;
 use App\Services\StockService;
 use App\Services\JournalService;
 use Illuminate\Support\Facades\DB;
@@ -15,27 +17,113 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
+<<<<<<< HEAD
+        // ── 1. Main list query (single eager-load, no duplicate) ──────────────
+        $query = Penjualan::with(['details.produk', 'returs']);
+
+=======
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Penjualan::with(['produk','details'])
             ->where('user_id', auth()->id());
         
         // Filter by nomor transaksi
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         if ($request->filled('nomor_transaksi')) {
             $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
         }
-        
-        // Filter by tanggal
         if ($request->filled('tanggal_mulai')) {
             $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
         }
         if ($request->filled('tanggal_selesai')) {
             $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
         }
-        
-        // Filter by payment method
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->payment_method);
         }
+<<<<<<< HEAD
+
+        $penjualans = $query->orderBy('tanggal', 'desc')->get();
+
+        // ── 2. Summary stats – use DB aggregates, NO HPP loop ────────────────
+        $today     = now()->toDateString();
+        $yesterday = now()->subDay()->toDateString();
+
+        // Aggregate totals directly in SQL (no PHP loops, no N+1)
+        $statsToday = DB::table('penjualans')
+            ->whereDate('tanggal', $today)
+            ->selectRaw('
+                COUNT(*)                         AS jumlah_transaksi,
+                COALESCE(SUM(total), 0)          AS total_penjualan,
+                COALESCE(SUM(biaya_ongkir), 0)   AS total_ongkir,
+                COALESCE(SUM(diskon_nominal), 0) AS total_diskon
+            ')
+            ->first();
+
+        $statsYesterday = DB::table('penjualans')
+            ->whereDate('tanggal', $yesterday)
+            ->selectRaw('
+                COUNT(*)                         AS jumlah_transaksi,
+                COALESCE(SUM(total), 0)          AS total_penjualan,
+                COALESCE(SUM(biaya_ongkir), 0)   AS total_ongkir,
+                COALESCE(SUM(diskon_nominal), 0) AS total_diskon
+            ')
+            ->first();
+
+        // Qty terjual hari ini & kemarin via details join
+        $qtyToday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->whereDate('penjualans.tanggal', $today)
+            ->sum('penjualan_details.jumlah');
+
+        $qtyYesterday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->whereDate('penjualans.tanggal', $yesterday)
+            ->sum('penjualan_details.jumlah');
+
+        // Profit: harga_satuan - harga_pokok (stored on produk) × jumlah
+        // Use produk.harga_pokok as HPP proxy – avoids expensive getActualHPP() loop
+        $profitToday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->join('produks', 'produks.id', '=', 'penjualan_details.produk_id')
+            ->whereDate('penjualans.tanggal', $today)
+            ->selectRaw('SUM((penjualan_details.harga_satuan - COALESCE(produks.harga_pokok, 0)) * penjualan_details.jumlah) AS profit')
+            ->value('profit') ?? 0;
+
+        $profitYesterday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->join('produks', 'produks.id', '=', 'penjualan_details.produk_id')
+            ->whereDate('penjualans.tanggal', $yesterday)
+            ->selectRaw('SUM((penjualan_details.harga_satuan - COALESCE(produks.harga_pokok, 0)) * penjualan_details.jumlah) AS profit')
+            ->value('profit') ?? 0;
+
+        // Assign to named variables expected by the view
+        $totalPenjualan        = (float) $statsToday->total_penjualan;
+        $totalOngkir           = (float) $statsToday->total_ongkir;
+        $totalDiskon           = (float) $statsToday->total_diskon;
+        $jumlahTransaksiHariIni = (int)  $statsToday->jumlah_transaksi;
+        $totalProdukTerjual    = (float) $qtyToday;
+        $totalProfit           = (float) $profitToday;
+
+        $totalPenjualanKemarin        = (float) $statsYesterday->total_penjualan;
+        $totalOngkirKemarin           = (float) $statsYesterday->total_ongkir;
+        $totalDiskonKemarin           = (float) $statsYesterday->total_diskon;
+        $jumlahTransaksiKemarin       = (int)   $statsYesterday->jumlah_transaksi;
+        $totalProdukTerjualKemarin    = (float) $qtyYesterday;
+        $totalProfitKemarin           = (float) $profitYesterday;
+
+        // ── 3. Percentage changes ─────────────────────────────────────────────
+        $pct = fn($now, $prev) => $prev > 0 ? (($now - $prev) / $prev) * 100 : ($now > 0 ? 100 : 0);
+
+        $penjualanChange = $pct($totalPenjualan, $totalPenjualanKemarin);
+        $transaksiChange = $pct($jumlahTransaksiHariIni, $jumlahTransaksiKemarin);
+        $produkChange    = $pct($totalProdukTerjual, $totalProdukTerjualKemarin);
+        $ongkirChange    = $pct($totalOngkir, $totalOngkirKemarin);
+        $diskonChange    = $pct($totalDiskon, $totalDiskonKemarin);
+        $profitChange    = $pct($totalProfit, $totalProfitKemarin);
+
+        // ── 4. Returns ────────────────────────────────────────────────────────
+        $salesReturns = \App\Models\ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
+=======
         
         $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
         
@@ -85,10 +173,26 @@ class PenjualanController extends Controller
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $salesReturns = \App\Models\ReturPenjualan::where('user_id', auth()->id())
             ->with(['penjualan', 'detailReturPenjualans.produk'])
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksiHariIni', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
+
+        return view('transaksi.penjualan.index', compact(
+            'penjualans',
+            'totalPenjualan',
+            'jumlahTransaksiHariIni',
+            'totalProdukTerjual',
+            'totalProfit',
+            'totalOngkir',
+            'totalDiskon',
+            'salesReturns',
+            'penjualanChange',
+            'transaksiChange',
+            'produkChange',
+            'ongkirChange',
+            'diskonChange',
+            'profitChange'
+        ));
     }
 
     public function create()
@@ -103,10 +207,24 @@ class PenjualanController extends Controller
                 return $p;
             });
         
-        // Ambil akun kas/bank untuk dropdown
-        $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
+        // Ambil akun kas/bank + piutang untuk dropdown "Terima di"
+        // 111=Bank, 112/113=Kas, 118=Piutang Usaha
+        $kasbank = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113', '118'])
+            ->orderBy('kode_akun')
+            ->get();
         
-        return view('transaksi.penjualan.create', compact('produks', 'kasbank'));
+        // Ambil ongkir settings yang aktif
+        $ongkirSettings = OngkirSetting::where('status', true)
+            ->orderBy('jarak_min')
+            ->get();
+        
+        // Ambil paket menu yang aktif dengan detail produk
+        $paketMenus = PaketMenu::with('details.produk')
+            ->where('status', 'aktif')
+            ->orderBy('nama_paket')
+            ->get();
+        
+        return view('transaksi.penjualan.create', compact('produks', 'kasbank', 'ongkirSettings', 'paketMenus'));
     }
 
     public function store(Request $request, StockService $stock, JournalService $journal)
@@ -158,13 +276,154 @@ class PenjualanController extends Controller
         // Ambil akun kas/bank untuk dropdown
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
-        return view('transaksi.penjualan.edit', compact('penjualan', 'produks', 'kasbank'));
+        // Ambil ongkir settings yang aktif
+        $ongkirSettings = OngkirSetting::where('status', true)
+            ->orderBy('jarak_min')
+            ->get();
+        
+        // Ambil paket menu yang aktif dengan detail produk
+        $paketMenus = PaketMenu::with('details.produk')
+            ->where('status', 'aktif')
+            ->orderBy('nama_paket')
+            ->get();
+        
+        return view('transaksi.penjualan.edit', compact('penjualan', 'produks', 'kasbank', 'ongkirSettings', 'paketMenus'));
     }
 
     public function update(Request $request, $id, StockService $stock, JournalService $journal)
     {
-        // Update logic here
-        return redirect()->route('transaksi.penjualan.index');
+        // Validate request data
+        $request->validate([
+            'tanggal' => 'required|date',
+            'waktu' => 'required',
+            'payment_method' => 'required|in:cash,transfer,credit',
+            'sumber_dana' => 'required',
+            'produk_id.*' => 'required',
+            'jumlah.*' => 'required|integer|min:1',
+            'harga_satuan.*' => 'required|numeric|min:0',
+            'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
+            'biaya_ongkir' => 'nullable|numeric|min:0',
+            'ppn_persen' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        return DB::transaction(function() use ($request, $id, $stock, $journal) {
+            $penjualan = Penjualan::findOrFail($id);
+            
+            // Get existing details for stock restoration
+            $existingDetails = $penjualan->details()->get();
+            
+            // Restore stock for existing items
+            foreach ($existingDetails as $detail) {
+                $produk = Produk::find($detail->produk_id);
+                if ($produk) {
+                    // Restore stock
+                    $produk->stok = (float)($produk->stok ?? 0) + $detail->jumlah;
+                    $produk->save();
+                    
+                    // Reverse stock consumption
+                    $stock->reverse('product', $detail->produk_id, $detail->jumlah, 'pcs', 'sale', $penjualan->id, $penjualan->tanggal);
+                }
+            }
+            
+            // Delete existing details
+            $penjualan->details()->delete();
+            
+            // Delete existing journals
+            $journal->deleteByRef('sale', (int)$penjualan->id);
+            $journal->deleteByRef('sale_cogs', (int)$penjualan->id);
+            
+            // Prepare new data
+            $tanggal = $request->tanggal . ' ' . $request->waktu;
+            $produkIds = $request->produk_id;
+            $jumlahs = $request->jumlah;
+            $hargaSatuans = $request->harga_satuan;
+            $diskonPersens = $request->diskon_persen ?? [];
+            $biayaOngkir = (float)($request->biaya_ongkir ?? 0);
+            $ppnPersen = (float)($request->ppn_persen ?? 11);
+            
+            // Calculate totals
+            $subtotalProduk = 0;
+            $items = [];
+            
+            foreach ($produkIds as $index => $produkId) {
+                $produk = Produk::findOrFail($produkId);
+                $qty = (int)$jumlahs[$index];
+                $harga = (float)$hargaSatuans[$index];
+                $diskonPersen = (float)($diskonPersens[$index] ?? 0);
+                $subtotal = $qty * $harga * (1 - $diskonPersen / 100);
+                
+                // Validate stock
+                if ((float)($produk->stok ?? 0) < $qty) {
+                    throw new \Exception("Stok {$produk->nama_produk} tidak cukup. Tersedia: " . ($produk->stok ?? 0) . ", Dibutuhkan: {$qty}");
+                }
+                
+                $subtotalProduk += $subtotal;
+                $items[] = [
+                    'produk_id' => $produkId,
+                    'jumlah' => $qty,
+                    'harga_satuan' => $harga,
+                    'diskon_persen' => $diskonPersen,
+                    'subtotal' => $subtotal
+                ];
+            }
+            
+            $totalPPN = ($subtotalProduk + $biayaOngkir) * ($ppnPersen / 100);
+            $grandTotal = $subtotalProduk + $biayaOngkir + $totalPPN;
+            
+            // Resolve coa_id dari sumber_dana
+            $sumberDanaKode = $request->sumber_dana;
+            $coaId = null;
+            if ($sumberDanaKode) {
+                $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)->first();
+                $coaId = $coaRecord?->id;
+            }
+            
+            // Update penjualan header
+            $penjualan->update([
+                'tanggal'        => $tanggal,
+                'payment_method' => $request->payment_method,
+                'coa_id'         => $coaId,
+                'jumlah'         => collect($items)->sum('jumlah'),
+                'harga_satuan'   => null,
+                'diskon_nominal' => 0,
+                'total'          => $subtotalProduk,
+                'biaya_ongkir'   => $biayaOngkir,
+                'biaya_ppn'      => $totalPPN,
+                'grand_total'    => $grandTotal,
+                'subtotal_produk' => $subtotalProduk,
+                'total_ppn'       => $totalPPN,
+                'ppn_persen'      => $ppnPersen,
+            ]);
+            
+            // Create new detail items
+            foreach ($items as $item) {
+                $produk = Produk::find($item['produk_id']);
+                $qty = $item['jumlah'];
+                
+                \App\Models\PenjualanDetail::create([
+                    'penjualan_id' => $penjualan->id,
+                    'produk_id' => $item['produk_id'],
+                    'jumlah' => $qty,
+                    'harga_satuan' => $item['harga_satuan'],
+                    'diskon_persen' => $item['diskon_persen'],
+                    'diskon_nominal' => 0,
+                    'subtotal' => $item['subtotal'],
+                ]);
+                
+                // Consume stock
+                $stock->consume('product', $item['produk_id'], $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
+                
+                // Update stok
+                $produk->stok = (float)($produk->stok ?? 0) - $qty;
+                $produk->save();
+            }
+            
+            // Create journal entries
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            
+            return redirect()->route('transaksi.penjualan.show', $penjualan->id)
+                           ->with('success', 'Data penjualan berhasil diperbarui.');
+        });
     }
 
     public function destroy($id, JournalService $journal)
@@ -181,6 +440,62 @@ class PenjualanController extends Controller
 
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan dan jurnal terkait berhasil dihapus.');
+    }
+
+    /**
+     * Tampilkan detail jurnal untuk satu transaksi penjualan.
+     * Jika ada akun yang belum tersedia, tampilkan notifikasi.
+     */
+    public function showJurnal($id)
+    {
+        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+
+        $validator  = new \App\Services\JournalValidationService();
+        $validation = $validator->validate($penjualan);
+
+        // Ambil jurnal yang sudah ada (jika ada)
+        $journalEntry = \App\Models\JournalEntry::with('linesWithAccount')
+            ->where('ref_type', 'sale')
+            ->where('ref_id', $penjualan->id)
+            ->first();
+
+        return view('transaksi.penjualan.jurnal', compact('penjualan', 'validation', 'journalEntry'));
+    }
+
+    /**
+     * Buat ulang jurnal penjualan (rebuild).
+     * Hanya bisa dilakukan jika semua akun sudah tersedia.
+     */
+    public function rebuildJurnal(Request $request, $id)
+    {
+        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+
+        try {
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+
+            return redirect()->route('transaksi.penjualan.jurnal', $penjualan->id)
+                ->with('success', 'Jurnal penjualan berhasil dibuat/diperbarui.');
+        } catch (\RuntimeException $e) {
+            return redirect()->route('transaksi.penjualan.jurnal', $penjualan->id)
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Validasi akun jurnal secara real-time (digunakan di form penjualan).
+     */
+    public function validateJurnal(Request $request)
+    {
+        $userId    = auth()->id();
+        $hasPPN    = (bool)$request->input('has_ppn', false);
+        $hasOngkir = (bool)$request->input('has_ongkir', false);
+        $hasDiskon = (bool)$request->input('has_diskon', false);
+        $produkIds = (array)$request->input('produk_ids', []);
+
+        $validator  = new \App\Services\JournalValidationService();
+        $validation = $validator->validateQuick($userId, $hasPPN, $hasOngkir, $hasDiskon, $produkIds);
+
+        return response()->json($validation);
     }
     
     /**
@@ -372,15 +687,32 @@ class PenjualanController extends Controller
                 }
             }
             
+            // Resolve coa_id dari sumber_dana (kode akun yang dipilih user)
+            $sumberDanaKode = $paymentData['sumber_dana'] ?? null;
+            $coaId = null;
+            if ($sumberDanaKode) {
+                $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)->first();
+                $coaId = $coaRecord?->id;
+            }
+
             // Create penjualan header
             $penjualan = Penjualan::create([
+<<<<<<< HEAD
+                'tanggal'        => $tanggal,
+=======
                 'user_id' => auth()->id(), // CRITICAL: Set user_id
                 'tanggal' => $tanggal,
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 'payment_method' => $request->input('payment_method'),
-                'jumlah' => collect($items)->sum('jumlah'),
-                'harga_satuan' => null,
+                'coa_id'         => $coaId,
+                'user_id'        => auth()->id(),
+                'jumlah'         => collect($items)->sum('jumlah'),
+                'harga_satuan'   => null,
                 'diskon_nominal' => 0,
-                'total' => $paymentData['total'],
+                'total'          => $paymentData['subtotal_produk'] ?? $paymentData['total'],
+                'biaya_ongkir'   => $paymentData['biaya_ongkir'] ?? 0,
+                'biaya_ppn'      => $paymentData['total_ppn'] ?? 0,
+                'grand_total'    => $paymentData['total'] ?? 0,
             ]);
             
             // Create detail items
@@ -390,13 +722,13 @@ class PenjualanController extends Controller
                 $qty = (int) $item['jumlah'];
                 
                 \App\Models\PenjualanDetail::create([
-                    'penjualan_id' => $penjualan->id,
-                    'produk_id' => $item['produk_id'],
-                    'jumlah' => $qty,
-                    'harga_satuan' => $item['harga_satuan'],
-                    'diskon_persen' => $item['diskon_persen'] ?? 0,
-                    'diskon_nominal' => 0,
-                    'subtotal' => $item['subtotal'],
+                    'penjualan_id'   => $penjualan->id,
+                    'produk_id'      => $item['produk_id'],
+                    'jumlah'         => $qty,
+                    'harga_satuan'   => (float) $item['harga_satuan'],
+                    'diskon_persen'  => round((float) ($item['diskon_persen'] ?? 0), 2),
+                    'diskon_nominal' => round((float) ($item['diskon_nominal'] ?? 0)),
+                    'subtotal' => (float) $item['subtotal'],
                 ]);
                 
                 // Consume stock
@@ -419,7 +751,19 @@ class PenjualanController extends Controller
             }
             
             // Create journal entries
-            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            try {
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            } catch (\RuntimeException $e) {
+                // Jurnal gagal dibuat karena akun belum tersedia.
+                // Transaksi penjualan tetap tersimpan, tapi user diberitahu.
+                \Log::warning('Jurnal penjualan #' . $penjualan->nomor_penjualan . ' tidak dibuat: ' . $e->getMessage());
+
+                session()->forget('penjualan_payment_data');
+
+                return redirect()->route('transaksi.penjualan.show', $penjualan->id)
+                    ->with('warning_jurnal', $e->getMessage())
+                    ->with('success', 'Penjualan berhasil disimpan, namun jurnal akuntansi belum dapat dibuat.');
+            }
             
             // Clear session
             session()->forget('penjualan_payment_data');

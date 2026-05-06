@@ -78,7 +78,17 @@ class StockMovement extends Model
                         ['code' => '1101', 'debit' => 0, 'credit' => $adjustmentAmount], // Cr Persediaan
                     ];
                     
+<<<<<<< HEAD
+                    $journalService->post(
+                        now(), 
+                        'stock_adjustment', 
+                        $pembelian->id, 
+                        'Stock Adjustment for Purchase #' . $pembelian->id, 
+                        $journalEntries
+                    );
+=======
                     $journalService->post(now(), 'stock_adjustment', $pembelian->id, 'Stock Adjustment for Purchase #' . $pembelian->id, $journalEntries);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 }
             }
         });

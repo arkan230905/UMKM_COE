@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Presensi')
+
 @section('content')
 <style>
 /* =====================================================
@@ -269,9 +271,47 @@
         <div class="card-body">
             <!-- Filter Section -->
             <div class="row mb-4">
-                <div class="col-md-6">
+                <div class="col-md-8">
                     <form method="GET" action="{{ route('transaksi.presensi.index') }}">
                         <div class="row g-3">
+<<<<<<< HEAD
+                            <div class="col-md-3">
+                                <label class="form-label small">Bulan</label>
+                                <select name="bulan" class="form-select">
+                                    <option value="">-- Semua Bulan --</option>
+                                    @foreach($bulanList as $key => $bulan)
+                                        <option value="{{ $key }}" {{ $filters['bulan'] == $key ? 'selected' : '' }}>
+                                            {{ $bulan }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Tahun</label>
+                                <select name="tahun" class="form-select">
+                                    <option value="">-- Semua Tahun --</option>
+                                    @foreach($tahunList as $tahun)
+                                        <option value="{{ $tahun }}" {{ $filters['tahun'] == $tahun ? 'selected' : '' }}>
+                                            {{ $tahun }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="">-- Semua Status --</option>
+                                    <option value="Hadir" {{ $filters['status'] == 'Hadir' ? 'selected' : '' }}>Hadir</option>
+                                    <option value="Alpha" {{ $filters['status'] == 'Alpha' ? 'selected' : '' }}>Alpha</option>
+                                    <option value="Masuk Saja" {{ $filters['status'] == 'Masuk Saja' ? 'selected' : '' }}>Masuk Saja</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">&nbsp;</label><br>
+                                <input type="hidden" name="search" value="{{ $search ?? '' }}">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> Filter
+=======
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold">Filter Tanggal</label>
                                 <input type="date" name="date_filter" class="form-control"
@@ -281,16 +321,19 @@
                                 <input type="hidden" name="search" value="{{ $search ?? '' }}">
                                 <button type="submit" class="btn-filter">
                                     <i class="fas fa-search me-1"></i> Filter
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 </button>
                             </div>
                         </div>
                     </form>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <form method="GET" action="{{ route('transaksi.presensi.index') }}">
                         <label class="form-label small fw-semibold">Cari Pegawai</label>
                         <div class="input-group">
-                            <input type="hidden" name="date_filter" value="{{ $dateFilter ?? '' }}">
+                            <input type="hidden" name="bulan" value="{{ $filters['bulan'] ?? '' }}">
+                            <input type="hidden" name="tahun" value="{{ $filters['tahun'] ?? '' }}">
+                            <input type="hidden" name="status" value="{{ $filters['status'] ?? '' }}">
                             <input type="text" name="search" class="form-control"
                                    placeholder="Cari nama pegawai..." value="{{ $search ?? '' }}">
                             <button class="btn btn-outline-secondary" type="submit">
@@ -305,8 +348,13 @@
             @if(auth()->user()->role === 'owner' || auth()->user()->role === 'admin')
             <div class="row mb-3">
                 <div class="col-12 text-end">
+<<<<<<< HEAD
+                    <a href="{{ route('transaksi.presensi.cetak', ['bulan' => $filters['bulan'] ?? '', 'tahun' => $filters['tahun'] ?? '', 'search' => $search ?? '']) }}"
+                       target="_blank" class="btn btn-success">
+=======
                     <a href="{{ route('transaksi.presensi.cetak', ['date_filter' => $dateFilter ?? '', 'search' => $search ?? '']) }}"
                        target="_blank" class="btn-cetak">
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                         <i class="fas fa-print"></i> Cetak Laporan
                     </a>
                 </div>
@@ -380,7 +428,9 @@
                                           method="POST" class="d-inline delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <input type="hidden" name="date_filter" value="{{ $dateFilter ?? '' }}">
+                                        <input type="hidden" name="bulan" value="{{ $filters['bulan'] ?? '' }}">
+                                        <input type="hidden" name="tahun" value="{{ $filters['tahun'] ?? '' }}">
+                                        <input type="hidden" name="status" value="{{ $filters['status'] ?? '' }}">
                                         <input type="hidden" name="search" value="{{ $search ?? '' }}">
                                         <button type="submit" class="btn-hapus" title="Hapus">
                                             <i class="fas fa-trash"></i>

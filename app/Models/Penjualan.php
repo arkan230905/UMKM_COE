@@ -22,6 +22,9 @@ class Penjualan extends Model
         'jumlah',
         'diskon_nominal',
         'total',
+        'biaya_ongkir',
+        'biaya_ppn',
+        'grand_total',
         'bukti_pembayaran',
         'catatan_pembayaran',
     ];

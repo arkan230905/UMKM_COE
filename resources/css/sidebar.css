@@ -192,3 +192,45 @@
         margin-left: 70px;
     }
 }
+
+/* Logout button styling */
+.logout-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    padding-left: 20px;
+    margin: 10px 0;
+    border-radius: 0 25px 25px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+    box-sizing: border-box;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(5px);
+}
+
+.logout-btn i {
+    width: 20px;
+    margin-right: 15px;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.logout-btn span {
+    flex: 1;
+}
+
+.logout-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 15px 20px;
+}

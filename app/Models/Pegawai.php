@@ -35,6 +35,7 @@ class Pegawai extends Model
         'bank',
         'nomor_rekening',
         'nama_rekening',
+        'user_id',
     ];
     
     protected static function boot()
@@ -42,6 +43,11 @@ class Pegawai extends Model
         parent::boot();
 
         static::creating(function ($model) {
+<<<<<<< HEAD
+            if (empty($model->kode_pegawai)) {
+                $userId = auth()->id();
+                $lastId = static::where('user_id', $userId)->max('id') ?? 0;
+=======
             // 🔒 SECURITY: Auto-fill user_id only if column exists
             if (empty($model->user_id) && auth()->check() && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
                 $model->user_id = auth()->id();
@@ -49,7 +55,15 @@ class Pegawai extends Model
             // 🔒 SECURITY: Auto-fill kode_pegawai only if column exists
             if (empty($model->kode_pegawai) && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'kode_pegawai')) {
                 $lastId = static::max('id') ?? 0;
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            }
+        });
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
             }
         });
     }
@@ -73,6 +87,14 @@ class Pegawai extends Model
     public function jabatanRelasi(): BelongsTo
     {
         return $this->belongsTo(Jabatan::class, 'jabatan_id');
+    }
+
+    /**
+     * Relasi ke user (akun login pegawai)
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

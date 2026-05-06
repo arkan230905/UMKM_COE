@@ -29,44 +29,6 @@
         </div>
     @endif
 
-    {{-- NEW RETUR CREATED MESSAGE --}}
-    @if(session('new_retur_created'))
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="fas fa-check-circle me-2"></i>
-            <strong>Retur baru berhasil dibuat!</strong> 
-            @if(session('new_retur_id'))
-                (ID: {{ session('new_retur_id') }})
-            @endif
-            <br>
-            <small>Data telah dimuat ulang. Total retur saat ini: {{ $returs->count() }} data.</small>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        
-        {{-- Debug information for new retur --}}
-        @if(config('app.debug'))
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                <strong>Debug Info:</strong><br>
-                <small>
-                    Total retur loaded: {{ $returs->count() }}<br>
-                    Session new_retur_id: {{ session('new_retur_id') ?? 'null' }}<br>
-                    @if($returs->count() > 0)
-                        Latest retur ID: {{ $returs->first()->id ?? 'none' }}<br>
-                        Latest retur number: {{ $returs->first()->return_number ?? 'none' }}<br>
-                        Latest retur date: {{ $returs->first()->created_at ? $returs->first()->created_at->format('Y-m-d H:i:s') : 'none' }}<br>
-                    @endif
-                    Page loaded at: {{ now()->format('Y-m-d H:i:s') }}<br>
-                    New retur in list: {{ session('new_retur_id') && $returs->where('id', session('new_retur_id'))->count() > 0 ? 'YES' : 'NO' }}
-                </small>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-        
-        @php
-            // Clear the session after showing the message
-            session()->forget(['new_retur_created', 'new_retur_id']);
-        @endphp
-    @endif
-
     {{-- ERROR MESSAGES --}}
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show">
@@ -87,15 +49,15 @@
                 <table class="{{ $tableClass }}">
                     <thead class="table-light">
                         <tr>
-                            <th width="5%">No</th>
-                            <th width="8%">Tanggal</th>
-                            <th width="12%">No Retur</th>
-                            <th width="12%">No Transaksi</th>
-                            <th width="12%">Vendor</th>
-                            <th width="15%">Item</th>
-                            <th width="10%">Jenis Retur</th>
-                            <th width="8%">Status</th>
-                            <th width="18%" class="text-center">Aksi</th>
+                            <th class="text-center" width="5%">No</th>
+                            <th class="text-center" width="8%">Tanggal</th>
+                            <th class="text-center" width="12%">No Retur</th>
+                            <th class="text-center" width="12%">No Transaksi</th>
+                            <th class="text-center" width="12%">Vendor</th>
+                            <th class="text-center" width="15%">Item</th>
+                            <th class="text-center" width="10%">Jenis Retur</th>
+                            <th class="text-center" width="8%">Status</th>
+                            <th class="text-center" width="18%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -97,6 +97,71 @@ class BtklController extends Controller
      */
     public function create()
     {
+<<<<<<< HEAD
+        // Get ALL Jabatan with category 'btkl' and their employees
+        // This ensures we get all BTKL positions regardless of whether they have employees
+        $jabatanBtkl = Jabatan::where('kategori', 'btkl')
+            ->with('pegawais')
+            ->orderBy('nama')
+            ->get();
+
+        // Debug logging
+        \Log::info('BTKL Create - Jabatan BTKL loaded:', [
+            'total_jabatan' => $jabatanBtkl->count(),
+            'jabatan_details' => $jabatanBtkl->map(function($j) {
+                return [
+                    'id' => $j->id,
+                    'nama' => $j->nama,
+                    'pegawai_count' => $j->pegawais->count(),
+                    'pegawai_ids' => $j->pegawais->pluck('id')->toArray(),
+                    'tarif' => $j->tarif
+                ];
+            })->toArray()
+        ]);
+
+        // Generate next process code
+        $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
+        if ($lastBtkl) {
+            // Extract number from last code (e.g., PROC-001 -> 001)
+            $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        $nextKode = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+        $satuanOptions = ['Jam', 'Unit', 'Batch'];
+
+        // Map employee data dengan pegawai_count yang akurat
+        $employeeData = $jabatanBtkl->map(function($jabatan) {
+            $pegawaiCount = $jabatan->pegawais->count();
+            
+            \Log::info('BTKL Create - Jabatan Data:', [
+                'id' => $jabatan->id,
+                'nama' => $jabatan->nama,
+                'pegawai_count' => $pegawaiCount,
+                'pegawai_details' => $jabatan->pegawais->map(function($p) {
+                    return [
+                        'id' => $p->id,
+                        'nama' => $p->nama,
+                        'jabatan_id' => $p->jabatan_id
+                    ];
+                })->toArray(),
+                'tarif' => $jabatan->tarif ?? 0,
+                'kategori' => $jabatan->kategori
+            ]);
+            
+            return [
+                'id' => $jabatan->id,
+                'nama' => $jabatan->nama,
+                'pegawai_count' => $pegawaiCount,
+                'tarif' => $jabatan->tarif ?? 0
+            ];
+        });
+
+        \Log::info('BTKL Create - Final employeeData:', $employeeData->toArray());
+        
+=======
         $userId = auth()->id();
 
         [$jabatanBtkl, $employeeData] = $this->getJabatanBtklForUser($userId);
@@ -108,6 +173,7 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
 

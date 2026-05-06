@@ -27,9 +27,6 @@
                     <h4 class="mb-0">Login Kasir</h4>
                 </div>
                 <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success">{{ session('success') }}</div>
-                    @endif
                     
                     @if($errors->any())
                         <div class="alert alert-danger">

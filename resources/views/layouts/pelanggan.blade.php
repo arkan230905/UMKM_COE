@@ -77,7 +77,7 @@
         
         .main-content {
             min-height: calc(100vh - 120px);
-            padding-top: 20px;
+            padding-top: 0;
             padding-bottom: 40px;
         }
         
@@ -95,8 +95,10 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('pelanggan.dashboard') }}">
-                <i class="bi bi-shop"></i> {{ config('app.name', 'UMKM COE') }}
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('pelanggan.dashboard') }}">
+                <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height:36px;width:auto;">
+                <img src="{{ asset('images/logo_telkom.png') }}" alt="Telkom" style="height:36px;width:auto;">
+                <img src="{{ asset('images/logo_eadt.png') }}" alt="EADT" style="height:36px;width:auto;">
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -146,7 +148,7 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form method="POST" action="{{ route('logout') }}">
+                                <form method="POST" action="{{ route('pelanggan.logout') }}">
                                     @csrf
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="bi bi-box-arrow-right"></i> Logout
@@ -168,8 +170,9 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container text-center">
-            <p class="mb-0">&copy; {{ date('Y') }} {{ config('app.name', 'UMKM COE') }}. All rights reserved.</p>
-            <small class="text-muted">Belanja mudah, aman, dan terpercaya</small>
+            @php $footerCompany = \App\Models\Perusahaan::first(); @endphp
+            <p class="mb-0">&copy; {{ date('Y') }} {{ $footerCompany->nama ?? config('app.name') }}. All rights reserved.</p>
+            <small style="color: white;">Belanja mudah, aman, dan terpercaya</small>
         </div>
     </footer>
 

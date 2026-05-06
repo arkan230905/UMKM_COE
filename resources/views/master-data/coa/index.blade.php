@@ -4,6 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="fas fa-calculator me-2"></i>COA
@@ -22,12 +23,14 @@
                     </select>
                 </div>
             </form>
-            <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Tambah COA
+            <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary btn-sm" style="align-self:flex-end;display:inline-flex;align-items:center;gap:4px;">
+                <i class="fas fa-plus"></i> Tambah COA
             </a>
         </div>
     </div>
 
+<<<<<<< HEAD
+=======
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">
             {{ session('success') }}
@@ -43,6 +46,7 @@
         </div>
     @endif
 
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
@@ -124,3 +128,15 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Auto-hide notifikasi setelah 3 detik
+    setTimeout(function() {
+        document.querySelectorAll('.alert').forEach(function(el) {
+            var alert = bootstrap.Alert.getOrCreateInstance(el);
+            alert.close();
+        });
+    }, 3000);
+</script>
+@endpush
