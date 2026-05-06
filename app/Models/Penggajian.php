@@ -191,9 +191,9 @@ class Penggajian extends Model
     {
         $createdPayrolls = [];
 
-        // Get all presensi for the specified period
-        $presensis = Presensi::where('periode_bulan', $bulan)
-            ->where('periode_tahun', $tahun)
+        // Get all presensi for the specified period using MONTH() and YEAR() functions
+        $presensis = Presensi::whereMonth('tgl_presensi', $bulan)
+            ->whereYear('tgl_presensi', $tahun)
             ->get();
 
         // Group by pegawai_id
@@ -206,8 +206,8 @@ class Penggajian extends Model
             }
 
             // Calculate totals
-            $totalHariHadir = $pegawaiPresensis->where('status', 'Hadir')->count();
-            $totalAlpha = $pegawaiPresensis->where('status', 'Alpha')->count();
+            $totalHariHadir = $pegawaiPresensis->whereIn('status', ['Hadir', 'hadir'])->count();
+            $totalAlpha = $pegawaiPresensis->whereIn('status', ['Alpha', 'alpha', 'absen'])->count();
             $totalJam = $pegawaiPresensis->sum('jumlah_jam');
 
             // Get tarif_per_jam from pegawai or jabatan
@@ -288,13 +288,14 @@ class Penggajian extends Model
      */
     public static function getMonthlyStats($pegawaiId, $bulan, $tahun)
     {
+        // Use MONTH() and YEAR() SQL functions since presensis table doesn't have periode_bulan/periode_tahun columns
         $presensis = Presensi::where('pegawai_id', $pegawaiId)
-            ->where('periode_bulan', $bulan)
-            ->where('periode_tahun', $tahun)
+            ->whereMonth('tgl_presensi', $bulan)
+            ->whereYear('tgl_presensi', $tahun)
             ->get();
 
-        $totalHariHadir = $presensis->where('status', 'Hadir')->count();
-        $totalAlpha = $presensis->where('status', 'Alpha')->count();
+        $totalHariHadir = $presensis->whereIn('status', ['Hadir', 'hadir'])->count();
+        $totalAlpha = $presensis->whereIn('status', ['Alpha', 'alpha', 'absen'])->count();
         $totalJam = $presensis->sum('jumlah_jam');
 
         $pegawai = Pegawai::find($pegawaiId);

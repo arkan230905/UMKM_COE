@@ -65,8 +65,8 @@ class PegawaiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:pegawais,nama,NULL,id,user_id,'.auth()->id(),
-            'email' => 'required|email|unique:pegawais,email,NULL,id,user_id,'.auth()->id(),
+            'nama' => 'required|string|max:255',
+            'email' => 'required|email',
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
@@ -75,7 +75,32 @@ class PegawaiController extends Controller
             'bank' => 'required|string|max:100',
             'nomor_rekening' => 'required|string|max:50',
             'nama_rekening' => 'required|string|max:100',
+        ], [
+            'email.required' => 'Email harus diisi',
+            'email.email' => 'Format email tidak valid',
         ]);
+
+        // Manual check for duplicate email (karena global scope)
+        $existingPegawai = Pegawai::withoutGlobalScopes()
+            ->where('email', $validated['email'])
+            ->first();
+        
+        if ($existingPegawai) {
+            return back()
+                ->withErrors(['email' => 'Email sudah digunakan oleh pegawai lain: ' . $existingPegawai->nama])
+                ->withInput();
+        }
+
+        // Manual check for duplicate nama
+        $existingNama = Pegawai::where('user_id', auth()->id())
+            ->where('nama', $validated['nama'])
+            ->first();
+        
+        if ($existingNama) {
+            return back()
+                ->withErrors(['nama' => 'Nama pegawai sudah ada'])
+                ->withInput();
+        }
 
         $jabatan = \App\Models\Jabatan::find($validated['jabatan_id']);
         
@@ -85,9 +110,23 @@ class PegawaiController extends Controller
 
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
 
+        // Generate unique kode_pegawai
+        $lastPegawai = Pegawai::withoutGlobalScopes()
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $nextNumber = $lastPegawai ? ($lastPegawai->id + 1) : 1;
+        $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        
+        // Pastikan kode unik (jika ada yang dihapus)
+        while (Pegawai::withoutGlobalScopes()->where('kode_pegawai', $kodePegawai)->exists()) {
+            $nextNumber++;
+            $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
+
         // Prepare data for creation
         $pegawaiData = [
-            'kode_pegawai' => 'PGW' . str_pad(Pegawai::where('user_id', auth()->id())->count() + 1, 4, '0', STR_PAD_LEFT),
+            'kode_pegawai' => $kodePegawai,
             'nama' => $validated['nama'],
             'email' => $validated['email'],
             $phoneColumn => $validated['no_telepon'],

@@ -25,11 +25,15 @@
             <i class="fas fa-home"></i><span>Dashboard</span>
         </a>
         <div class="sb-section">PRESENSI</div>
-        <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="sb-link {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}">
-            <i class="fas fa-camera"></i><span>Absen Wajah</span>
+        <a href="{{ route('pegawai.presensi.absen-wajah') }}" 
+           class="test-link-absen {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}" 
+           style="color: rgba(255,255,255,0.8); padding: 12px 20px; text-decoration: none; display: flex; align-items: center; pointer-events: auto; position: relative; z-index: 1001;">
+            <i class="fas fa-camera"></i><span style="margin-left: 15px;">Absen Wajah</span>
         </a>
-        <a href="{{ route('pegawai.riwayat-presensi') }}" class="sb-link {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}">
-            <i class="fas fa-history"></i><span>Riwayat Presensi</span>
+        <a href="{{ route('pegawai.riwayat-presensi') }}" 
+           class="test-link-riwayat {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}" 
+           style="color: rgba(255,255,255,0.8); padding: 12px 20px; text-decoration: none; display: flex; align-items: center; pointer-events: auto; position: relative; z-index: 1001;">
+            <i class="fas fa-history"></i><span style="margin-left: 15px;">Riwayat Presensi</span>
         </a>
         <div class="sb-section">PENGGAJIAN</div>
         <a href="{{ route('pegawai.slip-gaji.index') }}" class="sb-link {{ request()->is('pegawai/slip-gaji*') ? 'active' : '' }}">
