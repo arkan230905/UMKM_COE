@@ -19,13 +19,8 @@ class PegawaiController extends Controller
         $search = request('search');
         $jenis = request('jenis');
         
-
-        // Use safety check for multi-tenant filtering
-        $query = Pegawai::query();
-// Check if user_id column exists and filter by it
-        if (Schema::hasColumn('pegawais', 'user_id')) {
-            $query->where('user_id', auth()->id());
-        }
+        // CRITICAL: Always filter by user_id for multi-tenant
+        $query = Pegawai::where('user_id', auth()->id());
         
         // Filter berdasarkan jenis pegawai (opsional)
         if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
