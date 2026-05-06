@@ -141,17 +141,11 @@
                 
                 <div class="col-md-3">
                     <label class="form-label">Bukti Faktur <span class="text-danger">*</span></label>
-                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,application/pdf" required>
+                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,application/pdf" required onchange="previewBuktiFaktur(this)">
                     <small class="text-muted">Format: JPG, PNG, PDF (Max: 2MB)</small>
                     @error('bukti_faktur')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label">Bukti Faktur</label>
-                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,.pdf" onchange="previewBuktiFaktur(this)">
-                    <small class="text-muted">Upload gambar atau PDF (opsional)</small>
                     <div id="bukti_faktur_preview" class="mt-2" style="display: none;">
                         <img id="bukti_faktur_img" src="#" alt="Preview" style="max-width: 200px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
                     </div>
