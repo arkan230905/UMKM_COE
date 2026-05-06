@@ -51,14 +51,15 @@ return new class extends Migration
     
     private function createCoaIfNotExists($coaData)
     {
-        // Use updateOrInsert to avoid duplicate key error
-        DB::table('coas')->updateOrInsert(
-            [
-                'kode_akun' => $coaData['kode_akun'],
-                'user_id' => $coaData['user_id']
-            ],
-            $coaData
-        );
+        // Check if COA with this kode_akun already exists (for any user)
+        // Because the unique constraint is on kode_akun only, not (kode_akun, user_id)
+        $exists = DB::table('coas')
+            ->where('kode_akun', $coaData['kode_akun'])
+            ->exists();
+        
+        if (!$exists) {
+            DB::table('coas')->insert($coaData);
+        }
     }
 
     /**

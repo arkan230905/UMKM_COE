@@ -16,13 +16,14 @@ return new class extends Migration
         $users = DB::table('users')->get();
         
         foreach ($users as $user) {
-            // Use updateOrInsert to avoid duplicate key error
-            DB::table('coas')->updateOrInsert(
-                [
-                    'kode_akun' => '536',
-                    'user_id' => $user->id
-                ],
-                [
+            // Check if COA 536 already exists (for any user)
+            // Because the unique constraint is on kode_akun only
+            $exists = DB::table('coas')
+                ->where('kode_akun', '536')
+                ->exists();
+            
+            if (!$exists) {
+                DB::table('coas')->insert([
                     'kode_akun' => '536',
                     'nama_akun' => 'BOP Air & Kebersihan',
                     'tipe_akun' => 'Biaya',
@@ -33,8 +34,11 @@ return new class extends Migration
                     'user_id' => $user->id,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]
-            );
+                ]);
+                
+                // Only insert once since kode_akun is unique globally
+                break;
+            }
         }
     }
 
