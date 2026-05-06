@@ -11,18 +11,6 @@ class BahanPendukung extends Model
 
     protected $table = 'bahan_pendukungs';
     
-    protected static function boot()
-    {
-        parent::boot();
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
-            }
-        });
-    }
-
     protected $fillable = [
         'user_id',  // CRITICAL: multi-tenant isolation
         'kode_bahan',
