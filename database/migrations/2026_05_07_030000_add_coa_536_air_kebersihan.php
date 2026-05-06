@@ -29,7 +29,6 @@ return new class extends Migration
                     'tipe_akun' => 'Biaya',
                     'kategori_akun' => 'BOP',
                     'saldo_normal' => 'Debit',
-                    'posisi' => 'Debit',
                     'saldo_awal' => 0,
                     'user_id' => $user->id,
                     'created_at' => now(),
