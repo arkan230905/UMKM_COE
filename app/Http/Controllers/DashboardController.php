@@ -45,16 +45,47 @@ class DashboardController extends Controller
         $totalProduk      = $this->getCountByUser('produks', $user->id);
         $totalVendor      = $this->getCountByUser('vendors', $user->id);
         $totalBahanBaku   = $this->getCountByUser('bahan_bakus', $user->id);
+        
+        // Bahan Pendukung - check if table exists
+        $totalBahanPendukung = 0;
+        try {
+            if (\Schema::hasTable('bahan_pendukungs')) {
+                $totalBahanPendukung = $this->getCountByUser('bahan_pendukungs', $user->id);
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist or other error, default to 0
+        }
+        
         $totalSatuan      = $this->getCountByUser('satuans', $user->id);
         $totalAset        = $this->getCountByUser('asets', $user->id);
         $totalPelanggan   = $this->getCountByUser('pelanggans', $user->id);
-// Handle case when bops table doesn't exist yet
+        
+        // Jabatan - check if table exists
+        $totalJabatan = 0;
+        try {
+            if (\Schema::hasTable('jabatans')) {
+                $totalJabatan = $this->getCountByUser('jabatans', $user->id);
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist or other error, default to 0
+        }
+        
+        // BOP - check if table exists
         $totalBOP = 0;
         try {
-
             if (\Schema::hasTable('bops')) {
                 $totalBOP = $this->getCountByUser('bops', $user->id);
-}
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist or other error, default to 0
+        }
+        
+        // BTKL - check if table exists
+        $totalBTKL = 0;
+        try {
+            if (\Schema::hasTable('proses_produksis')) {
+                $totalBTKL = $this->getCountByUser('proses_produksis', $user->id);
+            }
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
         }
