@@ -15,7 +15,7 @@ return new class extends Migration
             // Add coa_persediaan_id column to link product to specific persediaan COA
             // This allows each product to have its own persediaan account (e.g., 1161 for Jasuke)
             // instead of using the parent account (116)
-            $table->string('coa_persediaan_id', 20)->nullable()->after('harga_pokok');
+            $table->string('coa_persediaan_id', 20)->nullable()->after('harga_jual');
             
             // Add foreign key constraint to ensure COA exists
             $table->foreign('coa_persediaan_id')

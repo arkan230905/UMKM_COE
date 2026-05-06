@@ -42,13 +42,13 @@ class ProsesProduksiController extends Controller
      */
     public function create()
     {
-        // 🔒 MULTI-TENANT: Only get data from logged-in user
-        $komponenBops = KomponenBop::where('user_id', auth()->id())->active()->orderBy('nama_komponen')->get();
+        // Komponen BOP sudah tidak digunakan lagi setelah cleanup migration
+        // Sekarang BOP langsung disimpan di bop_proses dengan kolom budget dan aktual
         
         // 🔒 MULTI-TENANT: Only get jabatans from logged-in user
         $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        return view('master-data.proses-produksi.create', compact('komponenBops', 'jabatans'));
+        return view('master-data.proses-produksi.create', compact('jabatans'));
     }
 
     /**
@@ -159,15 +159,14 @@ class ProsesProduksiController extends Controller
             abort(404);
         }
         
-        $prosesProduksi->load('prosesBops.komponenBop');
-        
-        // 🔒 MULTI-TENANT: Only get data from logged-in user
-        $komponenBops = KomponenBop::where('user_id', auth()->id())->active()->orderBy('nama_komponen')->get();
+        // Komponen BOP sudah tidak digunakan lagi setelah cleanup migration
+        // Load bopProses instead
+        $prosesProduksi->load('bopProses');
         
         // 🔒 MULTI-TENANT: Only get jabatans from logged-in user
         $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'komponenBops', 'jabatans'));
+        return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'jabatans'));
     }
 
     /**
