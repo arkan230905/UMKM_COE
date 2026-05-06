@@ -15,24 +15,33 @@ class BtklController extends Controller
      * Ambil jabatan BTKL + jumlah pegawai milik user yang sedang login.
      * Menggunakan DB::table (query builder mentah) agar tidak terpengaruh
      * global scope Eloquent yang kadang tidak aktif di server.
+     * 
+     * MULTI-TENANT: Semua query HARUS filter by user_id
      */
     private function getJabatanBtklForUser(int $userId): array
     {
         // 1. Ambil jabatan BTKL milik user ini saja
+        // MULTI-TENANT: Filter by user_id AND kategori = 'btkl'
         $jabatans = DB::table('jabatans')
+            ->where('user_id', $userId) // CRITICAL: Multi-tenant filter
             ->where('kategori', 'btkl')
-            ->where('user_id', $userId)
             ->orderBy('nama')
             ->get();
 
         // 2. Hitung pegawai per jabatan — hanya pegawai milik user yang sama
-        //    Relasi: pegawais.jabatan_id = jabatans.id DAN pegawais.user_id = user ini
-        $pegawaiCount = DB::table('pegawais')
-            ->select('jabatan_id', DB::raw('COUNT(*) as jumlah'))
-            ->where('user_id', $userId)
-            ->whereNotNull('jabatan_id')
-            ->groupBy('jabatan_id')
-            ->pluck('jumlah', 'jabatan_id');
+        //    MULTI-TENANT: pegawais.jabatan_id = jabatans.id DAN pegawais.user_id = user ini
+        //    IMPORTANT: Harus join dengan jabatans untuk memastikan jabatan_id milik user yang sama
+        $pegawaiCount = DB::table('pegawais as p')
+            ->join('jabatans as j', function($join) use ($userId) {
+                $join->on('p.jabatan_id', '=', 'j.id')
+                     ->where('j.user_id', '=', $userId); // CRITICAL: Ensure jabatan belongs to same user
+            })
+            ->where('p.user_id', $userId) // CRITICAL: Multi-tenant filter
+            ->where('j.kategori', 'btkl') // Only BTKL jabatan
+            ->whereNotNull('p.jabatan_id')
+            ->select('p.jabatan_id', DB::raw('COUNT(*) as jumlah'))
+            ->groupBy('p.jabatan_id')
+            ->pluck('jumlah', 'p.jabatan_id');
 
         // 3. Gabungkan
         $jabatanBtkl   = collect();
