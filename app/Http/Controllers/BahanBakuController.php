@@ -133,8 +133,20 @@ class BahanBakuController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        // IMPORTANT: Stock movement akan dibuat otomatis oleh BahanBakuObserver::created()
-        // JANGAN buat stock movement di sini untuk menghindari duplikasi!
+        // IMPORTANT: Create initial stock movement for saldo_awal
+        if (($request->stok ?? 0) > 0) {
+            \App\Models\StockMovement::create([
+                'user_id' => auth()->id(),
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'direction' => 'in',
+                'qty' => $request->stok,
+                'reference_type' => 'initial_stock',
+                'reference_id' => $bahanBaku->id,
+                'notes' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
+                'transaction_date' => now(),
+            ]);
+        }
         
         // Update COA Persediaan saldo_awal (jika ada)
         if ($request->coa_persediaan_id && ($request->stok ?? 0) > 0) {
