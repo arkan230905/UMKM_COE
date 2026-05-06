@@ -12,10 +12,8 @@ class JabatanController extends Controller
     {
         $search = request('search');
         $kategori = request('kategori');
-
-        // MULTI-TENANT: Auto-fix NULL user_id records to current user
-        Jabatan::whereNull('user_id')->update(['user_id' => auth()->id()]);
         
+        // CRITICAL: Filter by user_id for multi-tenant
         $q = Jabatan::where('user_id', auth()->id());
         
         if ($search) {
@@ -207,13 +205,8 @@ class JabatanController extends Controller
             return response()->json(['success' => false, 'message' => 'Parameter kategori required'], 400);
         }
 
-        // MULTI-TENANT: Filter by user_id, also include NULL user_id records (legacy data)
-        // Fix NULL user_id records to belong to current user automatically
+        // CRITICAL: Filter by user_id for multi-tenant
         $userId = auth()->id();
-
-        // Auto-fix: assign user_id to NULL records that match current user's data
-        Jabatan::whereNull('user_id')->update(['user_id' => $userId]);
-
         $query = Jabatan::where('user_id', $userId);
 
         // If kategori is numeric, it's a kategori_id
