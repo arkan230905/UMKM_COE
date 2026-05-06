@@ -104,9 +104,11 @@ class AsetController extends Controller
             
             $aset->monthly_depreciation = $penyusutanPerBulan;
             
-            // Check if already posted this month using modern journal system
-            $aset->is_posted_this_month = \App\Models\JournalEntry::where('ref_type', 'depreciation')
-                ->where('ref_id', $aset->id)
+            // Check if already posted this month using modern journal system (jurnal_umum)
+            $aset->is_posted_this_month = \DB::table('jurnal_umum')
+                ->where('tipe_referensi', 'depreciation')
+                ->where('referensi', 'ASET-' . $aset->id)
+                ->where('user_id', $user->id)
                 ->whereYear('tanggal', now()->year)
                 ->whereMonth('tanggal', now()->month)
                 ->exists();
@@ -1025,12 +1027,14 @@ class AsetController extends Controller
                 ]);
             }
             
-            // Check if depreciation already posted for this asset this month using modern journal system
-            $existingEntry = \App\Models\JournalEntry::where('ref_type', 'depreciation')
-                ->where('ref_id', $aset->id)
+            // Check if depreciation already posted for this asset this month using jurnal_umum
+            $existingEntry = \DB::table('jurnal_umum')
+                ->where('tipe_referensi', 'depreciation')
+                ->where('referensi', 'ASET-' . $aset->id)
+                ->where('user_id', auth()->id())
                 ->whereYear('tanggal', $currentYear)
                 ->whereMonth('tanggal', $currentMonth)
-                ->first();
+                ->exists();
                 
             if ($existingEntry) {
                 return response()->json([
@@ -1075,40 +1079,44 @@ class AsetController extends Controller
                 ]);
             }
 
-            // Create journal entry header
+            // Create journal entries using jurnal_umum (modern system)
             $memo = "Penyusutan Aset {$aset->nama_aset} ({$aset->metode_penyusutan}) - {$periodeBulan}";
+            $userId = auth()->id();
+            $referensi = 'ASET-' . $aset->id;
             
-            $journalEntry = \App\Models\JournalEntry::create([
+            // ✅ DEBIT: Beban Penyusutan
+            \DB::table('jurnal_umum')->insert([
                 'tanggal' => $currentDate,
-                'ref_type' => 'depreciation',
-                'ref_id' => $aset->id,
-                'memo' => $memo,
-            ]);
-            
-            // Create journal lines
-            // ✅ DEBIT: Beban Penyusutan (selalu debit, nominal dari schedule)
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
                 'coa_id' => $aset->expense_coa_id,
                 'debit' => $monthlyDepreciation,
-                'credit' => 0,
-                'memo' => "Beban Penyusutan - {$aset->nama_aset}",
+                'kredit' => 0,
+                'keterangan' => "Beban Penyusutan - {$aset->nama_aset}",
+                'tipe_referensi' => 'depreciation',
+                'referensi' => $referensi,
+                'user_id' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             
-            // ✅ CREDIT: Akumulasi Penyusutan (selalu kredit, nominal yang sama)
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
+            // ✅ CREDIT: Akumulasi Penyusutan
+            \DB::table('jurnal_umum')->insert([
+                'tanggal' => $currentDate,
                 'coa_id' => $aset->accum_depr_coa_id,
                 'debit' => 0,
-                'credit' => $monthlyDepreciation,
-                'memo' => "Akumulasi Penyusutan - {$aset->nama_aset}",
+                'kredit' => $monthlyDepreciation,
+                'keterangan' => "Akumulasi Penyusutan - {$aset->nama_aset}",
+                'tipe_referensi' => 'depreciation',
+                'referensi' => $referensi,
+                'user_id' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             \Log::info('Depreciation journal entry created from schedule', [
                 'aset_id' => $aset->id,
                 'aset_name' => $aset->nama_aset,
                 'periode_bulan' => $periodeBulan,
-                'journal_entry_id' => $journalEntry->id,
+                'referensi' => $referensi,
                 'amount' => $monthlyDepreciation,
                 'date' => $currentDate,
                 'source' => 'monthly_schedule_array',
