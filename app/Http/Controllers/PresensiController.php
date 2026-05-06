@@ -388,9 +388,9 @@ $presensi->delete();
     }
 
     /**
-     * Halaman absen wajah untuk pegawai (login-based)
+     * Store verifikasi wajah (FIXED: was incorrectly named pegawaiAbsenWajah)
      */
-    public function pegawaiAbsenWajah()
+    public function verifikasiWajahStore(Request $request)
     {
         try {
 
