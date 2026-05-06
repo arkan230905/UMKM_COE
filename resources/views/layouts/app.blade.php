@@ -24,23 +24,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Bootstrap --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css?v={{ time() }}" rel="stylesheet">
     
     {{-- Font Awesome --}}
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css?v={{ time() }}" rel="stylesheet">
     
     {{-- Custom Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<<<<<<< HEAD
     {{-- Modern Dashboard CSS - HIGHEST PRIORITY --}}
-    <link href="{{ asset('css/modern-dashboard.css') }}?v=2" rel="stylesheet">
-=======
-    {{-- Modern Dashboard CSS - MULTIPLE ATTEMPTS --}}
-    <link href="{{ asset('css/modern-dashboard.css') }}" rel="stylesheet">
-    <link href="{{ url('css/modern-dashboard.css') }}" rel="stylesheet">
-    <link href="/css/modern-dashboard.css" rel="stylesheet">
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
+    <link href="{{ asset('css/modern-dashboard.css') }}?v={{ time() }}" rel="stylesheet">
     
     {{-- CRITICAL: Inline CSS Fallback --}}
     <style>
