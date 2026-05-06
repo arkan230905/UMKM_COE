@@ -89,12 +89,64 @@
                     </div>
                     <div class="card-body">
                         <div id="btkl-container" class="row">
-                            <div class="col-12 text-center">
-                                <div class="spinner-border text-muted" role="status">
-                                    <span class="sr-only">Loading...</span>
+                            @php
+                                $prosesProduksi = \App\Models\ProsesProduksi::where('user_id', auth()->id())->get();
+                            @endphp
+                            
+                            @if($prosesProduksi->isEmpty())
+                                <div class="col-12 text-center text-muted py-3">
+                                    <i class="fas fa-info-circle me-2"></i>Belum ada data BTKL tersedia
                                 </div>
-                                <p class="text-muted">Memuat data proses produksi...</p>
-                            </div>
+                            @else
+                                @foreach($prosesProduksi as $item)
+                                    @php
+                                        $tarif = $item->tarif_btkl ?? 0;
+                                        $kapasitas = $item->kapasitas_per_jam ?? 1;
+                                        $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
+                                    @endphp
+                                    <div class="col-12 mb-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #fef9e7 100%); border-left: 5px solid #ffc107 !important;">
+                                            <div class="card-body p-3">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input btkl-checkbox" type="checkbox" 
+                                                           name="selected_btkl[]" value="{{ $item->id }}" id="btkl_{{ $item->id }}"
+                                                           data-tarif="{{ $biayaPerProduk }}"
+                                                           style="transform: scale(1.2); margin-top: 8px;">
+                                                    <label class="form-check-label w-100" for="btkl_{{ $item->id }}">
+                                                        <div class="row align-items-center">
+                                                            <div class="col-md-4">
+                                                                <div class="d-flex align-items-center">
+                                                                    <div class="bg-warning rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center;">
+                                                                        <i class="fas fa-users text-white"></i>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h6 class="mb-0 text-warning fw-bold">{{ $item->nama_proses }}</h6>
+                                                                        <small class="text-muted">{{ $item->kode_proses ?? '-' }}</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-3 text-center">
+                                                                <small class="text-muted d-block">Tarif/Jam</small>
+                                                                <strong class="text-dark">Rp {{ number_format($tarif, 0, ',', '.') }}</strong>
+                                                            </div>
+                                                            <div class="col-md-2 text-center">
+                                                                <small class="text-muted d-block">Kapasitas</small>
+                                                                <strong class="text-dark">{{ $kapasitas }} {{ $item->satuan_btkl ?? 'Unit' }}/jam</strong>
+                                                            </div>
+                                                            <div class="col-md-3 text-center">
+                                                                <div class="bg-warning bg-opacity-10 rounded p-2">
+                                                                    <small class="text-muted d-block">Biaya/Produk</small>
+                                                                    <h5 class="mb-0 fw-bold text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -110,15 +162,76 @@
                     </div>
                     <div class="card-body">
                         <div id="bop-container" class="row">
-                            <div class="col-12 text-center">
-                                <div class="spinner-border text-muted" role="status">
-                                    <span class="sr-only">Loading...</span>
+                            @php
+                                $bopProses = \App\Models\BopProses::where('user_id', auth()->id())
+                                    ->where('is_active', true)
+                                    ->get();
+                            @endphp
+                            
+                            @if($bopProses->isEmpty())
+                                <div class="col-12 text-center text-muted py-3">
+                                    <i class="fas fa-info-circle me-2"></i>Belum ada data BOP tersedia
                                 </div>
-                                <p class="text-muted">Memuat data komponen BOP...</p>
-                            </div>
+                            @else
+                                @foreach($bopProses as $item)
+                                    @php
+                                        $komponenBop = is_string($item->komponen_bop) ? json_decode($item->komponen_bop, true) : ($item->komponen_bop ?? []);
+                                        $totalBop = $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0;
+                                    @endphp
+                                    <div class="col-12 mb-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f5e6d3 0%, #f9f0e6 100%); border-left: 5px solid #a0826d !important;">
+                                            <div class="card-body p-3">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input bop-checkbox" type="checkbox" 
+                                                           name="selected_bop[]" value="{{ $item->id }}" id="bop_{{ $item->id }}"
+                                                           data-tarif="{{ $totalBop }}"
+                                                           style="transform: scale(1.2); margin-top: 8px;">
+                                                    <label class="form-check-label w-100" for="bop_{{ $item->id }}">
+                                                        <div class="row align-items-center">
+                                                            <div class="col-md-4">
+                                                                <div class="d-flex align-items-center">
+                                                                    <div class="rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center; background-color: #a0826d;">
+                                                                        <i class="fas fa-cogs text-white"></i>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h6 class="mb-0 fw-bold" style="color: #a0826d;">{{ $item->nama_bop_proses ?? 'BOP Proses' }}</h6>
+                                                                        <small class="text-muted">{{ is_array($komponenBop) ? count($komponenBop) : 0 }} komponen</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-5 text-center">
+                                                                @if(is_array($komponenBop) && count($komponenBop) > 0)
+                                                                    <div class="row g-1">
+                                                                        @foreach($komponenBop as $komp)
+                                                                            <div class="col-6">
+                                                                                <div class="d-flex justify-content-between align-items-center p-1 rounded" style="background-color: rgba(160, 130, 109, 0.05); font-size: 0.8rem;">
+                                                                                    <small class="text-muted text-truncate me-1">{{ $komp['component'] ?? 'N/A' }}</small>
+                                                                                    <strong class="text-dark text-nowrap">Rp {{ number_format($komp['rate_per_hour'] ?? 0, 0, ',', '.') }}</strong>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endforeach
+                                                                    </div>
+                                                                @else
+                                                                    <small class="text-muted">Tidak ada komponen</small>
+                                                                @endif
+                                                            </div>
+                                                            <div class="col-md-3 text-center">
+                                                                <div class="rounded p-2" style="background-color: rgba(160, 130, 109, 0.1);">
+                                                                    <small class="text-muted d-block">Total BOP</small>
+                                                                    <h5 class="mb-0 fw-bold" style="color: #a0826d;">Rp {{ number_format($totalBop, 0, ',', '.') }}</h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @endif
                         </div>
                     </div>
-</div>
+                </div>
             </div>
 
             <!-- Summary Section -->
@@ -180,18 +293,187 @@
 document.addEventListener('DOMContentLoaded', function() {
     const produkSelect = document.getElementById('produk_id');
     
+    // Add event listeners for BTKL and BOP checkboxes that are already rendered
+    document.querySelectorAll('.btkl-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateTotals);
+    });
+    
+    document.querySelectorAll('.bop-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateTotals);
+    });
+    
     produkSelect.addEventListener('change', function() {
         const produkId = this.value;
         
-
         if (produkId) {
+            // Only load BBB data (BTKL and BOP already displayed)
             loadBBBData(produkId);
-            loadBTKLData(produkId);
-            loadBOPData();
         } else {
-            clearAllData();
-}
+            clearBBBData();
+        }
     });
+    
+    function loadBBBData(produkId) {
+        const container = document.getElementById('bbb-container');
+        
+        // Show loading
+        container.innerHTML = `
+            <div class="col-12 text-center py-3">
+                <div class="spinner-border text-muted" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="text-muted mt-2">Memuat data bahan baku...</p>
+            </div>
+        `;
+        
+        fetch(`/api/get-available-bbb/${produkId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12 text-center py-3">
+                            <div class="alert alert-warning border-0 shadow-sm">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                                <h5 class="text-warning">Belum Ada Data Biaya Bahan Baku</h5>
+                                <p class="text-muted mb-0">Produk yang dipilih belum memiliki data biaya bahan baku. Silakan tambahkan data biaya bahan baku terlebih dahulu.</p>
+                            </div>
+                        </div>
+                    `;
+                    updateTotals();
+                    return;
+                }
+                
+                // Get product name for display
+                const selectedOption = produkSelect.options[produkSelect.selectedIndex];
+                const produkName = selectedOption ? selectedOption.text : 'Produk Terpilih';
+                
+                let html = '';
+                let totalBBB = 0;
+                
+                // Add header info
+                html += `
+                    <div class="col-12 mb-3">
+                        <div class="alert alert-info border-0 shadow-sm mb-0">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <div>
+                                        <strong>Biaya Bahan Baku untuk: ${produkName}</strong>
+                                        <br><small>Semua biaya bahan baku otomatis dimasukkan dalam perhitungan HPP</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-info">Otomatis Terpilih</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                data.forEach(item => {
+                    totalBBB += parseFloat(item.subtotal);
+                    
+                    html += `
+                        <div class="col-12 mb-3">
+                            <input type="hidden" name="selected_bbb[]" value="${item.id}" data-subtotal="${item.subtotal}">
+                            
+                            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%); border-left: 5px solid #28a745 !important;">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-success rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center;">
+                                                    <i class="fas fa-seedling text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0 text-success fw-bold">${item.nama_bahan}</h6>
+                                                    <small class="text-muted">${item.keterangan || ''}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <small class="text-muted d-block">Jumlah</small>
+                                            <strong class="text-dark">${parseFloat(item.jumlah).toLocaleString('id-ID')} ${item.satuan}</strong>
+                                        </div>
+                                        <div class="col-md-2 text-center">
+                                            <small class="text-muted d-block">Harga Satuan</small>
+                                            <strong class="text-dark">Rp ${parseFloat(item.harga_satuan).toLocaleString('id-ID')}</strong>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <div class="bg-success bg-opacity-10 rounded p-2">
+                                                <small class="text-muted d-block">Subtotal</small>
+                                                <h5 class="mb-0 fw-bold text-success">Rp ${parseFloat(item.subtotal).toLocaleString('id-ID')}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                    <div class="col-12">
+                        <div class="alert alert-success border-0 shadow-sm mb-0">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <strong class="text-success">Total Biaya Bahan Baku - ${produkName}</strong>
+                                    <br><small class="text-muted">Siap untuk perhitungan HPP</small>
+                                </div>
+                                <h4 class="mb-0 fw-bold text-success">Rp ${totalBBB.toLocaleString('id-ID')}</h4>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+                updateTotals();
+            })
+            .catch(error => {
+                console.error('Error loading BBB data:', error);
+                container.innerHTML = '<div class="col-12 text-center text-danger py-3">Gagal memuat data biaya bahan baku</div>';
+            });
+    }
+    
+    function clearBBBData() {
+        document.getElementById('bbb-container').innerHTML = `
+            <div class="col-12 text-center py-3">
+                <div class="alert alert-light border">
+                    <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                    <h6 class="text-muted">Pilih Produk Terlebih Dahulu</h6>
+                    <small class="text-muted">Data biaya bahan baku akan muncul setelah produk dipilih</small>
+                </div>
+            </div>
+        `;
+        updateTotals();
+    }
+    
+    function updateTotals() {
+        let totalBBB = 0;
+        let totalBTKL = 0;
+        let totalBOP = 0;
+        
+        // Calculate BBB total
+        document.querySelectorAll('input[name="selected_bbb[]"]').forEach(input => {
+            totalBBB += parseFloat(input.dataset.subtotal) || 0;
+        });
+        
+        // Calculate BTKL total
+        document.querySelectorAll('.btkl-checkbox:checked').forEach(checkbox => {
+            totalBTKL += parseFloat(checkbox.dataset.tarif) || 0;
+        });
+        
+        // Calculate BOP total
+        document.querySelectorAll('.bop-checkbox:checked').forEach(checkbox => {
+            totalBOP += parseFloat(checkbox.dataset.tarif) || 0;
+        });
+        
+        // Update display
+        document.getElementById('total-bbb').textContent = totalBBB.toLocaleString('id-ID');
+        document.getElementById('total-btkl').textContent = totalBTKL.toLocaleString('id-ID');
+        document.getElementById('total-bop').textContent = totalBOP.toLocaleString('id-ID');
+        document.getElementById('total-hpp').textContent = (totalBBB + totalBTKL + totalBOP).toLocaleString('id-ID');
+    }
+});
+</script>
     
     function loadBBBData(produkId) {
         fetch(`/api/get-available-bbb/${produkId}`)
