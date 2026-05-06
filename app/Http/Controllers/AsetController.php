@@ -6,7 +6,7 @@ use App\Models\JenisAset;
 use App\Models\KategoriAset;
 use App\Models\Aset;
 use App\Models\Coa;
-use App\Models\JournalEntry;
+use App\Models\JurnalUmum;
 use App\Services\DepreciationCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -359,8 +359,8 @@ class AsetController extends Controller
         \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
         
         // Cek apakah aset sudah pernah diposting penyusutannya
-        $sudahDiposting = JournalEntry::where('ref_type', 'depr')
-            ->where('ref_id', $aset->id)
+        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
+            ->where('referensi', $aset->id)
             ->exists();
         
         // Data summary untuk view
@@ -526,8 +526,8 @@ class AsetController extends Controller
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
         // Cek apakah aset sudah pernah diposting penyusutannya
-        $sudahDiposting = JournalEntry::where('ref_type', 'depr')
-            ->where('ref_id', $aset->id)
+        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
+            ->where('referensi', $aset->id)
             ->exists();
         
         // Hitung data lengkap aset

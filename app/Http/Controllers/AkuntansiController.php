@@ -42,10 +42,15 @@ class AkuntansiController extends Controller
      */
     private function posisiNeracaSaldo($saldo, $tipeAkun)
     {
-        // Gunakan tipe_akun Indonesian values langsung
-        // ASET, BEBAN have normal DEBIT balance
-        // KEWAJIBAN, MODAL, PENDAPATAN have normal KREDIT balance
-        $isDebitNormal = in_array($tipeAkun, ['ASET', 'BEBAN']);
+        // Normalize tipe_akun to uppercase for comparison
+        $tipeAkunUpper = strtoupper(trim($tipeAkun));
+        
+        // ASET, BEBAN, BIAYA have normal DEBIT balance
+        // KEWAJIBAN, MODAL, EKUITAS, PENDAPATAN have normal KREDIT balance
+        $isDebitNormal = in_array($tipeAkunUpper, [
+            'ASET', 'ASSET', 'AKTIVA',                    // Asset variations
+            'BEBAN', 'EXPENSE', 'BIAYA', 'COST'           // Expense variations
+        ]);
 
         $debit  = 0;
         $kredit = 0;
@@ -79,6 +84,7 @@ class AkuntansiController extends Controller
 
     /**
      * Helper function untuk mendapatkan ringkasan akun (sama untuk Buku Besar & Neraca Saldo)
+     * HANYA DARI jurnal_umum - konsisten dengan Buku Besar
      * @param string $from Tanggal awal periode (Y-m-d)
      * @param string $to Tanggal akhir periode (Y-m-d)
      * @param string|null $kodeAkun Filter by kode_akun (optional, untuk Buku Besar)
@@ -86,42 +92,11 @@ class AkuntansiController extends Controller
      */
     private function getAccountSummary($from, $to, $kodeAkun = null)
     {
-        // Dari journal_lines - join dengan coas untuk dapat kode_akun yang benar
-        $queryJournalLines = DB::table('journal_lines as jl')
-            ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
-            ->join('coas', 'coas.id', '=', 'jl.coa_id')
-            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-            ->whereBetween('je.tanggal', [$from, $to])
-            ->select(
-                'coas.kode_akun',
-                DB::raw('COALESCE(SUM(jl.debit),0) as total_debit'),
-                DB::raw('COALESCE(SUM(jl.credit),0) as total_kredit')
-            )
-            ->groupBy('coas.kode_akun');
-
-        // Filter by kode_akun jika diberikan
-        if ($kodeAkun) {
-            $queryJournalLines->where('coas.kode_akun', $kodeAkun);
-        }
-
-        $mutasiJournalLines = $queryJournalLines->get();
-
-        // Dari jurnal_umum - join dengan coas untuk dapat kode_akun yang benar
-        // PERBAIKAN: Exclude tipe yang sudah ada di journal_entries untuk menghindari duplikasi
+        // Hanya dari jurnal_umum - SAMA DENGAN LOGIKA BUKU BESAR
         $queryJurnalUmum = DB::table('jurnal_umum as ju')
             ->join('coas', 'coas.id', '=', 'ju.coa_id')
             ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$from, $to])
-            ->whereNotIn('ju.tipe_referensi', [
-                // Hanya exclude yang SUDAH ADA di journal_entries untuk menghindari duplikasi
-                'sale', 'penjualan',     // Penjualan ada di journal_entries
-                'retur_pembelian', 'retur_penjualan',
-                'production_material', 'production_labor_overhead', 'production_finished',
-                'production_finish', 'production_labor', 'production_bop',
-                'produksi',
-                'expense_payment'
-                // NOTE: 'pembelian' TIDAK di-exclude karena pembelian hanya ada di jurnal_umum
-            ])
             ->select(
                 'coas.kode_akun',
                 DB::raw('COALESCE(SUM(ju.debit),0) as total_debit'),
@@ -136,24 +111,13 @@ class AkuntansiController extends Controller
 
         $mutasiJurnalUmum = $queryJurnalUmum->get();
 
-        // Gabungkan mutasi dari kedua sumber - gunakan kode_akun sebagai key
+        // Buat array dengan kode_akun sebagai key
         $summaryByKodeAkun = [];
-        foreach ($mutasiJournalLines as $line) {
+        foreach ($mutasiJurnalUmum as $line) {
             $summaryByKodeAkun[$line->kode_akun] = [
                 'total_debit' => $line->total_debit,
                 'total_kredit' => $line->total_kredit
             ];
-        }
-        foreach ($mutasiJurnalUmum as $line) {
-            if (isset($summaryByKodeAkun[$line->kode_akun])) {
-                $summaryByKodeAkun[$line->kode_akun]['total_debit'] += $line->total_debit;
-                $summaryByKodeAkun[$line->kode_akun]['total_kredit'] += $line->total_kredit;
-            } else {
-                $summaryByKodeAkun[$line->kode_akun] = [
-                    'total_debit' => $line->total_debit,
-                    'total_kredit' => $line->total_kredit
-                ];
-            }
         }
 
         return $summaryByKodeAkun;

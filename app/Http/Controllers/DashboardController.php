@@ -171,26 +171,21 @@ class DashboardController extends Controller
     /**
      * Hitung saldo akhir akun kas/bank langsung dari journal_lines + jurnal_umum
      * Sama persis dengan logika buku besar & neraca saldo
+     * DENGAN FILTER USER_ID untuk multi-tenant
      */
-    private function getSaldoAkhirAkun($akun)
+    private function getSaldoAkhirAkun($akun, $userId)
     {
         $saldoAwal = (float)($akun->saldo_awal ?? 0);
 
-        // Dari journal_lines
-        $jl = \DB::table('journal_lines as jl')
-            ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
-            ->where('jl.coa_id', $akun->id)
-            ->selectRaw('COALESCE(SUM(jl.debit),0) as total_debit, COALESCE(SUM(jl.credit),0) as total_kredit')
-            ->first();
-
-        // Dari jurnal_umum
+        // Dari jurnal_umum (sistem jurnal baru) - DENGAN FILTER USER_ID
         $ju = \DB::table('jurnal_umum')
             ->where('coa_id', $akun->id)
+            ->where('user_id', $userId) // 🔒 SECURITY: Filter by user_id
             ->selectRaw('COALESCE(SUM(debit),0) as total_debit, COALESCE(SUM(kredit),0) as total_kredit')
             ->first();
 
-        $totalDebit  = (float)$jl->total_debit  + (float)$ju->total_debit;
-        $totalKredit = (float)$jl->total_kredit + (float)$ju->total_kredit;
+        $totalDebit  = (float)$ju->total_debit;
+        $totalKredit = (float)$ju->total_kredit;
 
         // Akun Aset: saldo normal Debit
         return $saldoAwal + $totalDebit - $totalKredit;
@@ -205,8 +200,10 @@ class DashboardController extends Controller
             if ($akunKasBank->isEmpty()) { return 0; }
 
             $total = 0;
+            $user = auth()->user();
+            
             foreach ($akunKasBank as $akun) {
-                $total += $this->getSaldoAkhirAkun($akun);
+                $total += $this->getSaldoAkhirAkun($akun, $user->id);
             }
             return $total;
         } catch (\Exception $e) {
@@ -571,9 +568,11 @@ class DashboardController extends Controller
             $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
             if ($akunKasBank->isEmpty()) { return collect(); }
 
+            $user = auth()->user();
             $details = [];
+            
             foreach ($akunKasBank as $akun) {
-                $saldoAkhir = $this->getSaldoAkhirAkun($akun);
+                $saldoAkhir = $this->getSaldoAkhirAkun($akun, $user->id);
 
                 $details[] = [
                     'kode_akun'  => $akun->kode_akun,

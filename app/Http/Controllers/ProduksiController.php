@@ -996,6 +996,11 @@ class ProduksiController extends Controller
     private function createProductionJournals($produksi, $hppData, $qtyProd, $tanggal, $journal)
     {
         $user_id = $produksi->user_id;
+        
+        // VALIDATE: Ensure all required COAs exist before creating journals
+        // This prevents incorrect journal entries with fallback COAs
+        \App\Helpers\ProductionCoaValidator::validateOrThrow($hppData, $user_id);
+        
         $totalBBB = $produksi->total_bahan;
         $totalBTKL = $produksi->total_btkl;
         $totalBOP = $produksi->total_bop;
@@ -1166,7 +1171,8 @@ class ProduksiController extends Controller
     }
 
     /**
-     * Get COA ID by kode_akun with fallback to Hutang Usaha (210)
+     * Get COA ID by kode_akun - STRICT MODE (no fallback)
+     * Throws exception if COA not found to prevent incorrect journal entries
      */
     private function getCoaIdByKode($kodeAkun)
     {
@@ -1182,27 +1188,14 @@ class ProduksiController extends Controller
             return $coa->id;
         }
         
-        // Fallback: Try to find Hutang Usaha (210) as default
-        $fallbackCoa = \App\Models\Coa::where('kode_akun', '210')
-            ->where('user_id', $user_id)
-            ->first();
-        
-        if ($fallbackCoa) {
-            \Log::warning("COA {$kodeAkun} tidak ditemukan, menggunakan fallback COA 210 (Hutang Usaha)");
-            return $fallbackCoa->id;
-        }
-        
-        // Last resort: return any liability account
-        $anyLiability = \App\Models\Coa::where('user_id', $user_id)
-            ->where('kode_akun', 'like', '2%')
-            ->first();
-        
-        if ($anyLiability) {
-            \Log::warning("COA {$kodeAkun} dan 210 tidak ditemukan, menggunakan COA {$anyLiability->kode_akun}");
-            return $anyLiability->id;
-        }
-        
-        throw new \Exception("COA {$kodeAkun} tidak ditemukan dan tidak ada COA fallback. Silakan buat COA terlebih dahulu.");
+        // NO FALLBACK! Throw error immediately to prevent incorrect journal entries
+        // This ensures that missing COAs are caught early rather than creating wrong journals
+        throw new \Exception(
+            "COA dengan kode '{$kodeAkun}' tidak ditemukan untuk user ID {$user_id}. " .
+            "Silakan buat COA ini terlebih dahulu di Master Data > Chart of Accounts sebelum melakukan produksi. " .
+            "COA yang diperlukan untuk produksi: 1171 (WIP BBB), 1172 (WIP BTKL), 1173 (WIP BOP), " .
+            "211 (Hutang Gaji), dan COA untuk setiap komponen BOP."
+        );
     }
 
     /**

@@ -22,9 +22,12 @@ return new class extends Migration
             $table->index('user_id');
         });
         
-        // Update existing records to belong to the first user (ID=1) as default
-        // This is a temporary fix - in production, you might want to handle this differently
-        \DB::table('kategori_bahan_pendukung')->update(['user_id' => 1]);
+        // Update existing records only if users exist
+        // Get the first user ID if available, otherwise leave as null
+        $firstUser = \DB::table('users')->first();
+        if ($firstUser) {
+            \DB::table('kategori_bahan_pendukung')->update(['user_id' => $firstUser->id]);
+        }
     }
 
     /**

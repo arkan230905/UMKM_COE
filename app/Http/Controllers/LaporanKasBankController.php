@@ -119,48 +119,34 @@ class LaporanKasBankController extends Controller
     
     /**
      * Get total transaksi masuk dalam periode (Debit)
+     * SAMA DENGAN LOGIKA BUKU BESAR - hanya dari jurnal_umum
      */
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
-        // Sistem jurnal baru (jurnal_umum)
-        $journalMasukBaru = \DB::table('jurnal_umum as ju')
+        // Hanya dari jurnal_umum (sistem jurnal yang digunakan)
+        $journalMasuk = \DB::table('jurnal_umum as ju')
             ->where('ju.coa_id', $akun->id)
             ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$startDate, $endDate])
             ->sum('ju.debit') ?? 0;
         
-        // Sistem jurnal lama (JurnalUmum) - untuk transaksi yang belum migrasi
-        $journalMasukLama = \App\Models\JurnalUmum::where('coa_id', $akun->id)
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->sum('debit') ?? 0;
-        
-        // Check for potential duplicates by comparing transactions
-        $duplicateAmount = $this->detectDuplicateTransactions($akun, $startDate, $endDate, 'debit');
-        
-        return (float) ($journalMasukBaru + $journalMasukLama - $duplicateAmount);
+        return (float) $journalMasuk;
     }
     
     /**
      * Get total transaksi keluar dalam periode (Kredit)
+     * SAMA DENGAN LOGIKA BUKU BESAR - hanya dari jurnal_umum
      */
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
-        // Sistem jurnal baru (jurnal_umum)
-        $journalKeluarBaru = \DB::table('jurnal_umum as ju')
+        // Hanya dari jurnal_umum (sistem jurnal yang digunakan)
+        $journalKeluar = \DB::table('jurnal_umum as ju')
             ->where('ju.coa_id', $akun->id)
             ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$startDate, $endDate])
             ->sum('ju.kredit') ?? 0;
         
-        // Sistem jurnal lama (JurnalUmum) - untuk transaksi yang belum migrasi
-        $journalKeluarLama = \App\Models\JurnalUmum::where('coa_id', $akun->id)
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->sum('kredit') ?? 0;
-        
-        // Check for potential duplicates by comparing transactions
-        $duplicateAmount = $this->detectDuplicateTransactions($akun, $startDate, $endDate, 'credit');
-        
-        return (float) ($journalKeluarBaru + $journalKeluarLama - $duplicateAmount);
+        return (float) $journalKeluar;
     }
     
     /**

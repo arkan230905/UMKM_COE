@@ -8,14 +8,22 @@ use Illuminate\Support\Facades\DB;
 
 class JournalService
 {
-    protected function coaId(string $code): int
+    protected function coaId(string $code, $userId = null): int
     {
-        $coa = Coa::where('kode_akun', $code)->first();
+        $userId = $userId ?? auth()->id();
+        
+        $coa = Coa::where('kode_akun', $code)
+            ->where('user_id', $userId)
+            ->first();
+            
         if ($coa) {
             return (int)$coa->getAttribute('id');
         }
 
-        throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
+        throw new \RuntimeException(
+            "COA dengan kode '{$code}' tidak ditemukan untuk user ID {$userId}. " .
+            "Silakan buat COA terlebih dahulu di Master Data > Chart of Accounts."
+        );
     }
 
     /**
@@ -36,7 +44,7 @@ class JournalService
             $totalCredit = 0.0;
             
             foreach ($lines as $ln) {
-                $aid = $this->coaId($ln['code']);
+                $aid = $this->coaId($ln['code'], $userId); // Pass userId for multi-tenant
                 $debit = (float)($ln['debit'] ?? 0); 
                 $credit = (float)($ln['credit'] ?? 0);
                 $lineMemo = $ln['memo'] ?? $memo;
