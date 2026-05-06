@@ -141,10 +141,10 @@ class BahanBakuController extends Controller
                 'item_id' => $bahanBaku->id,
                 'direction' => 'in',
                 'qty' => $request->stok,
-                'reference_type' => 'initial_stock',
-                'reference_id' => $bahanBaku->id,
-                'notes' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
-                'transaction_date' => now(),
+                'tanggal' => now()->toDateString(),
+                'ref_type' => 'initial_stock',
+                'ref_id' => $bahanBaku->id,
+                'keterangan' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
             ]);
         }
         
