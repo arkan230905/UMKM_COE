@@ -9,25 +9,7 @@ class BahanBaku extends Model
 {
     use HasFactory;
 
-<<<<<<< HEAD
     protected $table = 'bahan_bakus'; // <--- PENTING: samakan dengan nama tabel di migration
-    
-    protected static function boot()
-    {
-        parent::boot();
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
-            }
-        });
-    }
-    
-    // Nonaktifkan sementara mass assignment protection untuk testing
-=======
-    protected $table = 'bahan_bakus';
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     protected $guarded = [];
     
     /**
