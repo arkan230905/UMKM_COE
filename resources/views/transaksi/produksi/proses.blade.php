@@ -86,8 +86,6 @@
                             <th class="text-center" style="width: 60px">Urutan</th>
                             <th>Nama Proses</th>
                             <th>Status</th>
-                            <th class="text-end">Biaya BTKL</th>
-                            <th class="text-end">Biaya BOP</th>
                             <th class="text-end">Total Biaya</th>
                             <th>Waktu</th>
                             <th class="text-center" style="width: 200px">Aksi</th>
@@ -106,8 +104,6 @@
                                     @endif
                                 </td>
                                 <td>{!! $proses->status_badge !!}</td>
-                                <td class="text-end">Rp {{ number_format($proses->biaya_btkl, 0, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($proses->biaya_bop, 0, ',', '.') }}</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($proses->biaya_btkl + $proses->biaya_bop, 0, ',', '.') }}</td>
                                 <td>
                                     @if($proses->waktu_mulai)
@@ -156,8 +152,6 @@
                     <tfoot class="table-light">
                         <tr>
                             <td colspan="3" class="text-end fw-bold">Total Biaya Produksi:</td>
-                            <td class="text-end fw-bold">Rp {{ number_format($produksi->total_btkl, 0, ',', '.') }}</td>
-                            <td class="text-end fw-bold">Rp {{ number_format($produksi->total_bop, 0, ',', '.') }}</td>
                             <td class="text-end fw-bold">Rp {{ number_format($produksi->total_btkl + $produksi->total_bop, 0, ',', '.') }}</td>
                             <td colspan="2"></td>
                         </tr>
