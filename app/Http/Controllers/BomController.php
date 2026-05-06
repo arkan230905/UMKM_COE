@@ -250,20 +250,14 @@ return [
     // API endpoints for data
     public function getAvailableBbb($produk_id)
     {
-        // Cache for 5 minutes to improve performance
-        $cacheKey = 'bbb_' . auth()->id() . '_' . $produk_id;
-        
-        $biayaBahanBaku = cache()->remember($cacheKey, 300, function() use ($produk_id) {
-            return \App\Models\BiayaBahanBaku::where('produk_id', $produk_id)
-                ->where('user_id', auth()->id())
-                ->with(['bahanBaku' => function($query) {
-                    $query->select('id', 'nama_bahan', 'stok');
-                }, 'bahanBaku.satuan' => function($query) {
-                    $query->select('id', 'nama');
-                }])
-                ->select('id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan')
-                ->get();
-        });
+        // Optimized query with specific columns and minimal joins
+        $biayaBahanBaku = \App\Models\BiayaBahanBaku::where('produk_id', $produk_id)
+            ->where('user_id', auth()->id())
+            ->with(['bahanBaku' => function($query) {
+                $query->select('id', 'nama_bahan', 'saldo_awal'); // Don't use stok accessor (slow)
+            }])
+            ->select('id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan')
+            ->get();
             
         // Transform data to match expected format
         $transformedData = $biayaBahanBaku->map(function($item) {
@@ -274,7 +268,7 @@ return [
                 'satuan' => $item->satuan,
                 'harga_satuan' => $item->harga_satuan,
                 'subtotal' => $item->subtotal,
-                'stok' => $item->bahanBaku->stok ?? 0,
+                'stok' => $item->bahanBaku->saldo_awal ?? 0, // Use saldo_awal instead of stok accessor
                 'keterangan' => $item->keterangan
             ];
         });
@@ -284,20 +278,15 @@ return [
 
     public function getAvailableBtkl($produk_id)
     {
-        // Cache for 5 minutes to improve performance
-        $cacheKey = 'btkl_' . auth()->id();
-        
-        $prosesProduksi = cache()->remember($cacheKey, 300, function() {
-            return \App\Models\ProsesProduksi::where('user_id', auth()->id())
-                ->select('id', 'nama_proses', 'tarif_btkl', 'kapasitas_per_jam', 'jumlah_produksi_per_jam', 'satuan_btkl', 'deskripsi', 'kode_proses')
-                ->get();
-        });
+        // Optimized query with specific columns only
+        $prosesProduksi = \App\Models\ProsesProduksi::where('user_id', auth()->id())
+            ->select('id', 'nama_proses', 'tarif_btkl', 'kapasitas_per_jam', 'jumlah_produksi_per_jam', 'satuan_btkl', 'kode_proses')
+            ->get();
             
         // Transform data to include calculated costs
         $transformedData = $prosesProduksi->map(function($item) {
             $tarif = $item->tarif_btkl ?? 0;
             $kapasitas = $item->kapasitas_per_jam ?? 1;
-            $jumlahProduksi = $item->jumlah_produksi_per_jam ?? 1;
             
             // Calculate cost per product
             $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
@@ -307,10 +296,9 @@ return [
                 'nama_proses' => $item->nama_proses ?? 'Proses Produksi',
                 'tarif_per_jam' => $tarif,
                 'kapasitas_per_jam' => $kapasitas,
-                'jumlah_produksi_per_jam' => $jumlahProduksi,
+                'jumlah_produksi_per_jam' => $item->jumlah_produksi_per_jam ?? 1,
                 'satuan' => $item->satuan_btkl ?? 'Unit',
                 'biaya_per_produk' => $biayaPerProduk,
-                'deskripsi' => $item->deskripsi,
                 'kode_proses' => $item->kode_proses
             ];
         });
@@ -320,27 +308,22 @@ return [
 
     public function getAvailableBop()
     {
-        // Cache for 5 minutes to improve performance
-        $cacheKey = 'bop_' . auth()->id();
-        
-        $bopProses = cache()->remember($cacheKey, 300, function() {
-            return \App\Models\BopProses::where('user_id', auth()->id())
-                ->where('is_active', true)
-                ->select('id', 'nama_bop_proses', 'komponen_bop', 'bop_per_unit', 'total_bop_per_produk', 'keterangan')
-                ->get();
-        });
+        // Optimized query with specific columns only
+        $bopProses = \App\Models\BopProses::where('user_id', auth()->id())
+            ->where('is_active', true)
+            ->select('id', 'nama_bop_proses', 'komponen_bop', 'bop_per_unit', 'total_bop_per_produk')
+            ->get();
         
         // Transform data to match expected format
         $transformedData = $bopProses->map(function($item) {
             return [
                 'id' => $item->id,
                 'nama_bop_proses' => $item->nama_bop_proses ?? 'BOP Proses',
-                'komponen_bop' => $item->komponen_bop ?? [], // Send JSON komponen
+                'komponen_bop' => $item->komponen_bop ?? [],
                 'bop_per_unit' => $item->bop_per_unit ?? 0,
                 'total_bop_per_produk' => $item->total_bop_per_produk ?? 0,
                 'tarif' => $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0,
                 'satuan' => 'Unit',
-                'keterangan' => $item->keterangan ?? '',
             ];
         });
         
