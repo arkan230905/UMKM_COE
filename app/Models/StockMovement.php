@@ -20,6 +20,9 @@ class StockMovement extends Model
     {
         parent::boot();
 
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+
         static::creating(function ($model) {
             if (auth()->check() && !$model->user_id) {
                 $model->user_id = auth()->id();
@@ -75,7 +78,7 @@ class StockMovement extends Model
                         ['code' => '1101', 'debit' => 0, 'credit' => $adjustmentAmount], // Cr Persediaan
                     ];
                     
-                    $journalService->post(now(), 'stock_adjustment', 'Stock Adjustment for Purchase #' . $pembelian->id, $journalEntries);
+                    $journalService->post(now(), 'stock_adjustment', $pembelian->id, 'Stock Adjustment for Purchase #' . $pembelian->id, $journalEntries);
                 }
             }
         });

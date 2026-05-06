@@ -19,6 +19,9 @@ class BahanBaku extends Model
     {
         parent::boot();
         
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
         static::creating(function ($model) {
             // CRITICAL: Auto-set user_id untuk multi-tenant isolation
             if (empty($model->user_id) && auth()->check()) {
@@ -1257,6 +1260,7 @@ class BahanBaku extends Model
      */
     public function getStokRealTimeAttribute()
     {
+        // Global scope sudah menangani filter user_id otomatis
         $stockIn = \App\Models\StockMovement::where('item_type', 'material')
             ->where('item_id', $this->id)
             ->where('direction', 'in')
@@ -1267,14 +1271,12 @@ class BahanBaku extends Model
             ->where('direction', 'out')
             ->sum('qty');
 
-        $netStock = $stockIn - $stockOut;
+        $netStockFromMovements = $stockIn - $stockOut;
         
-        // If no stock movements exist, use saldo_awal from master data
-        if ($stockIn == 0 && $stockOut == 0 && $this->saldo_awal > 0) {
-            return (float)$this->saldo_awal;
-        }
-
-        return $netStock;
+        // CRITICAL: Tambahkan saldo_awal ke perhitungan
+        $totalStock = ($this->saldo_awal ?? 0) + $netStockFromMovements;
+        
+        return $totalStock;
     }
 
     /**

@@ -199,6 +199,8 @@ class StockService
      */
     public function getCurrentStock($itemId, $itemType)
     {
+        // Global scope sudah menangani filter user_id otomatis
+        
         // Convert item type to match StockMovement conventions
         $stockMovementType = $itemType;
         if ($itemType === 'bahan_baku') {
