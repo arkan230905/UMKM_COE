@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Scopes\UserScope;
 
 class Pembelian extends Model
 {
@@ -53,6 +54,9 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
         static::created(function ($pembelian) {
             // Journal akan dibuat manual di controller setelah semua detail tersimpan
             // Tidak perlu auto-create di sini untuk menghindari jurnal dobel

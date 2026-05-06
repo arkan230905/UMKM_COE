@@ -131,6 +131,31 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
+        // Map ref_type to tipe_referensi for backward compatibility
+        $mappedRefType = $refType;
+        if ($refType === 'purchase') {
+            $mappedRefType = 'pembelian';
+        } elseif ($refType === 'sale') {
+            $mappedRefType = 'penjualan';
+        }
+
+        // Convert ref_id to referensi format if needed
+        $mappedRefId = $refId;
+        if ($refId && is_numeric($refId)) {
+            // If ref_id is numeric, try to find the actual reference number
+            if ($refType === 'purchase') {
+                $pembelian = \App\Models\Pembelian::find($refId);
+                if ($pembelian) {
+                    $mappedRefId = $pembelian->nomor_pembelian;
+                }
+            } elseif ($refType === 'sale') {
+                $penjualan = \App\Models\Penjualan::find($refId);
+                if ($penjualan) {
+                    $mappedRefId = $penjualan->nomor_penjualan;
+                }
+            }
+        }
+
         // MULTI-TENANT: Query jurnal_umum (flat structure)
         $query = \DB::table('jurnal_umum as ju')
             ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
@@ -151,8 +176,8 @@ class AkuntansiController extends Controller
             
         if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $query->whereDate('ju.tanggal','<=',$to); }
-        if ($refType) { $query->where('ju.tipe_referensi', $refType); }
-        if ($refId)   { $query->where('ju.referensi', $refId); }
+        if ($mappedRefType) { $query->where('ju.tipe_referensi', $mappedRefType); }
+        if ($mappedRefId)   { $query->where('ju.referensi', $mappedRefId); }
         if ($accountCode) { 
             $query->where('coas.kode_akun', $accountCode);
         }
