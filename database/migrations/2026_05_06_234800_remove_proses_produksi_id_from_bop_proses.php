@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bop_proses', function (Blueprint $table) {
-            // Drop the column directly (Laravel will handle foreign keys)
             if (Schema::hasColumn('bop_proses', 'proses_produksi_id')) {
+                // Drop foreign key constraint first
+                $table->dropForeign(['proses_produksi_id']);
+                // Then drop the column
                 $table->dropColumn('proses_produksi_id');
             }
         });
