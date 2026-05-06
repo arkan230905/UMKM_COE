@@ -15,7 +15,7 @@ return new class extends Migration
         // Add indexes to improve query performance for HPP page
         
         // BiayaBahanBaku - frequently queried by produk_id and user_id
-        Schema::table('biaya_bahan_bakus', function (Blueprint $table) {
+        Schema::table('biaya_bahan_baku', function (Blueprint $table) {
             $table->index(['produk_id', 'user_id'], 'idx_bbb_produk_user');
             $table->index('bahan_baku_id', 'idx_bbb_bahan_baku');
         });
@@ -41,7 +41,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('biaya_bahan_bakus', function (Blueprint $table) {
+        Schema::table('biaya_bahan_baku', function (Blueprint $table) {
             $table->dropIndex('idx_bbb_produk_user');
             $table->dropIndex('idx_bbb_bahan_baku');
         });
