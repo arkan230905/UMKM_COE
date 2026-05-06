@@ -18,107 +18,7 @@
         </div>
     </div>
 
-<<<<<<< HEAD
-    <!-- Informasi Dasar -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white border-bottom border-3 border-primary">
-            <h5 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2"></i>Informasi Produk</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <table class="table table-borderless">
-                        <tr>
-                            <th width="40%">Nama Produk:</th>
-                            <td>{{ $produk->nama_produk }}</td>
-                        </tr>
-                        <tr>
-                            <th>Deskripsi:</th>
-                            <td>{{ $produk->deskripsi ?: '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Tanggal Dibuat:</th>
-                            <td>{{ $bomJobCosting?->created_at->format('d F Y H:i') ?? '-' }}</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- BIAYA BAHAN -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-success text-white border-bottom border-3 border-success">
-            <h5 class="mb-0 fw-bold"><i class="fas fa-cube me-2"></i>Biaya Bahan</h5>
-        </div>
-        <div class="card-body">
-            
-            <!-- Bahan Baku -->
-            <h6 class="text-success mb-3"><i class="fas fa-box"></i> Bahan Baku</h6>
-            @if($detailBahanBaku && count($detailBahanBaku) > 0)
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered table-striped">
-                        <thead class="table-success">
-                            <tr>
-                                <th class="fw-bold"><i class="fas fa-leaf me-1"></i>Bahan Baku</th>
-                                <th class="text-center fw-bold">Jumlah/Quantity</th>
-                                <th class="text-center fw-bold">Satuan</th>
-                                <th class="text-end fw-bold">Nominal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($detailBahanBaku as $bahan)
-                                <tr>
-                                    <td>{{ $bahan['nama_bahan'] }}</td>
-                                    <td class="text-center">{{ number_format($bahan['qty'], 0, ',', '.') }}</td>
-                                    <td class="text-center">{{ $bahan['satuan'] }}</td>
-                                    <td class="text-end">
-                                        @if($bahan['subtotal'] > 0)
-                                            Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="alert alert-info">Belum ada data bahan baku</div>
-            @endif
-
-            <!-- Total Biaya Bahan -->
-            <div class="row">
-                <div class="col-md-6 offset-md-6">
-                    <div class="card bg-light border-2">
-                        <div class="card-body">
-                            <h6 class="card-title text-primary fw-bold">
-                                <i class="fas fa-calculator me-2"></i>Total Biaya Bahan
-                            </h6>
-                            <table class="table table-sm table-borderless mb-0">
-                                <tr>
-                                    <td class="fw-semibold">Bahan Baku:</td>
-                                    <td class="text-end data-value" id="total-bbb">
-                                        @if($totalBBB > 0)
-                                            Rp {{ number_format($totalBBB, 0, ',', '.') }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                <tr class="border-top border-2 border-primary">
-                                    <th class="fw-bold text-primary">SUBTOTAL:</th>
-                                    <th class="text-end fw-bold text-primary fs-6 data-value" id="total-biaya-bahan">
-                                        @if($totalBBB > 0)
-                                            Rp {{ number_format($totalBBB, 0, ',', '.') }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </th>
-                                </tr>
-                            </table>
-=======
     <!-- Product Information -->
     <div class="row mb-4">
         <div class="col-md-12">
@@ -149,8 +49,7 @@
                         <div class="col-md-3">
                             <strong>Harga Jual:</strong><br>
                             <span class="text-success fs-6">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                        </div>
+</div>
                     </div>
                 </div>
             </div>

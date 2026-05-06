@@ -250,14 +250,9 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
-<<<<<<< HEAD
-                        <small class="text-muted">
-                            BBB: <span id="summaryBahanBaku">Rp 0</span>
-                        </small>
-=======
+
                         <small class="text-muted">BBB: <span id="summaryBahanBaku">Rp 0</span></small>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                    </div>
+</div>
                     <div>
                         <button type="submit" class="btn btn-success" id="submitBtn">
                             <i class="fas fa-save me-2"></i>Simpan Biaya Bahan

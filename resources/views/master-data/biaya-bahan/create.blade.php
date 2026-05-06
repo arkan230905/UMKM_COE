@@ -38,7 +38,7 @@
 
     <!-- Product Info Card -->
     <div class="card shadow-sm mb-3">
-        <div class="card-header bg-dark text-white">
+        <div class="card-header text-white" style="background-color: #8b6f5c;">
             <h6 class="mb-0">
                 <i class="fas fa-info-circle me-2"></i>Informasi Produk
             </h6>
@@ -59,18 +59,19 @@
 
     <form action="{{ route('master-data.biaya-bahan.store', $produk->id) }}" method="POST">
         @csrf
+        <input type="hidden" name="produk_id" value="{{ $produk->id }}">
 
         <!-- Bahan Baku Card -->
         <div class="card shadow-sm mb-3">
-            <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-header text-white" style="background-color: #a0826d;">
                 <h6 class="mb-0">
                     <i class="fas fa-cube me-2"></i>1. Biaya Bahan Baku (BBB)
                 </h6>
             </div>
-            <div class="card-body" style="background-color: #f8f4ff;">
+            <div class="card-body" style="background-color: #faf8f5;">
                 <div class="table-responsive">
                     <table class="table table-sm" id="bahanBakuTable">
-                        <thead style="background-color: #9f7aea; color: white;">
+                        <thead style="background-color: #c9b5a0; color: white;">
                             <tr>
                                 <th>BAHAN BAKU</th>
                                 <th class="text-center">JUMLAH</th>
@@ -139,6 +140,7 @@
                                     </select>
                                 </td>
                                 <td class="text-end harga-display" style="width: 200px;">
+                                    <input type="hidden" name="bahan_baku[new][harga_satuan]" class="harga-satuan-input" value="0">
                                     <div class="harga-utama">-</div>
                                     <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
                                 </td>
@@ -150,7 +152,7 @@
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot style="background-color: #fef3c7;">
+                        <tfoot style="background-color: #f5ebe0;">
                             <tr>
                                 <th colspan="4" class="text-end">Total BBB</th>
                                 <th class="text-end" id="totalBahanBaku">Rp 0</th>
@@ -159,7 +161,7 @@
                         </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary mt-2" id="addBahanBaku">
+                <button type="button" class="btn btn-sm mt-2" style="background-color: #a0826d; color: white;" id="addBahanBaku">
                     <i class="fas fa-plus"></i> Tambah Bahan Baku
                 </button>
             </div>
@@ -171,14 +173,9 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
-<<<<<<< HEAD
-                        <small class="text-muted">
-                            BBB: <span id="summaryBahanBaku">Rp 0</span>
-                        </small>
-=======
+
                         <small class="text-muted">BBB: <span id="summaryBahanBaku">Rp 0</span></small>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                    </div>
+</div>
                     <div>
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-save me-2"></i>Simpan Biaya Bahan
@@ -471,6 +468,13 @@ function addRowEventListeners(row) {
             console.log("🔄 Bahan changed:", this.value);
             const option = this.options[this.selectedIndex];
             if (option && option.dataset.harga) {
+                // Update hidden harga_satuan field
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
+                if (hargaSatuanInput) {
+                    hargaSatuanInput.value = option.dataset.harga;
+                    console.log("✅ Updated hidden harga_satuan:", option.dataset.harga);
+                }
+                
                 // Auto-fill satuan utama
                 if (option.dataset.satuan && satuanSelect) {
                     satuanSelect.value = option.dataset.satuan;
@@ -498,10 +502,12 @@ function addRowEventListeners(row) {
                 calculateRowSubtotal(row);
             } else {
                 // Clear displays if no selection
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
                 const hargaDisplay = row.querySelector(".harga-utama");
                 const hargaKonversiDiv = row.querySelector(".harga-konversi");
                 const subtotalDisplay = row.querySelector(".subtotal-display");
                 
+                if (hargaSatuanInput) hargaSatuanInput.value = "0";
                 if (hargaDisplay) hargaDisplay.innerHTML = "-";
                 if (hargaKonversiDiv) hargaKonversiDiv.innerHTML = "";
                 if (subtotalDisplay) subtotalDisplay.innerHTML = "-";
@@ -798,7 +804,7 @@ console.log("🎉 BIAYA BAHAN SCRIPT LOADED SUCCESSFULLY");
 
 .subtotal-display {
     font-weight: 600;
-    color: #28a745;
+    color: #a0826d;
 }
 
 #summaryTotalBiaya, #summaryHargaJual {

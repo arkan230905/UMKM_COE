@@ -47,6 +47,19 @@
                 </div>
 
                 <div class="mb-3">
+                    <label for="coa_persediaan_id" class="form-label">COA Persediaan <span class="text-danger">*</span></label>
+                    <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-control" required>
+                        <option value="">-- Pilih COA Persediaan --</option>
+                        @foreach($coaPersediaan as $coa)
+                            <option value="{{ $coa->kode_akun }}" {{ old('coa_persediaan_id') == $coa->kode_akun ? 'selected' : '' }}>
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="form-text text-muted">Pilih akun persediaan untuk produk ini (biasanya 116 - Persediaan Barang Jadi).</small>
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label">Barcode</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-barcode"></i></span>

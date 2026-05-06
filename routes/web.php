@@ -4,87 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
 
-<<<<<<< HEAD
-// TEST ROUTE FOR BOP - NO MIDDLEWARE
-Route::get('/test-bop-direct', function() {
-    try {
-        // First, fix the database structure - add ALL missing columns
-        try {
-            // Check and add nama_bop_proses
-            $columns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'nama_bop_proses'");
-            if (empty($columns)) {
-                DB::statement("ALTER TABLE `bop_proses` ADD COLUMN `nama_bop_proses` VARCHAR(255) NULL AFTER `id`");
-            }
-            
-            // Check and add periode
-            $periodeColumns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'periode'");
-            if (empty($periodeColumns)) {
-                DB::statement("ALTER TABLE `bop_proses` ADD COLUMN `periode` VARCHAR(10) NULL");
-            }
-            
-            // Check and add keterangan
-            $keteranganColumns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'keterangan'");
-            if (empty($keteranganColumns)) {
-                DB::statement("ALTER TABLE `bop_proses` ADD COLUMN `keterangan` TEXT NULL");
-            }
-            
-            // Make proses_produksi_id nullable
-            DB::statement("ALTER TABLE `bop_proses` MODIFY COLUMN `proses_produksi_id` BIGINT UNSIGNED NULL");
-            
-        } catch (\Exception $e) {
-            // Continue even if some alterations fail
-        }
-        
-        // Get existing columns to build safe insert
-        $allColumns = DB::select("SHOW COLUMNS FROM bop_proses");
-        $columnNames = array_column($allColumns, 'Field');
-        
-        // Build insert data only with existing columns
-        $insertData = [
-            'proses_produksi_id' => null,
-            'total_bop_per_jam' => 5000,
-            'kapasitas_per_jam' => 1,
-            'bop_per_unit' => 5000,
-            'is_active' => 1,
-            'created_at' => now(),
-            'updated_at' => now()
-        ];
-        
-        // Add optional columns if they exist
-        if (in_array('nama_bop_proses', $columnNames)) {
-            $insertData['nama_bop_proses'] = 'Sample BOP - ' . date('H:i:s');
-        }
-        
-        if (in_array('komponen_bop', $columnNames)) {
-            $insertData['komponen_bop'] = json_encode([
-                ['component' => 'Listrik', 'rate_per_hour' => 3000, 'description' => 'Biaya listrik'],
-                ['component' => 'Air', 'rate_per_hour' => 2000, 'description' => 'Biaya air']
-            ]);
-        }
-        
-        if (in_array('periode', $columnNames)) {
-            $insertData['periode'] = date('Y-m');
-        }
-        
-        if (in_array('keterangan', $columnNames)) {
-            $insertData['keterangan'] = 'Sample data';
-        }
-        
-        DB::beginTransaction();
-        $id = DB::table('bop_proses')->insertGetId($insertData);
-        DB::commit();
-        
-        return redirect()->route('master-data.bop.index')
-            ->with('success', "✅ Database diperbaiki dan sample BOP berhasil ditambahkan! ID: {$id}. Sekarang form manual sudah bisa digunakan.");
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return redirect()->route('master-data.bop.index')
-            ->with('error', 'Error: ' . $e->getMessage() . ' - Silakan hubungi developer untuk memperbaiki struktur database.');
-    }
-});
 
-=======
 // TEST BLADE RENDERING
 Route::get('/test-blade', function() {
     return view('test-blade');
@@ -92,7 +12,6 @@ Route::get('/test-blade', function() {
 
 
 
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 // IMPORT ALL STOCK FROM DATABASE TO STOCK MOVEMENTS
 Route::get('import-all-stock-from-database', function() {
     try {
@@ -2987,13 +2906,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
 
             // Tandai sudah dibayar (owner/admin only)
-<<<<<<< HEAD
-            Route::match(['post', 'patch'], '/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
-=======
-            Route::post('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 
-            // Posting ke jurnal (owner/admin only)
+            Route::post('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+// Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
             
             // Recalculate berdasarkan master data terbaru (owner/admin only)

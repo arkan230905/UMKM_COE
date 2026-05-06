@@ -11,16 +11,35 @@ class BahanPendukung extends Model
 
     protected $table = 'bahan_pendukungs';
     
+    /**
+     * Boot method untuk auto-generate kode dan auto-set user_id
+     */
     protected static function boot()
     {
         parent::boot();
         
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+    }
+    
+    /**
+     * Booted method untuk event handlers
+     */
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
+            if (empty($model->kode_bahan)) {
+                $model->kode_bahan = self::generateKode();
             }
         });
+        
+        // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
+        // Do not create stock movement here to avoid duplication
     }
 
     protected $fillable = [
@@ -66,37 +85,6 @@ class BahanPendukung extends Model
     ];
 
     protected $appends = ['stok_aman', 'status_stok', 'stok'];
-
-    /**
-     * Boot method untuk auto-generate kode dan auto-set user_id
-     */
-    protected static function boot()
-    {
-        parent::boot();
-        
-        // CRITICAL: Apply global scope untuk multi-tenant isolation
-        static::addGlobalScope(new \App\Scopes\UserScope);
-    }
-    
-    /**
-     * Booted method untuk event handlers
-     */
-    protected static function booted()
-    {
-        static::creating(function ($model) {
-            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
-            if (empty($model->user_id) && auth()->check()) {
-                $model->user_id = auth()->id();
-            }
-            
-            if (empty($model->kode_bahan)) {
-                $model->kode_bahan = self::generateKode();
-            }
-        });
-        
-        // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
-        // Do not create stock movement here to avoid duplication
-    }
 
     /**
      * Get the stok attribute (maps to real-time stock from stock movements)
@@ -260,23 +248,27 @@ class BahanPendukung extends Model
      */
     public function getStokRealTimeAttribute()
     {
-        // Global scope sudah menangani filter user_id otomatis
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        // Global scope UserScope sudah otomatis apply, tapi kita pastikan dengan explicit filter
+        $userId = $this->user_id ?? auth()->id();
+        
         $stockIn = \App\Models\StockMovement::where('item_type', 'support')
             ->where('item_id', $this->id)
+            ->where('user_id', $userId)
             ->where('direction', 'in')
             ->sum('qty');
 
         $stockOut = \App\Models\StockMovement::where('item_type', 'support')
             ->where('item_id', $this->id)
+            ->where('user_id', $userId)
             ->where('direction', 'out')
             ->sum('qty');
 
         $netStockFromMovements = $stockIn - $stockOut;
         
-        // CRITICAL: Tambahkan saldo_awal ke perhitungan
-        $totalStock = ($this->saldo_awal ?? 0) + $netStockFromMovements;
-        
-        return $totalStock;
+        // IMPORTANT: Jangan tambahkan saldo_awal karena sudah ada di stock_movements sebagai initial_stock
+        // Semua stok harus dihitung dari stock_movements saja untuk konsistensi
+        return $netStockFromMovements;
     }
 
     /**

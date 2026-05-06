@@ -38,30 +38,7 @@ class DashboardController extends Controller
         
         $userRole = $user->role;
         
-<<<<<<< HEAD
-        // Master Data - Filter berdasarkan user untuk multi-tenant (same query as PegawaiController)
-        $totalPegawai     = Pegawai::count();
-        $totalPresensi    = Presensi::count();
-        $totalProduk      = Produk::count();
-        $totalVendor      = Vendor::count();
-        $totalBahanBaku   = BahanBaku::count();
-        $totalSatuan      = \App\Models\Satuan::count();
-        $totalPelanggan   = Pelanggan::count();
-        $totalBahanPendukung = BahanPendukung::count();
-        $totalAset        = Aset::count();
-        $totalJabatan     = Jabatan::count();
-        
-        // Handle case when btkls table doesn't exist yet
-        $totalBTKL = 0;
-        try {
-            // Count from ProsesProduksi table since BTKL route uses ProsesProduksiController
-            if (\Schema::hasTable('proses_produksis')) {
-                $totalBTKL = \App\Models\ProsesProduksi::count();
-            }
-        } catch (\Exception $e) {
-            // Table doesn't exist or other error, default to 0
-        }
-=======
+
         // Master Data - Filter berdasarkan user untuk multi-tenant dengan safety check
         $totalPegawai     = $this->getCountByUser('pegawais', $user->id);
         $totalPresensi    = Presensi::count();
@@ -71,20 +48,13 @@ class DashboardController extends Controller
         $totalSatuan      = $this->getCountByUser('satuans', $user->id);
         $totalAset        = $this->getCountByUser('asets', $user->id);
         $totalPelanggan   = $this->getCountByUser('pelanggans', $user->id);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-        
-        // Handle case when bops table doesn't exist yet
+// Handle case when bops table doesn't exist yet
         $totalBOP = 0;
         try {
-<<<<<<< HEAD
-            // Count from BopProses table since BOP page uses BopController which displays BopProses data
-            if (\Schema::hasTable('bop_proses')) {
-                $totalBOP = \App\Models\BopProses::where('is_active', true)->count();
-=======
+
             if (\Schema::hasTable('bops')) {
                 $totalBOP = $this->getCountByUser('bops', $user->id);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            }
+}
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
         }
@@ -489,15 +459,11 @@ class DashboardController extends Controller
             // Hitung dari penjualan kredit yang belum lunas
             $user = auth()->user();
             $totalPiutang = Penjualan::where('payment_method', 'credit')
-<<<<<<< HEAD
-                ->sum('total');
-=======
+
                 ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                 ->whereIn('status', ['pending', 'partial'])
                 ->sum('sisa_pembayaran');
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            
-            return (float)$totalPiutang;
+return (float)$totalPiutang;
         } catch (\Exception $e) {
             \Log::error('Error getTotalPiutang: ' . $e->getMessage());
             return 0;

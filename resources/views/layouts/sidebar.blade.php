@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-<div class="sidebar">
-=======
-﻿<div class="sidebar">
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 
-    {{-- ===== USER PROFILE ===== --}}
+﻿<div class="sidebar">
+{{-- ===== USER PROFILE ===== --}}
     <div class="sb-profile">
         <div class="sb-avatar">
             @if(Auth::check() && Auth::user()->profile_photo)
@@ -29,24 +25,13 @@
             <i class="fas fa-home"></i><span>Dashboard</span>
         </a>
         <div class="sb-section">PRESENSI</div>
-<<<<<<< HEAD
-        <a href="{{ route('pegawai.presensi.absen-wajah') }}" 
-           class="test-link-absen {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}" 
-           style="color: rgba(255,255,255,0.8); padding: 12px 20px; text-decoration: none; display: flex; align-items: center; pointer-events: auto; position: relative; z-index: 1001;">
-            <i class="fas fa-camera"></i><span style="margin-left: 15px;">Absen Wajah</span>
-        </a>
-        <a href="{{ route('pegawai.riwayat-presensi') }}" 
-           class="test-link-riwayat {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}" 
-           style="color: rgba(255,255,255,0.8); padding: 12px 20px; text-decoration: none; display: flex; align-items: center; pointer-events: auto; position: relative; z-index: 1001;">
-            <i class="fas fa-history"></i><span style="margin-left: 15px;">Riwayat Presensi</span>
-=======
+
         <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="sb-link {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}">
             <i class="fas fa-camera"></i><span>Absen Wajah</span>
         </a>
         <a href="{{ route('pegawai.riwayat-presensi') }}" class="sb-link {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}">
             <i class="fas fa-history"></i><span>Riwayat Presensi</span>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-        </a>
+</a>
         <div class="sb-section">PENGGAJIAN</div>
         <a href="{{ route('pegawai.slip-gaji.index') }}" class="sb-link {{ request()->is('pegawai/slip-gaji*') ? 'active' : '' }}">
             <i class="fas fa-file-invoice-dollar"></i><span>Slip Gaji</span>
@@ -118,12 +103,9 @@
             <a href="{{ route('laporan.kas-bank') }}"                    class="sb-sub {{ request()->is('laporan/kas-bank*') ? 'active' : '' }}">Laporan Kas &amp; Bank</a>
             <a href="{{ route('akuntansi.jurnal-umum') }}"               class="sb-sub {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}">Jurnal Umum</a>
             <a href="{{ route('akuntansi.buku-besar') }}"                class="sb-sub {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}">Buku Besar</a>
-<<<<<<< HEAD
-            <a href="{{ route('akuntansi.neraca-saldo-temp') }}"         class="sb-sub {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}">Neraca Saldo</a>
-=======
+
             <a href="{{ route('akuntansi.neraca-saldo') }}"              class="sb-sub {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}">Neraca Saldo</a>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            <a href="{{ route('akuntansi.laporan-posisi-keuangan') }}"   class="sb-sub {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}">Posisi Keuangan</a>
+<a href="{{ route('akuntansi.laporan-posisi-keuangan') }}"   class="sb-sub {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}">Posisi Keuangan</a>
             <a href="{{ route('akuntansi.laba-rugi') }}"                 class="sb-sub {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}">Laba Rugi</a>
         </div>
 
@@ -184,12 +166,9 @@
                 </div>
             </div>
         </div>
-<<<<<<< HEAD
-        <div class="sb-footer-copy">© 2026 SIMCOST<br>All rights reserved.</div>
-=======
+
         <div class="sb-footer-copy">┬⌐ 2026 SIMCOST<br>All rights reserved.</div>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-    </div>
+</div>
 
 </div>
 

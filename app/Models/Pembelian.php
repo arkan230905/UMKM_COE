@@ -17,11 +17,7 @@ class Pembelian extends Model
         'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_pembelian',
         'nomor_faktur',
-<<<<<<< HEAD
-        'bukti_faktur',
-=======
         'bukti_faktur',  // File path untuk bukti faktur
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         'vendor_id',
         'kode_pembelian',
         'tanggal',
@@ -76,9 +72,7 @@ class Pembelian extends Model
             $journalService = new \App\Services\JournalService();
             $journalService->deleteByRef('purchase', $pembelian->id);
             
-<<<<<<< HEAD
-            // Update stock layers - reverse the stock movements (before details are deleted)
-=======
+
             // Delete related AP settlements
             $pembelian->apSettlements()->delete();
             
@@ -97,8 +91,7 @@ class Pembelian extends Model
             }
             
             // Update stock layers - reverse the stock movements
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            foreach ($pembelian->pembelianDetails as $detail) {
+foreach ($pembelian->pembelianDetails as $detail) {
                 // Create reverse stock movement
                 \App\Models\StockMovement::create([
                     'item_type' => 'material',

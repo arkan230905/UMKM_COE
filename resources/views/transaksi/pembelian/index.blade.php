@@ -61,49 +61,7 @@
     </div>
 </div>
 
-<<<<<<< HEAD
-<!-- Journal Modal -->
-<div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="journalModalLabel">
-                    <i class="fas fa-book me-2"></i>Jurnal Pembelian
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Akun</th>
-                                <th>Keterangan</th>
-                                <th class="text-end">Debet</th>
-                                <th class="text-end">Kredit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="journalTableBody">
-                            <!-- Journal entries will be loaded here -->
-                        </tbody>
-                        <tfoot class="table-secondary">
-                            <tr>
-                                <th colspan="3" class="text-end">Total:</th>
-                                <th class="text-end" id="totalDebit">Rp 0</th>
-                                <th class="text-end" id="totalCredit">Rp 0</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
-=======
+
 @push('styles')
 <style>
     .nav-tabs .nav-link {
@@ -125,8 +83,6 @@
     }
 </style>
 @endpush
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-
 @push('scripts')
 <script>
 // Cache busting for journal modal
@@ -242,33 +198,6 @@ const journalModalVersion = '2026-04-30-v2';
         });
     });
 </script>
-<<<<<<< HEAD
 
-<style>
-/* Animation for new retur highlight */
-@keyframes pulse {
-    0% { background-color: #d1e7dd; }
-    50% { background-color: #a3d9a4; }
-    100% { background-color: #d1e7dd; }
-}
-
-.table-success {
-    background-color: #d1e7dd !important;
-}
-
-/* Fix journal modal table header text color */
-#journalModal .table-dark th {
-    color: #000 !important;
-    background-color: #343a40 !important;
-}
-
-/* Fix COA badges in journal modal */
-#journalModal .badge {
-    font-size: 0.8em;
-    margin-bottom: 2px;
-}
-</style>
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 @endpush
 @endsection

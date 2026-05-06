@@ -29,8 +29,7 @@
         </div>
     </div>
 
-<<<<<<< HEAD
-=======
+
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">
             {{ session('success') }}
@@ -46,8 +45,7 @@
         </div>
     @endif
 
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-    <div class="card">
+<div class="card">
         <div class="card-header">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>Daftar COA (Chart of Accounts)

@@ -368,41 +368,7 @@ function clearSubSatuan(index) {
 function setupNumberInputs() {
     const numberInputs = document.querySelectorAll('.number-input');
     
-<<<<<<< HEAD
-    numberInputs.forEach(input => {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value;
-            
-            // Allow numbers, comma, and dot
-            value = value.replace(/[^0-9,\.]/g, '');
-            
-            // Replace multiple commas/dots with single one
-            value = value.replace(/[,\.]{2,}/g, ',');
-            
-            // Ensure only one decimal separator
-            const parts = value.split(/[,\.]/);
-            if (parts.length > 2) {
-                value = parts[0] + ',' + parts.slice(1).join('');
-            }
-            
-            e.target.value = value;
-        });
-        
-        input.addEventListener('blur', function(e) {
-            let value = e.target.value;
-            if (value && !isNaN(value.replace(',', '.'))) {
-                // Format the number properly
-                const numValue = parseFloat(value.replace(',', '.'));
-                if (numValue === Math.floor(numValue)) {
-                    e.target.value = numValue.toString();
-                } else {
-                    e.target.value = numValue.toString().replace('.', ',');
-                }
-            }
-        });
-    });
-}
-=======
+
     if (value === '') return;
     
     // Handle comma as decimal separator
@@ -441,8 +407,6 @@ function parseFormattedNumber(value) {
 
 // COA Manual Selection - Auto-fill disabled to allow manual selection
 // Users can now select COA accounts independently for each field
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-
 // Convert commas to dots before form submission
 function convertCommasToDots() {
     const numberInputs = document.querySelectorAll('.number-input');
@@ -561,11 +525,9 @@ document.addEventListener('DOMContentLoaded', function() {
             convertCommasToDots();
         });
     }
-<<<<<<< HEAD
-=======
+
     
     // COA Manual Selection - Auto-fill disabled
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 });
 </script>
 @endpush

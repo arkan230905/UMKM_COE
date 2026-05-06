@@ -515,25 +515,9 @@
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? formatCurrency($row['penjualan_total'], 0) : '' }}</td>
                                             @else
                                                 <!-- For materials and bahan pendukung, show purchase data -->
-<<<<<<< HEAD
-                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">
-                                                    @if(isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0)
-                                                        @php
-                                                            $isReturMasuk = isset($row['ref_type']) && $row['ref_type'] === 'retur_tukar_terima';
-                                                        @endphp
-                                                        @if($row['pembelian_qty'] < 0)
-                                                            <span style="color: red;">-{{ formatQuantity(abs($row['pembelian_qty']), $unit['name']) }}</span>
-                                                        @elseif($isReturMasuk)
-                                                            <span style="color: green;">+{{ formatQuantity($row['pembelian_qty'], $unit['name']) }}</span>
-                                                        @else
-                                                            {{ formatQuantity($row['pembelian_qty'], $unit['name']) }}
-                                                        @endif
-                                                    @endif
-                                                </td>
-=======
+
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0 ? formatQuantity($row['pembelian_qty'], $unit['name']) : '' }}</td>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_harga'] > 0 ? formatCurrency($row['pembelian_harga']) : '' }}</td>
+<td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_harga'] > 0 ? formatCurrency($row['pembelian_harga']) : '' }}</td>
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_total'] != 0 ? formatCurrency($row['pembelian_total'], 0) : '' }}</td>
                                             @endif
                                             <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['produksi_qty']) && $row['produksi_qty'] != 0 ? formatQuantity($row['produksi_qty'], $unit['name']) : '' }}</td>

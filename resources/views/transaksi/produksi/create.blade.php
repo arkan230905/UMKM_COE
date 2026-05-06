@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid">
     <div class="card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header text-white" style="background-color: #a0826d;">
             <h4 class="mb-0">📦 Tambah Data Produksi Produk</h4>
         </div>
         <div class="card-body">
@@ -53,7 +53,7 @@
                 
                 <!-- Job Process Costing Fields -->
                 <div class="card bg-light mb-4">
-                    <div class="card-header bg-secondary text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h5 class="mb-0">📊 Data Produksi Bulanan</h5>
                     </div>
                     <div class="card-body">
@@ -79,7 +79,7 @@
 
                 <!-- Informasi Harga Pokok Produksi Produk -->
                 <div class="card bg-light mb-4" id="bom-info" style="display: none;">
-                    <div class="card-header bg-info text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h5 class="mb-0">📋 Informasi Harga Pokok Produksi Produk (Per Hari)</h5>
                     </div>
                     <div class="card-body">
@@ -95,14 +95,14 @@
 
                         <!-- Biaya Bahan -->
                         <div class="card mb-3" id="biaya-bahan-section" style="display: none;">
-                            <div class="card-header bg-success text-white">
+                            <div class="card-header text-white" style="background-color: #a0826d;">
                                 <h6 class="mb-0">Biaya Bahan Per Produk</h6>
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <!-- Bahan Baku -->
                                     <div class="col-md-12">
-                                        <h6 class="text-success mb-3">Bahan Baku</h6>
+                                        <h6 class="mb-3" style="color: #a0826d;">Bahan Baku</h6>
                                         <div id="bahan-baku-list">
                                             <!-- Will be populated by JavaScript -->
                                         </div>
@@ -114,7 +114,7 @@
                                         <div class="d-flex justify-content-between align-items-center">
                                             <h5 class="mb-0">Total Biaya Bahan</h5>
                                             <div>
-                                                <h5 class="mb-0 text-success" id="total-biaya-bahan">Rp 0</h5>
+                                                <h5 class="mb-0" style="color: #a0826d;" id="total-biaya-bahan">Rp 0</h5>
                                             </div>
                                         </div>
                                     </div>
@@ -124,7 +124,7 @@
 
                         <!-- Biaya Tenaga Kerja Langsung (BTKL) -->
                         <div class="card mb-3" id="btkl-section" style="display: none;">
-                            <div class="card-header bg-info text-white">
+                            <div class="card-header text-white" style="background-color: #a0826d;">
                                 <h6 class="mb-0">Biaya Tenaga Kerja Langsung (BTKL)</h6>
                                 <small>Menampilkan kapasitas per jam dan jam yang diperlukan untuk produksi</small>
                             </div>
@@ -148,7 +148,7 @@
 
                         <!-- Biaya Overhead Pabrik (BOP) -->
                         <div class="card mb-3" id="bop-section" style="display: none;">
-                            <div class="card-header bg-warning text-dark">
+                            <div class="card-header text-white" style="background-color: #a0826d;">
                                 <h6 class="mb-0">Biaya Overhead Pabrik (BOP)</h6>
                                 <small>Menampilkan detail komponen BOP per proses dengan akun COA otomatis</small>
                             </div>
@@ -178,60 +178,11 @@
                                         <div class="d-flex justify-content-between align-items-center">
                                             <h4 class="mb-0">Total Biaya Produksi Per Hari</h4>
                                             <div>
-                                                <h4 class="mb-0 text-primary" id="total-keseluruhan">Rp 0</h4>
+                                                <h4 class="mb-0" style="color: #a0826d;" id="total-keseluruhan">Rp 0</h4>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Preview Jurnal Akuntansi -->
-                        <div class="card mt-3" id="jurnal-preview-section" style="display: none;">
-                            <div class="card-header bg-dark text-white">
-                                <h6 class="mb-0"><i class="fas fa-book me-2"></i>Preview Jurnal Akuntansi</h6>
-                                <small class="text-white-50">Jurnal yang akan dibuat saat produksi diproses</small>
-                            </div>
-                            <div class="card-body p-0">
-                                <table class="table table-sm table-bordered mb-0" style="table-layout:fixed; width:100%; font-size:12px;">
-                                    <colgroup>
-                                        <col style="width:28%">
-                                        <col style="width:22%">
-                                        <col style="width:8%">
-                                        <col style="width:21%">
-                                        <col style="width:21%">
-                                    </colgroup>
-                                    <thead>
-                                        <tr class="table-secondary">
-                                            <th class="py-2 ps-3">Keterangan</th>
-                                            <th class="py-2">Akun</th>
-                                            <th class="py-2 text-center">Ref</th>
-                                            <th class="py-2 text-end pe-3">Debit</th>
-                                            <th class="py-2 text-end pe-3">Kredit</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr class="table-primary">
-                                            <td colspan="5" class="text-center fw-bold py-2">Produksi</td>
-                                        </tr>
-                                        <tbody id="jurnal-produksi-body"></tbody>
-
-                                        <tr class="table-info">
-                                            <td colspan="5" class="text-center fw-bold py-2">BTKL WIP</td>
-                                        </tr>
-                                        <tbody id="jurnal-btkl-body"></tbody>
-
-                                        <tr class="table-warning">
-                                            <td colspan="5" class="text-center fw-bold py-2">BOP WIP</td>
-                                        </tr>
-                                        <tbody id="jurnal-bop-body"></tbody>
-
-                                        <tr class="table-success">
-                                            <td colspan="5" class="text-center fw-bold py-2">Sudah selesai produksi</td>
-                                        </tr>
-                                        <tbody id="jurnal-wip-barangjadi-body"></tbody>
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
@@ -239,14 +190,14 @@
 
                 <!-- Jurnal Produksi Preview -->
                 <div class="card mb-4" id="jurnal-section" style="display: none;">
-                    <div class="card-header text-white" style="background-color: #2d6a4f;">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h5 class="mb-0">📒 Jurnal Produksi (Preview)</h5>
                         <small class="text-white-50">Jurnal ini akan otomatis masuk ke Jurnal Umum saat produksi disimpan</small>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-bordered table-sm mb-0" id="jurnal-table">
-                                <thead style="background-color: #95d5b2;">
+                                <thead style="background-color: #d4c4b0;">
                                     <tr>
                                         <th style="width:5%">No</th>
                                         <th style="width:35%">Nama Akun</th>
@@ -258,7 +209,7 @@
                                 <tbody id="jurnal-tbody">
                                     <!-- Generated by JavaScript -->
                                 </tbody>
-                                <tfoot style="background-color: #d8f3dc;">
+                                <tfoot style="background-color: #e8dfd5;">
                                     <tr>
                                         <th colspan="3" class="text-end">Total</th>
                                         <th class="text-end" id="jurnal-total-debit">Rp 0</th>
@@ -299,7 +250,7 @@ function calculateDailyProduction() {
     
     if (jumlahBulanan > 0 && hariBulanan > 0) {
         const qtyPerHari = jumlahBulanan / hariBulanan;
-        document.getElementById('qty_produksi').value = Math.round(qtyPerHari);
+        document.getElementById('qty_produksi').value = qtyPerHari.toFixed(2);
         
         // Recalculate cost breakdown with new daily quantity
         calculateCostBreakdown();
@@ -325,38 +276,26 @@ function calculateCostBreakdown() {
     document.getElementById('bop-section').style.display = 'block';
     document.getElementById('total-section').style.display = 'block';
     
-    // Calculate Biaya Bahan (hanya bahan baku)
+    // Calculate Biaya Bahan
     let totalBiayaBahan = 0;
     
     // Bahan Baku
     const bahanBakuHtml = currentBomData.biaya_bahan.bahan_baku.map((bahan, index) => {
+        // harga_per_unit now contains the subtotal (total cost for the recipe)
         const totalPerProduksi = bahan.harga_per_unit * qty;
         const totalQtyTerpakai = bahan.qty * qty;
         
-<<<<<<< HEAD
-        let stockReduction = totalQtyTerpakai;
-        let stockUnit = bahan.satuan;
-        if (bahan.satuan !== bahan.satuan_bahan) {
-            stockReduction = `${totalQtyTerpakai} ${bahan.satuan}`;
-            stockUnit = bahan.satuan_bahan;
-        }
-=======
         // Display stock reduction in recipe unit (satuan resep)
         const stockReductionText = `${totalQtyTerpakai} ${bahan.satuan}`;
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         
         totalBiayaBahan += totalPerProduksi;
         return `
             <div class="mb-2">
                 <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
                 <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi per hari)</small>
-                <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
-                ${bahan.konversi_info ? `<br><small class="text-warning">${bahan.konversi_info}</small>` : ''}
-<<<<<<< HEAD
-                <br><small class="text-danger">Stok berkurang: ${stockReduction} ${stockUnit}</small>
-=======
+                <br><small style="color: #a0826d;">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
+                ${bahan.konversi_info ? `<br><small style="color: #a0826d;">${bahan.konversi_info}</small>` : ''}
                 <br><small class="text-danger">Stok berkurang: ${stockReductionText}</small>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             </div>
         `;
     }).join('');
@@ -384,7 +323,7 @@ function calculateCostBreakdown() {
             warningClass = 'text-danger';
             warningText = ' ⚠️ Melebihi jam kerja normal!';
         } else if (jamDiperlukan > 6) {
-            warningClass = 'text-warning';
+            warningClass = '';
             warningText = ' ⚠️ Mendekati batas jam kerja';
         }
         
@@ -392,13 +331,13 @@ function calculateCostBreakdown() {
             <tr>
                 <td>
                     <strong>${btkl.nama}</strong>
-                    <br><small class="text-info">Kapasitas: ${kapasitasPerJam} unit/jam</small>
-                    <br><small class="${warningClass || 'text-success'}">Jam diperlukan: ${jamDiperlukan} jam${warningText}</small>
+                    <br><small style="color: #a0826d;">Kapasitas: ${kapasitasPerJam} unit/jam</small>
+                    <br><small class="${warningClass || ''}" style="${!warningClass ? 'color: #a0826d;' : ''}">Jam diperlukan: ${jamDiperlukan} jam${warningText}</small>
                 </td>
                 <td>
                     ${formatRupiah(btkl.harga_per_unit)}
                     <br><small class="text-muted">(${formatRupiah(btkl.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
-                    ${btkl.tarif_per_jam ? `<br><small class="text-info">Tarif: ${formatRupiah(btkl.tarif_per_jam)}/jam</small>` : ''}
+                    ${btkl.tarif_per_jam ? `<br><small style="color: #a0826d;">Tarif: ${formatRupiah(btkl.tarif_per_jam)}/jam</small>` : ''}
                 </td>
                 <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
             </tr>
@@ -442,32 +381,6 @@ function calculateCostBreakdown() {
     
     // Calculate BOP - Group by process and show components
     let totalBop = 0;
-<<<<<<< HEAD
-    const bopHtml = currentBomData.bop.map(bop => {
-        const totalPerProduksi = bop.harga_per_unit * qty;
-        totalBop += totalPerProduksi;
-
-        // Render komponen detail jika ada
-        let komponenHtml = '';
-        if (bop.komponen && bop.komponen.length > 0) {
-            komponenHtml = bop.komponen.map(k => {
-                const totalK = k.rate_per_hour * qty;
-                return `<tr class="table-light">
-                    <td class="ps-4 text-muted"><small>↳ ${k.nama}</small></td>
-                    <td><small class="text-muted">${formatRupiah(k.rate_per_hour)} × ${qty}</small></td>
-                    <td class="text-end"><small>${formatRupiah(totalK)}</small></td>
-                </tr>`;
-            }).join('');
-        }
-
-        return `<tr class="fw-bold">
-                <td>${bop.nama}</td>
-                <td><small class="text-muted">${formatRupiah(bop.harga_per_unit)} per unit × ${qty}</small></td>
-                <td class="fw-bold text-end">${formatRupiah(totalPerProduksi)}</td>
-            </tr>${komponenHtml}`;
-    }).join('');
-
-=======
     const bopByProcess = {};
     
     // Group BOP components by process
@@ -489,7 +402,7 @@ function calculateCostBreakdown() {
         // Header for process
         bopHtml += `
             <tr class="table-light">
-                <td colspan="3" class="fw-bold text-primary">${namaProses}</td>
+                <td colspan="3" class="fw-bold" style="color: #a0826d;">${namaProses}</td>
             </tr>
         `;
         
@@ -504,7 +417,7 @@ function calculateCostBreakdown() {
                     <td>
                         ${formatRupiah(komponen.harga_per_unit)}
                         <br><small class="text-muted">(${formatRupiah(komponen.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
-                        <br><small class="text-info">COA: ${komponen.coa_kode} - ${komponen.coa_nama}</small>
+                        <br><small style="color: #a0826d;">COA: ${komponen.coa_kode} - ${komponen.coa_nama}</small>
                     </td>
                     <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
                 </tr>
@@ -520,17 +433,12 @@ function calculateCostBreakdown() {
         `;
     });
     
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     if (bopHtml) {
         const totalBopPerHari = totalBop * qty;
         document.getElementById('bop-list').innerHTML = bopHtml + `
             <tr class="table-warning">
                 <td colspan="2" class="fw-bold">Total BOP</td>
-<<<<<<< HEAD
-                <td class="fw-bold text-end">${formatRupiah(totalBop)}</td>
-=======
                 <td class="fw-bold">${formatRupiah(totalBopPerHari)}</td>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             </tr>
         `;
     } else {
@@ -542,123 +450,7 @@ function calculateCostBreakdown() {
     const totalKeseluruhan = totalBiayaBahan + totalBtkl + totalBopPerHari;
     document.getElementById('harga-pokok').textContent = formatRupiah(totalKeseluruhan);
     document.getElementById('total-keseluruhan').textContent = formatRupiah(totalKeseluruhan);
-
-    // ── Preview Jurnal ──────────────────────────────────────────
-    document.getElementById('jurnal-preview-section').style.display = 'block';
-
-    const bom = currentBomData;
-
-    // COA WIP spesifik per kategori
-    const bdpBbbKode  = bom.coa_bdp_bbb?.kode  ?? '1171';
-    const bdpBbbNama  = bom.coa_bdp_bbb?.nama  ?? 'BDP - BBB';
-    const bdpBtklKode = bom.coa_bdp_btkl?.kode ?? '1172';
-    const bdpBtklNama = bom.coa_bdp_btkl?.nama ?? 'BDP - BTKL';
-    const bdpBopKode  = bom.coa_bdp_bop?.kode  ?? '1173';
-    const bdpBopNama  = bom.coa_bdp_bop?.nama  ?? 'BDP - BOP';
-
-    // Helper: baris debit
-    const rowD = (ket, akunKode, akunNama, val) =>
-        `<tr>
-            <td class="ps-3">${ket}</td>
-            <td><span class="badge bg-secondary me-1">${akunKode}</span>${akunNama}</td>
-            <td class="text-center text-muted" style="font-size:10px">${akunKode}</td>
-            <td class="text-end pe-3 fw-semibold text-nowrap">${formatRupiah(val)}</td>
-            <td class="text-end pe-3"></td>
-        </tr>`;
-
-    // Helper: baris kredit (indent)
-    const rowK = (ket, akunKode, akunNama, val) =>
-        `<tr>
-            <td class="ps-5 text-muted">${ket}</td>
-            <td><span class="badge bg-secondary me-1">${akunKode}</span>${akunNama}</td>
-            <td class="text-center text-muted" style="font-size:10px">${akunKode}</td>
-            <td class="text-end pe-3"></td>
-            <td class="text-end pe-3 text-nowrap">${formatRupiah(val)}</td>
-        </tr>`;
-
-    const empty5 = `<tr><td colspan="5" class="text-center text-muted ps-3">-</td></tr>`;
-
-    // ── Jurnal 1: Produksi — BBB & Bahan Pendukung → BDP-BBB ───────────────────
-    let j1 = '';
-
-    // Bahan Baku
-    bom.biaya_bahan.bahan_baku.forEach(b => {
-        const total = b.harga_per_unit * qty;
-        if (total <= 0) return;
-        const persKode = b.coa_persediaan_kode ?? '114';
-        const persNama = b.coa_persediaan_nama ?? b.nama;
-        j1 += rowD('Barang dalam proses - BBB', bdpBbbKode, bdpBbbNama, total);
-        j1 += rowK(b.nama, persKode, persNama, total);
-    });
-
-    // Bahan Pendukung
-    if (bom.biaya_bahan.bahan_pendukung && bom.biaya_bahan.bahan_pendukung.length > 0) {
-        bom.biaya_bahan.bahan_pendukung.forEach(bp => {
-            const total = bp.harga_per_unit * qty;
-            if (total <= 0) return;
-            const persKode = bp.coa_persediaan_kode ?? '115';
-            const persNama = bp.coa_persediaan_nama ?? bp.nama;
-            j1 += rowD('Barang dalam proses - Bahan Pendukung', bdpBbbKode, bdpBbbNama, total);
-            j1 += rowK(bp.nama, persKode, persNama, total);
-        });
-    }
-
-    document.getElementById('jurnal-produksi-body').innerHTML = j1 || empty5;
-
-    // ── Jurnal 2a: BTKL WIP → BDP-BTKL ──────────────────────
-    let j2a = '';
-    if (totalBtkl > 0) {
-        j2a += rowD('Barang dalam proses - BTKL', bdpBtklKode, bdpBtklNama, totalBtkl);
-        bom.btkl.forEach(b => {
-            const total = b.harga_per_unit * qty;
-            if (total <= 0) return;
-            const kreditKode = b.coa_kredit_kode ?? '211';
-            const kreditNama = b.coa_kredit_nama ?? 'Hutang Gaji';
-            j2a += rowK(`Hutang Gaji — ${b.nama}`, kreditKode, kreditNama, total);
-        });
-    }
-    document.getElementById('jurnal-btkl-body').innerHTML = j2a || empty5;
-
-    // ── Jurnal 2b: BOP WIP → BDP-BOP ─────────────────────────
-    let j2b = '';
-    bom.bop.forEach(bop => {
-        const totalBopProses = bop.harga_per_unit * qty;
-        if (totalBopProses <= 0) return;
-        j2b += rowD('Barang dalam proses - BOP', bdpBopKode, bdpBopNama, totalBopProses);
-        if (bop.komponen && bop.komponen.length > 0) {
-            bop.komponen.forEach(k => {
-                const totalK = k.rate_per_hour * qty;
-                if (totalK <= 0) return;
-                const kreditKode = k.kredit_kode ?? k.coa_kode ?? '53';
-                const kreditNama = k.kredit_nama ?? k.coa_nama ?? 'BOP';
-                j2b += rowK(`${bop.nama} — ${k.nama}`, kreditKode, kreditNama, totalK);
-            });
-        } else {
-            j2b += rowK(bop.nama, '53', 'BOP', totalBopProses);
-        }
-    });
-    document.getElementById('jurnal-bop-body').innerHTML = j2b || empty5;
-
-    // ── Jurnal 3: BDP → Persediaan Barang Jadi ───────────────
-    let j3 = '';
-    if (totalKeseluruhan > 0) {
-        const coaSelect = document.getElementById('coa_persediaan_barang_jadi_id');
-        const coaOpt   = coaSelect.options[coaSelect.selectedIndex];
-        const coaText  = coaOpt?.text || 'Pers. Barang Jadi';
-        const coaParts = coaText.split(' - ');
-        const coaKode  = coaParts[0]?.trim() ?? '116';
-        const coaNama  = coaParts.slice(1).join(' - ').trim() || coaText;
-
-        j3 += rowD('Persediaan Barang Jadi', coaKode, coaNama, totalKeseluruhan);
-        if (totalBiayaBahan > 0) j3 += rowK('BDP - BBB',  bdpBbbKode,  bdpBbbNama,  totalBiayaBahan);
-        if (totalBtkl > 0)       j3 += rowK('BDP - BTKL', bdpBtklKode, bdpBtklNama, totalBtkl);
-        if (totalBop  > 0)       j3 += rowK('BDP - BOP',  bdpBopKode,  bdpBopNama,  totalBop);
-    }
-    document.getElementById('jurnal-wip-barangjadi-body').innerHTML = j3 || empty5;
-
-    // Update jurnal 3 saat COA barang jadi diganti
-    document.getElementById('coa_persediaan_barang_jadi_id').onchange = () => calculateCostBreakdown();
-
+    
     // Enable submit button
     document.getElementById('submit-btn').disabled = false;
     
@@ -684,7 +476,7 @@ function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
             <td>${no++}</td>
             <td><strong>Pers. Barang Dalam Proses - BBB</strong></td>
             <td>1171</td>
-            <td class="text-end text-success fw-bold">${formatRupiah(totalBBB)}</td>
+            <td class="text-end fw-bold" style="color: #a0826d;">${formatRupiah(totalBBB)}</td>
             <td class="text-end">-</td>
         </tr>`;
         totalDebit += totalBBB;
@@ -712,7 +504,7 @@ function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
             <td>${no++}</td>
             <td><strong>Pers. Barang Dalam Proses - BTKL</strong></td>
             <td>1172</td>
-            <td class="text-end text-success fw-bold">${formatRupiah(totalBTKL)}</td>
+            <td class="text-end fw-bold" style="color: #a0826d;">${formatRupiah(totalBTKL)}</td>
             <td class="text-end">-</td>
         </tr>`;
         totalDebit += totalBTKL;
@@ -735,7 +527,7 @@ function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
             <td>${no++}</td>
             <td><strong>Barang Dalam Proses BOP</strong></td>
             <td>1173</td>
-            <td class="text-end text-success fw-bold">${formatRupiah(totalBOP)}</td>
+            <td class="text-end fw-bold" style="color: #a0826d;">${formatRupiah(totalBOP)}</td>
             <td class="text-end">-</td>
         </tr>`;
         totalDebit += totalBOP;
@@ -796,7 +588,7 @@ function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
             <td>${no++}</td>
             <td><strong>${produkCoaNama}</strong></td>
             <td>${produkCoaKode}</td>
-            <td class="text-end text-success fw-bold">${formatRupiah(totalHPP)}</td>
+            <td class="text-end fw-bold" style="color: #a0826d;">${formatRupiah(totalHPP)}</td>
             <td class="text-end">-</td>
         </tr>`;
         totalDebit += totalHPP;
@@ -851,11 +643,7 @@ function hideAllSections() {
     document.getElementById('btkl-section').style.display = 'none';
     document.getElementById('bop-section').style.display = 'none';
     document.getElementById('total-section').style.display = 'none';
-<<<<<<< HEAD
-    document.getElementById('jurnal-preview-section').style.display = 'none';
-=======
     document.getElementById('jurnal-section').style.display = 'none';
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     document.getElementById('submit-btn').disabled = true;
 }
 
@@ -887,9 +675,6 @@ document.getElementById('produk_id').addEventListener('change', function() {
     
     console.log('Fetching BOM data for product ID:', produkId);
     
-    // Recalculate daily production in case fields are already filled
-    calculateDailyProduction();
-    
     // Fetch BOM data via AJAX
     fetch(`/transaksi/produksi/get-bom-details/${produkId}?t=${Date.now()}`)
         .then(response => {
@@ -916,20 +701,8 @@ document.getElementById('produk_id').addEventListener('change', function() {
 });
 
 // Add event listeners for daily production calculation
-document.addEventListener('DOMContentLoaded', function() {
-    const jumlahBulananInput = document.getElementById('jumlah_produksi_bulanan');
-    const hariBulananInput = document.getElementById('hari_produksi_bulanan');
-    
-    if (jumlahBulananInput) {
-        jumlahBulananInput.addEventListener('input', calculateDailyProduction);
-        jumlahBulananInput.addEventListener('change', calculateDailyProduction);
-    }
-    
-    if (hariBulananInput) {
-        hariBulananInput.addEventListener('input', calculateDailyProduction);
-        hariBulananInput.addEventListener('change', calculateDailyProduction);
-    }
-});
+document.getElementById('jumlah_produksi_bulanan').addEventListener('input', calculateDailyProduction);
+document.getElementById('hari_produksi_bulanan').addEventListener('input', calculateDailyProduction);
 </script>
 @endpush
 @endsection

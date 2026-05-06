@@ -510,12 +510,10 @@ document.addEventListener('DOMContentLoaded', function() {
             convertCommasToDots();
         });
     }
-<<<<<<< HEAD
-=======
+
     
     // COA Manual Selection - Auto-fill disabled to allow manual selection
     // Users can now select COA accounts independently for each field
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 });
 </script>
 @endpush

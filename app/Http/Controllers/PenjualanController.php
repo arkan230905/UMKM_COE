@@ -17,18 +17,13 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
-<<<<<<< HEAD
-        // ── 1. Main list query (single eager-load, no duplicate) ──────────────
-        $query = Penjualan::with(['details.produk', 'returs']);
 
-=======
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Penjualan::with(['produk','details'])
             ->where('user_id', auth()->id());
         
         // Filter by nomor transaksi
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-        if ($request->filled('nomor_transaksi')) {
+if ($request->filled('nomor_transaksi')) {
             $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
         }
         if ($request->filled('tanggal_mulai')) {
@@ -40,90 +35,7 @@ class PenjualanController extends Controller
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->payment_method);
         }
-<<<<<<< HEAD
 
-        $penjualans = $query->orderBy('tanggal', 'desc')->get();
-
-        // ── 2. Summary stats – use DB aggregates, NO HPP loop ────────────────
-        $today     = now()->toDateString();
-        $yesterday = now()->subDay()->toDateString();
-
-        // Aggregate totals directly in SQL (no PHP loops, no N+1)
-        $statsToday = DB::table('penjualans')
-            ->whereDate('tanggal', $today)
-            ->selectRaw('
-                COUNT(*)                         AS jumlah_transaksi,
-                COALESCE(SUM(total), 0)          AS total_penjualan,
-                COALESCE(SUM(biaya_ongkir), 0)   AS total_ongkir,
-                COALESCE(SUM(diskon_nominal), 0) AS total_diskon
-            ')
-            ->first();
-
-        $statsYesterday = DB::table('penjualans')
-            ->whereDate('tanggal', $yesterday)
-            ->selectRaw('
-                COUNT(*)                         AS jumlah_transaksi,
-                COALESCE(SUM(total), 0)          AS total_penjualan,
-                COALESCE(SUM(biaya_ongkir), 0)   AS total_ongkir,
-                COALESCE(SUM(diskon_nominal), 0) AS total_diskon
-            ')
-            ->first();
-
-        // Qty terjual hari ini & kemarin via details join
-        $qtyToday = DB::table('penjualan_details')
-            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
-            ->whereDate('penjualans.tanggal', $today)
-            ->sum('penjualan_details.jumlah');
-
-        $qtyYesterday = DB::table('penjualan_details')
-            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
-            ->whereDate('penjualans.tanggal', $yesterday)
-            ->sum('penjualan_details.jumlah');
-
-        // Profit: harga_satuan - harga_pokok (stored on produk) × jumlah
-        // Use produk.harga_pokok as HPP proxy – avoids expensive getActualHPP() loop
-        $profitToday = DB::table('penjualan_details')
-            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
-            ->join('produks', 'produks.id', '=', 'penjualan_details.produk_id')
-            ->whereDate('penjualans.tanggal', $today)
-            ->selectRaw('SUM((penjualan_details.harga_satuan - COALESCE(produks.harga_pokok, 0)) * penjualan_details.jumlah) AS profit')
-            ->value('profit') ?? 0;
-
-        $profitYesterday = DB::table('penjualan_details')
-            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
-            ->join('produks', 'produks.id', '=', 'penjualan_details.produk_id')
-            ->whereDate('penjualans.tanggal', $yesterday)
-            ->selectRaw('SUM((penjualan_details.harga_satuan - COALESCE(produks.harga_pokok, 0)) * penjualan_details.jumlah) AS profit')
-            ->value('profit') ?? 0;
-
-        // Assign to named variables expected by the view
-        $totalPenjualan        = (float) $statsToday->total_penjualan;
-        $totalOngkir           = (float) $statsToday->total_ongkir;
-        $totalDiskon           = (float) $statsToday->total_diskon;
-        $jumlahTransaksiHariIni = (int)  $statsToday->jumlah_transaksi;
-        $totalProdukTerjual    = (float) $qtyToday;
-        $totalProfit           = (float) $profitToday;
-
-        $totalPenjualanKemarin        = (float) $statsYesterday->total_penjualan;
-        $totalOngkirKemarin           = (float) $statsYesterday->total_ongkir;
-        $totalDiskonKemarin           = (float) $statsYesterday->total_diskon;
-        $jumlahTransaksiKemarin       = (int)   $statsYesterday->jumlah_transaksi;
-        $totalProdukTerjualKemarin    = (float) $qtyYesterday;
-        $totalProfitKemarin           = (float) $profitYesterday;
-
-        // ── 3. Percentage changes ─────────────────────────────────────────────
-        $pct = fn($now, $prev) => $prev > 0 ? (($now - $prev) / $prev) * 100 : ($now > 0 ? 100 : 0);
-
-        $penjualanChange = $pct($totalPenjualan, $totalPenjualanKemarin);
-        $transaksiChange = $pct($jumlahTransaksiHariIni, $jumlahTransaksiKemarin);
-        $produkChange    = $pct($totalProdukTerjual, $totalProdukTerjualKemarin);
-        $ongkirChange    = $pct($totalOngkir, $totalOngkirKemarin);
-        $diskonChange    = $pct($totalDiskon, $totalDiskonKemarin);
-        $profitChange    = $pct($totalProfit, $totalProfitKemarin);
-
-        // ── 4. Returns ────────────────────────────────────────────────────────
-        $salesReturns = \App\Models\ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
-=======
         
         $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
         
@@ -173,8 +85,7 @@ class PenjualanController extends Controller
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $salesReturns = \App\Models\ReturPenjualan::where('user_id', auth()->id())
             ->with(['penjualan', 'detailReturPenjualans.produk'])
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            ->orderBy('created_at', 'desc')
+->orderBy('created_at', 'desc')
             ->get();
 
         return view('transaksi.penjualan.index', compact(
@@ -697,13 +608,10 @@ class PenjualanController extends Controller
 
             // Create penjualan header
             $penjualan = Penjualan::create([
-<<<<<<< HEAD
-                'tanggal'        => $tanggal,
-=======
+
                 'user_id' => auth()->id(), // CRITICAL: Set user_id
                 'tanggal' => $tanggal,
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                'payment_method' => $request->input('payment_method'),
+'payment_method' => $request->input('payment_method'),
                 'coa_id'         => $coaId,
                 'user_id'        => auth()->id(),
                 'jumlah'         => collect($items)->sum('jumlah'),

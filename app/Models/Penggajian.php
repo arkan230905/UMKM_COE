@@ -196,9 +196,7 @@ class Penggajian extends Model
      */
     public static function generateFromPresensi($bulan, $tahun, $targetHariKerja = null)
     {
-<<<<<<< HEAD
-        $createdPayrolls = [];
-=======
+
         $prefix = config('penggajian_journal.prefix_no_bukti', 'PGJ');
         $date = now()->format('Ymd');
         
@@ -208,9 +206,7 @@ class Penggajian extends Model
             ->where('user_id', auth()->id())
             ->orderBy('id', 'desc')
             ->first();
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-
-        // Get all presensi for the specified period using MONTH() and YEAR() functions
+// Get all presensi for the specified period using MONTH() and YEAR() functions
         $presensis = Presensi::whereMonth('tgl_presensi', $bulan)
             ->whereYear('tgl_presensi', $tahun)
             ->get();

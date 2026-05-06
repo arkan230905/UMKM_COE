@@ -32,10 +32,12 @@
     {{-- Custom Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    {{-- Modern Dashboard CSS - HIGHEST PRIORITY --}}
-    <link href="{{ asset('css/modern-dashboard.css') }}?v={{ time() }}" rel="stylesheet">
-    
-    {{-- CRITICAL: Inline CSS Fallback --}}
+
+    {{-- Modern Dashboard CSS - MULTIPLE ATTEMPTS --}}
+    <link href="{{ asset('css/modern-dashboard.css') }}" rel="stylesheet">
+    <link href="{{ url('css/modern-dashboard.css') }}" rel="stylesheet">
+    <link href="/css/modern-dashboard.css" rel="stylesheet">
+{{-- CRITICAL: Inline CSS Fallback --}}
     <style>
         /* Critical CSS - Always loaded */
         :root {

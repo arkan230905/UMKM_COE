@@ -48,17 +48,10 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
-<<<<<<< HEAD
-            'nama' => [
-                'required', 'string', 'max:255',
-                \Illuminate\Validation\Rule::unique('jabatans', 'nama')
-                    ->where('user_id', auth()->id()),
-            ],
-=======
+
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama' => 'required|string|max:255|unique:jabatans,nama,NULL,id,user_id,' . auth()->id(),
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            'kategori' => 'required|in:btkl,btktl',
+'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
@@ -126,18 +119,10 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
-<<<<<<< HEAD
-            'nama' => [
-                'required', 'string', 'max:255',
-                \Illuminate\Validation\Rule::unique('jabatans', 'nama')
-                    ->where('user_id', auth()->id())
-                    ->ignore($jabatan->id),
-            ],
-=======
+
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id . ',id,user_id,' . auth()->id(),
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            'kategori' => 'required|in:btkl,btktl',
+'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',

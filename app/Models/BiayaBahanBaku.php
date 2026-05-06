@@ -57,7 +57,7 @@ class BiayaBahanBaku extends Model
      */
     public function hargaPokokProduksiBiayaBahanBaku()
     {
-        return $this->hasMany(HargaPokokProduksiBiayaBahanBaku::class);
+        return $this->hasMany(HargaPokokProduksiBiayaBahanBaku::class, 'bom_job_bbb_id');
     }
 
     /**

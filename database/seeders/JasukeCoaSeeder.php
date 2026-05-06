@@ -106,6 +106,9 @@ class JasukeCoaSeeder extends Seeder
             ['537',  'BOP - Lada',                               'Biaya Overhead Pabrik', '53',  'debit', 'Biaya Produksi', 0],
             ['538',  'BOP - Bubuk Kaldu',                        'Biaya Overhead Pabrik', '53',  'debit', 'Biaya Produksi', 0],
             ['539',  'BOP - Bubuk Bawang Putih',                 'Biaya Overhead Pabrik', '53',  'debit', 'Biaya Produksi', 0],
+            ['5310', 'BOP - Air & Kebersihan',                   'Biaya Overhead Pabrik', '53',  'debit', 'Biaya Produksi', 0],
+            ['5311', 'BOP - Gas/BBM',                            'Biaya Overhead Pabrik', '53',  'debit', 'Biaya Produksi', 0],
+            ['5312', 'BOP - Listrik',                            'Biaya Overhead Pabrik', '53',  'debit', 'Biaya Produksi', 0],
 
             // ── BTKTL ─────────────────────────────────────────────────────────────────
             ['54',   'BTKTL',                                    'Biaya Tenaga Kerja Tidak Langsung', null,  'debit', 'Biaya Produksi', 1],

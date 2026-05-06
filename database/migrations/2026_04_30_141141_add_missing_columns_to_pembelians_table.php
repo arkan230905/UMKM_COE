@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pembelians', function (Blueprint $table) {
-            $table->string('bukti_faktur')->nullable()->after('nomor_faktur');
+            if (!Schema::hasColumn('pembelians', 'bukti_faktur')) {
+                $table->string('bukti_faktur')->nullable()->after('nomor_faktur');
+            }
             $table->string('kode_pembelian')->nullable()->after('bukti_faktur');
         });
     }

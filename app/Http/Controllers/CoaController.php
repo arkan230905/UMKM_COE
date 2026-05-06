@@ -152,17 +152,13 @@ class CoaController extends Controller
 
     public function create()
     {
-<<<<<<< HEAD
-        // Ambil COA milik user yang login sebagai pilihan akun induk
-        $parentCoas = Coa::whereNotNull('nama_akun')
-=======
+
         // Ambil semua COA sebagai pilihan akun induk, urut hierarkis
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $parentCoas = Coa::withoutGlobalScopes()
             ->where('user_id', auth()->id())
             ->whereNotNull('nama_akun')
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            ->where('nama_akun', '!=', '')
+->where('nama_akun', '!=', '')
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
 
@@ -173,16 +169,13 @@ class CoaController extends Controller
     {
         // Jika user memilih akun induk dan mode auto-generate
         if ($request->filled('parent_coa_id') && $request->boolean('auto_generate_kode')) {
-<<<<<<< HEAD
-            $parentCoa = Coa::find($request->parent_coa_id);
-=======
+
             // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $parentCoa = Coa::withoutGlobalScopes()
                 ->where('user_id', auth()->id())
                 ->find($request->parent_coa_id);
                 
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            if ($parentCoa) {
+if ($parentCoa) {
                 $generatedKode = Coa::generateChildCode($parentCoa->kode_akun);
                 $request->merge(['kode_akun' => $generatedKode]);
             }
@@ -211,13 +204,9 @@ class CoaController extends Controller
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-<<<<<<< HEAD
-                \Illuminate\Validation\Rule::unique('coas', 'kode_akun')
-                    ->where('user_id', auth()->id()),
-=======
+
                 'unique:coas,kode_akun,NULL,id,user_id,' . auth()->id(),
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                'max:50'
+'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
             'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
@@ -265,16 +254,12 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
-<<<<<<< HEAD
-        // Ambil COA milik user yang login (kecuali dirinya sendiri)
-        $parentCoas = Coa::whereNotNull('nama_akun')
-=======
+
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $parentCoas = Coa::withoutGlobalScopes()
             ->where('user_id', auth()->id())
             ->whereNotNull('nama_akun')
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            ->where('nama_akun', '!=', '')
+->where('nama_akun', '!=', '')
             ->where('id', '!=', $coa->id)
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
@@ -307,14 +292,9 @@ class CoaController extends Controller
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-<<<<<<< HEAD
-                \Illuminate\Validation\Rule::unique('coas', 'kode_akun')
-                    ->where('user_id', auth()->id())
-                    ->ignore($coa->id),
-=======
+
                 'unique:coas,kode_akun,' . $coa->id . ',id,user_id,' . auth()->id(),
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                'max:50'
+'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
             'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',

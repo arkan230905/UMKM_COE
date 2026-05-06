@@ -9,25 +9,7 @@ class BahanBaku extends Model
 {
     use HasFactory;
 
-<<<<<<< HEAD
-    protected $table = 'bahan_bakus'; // <--- PENTING: samakan dengan nama tabel di migration
-    
-    protected static function boot()
-    {
-        parent::boot();
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
-            }
-        });
-    }
-    
-    // Nonaktifkan sementara mass assignment protection untuk testing
-=======
     protected $table = 'bahan_bakus';
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     protected $guarded = [];
     
     /**
@@ -1293,23 +1275,27 @@ class BahanBaku extends Model
      */
     public function getStokRealTimeAttribute()
     {
-        // Global scope sudah menangani filter user_id otomatis
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        // Global scope UserScope sudah otomatis apply, tapi kita pastikan dengan explicit filter
+        $userId = $this->user_id ?? auth()->id();
+        
         $stockIn = \App\Models\StockMovement::where('item_type', 'material')
             ->where('item_id', $this->id)
+            ->where('user_id', $userId)
             ->where('direction', 'in')
             ->sum('qty');
 
         $stockOut = \App\Models\StockMovement::where('item_type', 'material')
             ->where('item_id', $this->id)
+            ->where('user_id', $userId)
             ->where('direction', 'out')
             ->sum('qty');
 
         $netStockFromMovements = $stockIn - $stockOut;
         
-        // CRITICAL: Tambahkan saldo_awal ke perhitungan
-        $totalStock = ($this->saldo_awal ?? 0) + $netStockFromMovements;
-        
-        return $totalStock;
+        // IMPORTANT: Jangan tambahkan saldo_awal karena sudah ada di stock_movements sebagai initial_stock
+        // Semua stok harus dihitung dari stock_movements saja untuk konsistensi
+        return $netStockFromMovements;
     }
 
     /**
