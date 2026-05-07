@@ -229,9 +229,14 @@ class ProduksiController extends Controller
                         $qtyBase = $qtyResepTotal;
                     }
                     
-                    // Update stok bahan baku
-                    $bahan->stok = (float)$bahan->stok - $qtyBase;
-                    $bahan->save();
+                    // IMPORTANT: Update stok directly in database to avoid triggering setter
+                    // which would create duplicate manual_adjustment stock movement
+                    \DB::table('bahan_bakus')
+                        ->where('id', $bahan->id)
+                        ->decrement('stok', $qtyBase);
+                    
+                    // Refresh model to get updated stok value
+                    $bahan->refresh();
                     
                     // Record stock movement
                     \App\Models\StockMovement::create([

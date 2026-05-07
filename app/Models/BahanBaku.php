@@ -98,11 +98,11 @@ class BahanBaku extends Model
         // Stock should be managed through StockMovement records only
         // This setter is only for emergency manual adjustments
         
-        // Skip if we're in a purchase processing context to avoid duplicates
-        if (request()->routeIs('transaksi.pembelian.*') || 
-            request()->routeIs('api.pembelian.*') ||
+        // Skip if we're in any transactional context to avoid duplicates
+        if (request()->routeIs('transaksi.*') || 
+            request()->routeIs('api.*') ||
             app()->runningInConsole()) {
-            \Log::info("Skipping legacy stock setter during purchase processing or console command for BahanBaku ID {$this->id}");
+            \Log::info("Skipping legacy stock setter during transaction processing or console command for BahanBaku ID {$this->id}");
             return;
         }
         
