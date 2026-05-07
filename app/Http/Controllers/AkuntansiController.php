@@ -816,6 +816,10 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
         });
         
+        // Calculate diskon penjualan (account 412 or similar)
+        $diskonPenjualanCoa = $coas->where('kode_akun', '412')->first();
+        $totalDiskonPenjualan = $diskonPenjualanCoa ? ($accountData['412']['saldo_akhir'] ?? 0) : 0;
+        
         // Calculate laba kotor dan laba bersih
         $labaKotor = $totalPendapatan - $hppAmount;
         $labaBersih = $labaKotor - $totalBeban;
@@ -823,7 +827,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         return view('akuntansi.laba_rugi', compact(
             'periode', 'pendapatan', 'beban', 
             'totalPendapatan', 'totalBeban', 'labaBersih',
-            'hppAmount', 'labaKotor', 'accountData'
+            'hppAmount', 'labaKotor', 'accountData', 'totalDiskonPenjualan'
         ));
     }
 }
