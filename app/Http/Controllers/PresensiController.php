@@ -149,6 +149,8 @@ class PresensiController extends Controller
         ]);
 
         try {
+            // CRITICAL: Add user_id untuk multi-tenant isolation
+            $validated['user_id'] = auth()->id();
             $presensi = Presensi::create($validated);
 
             return redirect()->route('presensi.index')
@@ -184,6 +186,8 @@ class PresensiController extends Controller
         $isFirst = Cache::add($idempotencyKey, 1, now()->addSeconds(10));
 
         if ($isFirst) {
+            // CRITICAL: Add user_id untuk multi-tenant isolation
+            $data['user_id'] = auth()->id();
             Presensi::create($data);
         }
 
@@ -592,8 +596,9 @@ $user = auth()->user();
 
             // Get today's attendance
             $today = Carbon::today();
-            $attendances = Presensi::withoutGlobalScopes()
-                ->where('pegawai_id', $pegawai->id)
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $attendances = Presensi::where('pegawai_id', $pegawai->id)
+                ->where('user_id', auth()->id())
                 ->whereDate('tgl_presensi', $today)
                 ->get();
 
@@ -768,7 +773,10 @@ $user = auth()->user();
     public function detail($id)
     {
         try {
-            $presensi = Presensi::with('pegawai')->findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $presensi = Presensi::with('pegawai')
+                ->where('user_id', auth()->id())
+                ->findOrFail($id);
             
             return response()->json([
                 'success' => true,
