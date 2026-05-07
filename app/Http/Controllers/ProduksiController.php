@@ -157,11 +157,12 @@ class ProduksiController extends Controller
             $produksi->total_proses = $produksi->proses()->count();
             $produksi->save();
 
-            // Create journal entries
-            $this->createProductionJournals($produksi, $hppData, $qtyProd, $tanggal, $journal);
+            // NOTE: Journal entries will be created when production is COMPLETED
+            // NOT when it's first created (status = 'draft')
+            // See completeProduction() method
 
             return redirect()->route('transaksi.produksi.index')
-                ->with('success', 'Produksi berhasil disimpan dengan lengkap. Data detail dan jurnal telah tercatat.');
+                ->with('success', 'Produksi berhasil disimpan. Silakan mulai produksi untuk memproses bahan baku.');
         });
     }
 
@@ -406,8 +407,28 @@ class ProduksiController extends Controller
             ]);
         }
 
-        // Note: Journal entries are already created in store() method
-        // No need to create duplicate journals here
+        // IMPORTANT: Create journal entries ONLY when production is completed
+        // Check if journals already exist to avoid duplicates
+        $existingJournal = \DB::table('jurnal_umum')
+            ->where('tipe_referensi', 'produksi_bbb')
+            ->where('referensi', $produksi->id)
+            ->where('user_id', $produksi->user_id)
+            ->exists();
+        
+        if (!$existingJournal) {
+            // Get HPP data for journal creation
+            $hppData = $this->getHppBreakdownForProduction($produk->id, $produksi->user_id);
+            
+            // Create journal entries
+            $journal = app(\App\Services\JournalService::class);
+            $this->createProductionJournals($produksi, $hppData, $qtyProd, $tanggal, $journal);
+            
+            \Log::info('Production journals created on completion', [
+                'produksi_id' => $produksi->id,
+                'user_id' => $produksi->user_id,
+                'status' => 'selesai'
+            ]);
+        }
 
         // Update status produksi ke selesai
         $produksi->update([
