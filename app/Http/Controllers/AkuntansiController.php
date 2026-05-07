@@ -431,7 +431,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
                 $saldoAwal = 0;
             } else {
                 // Specific child account
+                // MULTI-TENANT: Filter by user_id
                 $saldoAwal = \DB::table('bahan_bakus')
+                    ->where('user_id', auth()->id())
                     ->where('coa_persediaan_id', $kodeAkun)
                     ->where('saldo_awal', '>', 0)
                     ->sum(\DB::raw('saldo_awal * harga_satuan'));
@@ -447,7 +449,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
                 $saldoAwal = 0;
             } else {
                 // Specific child account
+                // MULTI-TENANT: Filter by user_id
                 $saldoAwal = \DB::table('bahan_pendukungs')
+                    ->where('user_id', auth()->id())
                     ->where('coa_persediaan_id', $kodeAkun)
                     ->where('saldo_awal', '>', 0)
                     ->sum(\DB::raw('saldo_awal * harga_satuan'));
@@ -536,7 +540,43 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             return $t['saldo_awal'] != 0 || $t['debit'] != 0 || $t['kredit'] != 0 || $t['saldo_akhir'] != 0;
         });
 
-        return view('akuntansi.neraca-saldo', compact('coas', 'totals', 'bulan', 'tahun'));
+        // Calculate balance check totals
+        $totalSaldoDebit = 0;
+        $totalSaldoKredit = 0;
+        $totalMutasiDebit = 0;
+        $totalMutasiKredit = 0;
+        
+        foreach ($coas as $coa) {
+            $data = $totals[$coa->kode_akun] ?? [];
+            $totalSaldoDebit += $data['saldo_debit'] ?? 0;
+            $totalSaldoKredit += $data['saldo_kredit'] ?? 0;
+            $totalMutasiDebit += $data['debit'] ?? 0;
+            $totalMutasiKredit += $data['kredit'] ?? 0;
+        }
+        
+        // Balance check
+        $balanceDiff = abs($totalSaldoDebit - $totalSaldoKredit);
+        $isBalanced = $balanceDiff < 0.01; // Toleransi 1 sen untuk pembulatan
+        
+        // Log balance check for debugging
+        \Log::info('Neraca Saldo Balance Check', [
+            'user_id' => auth()->id(),
+            'periode' => "$bulan/$tahun",
+            'total_saldo_debit' => $totalSaldoDebit,
+            'total_saldo_kredit' => $totalSaldoKredit,
+            'total_mutasi_debit' => $totalMutasiDebit,
+            'total_mutasi_kredit' => $totalMutasiKredit,
+            'balance_diff' => $balanceDiff,
+            'is_balanced' => $isBalanced,
+            'total_accounts' => $coas->count()
+        ]);
+
+        return view('akuntansi.neraca-saldo', compact(
+            'coas', 'totals', 'bulan', 'tahun',
+            'totalSaldoDebit', 'totalSaldoKredit', 
+            'totalMutasiDebit', 'totalMutasiKredit',
+            'balanceDiff', 'isBalanced'
+        ));
     }
 
     public function laporanPosisiKeuangan(Request $request)
