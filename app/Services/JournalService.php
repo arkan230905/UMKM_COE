@@ -586,7 +586,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
 
         if ($spesifik) {
             \DB::table('produks')->where('id', $produk->id)
-                ->update(['coa_persediaan_id' => $spesifik->id]);
+                ->update(['coa_persediaan_id' => $spesifik->kode_akun]);
             return (string)$spesifik->kode_akun;
         }
 
@@ -674,7 +674,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         
         if ($coaSpesifik) {
             // Update produk dengan coa_persediaan_id untuk next time
-            $product->update(['coa_persediaan_id' => $coaSpesifik->id]);
+            $product->update(['coa_persediaan_id' => $coaSpesifik->kode_akun]);
             return $coaSpesifik->kode_akun;
         }
         
