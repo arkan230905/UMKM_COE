@@ -2957,6 +2957,50 @@ Route::middleware('auth')->group(function () {
         // API routes for real-time product search
         Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
         Route::get('api/products/barcode', [PenjualanController::class, 'findByBarcode'])->name('api.products.barcode');
+        
+        // Journal API for pembelian
+        Route::get('api/pembelian/{id}/journal', function($id) {
+            $pembelian = \App\Models\Pembelian::where('id', $id)
+                ->where('user_id', auth()->id()) // Multi-tenant security
+                ->first();
+                
+            if (!$pembelian) {
+                return response()->json(['success' => false, 'message' => 'Pembelian tidak ditemukan'], 404);
+            }
+            
+            // Get journal entries for this purchase
+            $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
+                ->where('user_id', auth()->id()) // Multi-tenant security
+                ->with('coa')
+                ->orderBy('id', 'asc')
+                ->get();
+            
+            // Convert debit/kredit to numbers for proper JavaScript formatting
+            $journalsArray = $journalEntries->map(function($entry) {
+                return [
+                    'id' => $entry->id,
+                    'tanggal' => $entry->tanggal,
+                    'coa' => $entry->coa ? [
+                        'kode_akun' => $entry->coa->kode_akun,
+                        'nama_akun' => $entry->coa->nama_akun
+                    ] : null,
+                    'keterangan' => $entry->keterangan,
+                    'debit' => (float) $entry->debit,
+                    'kredit' => (float) $entry->kredit
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'journals' => $journalsArray,
+                'pembelian' => [
+                    'id' => $pembelian->id,
+                    'nomor_pembelian' => $pembelian->nomor_pembelian,
+                    'total_harga' => $pembelian->total_harga
+                ]
+            ]);
+        })->name('api.pembelian.journal');
         // ============================================================
         // PENGATURAN PENJUALAN
         // ============================================================
