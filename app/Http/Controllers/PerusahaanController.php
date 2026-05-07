@@ -190,11 +190,12 @@ class PerusahaanController extends Controller
         ]);
 
         try {
-            $perusahaan = Perusahaan::first();
+            $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
             
             if (!$perusahaan) {
                 // Jika belum ada, buat baru
                 $perusahaan = Perusahaan::create([
+                    'user_id' => auth()->id(),
                     'nama' => $request->field === 'nama' ? $request->value : 'Nama Perusahaan',
                     'alamat' => $request->field === 'alamat' ? $request->value : 'Alamat Perusahaan',
                     'email' => $request->field === 'email' ? $request->value : 'email@perusahaan.com',
