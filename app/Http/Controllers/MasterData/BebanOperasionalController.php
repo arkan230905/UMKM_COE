@@ -16,6 +16,7 @@ class BebanOperasionalController extends Controller
     {
         try {
             $bebanOperasional = BebanOperasional::query()
+                ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
                 ->orderBy('kode', 'asc')
                 ->get();
 
@@ -40,6 +41,7 @@ class BebanOperasionalController extends Controller
 
             // Explicitly create the data array with all required fields
             $data = [
+                'user_id' => auth()->id(), // MULTI-TENANT: Set user_id
                 'nama_beban' => $validated['nama_beban'],
                 'budget_bulanan' => $validated['budget_bulanan'],
                 'created_by' => auth()->id(),
@@ -87,7 +89,8 @@ class BebanOperasionalController extends Controller
     public function show($id)
     {
         try {
-            $bebanOperasional = BebanOperasional::findOrFail($id);
+            $bebanOperasional = BebanOperasional::where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -108,7 +111,8 @@ class BebanOperasionalController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $bebanOperasional = BebanOperasional::findOrFail($id);
+            $bebanOperasional = BebanOperasional::where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->findOrFail($id);
 
             $validated = $request->validate([
                 'nama_beban' => 'required|string|max:255',
@@ -145,10 +149,13 @@ class BebanOperasionalController extends Controller
     public function destroy($id)
     {
         try {
-            $bebanOperasional = BebanOperasional::findOrFail($id);
+            $bebanOperasional = BebanOperasional::where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->findOrFail($id);
             
             // Check if used in transactions
-            $usageCount = \App\Models\PembayaranBeban::where('beban_operasional_id', $id)->count();
+            $usageCount = \App\Models\PembayaranBeban::where('beban_operasional_id', $id)
+                ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->count();
             if ($usageCount > 0) {
                 return response()->json([
                     'success' => false,
