@@ -23,16 +23,10 @@ class ProsesProduksiController extends Controller
 
         // 🔒 MULTI-TENANT: Filter by user_id
         // Load with essential relationships only from logged-in user
-        $prosesProduksis = ProsesProduksi::with(['jabatan' => function($query) {
-                // 🔒 SECURITY: Only get jabatans from logged-in user
-                $query->where('user_id', auth()->id())
-                      ->with(['pegawais' => function($pegawaiQuery) {
-                          // 🔒 SECURITY: Only get pegawais from logged-in user
-                          $pegawaiQuery->where('user_id', auth()->id());
-                      }]);
-            }])
+        // Global scope on Jabatan and Pegawai models will automatically filter by user_id
+        $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
             ->where('user_id', auth()->id())
-->orderBy('kode_proses')
+            ->orderBy('kode_proses')
             ->paginate(10);
         
         return view('master-data.proses-produksi.index', compact('prosesProduksis'));

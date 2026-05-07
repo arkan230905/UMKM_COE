@@ -56,13 +56,15 @@ class Jabatan extends Model
     }
 
     /**
-
      * Relasi ke pegawai dengan multi-tenant isolation
-*/
+     * FIXED: Use jabatan (string) instead of jabatan_id for matching
+     * Note: Don't add where clause here, let global scope handle user_id filtering
+     */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan_id')
-            ->where('pegawais.user_id', $this->user_id);
+        // Match by jabatan name (string) instead of jabatan_id
+        // Global scope on Pegawai model will automatically filter by user_id
+        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
     }
 
     /**
