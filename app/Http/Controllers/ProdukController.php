@@ -131,20 +131,8 @@ class ProdukController extends Controller
 
         $fotoPath = null;
         if ($request->hasFile('foto')) {
+            // Store file using Laravel Storage - no need manual copy
             $fotoPath = $request->file('foto')->store('produk', 'public');
-            
-            // Copy file to public/storage for web access
-            $sourcePath = storage_path('app/public/' . $fotoPath);
-            $targetPath = public_path('storage/' . $fotoPath);
-            
-            // Ensure target directory exists
-            $targetDir = dirname($targetPath);
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
-            }
-            
-            // Copy file for web access
-            copy($sourcePath, $targetPath);
         }
 
         // Parse harga_jual from formatted string (remove dots)
@@ -334,32 +322,6 @@ class ProdukController extends Controller
             $data['foto'] = $storedPath;
             
             \Log::info('New photo stored at: ' . $storedPath);
-            \Log::info('Full storage path: ' . storage_path('app/public/' . $storedPath));
-            \Log::info('Public path: ' . public_path('storage/' . $storedPath));
-            
-            // Copy file to public/storage for web access
-            $sourcePath = storage_path('app/public/' . $storedPath);
-            $targetPath = public_path('storage/' . $storedPath);
-            
-            // Ensure target directory exists
-            $targetDir = dirname($targetPath);
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
-            }
-            
-            // Copy file for web access
-            if (copy($sourcePath, $targetPath)) {
-                \Log::info('File copied to public/storage for web access: ' . $targetPath);
-            } else {
-                \Log::error('Failed to copy file to public/storage: ' . $targetPath);
-            }
-            
-            // Verify file exists after storage
-            $fullPath = storage_path('app/public/' . $storedPath);
-            \Log::info('File exists after storage: ' . (file_exists($fullPath) ? 'YES' : 'NO'));
-            \Log::info('Public file exists: ' . (file_exists($targetPath) ? 'YES' : 'NO'));
-            
-            // Also verify via Storage facade
             \Log::info('Storage exists check: ' . (\Storage::disk('public')->exists($storedPath) ? 'YES' : 'NO'));
         }
 
