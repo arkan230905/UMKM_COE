@@ -12,48 +12,33 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Get all users to add COA for each
-        $users = DB::table('users')->whereIn('role', ['admin', 'owner'])->get();
+        // Add COA Persediaan Barang Jadi Jasuke (1161)
+        $existingJasuke = DB::table('coas')
+            ->where('kode_akun', '1161')
+            ->first();
         
-        foreach ($users as $user) {
-            // Add COA Persediaan Barang Jadi Jasuke (1161)
-            $existingJasuke = DB::table('coas')
-                ->where('user_id', $user->id)
-                ->where('kode_akun', '1161')
-                ->first();
-            
-            if (!$existingJasuke) {
-                DB::table('coas')->insert([
-                    'user_id' => $user->id,
-                    'kode_akun' => '1161',
-                    'nama_akun' => 'Pers. Barang Jadi Jasuke',
-                    'tipe_akun' => 'Asset',
-                    'kategori' => 'Aset Lancar',
-                    'saldo_normal' => 'debit',
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            
-            // Update produk Jasuke untuk menggunakan COA ini
-            $coaJasuke = DB::table('coas')
-                ->where('user_id', $user->id)
-                ->where('kode_akun', '1161')
-                ->first();
-            
-            if ($coaJasuke) {
-                // Update produk yang namanya mengandung "Jasuke" atau "jasuke"
-                DB::table('produks')
-                    ->where('user_id', $user->id)
-                    ->where(function($query) {
-                        $query->where('nama_produk', 'like', '%Jasuke%')
-                              ->orWhere('nama_produk', 'like', '%jasuke%')
-                              ->orWhere('nama_produk', 'like', '%JASUKE%');
-                    })
-                    ->update(['coa_persediaan_id' => $coaJasuke->id]);
-            }
+        if (!$existingJasuke) {
+            DB::table('coas')->insert([
+                'kode_akun' => '1161',
+                'nama_akun' => 'Pers. Barang Jadi Jasuke',
+                'tipe_akun' => 'Asset',
+                'kategori_akun' => 'Aktiva Lancar',
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0,
+                'is_akun_header' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
+        
+        // Update produk Jasuke untuk menggunakan COA ini (gunakan kode_akun, bukan id)
+        DB::table('produks')
+            ->where(function($query) {
+                $query->where('nama_produk', 'like', '%Jasuke%')
+                      ->orWhere('nama_produk', 'like', '%jasuke%')
+                      ->orWhere('nama_produk', 'like', '%JASUKE%');
+            })
+            ->update(['coa_persediaan_id' => '1161']);
     }
 
     /**
@@ -61,25 +46,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Get all users
-        $users = DB::table('users')->whereIn('role', ['admin', 'owner'])->get();
+        // Delete the COA entry created by this migration
+        DB::table('coas')
+            ->where('kode_akun', '1161')
+            ->delete();
         
-        foreach ($users as $user) {
-            // Delete the COA entry created by this migration
-            DB::table('coas')
-                ->where('user_id', $user->id)
-                ->where('kode_akun', '1161')
-                ->delete();
-            
-            // Reset coa_persediaan_id for Jasuke products
-            DB::table('produks')
-                ->where('user_id', $user->id)
-                ->where(function($query) {
-                    $query->where('nama_produk', 'like', '%Jasuke%')
-                          ->orWhere('nama_produk', 'like', '%jasuke%')
-                          ->orWhere('nama_produk', 'like', '%JASUKE%');
-                })
-                ->update(['coa_persediaan_id' => null]);
-        }
+        // Reset coa_persediaan_id for Jasuke products
+        DB::table('produks')
+            ->where(function($query) {
+                $query->where('nama_produk', 'like', '%Jasuke%')
+                      ->orWhere('nama_produk', 'like', '%jasuke%')
+                      ->orWhere('nama_produk', 'like', '%JASUKE%');
+            })
+            ->update(['coa_persediaan_id' => null]);
     }
 };
