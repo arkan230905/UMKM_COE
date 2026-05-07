@@ -211,6 +211,18 @@ class TrialBalanceService
      */
     private function getInventorySaldoAwal($kodeAkun)
     {
+        // DISABLED - Logika ini dinonaktifkan untuk mencegah perhitungan saldo awal dari bahan
+        // Bahan baku dan bahan pendukung tidak lagi berkontribusi ke saldo awal COA
+        
+        \Log::info("Skipping inventory saldo awal calculation in TrialBalanceService", [
+            'kode_akun' => $kodeAkun,
+            'reason' => 'Inventory saldo awal calculation disabled for bahan baku/pendukung'
+        ]);
+        
+        return 0; // Selalu return 0 agar tidak ada kontribusi dari bahan
+        
+        // COMMENTED OUT - Logika lama yang menghitung dari bahan
+        /*
         $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
         $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
         
@@ -245,6 +257,7 @@ class TrialBalanceService
         }
         
         return (float)$saldoAwal;
+        */
     }
 
     /**
