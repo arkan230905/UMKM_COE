@@ -126,6 +126,14 @@ class JournalService
     {
         $service = new static();
 
+        \Log::info("Starting journal creation for penjualan", [
+            'penjualan_id' => $penjualan->id,
+            'nomor_penjualan' => $penjualan->nomor_penjualan ?? 'N/A',
+            'user_id' => $penjualan->user_id,
+            'grand_total' => $penjualan->grand_total ?? $penjualan->total ?? 0,
+            'payment_method' => $penjualan->payment_method ?? 'N/A'
+        ]);
+
         // Pastikan relasi sudah di-load
         if (!$penjualan->relationLoaded('details')) {
             $penjualan->load('details.produk');
@@ -148,6 +156,12 @@ class JournalService
                 $pesan = "Jurnal penjualan tidak dapat dibuat. Akun berikut belum tersedia:\n"
                        . implode("\n", $pesanList);
             }
+            
+            \Log::error("Journal validation failed for penjualan", [
+                'penjualan_id' => $penjualan->id,
+                'missing_accounts' => $namaAkunMissing,
+                'error' => $pesan
+            ]);
             
             throw new \Exception($pesan);
         }
@@ -407,6 +421,15 @@ class JournalService
         $finalUserId = $userId ?? $penjualan->user_id ?? auth()->id();
         
         $service->postWithUser($tanggal, 'sale', $penjualan->id, $memo, $lines, $finalUserId);
+        
+        \Log::info("Journal created successfully for penjualan", [
+            'penjualan_id' => $penjualan->id,
+            'nomor_penjualan' => $penjualan->nomor_penjualan ?? 'N/A',
+            'user_id' => $finalUserId,
+            'total_lines' => count($lines),
+            'total_debit' => array_sum(array_column($lines, 'debit')),
+            'total_credit' => array_sum(array_column($lines, 'credit'))
+        ]);
     }
 
     /**

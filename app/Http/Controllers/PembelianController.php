@@ -1070,8 +1070,11 @@ class PembelianController extends Controller
                     \Log::error('Failed to create journal entries for pembelian', [
                         'pembelian_id' => $pembelian->id,
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
-                    // Don't fail the transaction, just log the error
+                    // Show warning to user but don't fail the transaction
+                    return redirect()->route('transaksi.pembelian.show', $pembelian->id)
+                        ->with('warning', 'Data pembelian berhasil disimpan, tetapi jurnal akuntansi belum dapat dibuat: ' . $e->getMessage());
                 }
 
                 return redirect()->route('transaksi.pembelian.index')

@@ -18,6 +18,14 @@ class PembelianJournalService
     public function createJournalFromPembelian(Pembelian $pembelian): ?Pembelian
     {
         try {
+            Log::info("Starting journal creation for pembelian", [
+                'pembelian_id' => $pembelian->id,
+                'nomor_pembelian' => $pembelian->nomor_pembelian,
+                'user_id' => $pembelian->user_id,
+                'total' => $pembelian->total,
+                'payment_method' => $pembelian->payment_method
+            ]);
+            
             // Hapus jurnal yang sudah ada untuk pembelian ini
             $this->deleteExistingJournalPrivate($pembelian->id);
             
@@ -26,6 +34,8 @@ class PembelianJournalService
                 Log::warning("Pembelian {$pembelian->id} tidak memiliki detail, skip jurnal");
                 return null;
             }
+            
+            Log::info("Pembelian has {$pembelian->details->count()} details");
             
             $lines = [];
             $subtotalAmount = 0;
