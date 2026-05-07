@@ -115,7 +115,7 @@
                 <div class="info-display">
                     @if($pembelian->bukti_faktur)
                         <div class="d-flex align-items-center gap-2">
-                            <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-file-image me-1"></i>Lihat Bukti
                             </a>
                             @if(str_contains($pembelian->bukti_faktur, '.pdf'))
@@ -217,16 +217,16 @@
                         <i class="fas fa-file-pdf fa-2x mb-2"></i>
                         <h5>Dokumen PDF</h5>
                         <p class="mb-3">Bukti faktur dalam format PDF</p>
-                        <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
+                        <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
                             <i class="fas fa-external-link-alt me-2"></i>Buka PDF di Tab Baru
                         </a>
                     </div>
                 @else
                     <div class="border rounded p-3 d-inline-block">
-                        <img src="{{ asset($pembelian->bukti_faktur) }}" alt="Bukti Faktur" 
+                        <img src="{{ url('/storage/' . $pembelian->bukti_faktur) }}" alt="Bukti Faktur" 
                              style="max-width: 600px; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                         <div class="mt-3">
-                            <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
+                            <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
                                 <i class="fas fa-expand me-2"></i>Lihat Gambar Ukuran Penuh
                             </a>
                         </div>
