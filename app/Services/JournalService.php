@@ -638,3 +638,64 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         return $persediaanCoa ? $persediaanCoa->kode_akun : '116';
     }
 }
+
+    /**
+     * Get COA Persediaan Barang Jadi untuk produk
+     * Prioritas:
+     * 1. COA spesifik per produk (contoh: 1161 untuk Jasuke)
+     * 2. COA umum Persediaan Barang Jadi (116)
+     * 
+     * @param \App\Models\Produk $product
+     * @return string Kode akun COA
+     */
+    private function getPersediaanBarangJadiCOA($product): string
+    {
+        $userId = auth()->id();
+        
+        // 1. Cek apakah produk sudah punya coa_persediaan_id
+        if (!empty($product->coa_persediaan_id)) {
+            $coa = Coa::find($product->coa_persediaan_id);
+            if ($coa) {
+                return $coa->kode_akun;
+            }
+        }
+        
+        // 2. Cari COA spesifik untuk produk ini berdasarkan nama
+        // Format: "Pers. Barang Jadi {NamaProduk}" atau "Persediaan Barang Jadi {NamaProduk}"
+        $namaProduk = $product->nama_produk;
+        
+        $coaSpesifik = Coa::where('user_id', $userId)
+            ->whereIn('tipe_akun', ['Asset', 'Aset'])
+            ->where(function($query) use ($namaProduk) {
+                $query->where('nama_akun', 'Pers. Barang Jadi ' . $namaProduk)
+                      ->orWhere('nama_akun', 'Persediaan Barang Jadi ' . $namaProduk)
+                      ->orWhere('nama_akun', 'like', '%Pers%Barang%Jadi%' . $namaProduk . '%');
+            })
+            ->first();
+        
+        if ($coaSpesifik) {
+            // Update produk dengan coa_persediaan_id untuk next time
+            $product->update(['coa_persediaan_id' => $coaSpesifik->id]);
+            return $coaSpesifik->kode_akun;
+        }
+        
+        // 3. Fallback ke COA umum Persediaan Barang Jadi
+        $coaUmum = Coa::where('user_id', $userId)
+            ->whereIn('tipe_akun', ['Asset', 'Aset'])
+            ->where(function($query) {
+                $query->where('kode_akun', '116')
+                      ->orWhere('kode_akun', '115')
+                      ->orWhere('nama_akun', 'Pers. Barang Jadi')
+                      ->orWhere('nama_akun', 'Persediaan Barang Jadi');
+            })
+            ->first();
+        
+        if ($coaUmum) {
+            return $coaUmum->kode_akun;
+        }
+        
+        // 4. Default fallback
+        return '116';
+    }
+
+}
