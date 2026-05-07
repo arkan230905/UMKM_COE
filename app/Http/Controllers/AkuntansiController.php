@@ -416,6 +416,18 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
 
     private function getInventorySaldoAwal($kodeAkun)
     {
+        // DISABLED - Logika ini dinonaktifkan untuk mencegah perhitungan saldo awal dari bahan
+        // Bahan baku dan bahan pendukung tidak lagi berkontribusi ke saldo awal COA
+        
+        \Log::info("Skipping inventory saldo awal calculation in AkuntansiController", [
+            'kode_akun' => $kodeAkun,
+            'reason' => 'Inventory saldo awal calculation disabled for bahan baku/pendukung'
+        ]);
+        
+        return 0; // Selalu return 0 agar tidak ada kontribusi dari bahan
+        
+        // COMMENTED OUT - Logika lama yang menghitung dari bahan
+        /*
         // Map kode akun persediaan ke COA yang terhubung dengan bahan baku/pendukung
         $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143']; // Persediaan Bahan Baku
         $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115']; // Persediaan Bahan Pendukung
@@ -459,6 +471,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         }
         
         return (float)$saldoAwal;
+        */
     }
 
     public function neracaSaldo(Request $request)

@@ -613,8 +613,13 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
-                // Filter out invalid purchase movements (orphaned ones) and refund returns
+                // Filter out invalid purchase movements (orphaned ones), refund returns, and manual adjustments
                 $movements = $movements->filter(function($movement) {
+                    // Filter out manual adjustment entries
+                    if ($movement->ref_type === 'manual_adjustment' || $movement->ref_type === 'adjustment') {
+                        return false; // Skip all adjustment entries
+                    }
+                    
                     // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
                     if ($movement->ref_type === 'retur_penjualan') {
                         $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
@@ -642,8 +647,13 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
-                // Filter out invalid purchase movements (orphaned ones) and refund returns
+                // Filter out invalid purchase movements (orphaned ones), refund returns, and manual adjustments
                 $movements = $movements->filter(function($movement) {
+                    // Filter out manual adjustment entries
+                    if ($movement->ref_type === 'manual_adjustment' || $movement->ref_type === 'adjustment') {
+                        return false; // Skip all adjustment entries
+                    }
+                    
                     // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
                     if ($movement->ref_type === 'retur_penjualan') {
                         $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
@@ -724,10 +734,6 @@ class LaporanController extends Controller
                                 // Retur barang masuk - show as positive purchase
                                 $dailyInQty = (float)$m->qty;
                                 $dailyInNilai = (float)($m->total_cost ?? 0);
-                            } elseif ($m->ref_type === 'adjustment') {
-                                // Stock adjustments (positive) - show in pembelian column
-                                $dailyInQty = (float)$m->qty;
-                                $dailyInNilai = (float)($m->total_cost ?? 0);
                             } elseif ($m->ref_type === 'initial_stock') {
                                 // Skip initial_stock - handled by opening balance
                                 continue;
@@ -743,10 +749,6 @@ class LaporanController extends Controller
                                 }
                             } elseif ($m->ref_type === 'production' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
                                 // Production consumption - show in produksi column ONLY
-                                $dailyOutQty = (float)$m->qty;
-                                $dailyOutNilai = (float)($m->total_cost ?? 0);
-                            } elseif ($m->ref_type === 'adjustment') {
-                                // Stock adjustments (negative) - show in produksi column as other usage
                                 $dailyOutQty = (float)$m->qty;
                                 $dailyOutNilai = (float)($m->total_cost ?? 0);
                             } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
@@ -990,6 +992,7 @@ class LaporanController extends Controller
                 $itemType = $tipe == 'bahan_pendukung' ? 'support' : $tipe;
                 $movements = \App\Models\StockMovement::where('item_type', $itemType)
                     ->where('item_id', $itemId)
+                    ->whereNotIn('ref_type', ['manual_adjustment', 'adjustment']) // Exclude adjustment entries
                     ->orderBy('tanggal', 'asc')
                     ->get();
                 
@@ -1072,19 +1075,6 @@ class LaporanController extends Controller
                         $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
                         $produksiHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
                         $produksiTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
-                    } elseif($movement->ref_type === 'adjustment') {
-                        // Stock adjustments - show in appropriate column based on direction
-                        if ($movement->direction === 'in') {
-                            $pembelianQty = $movement->qty * $unit['conversion'];
-                            $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
-                            $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
-                            $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
-                        } else {
-                            $produksiQty = $movement->qty * $unit['conversion'];
-                            $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
-                            $produksiHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
-                            $produksiTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
-                        }
                     }
                     
                     $dailyStock[] = [

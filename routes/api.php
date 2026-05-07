@@ -60,38 +60,6 @@ Route::prefix('depreciation-schedules')->middleware('auth:sanctum')->group(funct
 // Kategori options (public)
 Route::get('/aset/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
 
-// Pembelian API Routes
-Route::get('/pembelian/{id}/journal', function($id) {
-    $pembelian = \App\Models\Pembelian::find($id);
-    if (!$pembelian) {
-        return response()->json(['success' => false, 'message' => 'Pembelian tidak ditemukan'], 404);
-    }
-    
-    // Get journal entries for this purchase
-    $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
-        ->where('referensi', $pembelian->nomor_pembelian)
-        ->with('coa')
-        ->orderBy('id', 'asc')
-        ->get();
-    
-    // Convert debit/kredit to numbers for proper JavaScript formatting
-    $journalsArray = $journalEntries->toArray();
-    foreach ($journalsArray as &$journal) {
-        $journal['debit'] = (float) $journal['debit'];
-        $journal['kredit'] = (float) $journal['kredit'];
-    }
-    
-    return response()->json([
-        'success' => true,
-        'journals' => $journalsArray,
-        'pembelian' => [
-            'id' => $pembelian->id,
-            'nomor_pembelian' => $pembelian->nomor_pembelian,
-            'total_harga' => $pembelian->total_harga
-        ]
-    ]);
-})->name('api.pembelian.journal');
-
 // Produk API Routes
 Route::get('/produk/{id}', function($id) {
     $produk = \App\Models\Produk::find($id);

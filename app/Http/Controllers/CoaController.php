@@ -78,6 +78,18 @@ class CoaController extends Controller
      */
     private function getInventorySaldoAwalForCoa($kodeAkun)
     {
+        // DISABLED - Logika ini dinonaktifkan untuk mencegah perhitungan saldo awal dari bahan
+        // Bahan baku dan bahan pendukung tidak lagi berkontribusi ke saldo awal COA
+        
+        \Log::info("Skipping inventory saldo awal calculation for COA", [
+            'kode_akun' => $kodeAkun,
+            'reason' => 'Inventory saldo awal calculation disabled for bahan baku/pendukung'
+        ]);
+        
+        return null; // Selalu return null agar menggunakan saldo_awal dari COA table
+        
+        // COMMENTED OUT - Logika lama yang menghitung dari bahan
+        /*
         $userId = auth()->id();
 
         // Cari di bahan_bakus milik user ini
@@ -104,6 +116,7 @@ class CoaController extends Controller
         }
 
         return $found ? $total : null;
+        */
     }
     
     /**
