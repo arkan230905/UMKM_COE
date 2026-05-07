@@ -49,9 +49,13 @@ if ($request->filled('nomor_transaksi')) {
         $totalPenjualan = 0;
         $totalProdukTerjual = 0;
         $totalProfit = 0;
+        $totalOngkir = 0;
+        $totalDiskon = 0;
         
         foreach ($penjualansHariIni as $penjualan) {
             $totalPenjualan += (float)($penjualan->total ?? 0);
+            $totalOngkir += (float)($penjualan->ongkir ?? 0);
+            $totalDiskon += (float)($penjualan->diskon_nominal ?? 0);
             
             $detailCount = $penjualan->details->count();
             if ($detailCount > 1) {
@@ -80,6 +84,59 @@ if ($request->filled('nomor_transaksi')) {
         }
         
         $jumlahTransaksiHariIni = $penjualansHariIni->count();
+        
+        // Calculate yesterday's data for comparison
+        $yesterday = now()->subDay()->format('Y-m-d');
+        $penjualansKemarin = Penjualan::where('user_id', auth()->id())
+            ->whereDate('tanggal', $yesterday)
+            ->get();
+        
+        $totalPenjualanKemarin = 0;
+        $totalProdukTerjualKemarin = 0;
+        $totalProfitKemarin = 0;
+        $totalOngkirKemarin = 0;
+        $totalDiskonKemarin = 0;
+        
+        foreach ($penjualansKemarin as $penjualan) {
+            $totalPenjualanKemarin += (float)($penjualan->total ?? 0);
+            $totalOngkirKemarin += (float)($penjualan->ongkir ?? 0);
+            $totalDiskonKemarin += (float)($penjualan->diskon_nominal ?? 0);
+            
+            $detailCount = $penjualan->details->count();
+            if ($detailCount > 1) {
+                foreach ($penjualan->details as $d) {
+                    $totalProdukTerjualKemarin += (float)($d->jumlah ?? 0);
+                    $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                    $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
+                    $totalProfitKemarin += $margin;
+                }
+            } elseif ($detailCount === 1) {
+                $d = $penjualan->details[0];
+                $totalProdukTerjualKemarin += (float)($d->jumlah ?? 0);
+                $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
+                $totalProfitKemarin += $margin;
+            } else {
+                $totalProdukTerjualKemarin += (float)($penjualan->jumlah ?? 0);
+                $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                $hdrHarga = $penjualan->harga_satuan;
+                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                }
+                $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
+                $totalProfitKemarin += $margin;
+            }
+        }
+        
+        $jumlahTransaksiKemarin = $penjualansKemarin->count();
+        
+        // Calculate percentage changes
+        $penjualanChange = $totalPenjualanKemarin > 0 ? (($totalPenjualan - $totalPenjualanKemarin) / $totalPenjualanKemarin) * 100 : 0;
+        $transaksiChange = $jumlahTransaksiKemarin > 0 ? (($jumlahTransaksiHariIni - $jumlahTransaksiKemarin) / $jumlahTransaksiKemarin) * 100 : 0;
+        $produkChange = $totalProdukTerjualKemarin > 0 ? (($totalProdukTerjual - $totalProdukTerjualKemarin) / $totalProdukTerjualKemarin) * 100 : 0;
+        $ongkirChange = $totalOngkirKemarin > 0 ? (($totalOngkir - $totalOngkirKemarin) / $totalOngkirKemarin) * 100 : 0;
+        $diskonChange = $totalDiskonKemarin > 0 ? (($totalDiskon - $totalDiskonKemarin) / $totalDiskonKemarin) * 100 : 0;
+        $profitChange = $totalProfitKemarin > 0 ? (($totalProfit - $totalProfitKemarin) / $totalProfitKemarin) * 100 : 0;
         
         // Get return data for the return tab
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
