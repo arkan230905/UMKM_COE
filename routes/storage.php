@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 // Format: /storage/{path} dimana path bisa berupa bukti_faktur/1/filename.png
 Route::get('/storage/{path}', function ($path) {
     try {
+        // Decode URL-encoded path (handle spaces and special characters)
+        $path = urldecode($path);
+        
         // Security: Hanya izinkan file type tertentu
         $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'];
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
