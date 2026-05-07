@@ -2674,6 +2674,9 @@ Route::middleware('auth')->group(function () {
             }
         });
         
+        // Presensi API Route for Penggajian
+        Route::get('api/presensi/jam-kerja', [\App\Http\Controllers\PresensiController::class, 'getJamKerja'])->name('api.presensi.jam-kerja');
+        
         // BOP API Route (simple version)
         Route::get('api/bop-details/{btkl_ids}', function ($btkl_ids) {
             try {
@@ -5931,6 +5934,105 @@ Route::get('/debug/btkl-pegawai', function() {
     $output .= "</div>";
     return $output;
 })->middleware('auth')->name('debug.btkl.pegawai');
+
+// Route to fix BTKL pegawai assignment directly in database
+Route::get('/debug/fix-btkl-pegawai-assignment', function() {
+    $output = "<div style='font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;'>";
+    $output .= "<h2 style='color: #4ec9b0;'>Fix BTKL Pegawai Assignment</h2>";
+    
+    try {
+        $userId = auth()->id();
+        
+        if (!$userId) {
+            $output .= "<p style='color: #f48771;'>ERROR: You must be logged in to run this script.</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<p>Running for user ID: <strong>{$userId}</strong></p>";
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        
+        // Get jabatan BTKL
+        $jabatanPengukusan = \DB::table('jabatans')
+            ->where('user_id', $userId)
+            ->where('nama', 'Pengukusan')
+            ->first();
+        
+        $jabatanPengemasan = \DB::table('jabatans')
+            ->where('user_id', $userId)
+            ->where('nama', 'Pengemasan')
+            ->first();
+        
+        if (!$jabatanPengukusan || !$jabatanPengemasan) {
+            $output .= "<p style='color: #f48771;'>ERROR: Jabatan Pengukusan atau Pengemasan tidak ditemukan!</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<h3 style='color: #569cd6;'>Found Jabatan:</h3>";
+        $output .= "<ul>";
+        $output .= "<li>Pengukusan (ID: {$jabatanPengukusan->id})</li>";
+        $output .= "<li>Pengemasan (ID: {$jabatanPengemasan->id})</li>";
+        $output .= "</ul>";
+        
+        // Get pegawai
+        $pegawais = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->get();
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Assigning Pegawai:</h3>";
+        
+        $updated = 0;
+        foreach ($pegawais as $index => $pegawai) {
+            // Assign first pegawai to Pengukusan, second to Pengemasan
+            $jabatanId = ($index == 0) ? $jabatanPengukusan->id : $jabatanPengemasan->id;
+            $jabatanNama = ($index == 0) ? 'Pengukusan' : 'Pengemasan';
+            
+            \DB::table('pegawais')
+                ->where('id', $pegawai->id)
+                ->update(['jabatan_id' => $jabatanId]);
+            
+            $output .= "<p style='color: #4ec9b0;'>✓ {$pegawai->nama} → {$jabatanNama}</p>";
+            $updated++;
+        }
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #4ec9b0;'>Summary:</h3>";
+        $output .= "<p><strong>{$updated}</strong> pegawai updated</p>";
+        
+        // Verify
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Verification:</h3>";
+        
+        $countPengukusan = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->where('jabatan_id', $jabatanPengukusan->id)
+            ->count();
+        
+        $countPengemasan = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->where('jabatan_id', $jabatanPengemasan->id)
+            ->count();
+        
+        $output .= "<ul>";
+        $output .= "<li>Pengukusan: <strong style='color: #4ec9b0;'>{$countPengukusan}</strong> pegawai</li>";
+        $output .= "<li>Pengemasan: <strong style='color: #4ec9b0;'>{$countPengemasan}</strong> pegawai</li>";
+        $output .= "</ul>";
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<p style='color: #4ec9b0;'>✓ Assignment completed!</p>";
+        $output .= "<p><a href='/master-data/btkl' style='color: #569cd6; text-decoration: underline;'>View BTKL Page</a></p>";
+        $output .= "<p><a href='/debug/btkl-pegawai' style='color: #569cd6; text-decoration: underline;'>Run Debug Again</a></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: #f48771;'>FATAL ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $output .= "<pre style='color: #808080; font-size: 11px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    $output .= "</div>";
+    return $output;
+})->middleware('auth')->name('debug.fix.btkl.pegawai.assignment');
 
 
 // Include storage routes
