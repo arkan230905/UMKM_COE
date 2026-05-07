@@ -19,7 +19,10 @@ class ReturPenjualanController extends Controller
 
     public function detailRetur($penjualanId)
     {
-        $penjualan = Penjualan::with(['penjualanDetails.produk'])->findOrFail($penjualanId);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())
+            ->with(['penjualanDetails.produk'])
+            ->findOrFail($penjualanId);
         $pelanggans = User::where('role', 'pelanggan')->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
@@ -45,7 +48,8 @@ class ReturPenjualanController extends Controller
             'details.*.qty_retur' => 'required|numeric|min:0.0001',
             'details.*.harga_barang' => 'required|numeric|min:0'
         ]);
-        $penjualan = Penjualan::findOrFail($request->penjualan_id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
         if ($request->jenis_retur === 'kredit' && $penjualan->payment_method !== 'credit') {
             return redirect()->back()
                 ->withInput()
@@ -62,6 +66,7 @@ class ReturPenjualanController extends Controller
             $returPenjualan->pelanggan_id = $request->pelanggan_id ?? null;
             $returPenjualan->jenis_retur = $request->jenis_retur;
             $returPenjualan->keterangan = $request->keterangan;
+            $returPenjualan->user_id = auth()->id(); // CRITICAL: Set user_id
             $returPenjualan->save();
 
             foreach ($request->details as $detail) {
@@ -99,13 +104,21 @@ class ReturPenjualanController extends Controller
 
     public function edit(ReturPenjualan $returPenjualan)
     {
+        // CRITICAL: Verify ownership untuk multi-tenant isolation
+        if ($returPenjualan->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access');
+        }
+        
         if ($returPenjualan->status !== 'belum_dibayar') {
             return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('error', 'Retur tidak dapat diedit karena status sudah ' . $returPenjualan->status);
         }
 
         $returPenjualan->load(['detailReturPenjualans.penjualanDetail.produk']);
-        $penjualans = Penjualan::with(['penjualanDetails.produk'])->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualans = Penjualan::where('user_id', auth()->id())
+            ->with(['penjualanDetails.produk'])
+            ->get();
         $pelanggans = User::where('role', 'pelanggan')->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
@@ -120,6 +133,11 @@ class ReturPenjualanController extends Controller
 
     public function update(Request $request, ReturPenjualan $returPenjualan)
     {
+        // CRITICAL: Verify ownership untuk multi-tenant isolation
+        if ($returPenjualan->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access');
+        }
+        
         if ($returPenjualan->status !== 'belum_dibayar') {
             return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('error', 'Retur tidak dapat diedit karena status sudah ' . $returPenjualan->status);
@@ -136,7 +154,8 @@ class ReturPenjualanController extends Controller
             'details.*.qty_retur' => 'required|numeric|min:0.0001',
             'details.*.harga_barang' => 'required|numeric|min:0'
         ]);
-        $penjualan = Penjualan::findOrFail($request->penjualan_id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
         if ($request->jenis_retur === 'kredit' && $penjualan->payment_method !== 'credit') {
             return redirect()->back()
                 ->withInput()
@@ -190,6 +209,11 @@ class ReturPenjualanController extends Controller
 
     public function destroy(ReturPenjualan $returPenjualan)
     {
+        // CRITICAL: Verify ownership untuk multi-tenant isolation
+        if ($returPenjualan->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access');
+        }
+        
         try {
             DB::beginTransaction();
 
@@ -210,7 +234,10 @@ class ReturPenjualanController extends Controller
 
     public function getPenjualanDetails($penjualanId)
     {
-        $penjualan = Penjualan::with(['penjualanDetails.produk'])->find($penjualanId);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())
+            ->with(['penjualanDetails.produk'])
+            ->find($penjualanId);
 
         if (!$penjualan) {
             return response()->json(['error' => 'Penjualan tidak ditemukan'], 404);
