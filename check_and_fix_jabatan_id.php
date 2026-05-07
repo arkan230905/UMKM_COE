@@ -34,7 +34,7 @@ if ($pegawaisNullJabatan->isEmpty()) {
     
     $allPegawais = DB::table('pegawais')
         ->leftJoin('jabatans', 'pegawais.jabatan_id', '=', 'jabatans.id')
-        ->select('pegawais.*', 'jabatans.nama_jabatan', 'jabatans.tunjangan', 'jabatans.tunjangan_transport', 'jabatans.tunjangan_konsumsi')
+        ->select('pegawais.*', 'jabatans.nama as nama_jabatan', 'jabatans.tunjangan', 'jabatans.tunjangan_transport', 'jabatans.tunjangan_konsumsi')
         ->get();
     
     foreach ($allPegawais as $p) {
@@ -88,8 +88,8 @@ foreach ($pegawaisNullJabatan as $pegawai) {
     $jabatan = DB::table('jabatans')
         ->where('user_id', $pegawai->user_id)
         ->where(function($query) use ($pegawai) {
-            $query->where('nama_jabatan', $pegawai->jabatan)
-                  ->orWhere('nama_jabatan', 'LIKE', '%' . $pegawai->jabatan . '%');
+            $query->where('nama', $pegawai->jabatan)
+                  ->orWhere('nama', 'LIKE', '%' . $pegawai->jabatan . '%');
         })
         ->first();
     
@@ -99,7 +99,7 @@ foreach ($pegawaisNullJabatan as $pegawai) {
             ->where('id', $pegawai->id)
             ->update(['jabatan_id' => $jabatan->id]);
         
-        echo "✅ Pegawai ID {$pegawai->id} ({$pegawai->nama}) → Jabatan ID {$jabatan->id} ({$jabatan->nama_jabatan})\n";
+        echo "✅ Pegawai ID {$pegawai->id} ({$pegawai->nama}) → Jabatan ID {$jabatan->id} ({$jabatan->nama})\n";
         echo "   Tunjangan: Jabatan Rp " . number_format($jabatan->tunjangan ?? 0, 0, ',', '.') . 
              ", Transport Rp " . number_format($jabatan->tunjangan_transport ?? 0, 0, ',', '.') .
              ", Konsumsi Rp " . number_format($jabatan->tunjangan_konsumsi ?? 0, 0, ',', '.') . "\n";
