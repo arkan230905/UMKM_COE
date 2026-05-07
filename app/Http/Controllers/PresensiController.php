@@ -153,7 +153,7 @@ class PresensiController extends Controller
             $validated['user_id'] = auth()->id();
             $presensi = Presensi::create($validated);
 
-            return redirect()->route('presensi.index')
+            return redirect()->route('transaksi.presensi.index')
                 ->with('success', 'Presensi berhasil dicatat');
         } catch (\Exception $e) {
             return back()->with('error', 'Error: ' . $e->getMessage());
@@ -229,7 +229,7 @@ return view('transaksi.presensi.show', compact('presensi'));
         $presensi = Presensi::where('user_id', auth()->id())->find($id);
 
         if (!$presensi) {
-            return redirect()->route('presensi.index')
+            return redirect()->route('transaksi.presensi.index')
                 ->with('error', 'Presensi tidak ditemukan');
         }
 
@@ -259,7 +259,7 @@ return view('transaksi.presensi.show', compact('presensi'));
 try {
             $presensi->update($validated);
 
-            return redirect()->route('presensi.index')
+            return redirect()->route('transaksi.presensi.index')
                 ->with('success', 'Presensi berhasil diperbarui');
         } catch (\Exception $e) {
             return back()->with('error', 'Error: ' . $e->getMessage());
@@ -274,9 +274,9 @@ try {
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $presensi = Presensi::where('user_id', auth()->id())->findOrFail($id);
-$presensi->delete();
+        $presensi->delete();
 
-        return redirect()->route('presensi.index')
+        return redirect()->route('transaksi.presensi.index')
             ->with('success', 'Presensi berhasil dihapus');
     }
 
