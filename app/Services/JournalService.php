@@ -235,12 +235,6 @@ class JournalService
                 // Default to Kas
                 $debitAccount = '112';
                 $debitMemo = 'Penerimaan penjualan';
-}
-
-            \Log::warning('Journal penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id)
-                . ' tidak dibuat – akun missing: ' . implode(', ', $namaAkunMissing));
-
-            throw new \RuntimeException($pesan);
         }
 
         // ── HAPUS JURNAL LAMA ────────────────────────────────────────────────
