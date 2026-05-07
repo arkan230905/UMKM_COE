@@ -60,8 +60,10 @@ Route::prefix('depreciation-schedules')->middleware('auth:sanctum')->group(funct
 // Kategori options (public)
 Route::get('/aset/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
 
-// Presensi API Routes
-Route::get('/presensi/jam-kerja', [PresensiController::class, 'getJamKerja'])->name('api.presensi.jam-kerja');
+// Presensi API Routes (using web auth for browser requests)
+Route::middleware('auth')->group(function () {
+    Route::get('/presensi/jam-kerja', [PresensiController::class, 'getJamKerja'])->name('api.presensi.jam-kerja');
+});
 
 // Pembelian API Routes
 Route::get('/pembelian/{id}/journal', function($id) {
