@@ -22,6 +22,10 @@ return new class extends Migration
                 'kode_akun' => '411',
                 'nama_akun' => 'Penjualan',
                 'tipe_akun' => 'Revenue',
+                'kategori_akun' => 'Pendapatan',
+                'saldo_normal' => 'kredit',
+                'saldo_awal' => 0,
+                'is_akun_header' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -37,6 +41,10 @@ return new class extends Migration
                 'kode_akun' => '211',
                 'nama_akun' => 'PPN Keluaran',
                 'tipe_akun' => 'Liability',
+                'kategori_akun' => 'Kewajiban Lancar',
+                'saldo_normal' => 'kredit',
+                'saldo_awal' => 0,
+                'is_akun_header' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -52,6 +60,10 @@ return new class extends Migration
                 'kode_akun' => '554',
                 'nama_akun' => 'Harga Pokok Penjualan',
                 'tipe_akun' => 'Expense',
+                'kategori_akun' => 'Beban Pokok Penjualan',
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0,
+                'is_akun_header' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -67,6 +79,10 @@ return new class extends Migration
                 'kode_akun' => '115',
                 'nama_akun' => 'Persediaan Barang Jadi',
                 'tipe_akun' => 'Asset',
+                'kategori_akun' => 'Aktiva Lancar',
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0,
+                'is_akun_header' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
