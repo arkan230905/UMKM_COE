@@ -5782,6 +5782,156 @@ Route::get('/debug/create-missing-journals', function() {
     return $output;
 })->middleware('auth')->name('debug.create.missing.journals');
 
+// Route to debug BTKL pegawai count issue
+Route::get('/debug/btkl-pegawai', function() {
+    $output = "<div style='font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;'>";
+    $output .= "<h2 style='color: #4ec9b0;'>Debug BTKL Pegawai Count</h2>";
+    
+    try {
+        $userId = auth()->id();
+        
+        if (!$userId) {
+            $output .= "<p style='color: #f48771;'>ERROR: You must be logged in to run this script.</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<p>Checking for user ID: <strong>{$userId}</strong></p>";
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        
+        // Check Jabatan BTKL
+        $output .= "<h3 style='color: #569cd6;'>Jabatan BTKL</h3>";
+        $jabatanBtkl = \DB::table('jabatans')
+            ->where('user_id', $userId)
+            ->where('kategori', 'btkl')
+            ->get(['id', 'nama', 'kategori', 'tarif', 'user_id']);
+        
+        $output .= "<p>Found <strong>{$jabatanBtkl->count()}</strong> jabatan BTKL</p>";
+        $output .= "<ul>";
+        foreach ($jabatanBtkl as $j) {
+            $output .= "<li>ID: {$j->id}, Nama: <strong>{$j->nama}</strong>, Tarif: Rp " . number_format($j->tarif) . ", User: {$j->user_id}</li>";
+        }
+        $output .= "</ul>";
+        
+        // Check Pegawai
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Pegawai</h3>";
+        $pegawais = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->get(['id', 'nama', 'jabatan_id', 'user_id']);
+        
+        $output .= "<p>Found <strong>{$pegawais->count()}</strong> pegawai</p>";
+        $output .= "<ul>";
+        foreach ($pegawais as $p) {
+            $jabatan = \DB::table('jabatans')->where('id', $p->jabatan_id)->first();
+            $jabatanNama = $jabatan ? $jabatan->nama : '<span style="color: #f48771;">NULL</span>';
+            $jabatanKategori = $jabatan ? $jabatan->kategori : 'NULL';
+            $output .= "<li>ID: {$p->id}, Nama: <strong>{$p->nama}</strong>, Jabatan ID: {$p->jabatan_id} ({$jabatanNama} - {$jabatanKategori}), User: {$p->user_id}</li>";
+        }
+        $output .= "</ul>";
+        
+        // Check Pegawai per Jabatan BTKL
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Pegawai per Jabatan BTKL</h3>";
+        
+        foreach ($jabatanBtkl as $j) {
+            $count = \DB::table('pegawais')
+                ->where('user_id', $userId)
+                ->where('jabatan_id', $j->id)
+                ->count();
+            
+            $output .= "<div style='margin-bottom: 15px; padding: 10px; background: #2d2d2d; border-left: 3px solid #569cd6;'>";
+            $output .= "<p style='margin: 0;'><strong>Jabatan: {$j->nama}</strong> (ID: {$j->id})</p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Jumlah pegawai: <strong style='color: " . ($count > 0 ? '#4ec9b0' : '#f48771') . ";'>{$count}</strong></p>";
+            
+            if ($count > 0) {
+                $pegawaiList = \DB::table('pegawais')
+                    ->where('user_id', $userId)
+                    ->where('jabatan_id', $j->id)
+                    ->get(['id', 'nama']);
+                
+                $output .= "<ul style='margin: 5px 0 0 20px;'>";
+                foreach ($pegawaiList as $p) {
+                    $output .= "<li>{$p->nama} (ID: {$p->id})</li>";
+                }
+                $output .= "</ul>";
+            }
+            $output .= "</div>";
+        }
+        
+        // Check BTKL records
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>BTKL Records</h3>";
+        $btkls = \DB::table('btkls')
+            ->where('user_id', $userId)
+            ->get(['id', 'kode_proses', 'nama_btkl', 'jabatan_id', 'tarif_per_jam']);
+        
+        $output .= "<p>Found <strong>{$btkls->count()}</strong> BTKL records</p>";
+        
+        foreach ($btkls as $b) {
+            $jabatan = \DB::table('jabatans')->where('id', $b->jabatan_id)->first();
+            $jabatanNama = $jabatan ? $jabatan->nama : '<span style="color: #f48771;">NULL</span>';
+            
+            $pegawaiCount = \DB::table('pegawais')
+                ->where('user_id', $userId)
+                ->where('jabatan_id', $b->jabatan_id)
+                ->count();
+            
+            $output .= "<div style='margin-bottom: 15px; padding: 10px; background: #2d2d2d; border-left: 3px solid #dcdcaa;'>";
+            $output .= "<p style='margin: 0;'><strong>{$b->kode_proses}: {$b->nama_btkl}</strong></p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Jabatan: {$jabatanNama} (ID: {$b->jabatan_id})</p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Tarif: Rp " . number_format($b->tarif_per_jam) . "</p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Pegawai count: <strong style='color: " . ($pegawaiCount > 0 ? '#4ec9b0' : '#f48771') . ";'>{$pegawaiCount}</strong></p>";
+            $output .= "</div>";
+        }
+        
+        // Test Eloquent relationship
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Test Eloquent Relationship</h3>";
+        
+        $jabatanModel = \App\Models\Jabatan::where('user_id', $userId)
+            ->where('kategori', 'btkl')
+            ->first();
+        
+        if ($jabatanModel) {
+            $output .= "<p>Testing Jabatan: <strong>{$jabatanModel->nama}</strong> (ID: {$jabatanModel->id})</p>";
+            $output .= "<p>User ID: {$jabatanModel->user_id}</p>";
+            
+            // Test pegawais relationship
+            $pegawaisRelation = $jabatanModel->pegawais;
+            $output .= "<p>Pegawais count via relationship: <strong style='color: " . ($pegawaisRelation->count() > 0 ? '#4ec9b0' : '#f48771') . ";'>{$pegawaisRelation->count()}</strong></p>";
+            
+            if ($pegawaisRelation->count() > 0) {
+                $output .= "<ul>";
+                foreach ($pegawaisRelation as $p) {
+                    $output .= "<li>{$p->nama} (User ID: {$p->user_id})</li>";
+                }
+                $output .= "</ul>";
+            }
+            
+            // Test direct query
+            $pegawaisDirect = \DB::table('pegawais')
+                ->where('jabatan_id', $jabatanModel->id)
+                ->where('user_id', $userId)
+                ->get();
+            
+            $output .= "<p>Pegawais count via direct query: <strong style='color: " . ($pegawaisDirect->count() > 0 ? '#4ec9b0' : '#f48771') . ";'>{$pegawaisDirect->count()}</strong></p>";
+        } else {
+            $output .= "<p style='color: #f48771;'>No BTKL jabatan found for testing</p>";
+        }
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<p style='color: #4ec9b0;'>✓ Debug completed!</p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: #f48771;'>FATAL ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $output .= "<pre style='color: #808080; font-size: 11px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    $output .= "</div>";
+    return $output;
+})->middleware('auth')->name('debug.btkl.pegawai');
+
 
 // Include storage routes
 require_once __DIR__ . '/storage.php';
