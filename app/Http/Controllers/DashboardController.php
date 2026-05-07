@@ -41,7 +41,8 @@ class DashboardController extends Controller
 
         // Master Data - Filter berdasarkan user untuk multi-tenant dengan safety check
         $totalPegawai     = $this->getCountByUser('pegawais', $user->id);
-        $totalPresensi    = Presensi::count();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $totalPresensi    = $this->getCountByUser('presensis', $user->id);
         $totalProduk      = $this->getCountByUser('produks', $user->id);
         $totalVendor      = $this->getCountByUser('vendors', $user->id);
         $totalBahanBaku   = $this->getCountByUser('bahan_bakus', $user->id);
@@ -151,8 +152,9 @@ class DashboardController extends Controller
         // Return different dashboard based on user role
         if ($userRole === 'pegawai') {
             // Prepare stats for pegawai dashboard
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $stats = [
-                'total_hadir' => Presensi::where('status', 'hadir')->count(),
+                'total_hadir' => Presensi::where('user_id', $user->id)->where('status', 'hadir')->count(),
                 'persentasi_kehadiran' => 95, // Default value, can be calculated later
                 'total_hari_kerja' => 22, // Default working days in month
                 'today_status' => [
@@ -163,7 +165,9 @@ class DashboardController extends Controller
             ];
             
             // Prepare recent attendance for pegawai dashboard
-            $recentAttendance = Presensi::orderBy('tgl_presensi', 'desc')
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $recentAttendance = Presensi::where('user_id', $user->id)
+                ->orderBy('tgl_presensi', 'desc')
                 ->limit(7)
                 ->get();
             
@@ -308,10 +312,12 @@ class DashboardController extends Controller
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
         $totalMasuk = 0;
+        $userId = auth()->id(); // CRITICAL: Get user_id for multi-tenant filtering
         
         // 1. Penjualan (cash/transfer masuk ke kas/bank) - sama dengan LaporanKasBankController
         $penjualanMasuk = \DB::table('penjualans')
             ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where('user_id', $userId) // CRITICAL: Filter by user_id
             ->where(function($query) use ($akun) {
                 // Jika akun adalah Bank (mengandung kata 'bank') - check this first
                 if (stripos($akun->nama_akun, 'bank') !== false) {
@@ -330,6 +336,7 @@ class DashboardController extends Controller
         try {
             $pelunasanUtangMasuk = \DB::table('pelunasan_utangs')
                 ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('user_id', $userId) // CRITICAL: Filter by user_id
                 ->where(function($query) use ($akun) {
                     // Jika akun adalah Bank (mengandung kata 'bank') - check this first
                     if (stripos($akun->nama_akun, 'bank') !== false) {
@@ -351,6 +358,7 @@ class DashboardController extends Controller
         try {
             $returPembelianMasuk = \DB::table('purchase_returns')
                 ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('user_id', $userId) // CRITICAL: Filter by user_id
                 ->where(function($query) use ($akun) {
                     $query->where(function($subQuery) use ($akun) {
                         // Jika akun adalah Bank (mengandung kata 'bank') - check this first
@@ -379,10 +387,12 @@ class DashboardController extends Controller
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
         $totalKeluar = 0;
+        $userId = auth()->id(); // CRITICAL: Get user_id for multi-tenant filtering
         
         // 1. Pembelian (cash/transfer keluar dari kas/bank) - sama dengan LaporanKasBankController
         $pembelianKeluar = \DB::table('pembelians')
             ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where('user_id', $userId) // CRITICAL: Filter by user_id
             ->where(function($query) use ($akun) {
                 // Jika akun adalah Bank (mengandung kata 'bank') - check this first
                 if (stripos($akun->nama_akun, 'bank') !== false) {
@@ -401,6 +411,7 @@ class DashboardController extends Controller
         try {
             $penggajianKeluar = \DB::table('penggajians')
                 ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('user_id', $userId) // CRITICAL: Filter by user_id
                 ->where(function($query) use ($akun) {
                     // Jika akun adalah Bank (mengandung kata 'bank') - check this first
                     if (stripos($akun->nama_akun, 'bank') !== false) {
@@ -422,6 +433,7 @@ class DashboardController extends Controller
         try {
             $pembayaranBebanKeluar = \DB::table('expense_payments')
                 ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('user_id', $userId) // CRITICAL: Filter by user_id
                 ->where(function($query) use ($akun) {
                     // Cek apakah akun kas/bank yang digunakan sesuai dengan akun yang sedang dihitung
                     $query->where('coa_kasbank', $akun->kode_akun);
@@ -437,6 +449,7 @@ class DashboardController extends Controller
         try {
             $returPenjualanKeluar = \DB::table('returns')
                 ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where('user_id', $userId) // CRITICAL: Filter by user_id
                 ->where(function($query) use ($akun) {
                     $query->where(function($subQuery) use ($akun) {
                         // Jika akun adalah Bank (mengandung kata 'bank') - check this first

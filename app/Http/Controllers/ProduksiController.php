@@ -922,7 +922,9 @@ return response()->json([
 
         // Save BTKL as produksi_proses records
         $urutan = 1;
-        $prosesMap = []; // Map nama_proses to ProduksiProses record
+        $prosesMapByName = []; // Map nama_proses to ProduksiProses record
+        $prosesMapById = []; // Map proses_produksi_id to ProduksiProses record
+        
         foreach ($hppData['btkl'] as $btkl) {
             $biayaBtkl = $btkl['subtotal'] * $qtyProd;
             
@@ -938,24 +940,47 @@ return response()->json([
                 'user_id' => $produksi->user_id,
             ]);
             
-            // Store in map for BOP update
-            $prosesMap[$btkl['nama_proses']] = $proses;
+            // Store in both maps for BOP update
+            $prosesMapByName[$btkl['nama_proses']] = $proses;
+            $prosesMapById[$btkl['proses_produksi_id']] = $proses;
         }
 
-        // Group BOP by nama_proses and sum the subtotals
-        $bopByNamaProses = [];
+        // Group BOP by proses_id (proses_produksi_id) and sum the subtotals
+        $bopByProsesId = [];
         foreach ($hppData['bop'] as $bop) {
-            $namaProses = $bop['nama_proses'];
-            if (!isset($bopByNamaProses[$namaProses])) {
-                $bopByNamaProses[$namaProses] = 0;
+            // Use proses_id if available, otherwise fallback to nama_proses
+            $prosesId = $bop['proses_id'] ?? null;
+            $namaProses = $bop['nama_proses'] ?? null;
+            
+            if ($prosesId) {
+                if (!isset($bopByProsesId[$prosesId])) {
+                    $bopByProsesId[$prosesId] = 0;
+                }
+                $bopByProsesId[$prosesId] += $bop['subtotal'];
+            } elseif ($namaProses) {
+                // Fallback: group by nama_proses
+                if (!isset($bopByProsesId['name_' . $namaProses])) {
+                    $bopByProsesId['name_' . $namaProses] = 0;
+                }
+                $bopByProsesId['name_' . $namaProses] += $bop['subtotal'];
             }
-            $bopByNamaProses[$namaProses] += $bop['subtotal'];
         }
 
         // Update BOP costs in produksi_proses
-        foreach ($bopByNamaProses as $namaProses => $totalBopPerUnit) {
-            if (isset($prosesMap[$namaProses])) {
-                $proses = $prosesMap[$namaProses];
+        foreach ($bopByProsesId as $key => $totalBopPerUnit) {
+            $proses = null;
+            
+            // Check if key is proses_id (numeric) or nama_proses (prefixed with 'name_')
+            if (is_numeric($key) && isset($prosesMapById[$key])) {
+                $proses = $prosesMapById[$key];
+            } elseif (strpos($key, 'name_') === 0) {
+                $namaProses = substr($key, 5); // Remove 'name_' prefix
+                if (isset($prosesMapByName[$namaProses])) {
+                    $proses = $prosesMapByName[$namaProses];
+                }
+            }
+            
+            if ($proses) {
                 $biayaBop = $totalBopPerUnit * $qtyProd;
                 $proses->biaya_bop = $biayaBop;
                 $proses->total_biaya_proses = $proses->biaya_btkl + $biayaBop;
