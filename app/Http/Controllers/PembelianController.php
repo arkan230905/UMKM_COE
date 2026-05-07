@@ -1186,6 +1186,7 @@ class PembelianController extends Controller
         $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get();
         $bahanBakus = BahanBaku::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $satuans = \App\Models\Satuan::where('user_id', auth()->id())->get();
         $coas = Coa::where('user_id', auth()->id())->get();
 // Filter COA untuk metode pembayaran yang spesifik saja
         $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])
@@ -1222,6 +1223,7 @@ class PembelianController extends Controller
             'produks', 
             'bahanBakus',
             'bahanPendukungs',
+            'satuans',
             'coas',
             'kasbank',
             'currentBalances',
