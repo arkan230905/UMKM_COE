@@ -523,7 +523,14 @@ function loadJamKerjaFromPresensi() {
         const controller = new AbortController();
         const timeoutId2 = setTimeout(() => controller.abort(), 10000); // 10 seconds fetch timeout
         
-        fetch(apiUrl, { signal: controller.signal })
+        fetch(apiUrl, { 
+            signal: controller.signal,
+            credentials: 'same-origin', // Include cookies for authentication
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => {
                 clearTimeout(timeoutId2);
                 if (!response.ok) {
@@ -715,7 +722,13 @@ function loadJamKerja() {
         console.log('API URL:', apiUrl);
 
         // Fetch jam kerja dari server
-        fetch(apiUrl)
+        fetch(apiUrl, {
+            credentials: 'same-origin', // Include cookies for authentication
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => {
                 console.log('Response status:', response.status);
                 return response.json();
