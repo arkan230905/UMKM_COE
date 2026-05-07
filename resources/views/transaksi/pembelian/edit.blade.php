@@ -146,7 +146,7 @@
                     @if($pembelian->bukti_faktur)
                         <div class="mt-2">
                             <small class="text-info">Bukti faktur saat ini: 
-                                <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="text-decoration-none">
+                                <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="text-decoration-none">
                                     <i class="fas fa-eye me-1"></i>Lihat
                                 </a>
                             </small>
