@@ -911,6 +911,6 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'labaKotor', 'labaBersih',
             'hppAmount', 'totalDiskonPenjualan',
             'detailPenjualan', 'detailHpp'
-        ));
+        ) + ['totalHpp' => $hppAmount]);
     }
 }
