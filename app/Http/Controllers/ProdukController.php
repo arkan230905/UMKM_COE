@@ -18,7 +18,6 @@ class ProdukController extends Controller
 {
     public function index(Request $request)
     {
-<<<<<<< HEAD
         // Get filter parameters
         $search = $request->get('search', '');
         $kategoriFilter = $request->get('kategori', null);
@@ -51,12 +50,6 @@ class ProdukController extends Controller
         }
         
         $produks = $query->get();
-=======
-        // Get all products
-        // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $produks = Produk::where('user_id', auth()->id())
-            ->get();
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         
         // Calculate HPP from Harga Pokok Produksi (BBB + BTKL + BOP)
         $hargaBom = [];
@@ -169,15 +162,8 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
-<<<<<<< HEAD
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         return view('master-data.produk.edit', compact('produk', 'kategoris'));
-=======
-        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
-        $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
-        
-        return view('master-data.produk.edit', compact('produk'));
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
     
     /**
@@ -294,14 +280,11 @@ class ProdukController extends Controller
             'kategori_id' => $request->input('kategori_id'),
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
-<<<<<<< HEAD
             'hpp' => $hppToUse,
             'harga_bom' => $hppToUse,
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'btkl_per_unit' => $request->input('btkl_per_unit'),
         ];
 

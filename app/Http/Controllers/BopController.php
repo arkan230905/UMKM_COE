@@ -124,7 +124,6 @@ class BopController extends Controller
     // Edit data BOP
     public function edit(Bop $bop)
     {
-<<<<<<< HEAD
         // Ambil semua akun beban (sama seperti create)
         $akunBeban = Coa::where(function($q){
                     $q->whereIn('tipe_akun', ['Beban', 'Biaya'])
@@ -134,38 +133,15 @@ class BopController extends Controller
                 ->get(['id','kode_akun','nama_akun']);
 
         return view('master-data.bop.edit', compact('bop', 'akunBeban'));
-=======
-        // MULTI-TENANT: Check ownership
-        if ($bop->user_id != auth()->id()) {
-            abort(404);
-        }
-        
-        // MULTI-TENANT: Filter COA by user_id
-        $coa = Coa::where('user_id', auth()->id())
-                ->whereIn('tipe_akun', ['Beban', 'Biaya'])
-                ->get();
-        return view('master-data.bop.edit', compact('bop', 'coa'));
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
 
     // Update data BOP
     public function update(Request $request, Bop $bop)
     {
-<<<<<<< HEAD
         $validated = $request->validate([
             'kode_akun' => 'required|string',
             'budget' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
-=======
-        // MULTI-TENANT: Check ownership
-        if ($bop->user_id != auth()->id()) {
-            abort(404);
-        }
-        
-        $request->validate([
-            'nominal' => 'nullable|numeric',
-            'tanggal' => 'nullable|date',
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ]);
 
         // Cari COA berdasarkan kode_akun

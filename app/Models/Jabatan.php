@@ -56,11 +56,7 @@ class Jabatan extends Model
     }
 
     /**
-<<<<<<< HEAD
      * Relasi ke pegawai - using proper foreign key relationship
-=======
-     * Relasi ke pegawai dengan multi-tenant isolation
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
      */
     public function pegawais(): HasMany
     {

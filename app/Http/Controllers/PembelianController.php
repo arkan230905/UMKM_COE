@@ -489,15 +489,7 @@ class PembelianController extends Controller
             'tanggal' => 'required|date',
             'bank_id' => 'required',
             'jumlah_satuan_utama' => 'nullable|array',
-<<<<<<< HEAD
             'bukti_faktur' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:5120', // Max 5MB
-=======
-        ], [
-            'nomor_faktur.required' => 'Nomor faktur pembelian wajib diisi',
-            'bukti_faktur.required' => 'Bukti faktur wajib diupload',
-            'bukti_faktur.mimes' => 'Bukti faktur harus berformat JPG, PNG, atau PDF',
-            'bukti_faktur.max' => 'Ukuran bukti faktur maksimal 2MB',
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ]);
         
         // Cek manual apakah ada item yang dipilih
@@ -645,7 +637,6 @@ class PembelianController extends Controller
                     $vendor = Vendor::find($request->vendor_id);
                     $tipePembelian = $vendor->kategori ?? 'Bahan Baku';
                     
-<<<<<<< HEAD
                     // Handle bukti faktur upload
                     $buktiFakturPath = null;
                     if ($request->hasFile('bukti_faktur')) {
@@ -655,39 +646,11 @@ class PembelianController extends Controller
                         $buktiFakturPath = 'uploads/bukti_faktur/' . $fileName;
                     }
 
-=======
-                    // Handle bukti faktur upload (sudah divalidasi di awal)
-                    $buktiFakturPath = null;
-                    if ($request->hasFile('bukti_faktur')) {
-                        $file = $request->file('bukti_faktur');
-                        
-                        // Create directory structure: storage/app/public/bukti_faktur/{user_id}/
-                        $userId = auth()->id();
-                        $directory = "bukti_faktur/{$userId}";
-                        
-                        // Generate unique filename: {timestamp}_{original_name}
-                        $filename = time() . '_' . $file->getClientOriginalName();
-                        
-                        // Store file
-                        $buktiFakturPath = $file->storeAs($directory, $filename, 'public');
-                        
-                        \Log::info('Bukti faktur uploaded', [
-                            'user_id' => $userId,
-                            'filename' => $filename,
-                            'path' => $buktiFakturPath
-                        ]);
-                    }
-                    
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                     // 1. Buat header pembelian
                     $pembelian = new Pembelian([
                         'vendor_id' => $request->vendor_id,
                         'nomor_faktur' => $request->nomor_faktur,
-<<<<<<< HEAD
                         'bukti_faktur' => $buktiFakturPath,
-=======
-                        'bukti_faktur' => $buktiFakturPath,  // Save file path
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                         'tanggal' => $request->tanggal,
                         'subtotal' => $subtotal,
                         'biaya_kirim' => $biayaKirim,
@@ -1197,7 +1160,6 @@ class PembelianController extends Controller
             ->where('user_id', auth()->id())
             ->findOrFail($id);
         
-<<<<<<< HEAD
         $vendors = Vendor::orderBy('nama_vendor')->get();
         $produks = Produk::orderBy('nama_produk')->get();
         $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
@@ -1295,14 +1257,6 @@ class PembelianController extends Controller
                 'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung',
             ];
         }
-=======
-        // CRITICAL MULTI-TENANT: Filter semua data by user_id
-        $vendors = Vendor::where('user_id', auth()->id())->orderBy('nama_vendor')->get();
-        $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get();
-        $bahanBakus = BahanBaku::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
-        $coas = Coa::where('user_id', auth()->id())->get();
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         
         // Filter COA untuk metode pembayaran yang spesifik saja
         $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])

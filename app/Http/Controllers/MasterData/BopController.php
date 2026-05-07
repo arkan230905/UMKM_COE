@@ -19,31 +19,17 @@ class BopController extends Controller
     public function index()
     {
         try {
-<<<<<<< HEAD
             // Auto-fix database if nama_bop_proses column doesn't exist
             $this->ensureDatabaseStructure();
 
             // Get all BOP Proses with their production process data
             $bopProses = BopProses::with('prosesProduksi')
-=======
-            // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only
-            $bopProses = BopProses::with(['prosesProduksi' => function($query) {
-                $query->where('user_id', auth()->id());
-            }])
-                ->where('user_id', auth()->id())
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get();
 
-<<<<<<< HEAD
             // Get all production processes (BTKL data) for dropdown
             $prosesProduksis = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
-=======
-            // 🔒 MULTI-TENANT: Get production processes for logged-in user only
-            $prosesProduksis = ProsesProduksi::where('user_id', auth()->id())
-                ->where('kapasitas_per_jam', '>', 0)
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->orderBy('kode_proses')
                 ->get();
 

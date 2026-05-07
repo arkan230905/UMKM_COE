@@ -97,7 +97,6 @@ class BtklController extends Controller
      */
     public function create()
     {
-<<<<<<< HEAD
         // Get ALL Jabatan with category 'btkl' and their employees
         // This ensures we get all BTKL positions regardless of whether they have employees
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
@@ -161,19 +160,6 @@ class BtklController extends Controller
 
         \Log::info('BTKL Create - Final employeeData:', $employeeData->toArray());
         
-=======
-        $userId = auth()->id();
-
-        [$jabatanBtkl, $employeeData] = $this->getJabatanBtklForUser($userId);
-
-        // Generate kode proses berikutnya untuk user ini
-        $lastBtkl   = DB::table('btkls')->where('user_id', $userId)->orderBy('kode_proses', 'desc')->first();
-        $nextNumber = $lastBtkl ? ((int) substr($lastBtkl->kode_proses, -3)) + 1 : 1;
-        $nextKode   = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-
-        $satuanOptions = ['Jam', 'Unit', 'Batch'];
-
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
 

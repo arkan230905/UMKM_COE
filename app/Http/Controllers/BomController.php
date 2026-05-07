@@ -50,7 +50,6 @@ class BomController extends Controller
 
     public function create()
     {
-<<<<<<< HEAD
         try {
             // Run the improved BOM fix command that uses actual stock report prices
             Artisan::call('bom:fix-from-actual-stock');
@@ -347,14 +346,10 @@ class BomController extends Controller
             return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-=======
-        return view('master-data.bom.create');
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
 
     public function store(Request $request)
     {
-<<<<<<< HEAD
         try {
             DB::beginTransaction();
             
@@ -369,17 +364,6 @@ class BomController extends Controller
                 'total_bop' => 'required|numeric|min:0',
                 'total_hpp' => 'required|numeric|min:0',
             ]);
-=======
-        $request->validate([
-            'produk_id' => 'required|exists:produks,id',
-            'selected_bbb' => 'nullable|array',
-            'selected_bbb.*' => 'exists:biaya_bahan_baku,id',
-            'selected_btkl' => 'nullable|array',
-            'selected_btkl.*' => 'exists:proses_produksis,id',
-            'selected_bop' => 'nullable|array',
-            'selected_bop.*' => 'exists:bop_proses,id',
-        ]);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 
         $user_id = auth()->id();
         $produk_id = $request->produk_id;
@@ -389,7 +373,6 @@ class BomController extends Controller
         HargaPokokProduksiBtkl::where('user_id', $user_id)->delete();
         HargaPokokProduksiBop::where('user_id', $user_id)->delete();
 
-<<<<<<< HEAD
             // Save BTKL for each selected process
             foreach ($validated['proses_ids'] as $prosesId) {
                 $proses = ProsesProduksi::with(['jabatan'])->find($prosesId);
@@ -464,15 +447,6 @@ class BomController extends Controller
                         }
                     }
                 }
-=======
-        // Save BBB selections
-        if ($request->filled('selected_bbb')) {
-            foreach ($request->selected_bbb as $bbb_id) {
-                HargaPokokProduksiBiayaBahanBaku::create([
-                    'user_id' => $user_id,
-                    'biaya_bahan_baku_id' => $bbb_id,
-                ]);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             }
         }
 
@@ -577,7 +551,6 @@ class BomController extends Controller
         elseif ($hasAnySelections) {
             $allProductIds = \App\Models\Produk::where('user_id', $user_id)
                 ->pluck('id')
-<<<<<<< HEAD
                 ->toArray();
             
             // Get all BTKL processes
@@ -665,15 +638,8 @@ class BomController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-=======
-                ->take(5); // Limit to first 5 products to avoid too many results
-        } 
-        else {
-            $allProductIds = collect();
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         }
 
-<<<<<<< HEAD
     public function update(Request $request, $id)
     {
         try {
@@ -853,12 +819,6 @@ class BomController extends Controller
             } elseif (stripos($namaBiaya, 'pengemasan') !== false) {
                 $namaProses = 'Pengemasan';
             }
-=======
-        // Get product details
-        return $allProductIds->map(function($produk_id) {
-            $produk = \App\Models\Produk::find($produk_id);
-            if (!$produk) return null;
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             
             return [
                 'id' => $produk->id,

@@ -696,7 +696,6 @@ class PenggajianController extends Controller
      */
     private function createJournalEntryModern($penggajian, $pegawai)
     {
-<<<<<<< HEAD
         try {
             $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
 
@@ -755,11 +754,6 @@ class PenggajianController extends Controller
             \Log::error('Failed to create modern journal entry for penggajian: ' . $e->getMessage());
             throw $e;
         }
-=======
-        // Method ini dinonaktifkan karena createJournalEntry() sudah bekerja dengan baik
-        // dan tidak menyebabkan error field coa_id
-        return true;
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
     
     /**

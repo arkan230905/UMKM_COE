@@ -400,13 +400,8 @@ class AsetController extends Controller
         \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
         
         // Cek apakah aset sudah pernah diposting penyusutannya
-<<<<<<< HEAD
         $sudahDiposting = JournalEntry::where('ref_type', 'depreciation')
             ->where('ref_id', $aset->id)
-=======
-        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
-            ->where('referensi', $aset->id)
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->exists();
         
         // Data summary untuk view
@@ -572,13 +567,8 @@ class AsetController extends Controller
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
         // Cek apakah aset sudah pernah diposting penyusutannya
-<<<<<<< HEAD
         $sudahDiposting = JournalEntry::where('ref_type', 'depreciation')
             ->where('ref_id', $aset->id)
-=======
-        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
-            ->where('referensi', $aset->id)
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->exists();
         
         // Hitung data lengkap aset

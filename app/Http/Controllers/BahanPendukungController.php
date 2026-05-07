@@ -136,12 +136,7 @@ class BahanPendukungController extends Controller
         $this->convertCommaToDecimal($request);
         
         $validated = $request->validate([
-<<<<<<< HEAD
             'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,NULL,id,user_id,'.auth()->id(),
-=======
-            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
-            'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,NULL,id,user_id,' . auth()->id(),
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'deskripsi' => 'nullable|string',
             'satuan_id' => 'required|exists:satuans,id',
             'harga_satuan' => 'required|numeric|min:0',
@@ -170,11 +165,7 @@ class BahanPendukungController extends Controller
         // Map stok to saldo_awal
         $validated['saldo_awal'] = $request->stok ?? 0;
         
-<<<<<<< HEAD
         // Add user_id for multi-tenant isolation
-=======
-        // CRITICAL: Add user_id for multi-tenant isolation
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         $validated['user_id'] = auth()->id();
 
         // Create bahan pendukung

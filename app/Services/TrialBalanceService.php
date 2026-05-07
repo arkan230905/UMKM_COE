@@ -328,6 +328,8 @@ class TrialBalanceService
     /**
      * Ambil mutasi periode dari buku besar (journal_lines)
      * 
+     * PERBAIKAN: Tambah filter user_id untuk multi-tenant isolation
+     * 
      * @param int $coaId
      * @param string $startDate
      * @param string $endDate
@@ -344,6 +346,7 @@ class TrialBalanceService
         $mutasi = DB::table('jurnal_umum as ju')
             ->join('coas', 'ju.coa_id', '=', 'coas.id')
             ->where('coas.kode_akun', $coa->kode_akun) // Gunakan kode_akun, bukan coa_id
+            ->where('ju.user_id', auth()->id()) // PERBAIKAN: Filter user_id untuk multi-tenant
             ->whereBetween('ju.tanggal', [$startDate, $endDate])
             ->selectRaw('
                 COALESCE(SUM(ju.debit), 0) as total_debit,

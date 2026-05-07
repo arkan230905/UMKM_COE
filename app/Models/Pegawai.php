@@ -43,19 +43,9 @@ class Pegawai extends Model
         parent::boot();
 
         static::creating(function ($model) {
-<<<<<<< HEAD
             if (empty($model->kode_pegawai)) {
                 $userId = auth()->id();
                 $lastId = static::where('user_id', $userId)->max('id') ?? 0;
-=======
-            // 🔒 SECURITY: Auto-fill user_id only if column exists
-            if (empty($model->user_id) && auth()->check() && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
-                $model->user_id = auth()->id();
-            }
-            // 🔒 SECURITY: Auto-fill kode_pegawai only if column exists
-            if (empty($model->kode_pegawai) && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'kode_pegawai')) {
-                $lastId = static::max('id') ?? 0;
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
             }
         });
