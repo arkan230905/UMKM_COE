@@ -12,11 +12,8 @@ class BopProses extends Model
     protected $table = 'bop_proses';
 
     protected $fillable = [
-<<<<<<< HEAD
-        'nama_bop_proses',
-=======
         'user_id',
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
+        'nama_bop_proses',
         'proses_produksi_id',
         'listrik_per_jam',
         'gas_bbm_per_jam',
@@ -24,25 +21,17 @@ class BopProses extends Model
         'maintenance_per_jam',
         'gaji_mandor_per_jam',
         'lain_lain_per_jam',
-<<<<<<< HEAD
         'komponen_bop',
+        'total_bop_per_produk',
+        'total_biaya_per_produk',
         'total_bop_per_jam',
         'kapasitas_per_jam',
         'bop_per_unit',
-        'periode',
-        'keterangan',
-        'is_active',
-=======
-        'komponen_bop', // JSON array of components with rate_per_produk
-        'total_bop_per_produk', // Total BOP per produk from components
-        'total_biaya_per_produk', // Total biaya per produk (BTKL + BOP)
-        'total_bop_per_jam', // Backward compatibility
-        'kapasitas_per_jam', // Read-only dari BTKL
-        'bop_per_unit', // Same as total_bop_per_produk
         'budget',
         'aktual',
+        'periode',
+        'keterangan',
         'is_active'
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     ];
 
     protected $casts = [
@@ -244,5 +233,4 @@ class BopProses extends Model
         
         return 'Rp ' . $formatted;
     }
-
 }
