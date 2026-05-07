@@ -19,6 +19,14 @@ class PresensiController extends Controller
         $search = $request->get('search');
         $dateFilter = $request->get('date_filter');
         
+        // Get filters from request
+        $filters = [
+            'bulan' => $request->get('bulan'),
+            'tahun' => $request->get('tahun'),
+            'status' => $request->get('status'),
+            'search' => $request->get('search'),
+        ];
+        
         // Build query
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Presensi::with('pegawai')
@@ -29,7 +37,7 @@ class PresensiController extends Controller
         // Apply date filter
         if ($dateFilter) {
             $query->whereDate('tgl_presensi', $dateFilter);
-}
+        }
 
         // Filter by periode
         if ($filters['bulan']) {
@@ -55,7 +63,9 @@ class PresensiController extends Controller
         $presensiList = $query->paginate(20);
 
         // Get list pegawai untuk filter
-        $pegawaiList = Pegawai::orderBy('nama')
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawaiList = Pegawai::where('user_id', auth()->id())
+            ->orderBy('nama')
             ->get();
 
         // Get list bulan dan tahun untuk filter
