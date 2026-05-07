@@ -503,7 +503,7 @@ function loadJamKerjaFromPresensi() {
 
         console.log('Getting presensi for:', { pegawaiId, month, year });
 
-        const apiUrl = `/api/presensi/jam-kerja?pegawai_id=${pegawaiId}&month=${month}&year=${year}`;
+        const apiUrl = `/master-data/api/presensi/jam-kerja?pegawai_id=${pegawaiId}&month=${month}&year=${year}`;
         console.log('API URL:', apiUrl);
 
         // Show loading indicator with timeout
@@ -718,7 +718,7 @@ function loadJamKerja() {
 
         console.log('Parsed date - month:', month, 'year:', year);
 
-        const apiUrl = `/api/presensi/jam-kerja?pegawai_id=${pegawaiId}&month=${month}&year=${year}`;
+        const apiUrl = `/master-data/api/presensi/jam-kerja?pegawai_id=${pegawaiId}&month=${month}&year=${year}`;
         console.log('API URL:', apiUrl);
 
         // Fetch jam kerja dari server
