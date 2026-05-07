@@ -655,14 +655,28 @@ return response()->json([
                             foreach ($komponenBop as $komponen) {
                                 $namaKomponen = $komponen['component'] ?? $komponen['nama'] ?? 'BOP';
                                 $ratePerHour = $komponen['rate_per_hour'] ?? 0;
+                                $bahanPendukungId = $komponen['bahan_pendukung_id'] ?? null;
                                 
                                 // Calculate proportional rate per produk
                                 $ratePerProduk = $totalRatePerHour > 0 
                                     ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                     : 0;
 
-                                // Determine COA based on component name keywords
-                                $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                // Determine COA - prioritize bahan pendukung's COA if available
+                                if ($bahanPendukungId) {
+                                    $bahanPendukung = \App\Models\BahanPendukung::find($bahanPendukungId);
+                                    if ($bahanPendukung && $bahanPendukung->coa_persediaan_id) {
+                                        $coa = \App\Models\Coa::where('kode_akun', $bahanPendukung->coa_persediaan_id)->first();
+                                        $coaInfo = [
+                                            'kode' => $bahanPendukung->coa_persediaan_id,
+                                            'nama' => $coa ? $coa->nama_akun : 'Persediaan ' . $namaKomponen
+                                        ];
+                                    } else {
+                                        $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                    }
+                                } else {
+                                    $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                }
 
                                 // Add to BOP display array
                                 $breakdown['bop'][] = [
