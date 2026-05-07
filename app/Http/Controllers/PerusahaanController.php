@@ -17,7 +17,8 @@ class PerusahaanController extends Controller
         \Log::info('Request URL: ' . request()->fullUrl());
         
         // Ambil data perusahaan dari database, tabel 'perusahaan'
-        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
+        // Gunakan first() tanpa filter user_id karena kolom belum ada di database
+        $dataPerusahaan = Perusahaan::first();
 
         // Jika belum ada data, buat default dummy
         if (!$dataPerusahaan) {
@@ -43,13 +44,13 @@ class PerusahaanController extends Controller
         }
         
         // Cek apakah ada data perusahaan, jika tidak ada redirect ke index
-        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
+        $dataPerusahaan = Perusahaan::first();
         if (!$dataPerusahaan) {
             return redirect('/tentang-perusahaan')->with('info', 'Silakan buat data perusahaan terlebih dahulu.');
         }
         
         // Ambil data perusahaan dari database, tabel 'perusahaan'
-        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
+        $dataPerusahaan = Perusahaan::first();
 
         // Jika belum ada data, buat default dummy
         if (!$dataPerusahaan) {
@@ -81,7 +82,7 @@ class PerusahaanController extends Controller
         ]);
 
         // Update data ke database
-        $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
+        $perusahaan = Perusahaan::first();
         
         if ($perusahaan) {
             $perusahaan->update([
@@ -92,13 +93,12 @@ class PerusahaanController extends Controller
             ]);
         } else {
             // Jika belum ada, buat baru
-            Perusahaan::create([
+            $perusahaan = Perusahaan::create([
                 'nama' => $request->nama,
                 'alamat' => $request->alamat,
                 'email' => $request->email,
                 'telepon' => $request->telepon,
                 'kode' => Perusahaan::generateKode(),
-                'user_id' => auth()->id(), // MULTI-TENANT: Add user_id
             ]);
         }
 
@@ -190,12 +190,11 @@ class PerusahaanController extends Controller
         ]);
 
         try {
-            $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
+            $perusahaan = Perusahaan::first();
             
             if (!$perusahaan) {
                 // Jika belum ada, buat baru
                 $perusahaan = Perusahaan::create([
-                    'user_id' => auth()->id(),
                     'nama' => $request->field === 'nama' ? $request->value : 'Nama Perusahaan',
                     'alamat' => $request->field === 'alamat' ? $request->value : 'Alamat Perusahaan',
                     'email' => $request->field === 'email' ? $request->value : 'email@perusahaan.com',
