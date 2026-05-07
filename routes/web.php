@@ -5646,6 +5646,142 @@ Route::get('/debug/pembayaran-beban-analysis', function() {
     return view('debug.pembayaran_beban_analysis');
 });
 
+// Route to create missing journal entries for pembelian and penjualan
+Route::get('/debug/create-missing-journals', function() {
+    $output = "<div style='font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;'>";
+    $output .= "<h2 style='color: #4ec9b0;'>Creating Missing Journal Entries</h2>";
+    
+    try {
+        $userId = auth()->id();
+        
+        if (!$userId) {
+            $output .= "<p style='color: #f48771;'>ERROR: You must be logged in to run this script.</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<p>Running for user ID: <strong>{$userId}</strong></p>";
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        
+        // Process Pembelian
+        $output .= "<h3 style='color: #569cd6;'>Processing Pembelian Transactions</h3>";
+        
+        $pembelians = \App\Models\Pembelian::where('user_id', $userId)->get();
+        $output .= "<p>Found {$pembelians->count()} pembelian records</p>";
+        
+        $pembelianSuccess = 0;
+        $pembelianFailed = 0;
+        $pembelianSkipped = 0;
+        
+        foreach ($pembelians as $pembelian) {
+            // Check if journal already exists
+            $existingJournal = \DB::table('jurnal_umum')
+                ->where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
+                ->where('user_id', $userId)
+                ->exists();
+            
+            if ($existingJournal) {
+                $pembelianSkipped++;
+                continue;
+            }
+            
+            $output .= "<p style='color: #dcdcaa;'>Processing Pembelian #{$pembelian->nomor_pembelian}...</p>";
+            
+            try {
+                $service = new \App\Services\PembelianJournalService();
+                $result = $service->createJournalFromPembelian($pembelian);
+                
+                if ($result) {
+                    $pembelianSuccess++;
+                    $output .= "<p style='color: #4ec9b0; margin-left: 20px;'>✓ Journal created successfully</p>";
+                } else {
+                    $pembelianFailed++;
+                    $output .= "<p style='color: #f48771; margin-left: 20px;'>✗ Journal creation returned null</p>";
+                }
+            } catch (\Exception $e) {
+                $pembelianFailed++;
+                $output .= "<p style='color: #f48771; margin-left: 20px;'>✗ ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+            }
+        }
+        
+        // Process Penjualan
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Processing Penjualan Transactions</h3>";
+        
+        $penjualans = \App\Models\Penjualan::where('user_id', $userId)->get();
+        $output .= "<p>Found {$penjualans->count()} penjualan records</p>";
+        
+        $penjualanSuccess = 0;
+        $penjualanFailed = 0;
+        $penjualanSkipped = 0;
+        
+        foreach ($penjualans as $penjualan) {
+            // Check if journal already exists
+            $existingJournal = \DB::table('jurnal_umum')
+                ->where('tipe_referensi', 'sale')
+                ->where('referensi', $penjualan->id)
+                ->where('user_id', $userId)
+                ->exists();
+            
+            if ($existingJournal) {
+                $penjualanSkipped++;
+                continue;
+            }
+            
+            $output .= "<p style='color: #dcdcaa;'>Processing Penjualan #{$penjualan->nomor_penjualan}...</p>";
+            
+            try {
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                $penjualanSuccess++;
+                $output .= "<p style='color: #4ec9b0; margin-left: 20px;'>✓ Journal created successfully</p>";
+            } catch (\Exception $e) {
+                $penjualanFailed++;
+                $output .= "<p style='color: #f48771; margin-left: 20px;'>✗ ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+            }
+        }
+        
+        // Summary
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #4ec9b0;'>Summary</h3>";
+        $output .= "<table style='color: #d4d4d4; border-collapse: collapse;'>";
+        $output .= "<tr><th style='text-align: left; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Type</th><th style='text-align: right; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Success</th><th style='text-align: right; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Failed</th><th style='text-align: right; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Skipped</th></tr>";
+        $output .= "<tr><td style='padding: 5px;'>Pembelian</td><td style='text-align: right; padding: 5px; color: #4ec9b0;'>{$pembelianSuccess}</td><td style='text-align: right; padding: 5px; color: #f48771;'>{$pembelianFailed}</td><td style='text-align: right; padding: 5px; color: #808080;'>{$pembelianSkipped}</td></tr>";
+        $output .= "<tr><td style='padding: 5px;'>Penjualan</td><td style='text-align: right; padding: 5px; color: #4ec9b0;'>{$penjualanSuccess}</td><td style='text-align: right; padding: 5px; color: #f48771;'>{$penjualanFailed}</td><td style='text-align: right; padding: 5px; color: #808080;'>{$penjualanSkipped}</td></tr>";
+        $output .= "</table>";
+        
+        // Final journal count
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Final Journal Count</h3>";
+        
+        $journalsByType = \DB::table('jurnal_umum')
+            ->where('user_id', $userId)
+            ->select('tipe_referensi', \DB::raw('COUNT(*) as count'))
+            ->groupBy('tipe_referensi')
+            ->get();
+        
+        $output .= "<ul>";
+        foreach ($journalsByType as $j) {
+            $output .= "<li>{$j->tipe_referensi}: <strong>{$j->count}</strong> entries</li>";
+        }
+        $output .= "</ul>";
+        
+        $totalJournals = \DB::table('jurnal_umum')->where('user_id', $userId)->count();
+        $output .= "<p><strong>Total journal entries: {$totalJournals}</strong></p>";
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<p style='color: #4ec9b0;'>✓ Process completed!</p>";
+        $output .= "<p><a href='/akuntansi/jurnal-umum' style='color: #569cd6; text-decoration: underline;'>View Jurnal Umum</a></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: #f48771;'>FATAL ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $output .= "<pre style='color: #808080; font-size: 11px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    $output .= "</div>";
+    return $output;
+})->middleware('auth')->name('debug.create.missing.journals');
+
 
 // Include storage routes
 require_once __DIR__ . '/storage.php';
