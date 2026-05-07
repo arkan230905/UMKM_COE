@@ -637,7 +637,6 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         
         return $persediaanCoa ? $persediaanCoa->kode_akun : '116';
     }
-}
 
     /**
      * Get COA Persediaan Barang Jadi untuk produk
@@ -697,5 +696,4 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         // 4. Default fallback
         return '116';
     }
-
 }
