@@ -61,7 +61,8 @@ class Jabatan extends Model
 */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan_id');
+        return $this->hasMany(Pegawai::class, 'jabatan_id')
+            ->where('pegawais.user_id', $this->user_id);
     }
 
     /**
