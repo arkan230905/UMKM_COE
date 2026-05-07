@@ -66,7 +66,6 @@
                                     <span class="badge bg-warning text-dark">Belum Dibayar</span>
                                     <form action="{{ route('transaksi.penggajian.markAsPaid', $penggajian->id) }}" method="POST" class="d-inline ms-2">
                                         @csrf
-                                        @method('PATCH')
                                         <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Tandai penggajian ini sebagai sudah dibayar?')">
                                             <i class="fas fa-check-circle me-1"></i>Tandai Sudah Dibayar
                                         </button>

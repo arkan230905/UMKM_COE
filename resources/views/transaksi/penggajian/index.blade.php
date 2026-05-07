@@ -159,7 +159,6 @@
                                                 </form>
                                                 <form action="{{ route('transaksi.penggajian.markAsPaid', $gaji->id) }}" method="POST" class="m-0 d-inline">
                                                     @csrf
-                                                    @method('PATCH')
                                                     <button type="submit" class="btn btn-outline-success btn-sm" title="Tandai sebagai Sudah Dibayar">
                                                         <i class="fas fa-check-circle"></i>
                                                     </button>
