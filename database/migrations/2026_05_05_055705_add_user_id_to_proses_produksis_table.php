@@ -12,10 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('proses_produksis', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
-            
-            // Add index for better performance
-            $table->index('user_id');
+            // Check if user_id column doesn't exist before adding it
+            if (!Schema::hasColumn('proses_produksis', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+                
+                // Add index for better performance
+                $table->index('user_id');
+            }
         });
     }
 
@@ -25,9 +28,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('proses_produksis', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropColumn('user_id');
+            // Drop foreign key and index first if they exist
+            if (Schema::hasColumn('proses_produksis', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
     }
 };

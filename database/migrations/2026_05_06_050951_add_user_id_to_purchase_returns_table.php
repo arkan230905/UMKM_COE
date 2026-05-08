@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('purchase_returns', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+            if (!Schema::hasColumn('purchase_returns', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+            }
         });
         
         // Update existing records with user_id from pembelian
@@ -30,8 +32,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('purchase_returns', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('purchase_returns', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
     }
 };

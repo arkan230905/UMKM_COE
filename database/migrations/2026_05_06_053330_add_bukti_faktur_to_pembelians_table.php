@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pembelians', function (Blueprint $table) {
-            $table->string('bukti_faktur', 255)->nullable()->after('nomor_faktur');
+            if (!Schema::hasColumn('pembelians', 'bukti_faktur')) {
+                $table->string('bukti_faktur', 255)->nullable()->after('nomor_faktur');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pembelians', function (Blueprint $table) {
-            $table->dropColumn('bukti_faktur');
+            if (Schema::hasColumn('pembelians', 'bukti_faktur')) {
+                $table->dropColumn('bukti_faktur');
+            }
         });
     }
 };

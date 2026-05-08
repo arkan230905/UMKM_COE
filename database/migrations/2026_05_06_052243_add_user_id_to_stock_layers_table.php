@@ -13,8 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('stock_layers', function (Blueprint $table) {
-            $table->foreignId('user_id')->after('id')->nullable()->constrained('users')->onDelete('cascade');
-            $table->index(['user_id', 'item_type', 'item_id']);
+            if (!Schema::hasColumn('stock_layers', 'user_id')) {
+                $table->foreignId('user_id')->after('id')->nullable()->constrained('users')->onDelete('cascade');
+                $table->index(['user_id', 'item_type', 'item_id']);
+            }
         });
 
         // Update existing records with user_id from related tables
@@ -29,7 +31,9 @@ return new class extends Migration
 
         // Make user_id NOT NULL after updating existing records
         Schema::table('stock_layers', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable(false)->change();
+            if (Schema::hasColumn('stock_layers', 'user_id')) {
+                $table->foreignId('user_id')->nullable(false)->change();
+            }
         });
     }
 
@@ -39,9 +43,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('stock_layers', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropIndex(['user_id', 'item_type', 'item_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('stock_layers', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id', 'item_type', 'item_id']);
+                $table->dropColumn('user_id');
+            }
         });
     }
 };
