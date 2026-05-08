@@ -19,7 +19,12 @@ class PegawaiDashboardController extends Controller
         $pegawai = Pegawai::where('user_id', $user->id)->first();
 
         if (!$pegawai) {
-            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+            \Log::error('Pegawai not found for user', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_role' => $user->role
+            ]);
+            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai. Hubungi administrator.');
         }
 
         // Get today's attendance

@@ -35,7 +35,7 @@ class Pegawai extends Model
         'bank',
         'nomor_rekening',
         'nama_rekening',
-        'user_id',
+        'perusahaan_id',  // CRITICAL: multi-tenant isolation
     ];
     
     protected static function boot()
@@ -90,6 +90,14 @@ $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Relasi ke perusahaan (tenant)
+     */
+    public function perusahaan(): BelongsTo
+    {
+        return $this->belongsTo(Perusahaan::class, 'perusahaan_id');
     }
 
     /**

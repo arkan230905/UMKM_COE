@@ -73,6 +73,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relasi ke perusahaan (tenant)
+     */
+    public function perusahaan(): BelongsTo
+    {
+        return $this->belongsTo(Perusahaan::class, 'perusahaan_id');
+    }
+
+    /**
      * Check if user is a pelanggan (customer)
      */
     public function isPelanggan(): bool

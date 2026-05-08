@@ -154,7 +154,7 @@
                                     <span class="badge bg-danger">{{ ucfirst($presensi->status) }}</span>
                                 @endif
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">
                                 <div class="d-flex justify-content-center gap-1">
                                     <a href="{{ route('transaksi.presensi.edit', $presensi->id) }}"
                                        class="btn btn-outline-primary btn-sm" style="padding: 0.25rem 0.5rem;" title="Edit">

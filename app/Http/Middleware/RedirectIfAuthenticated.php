@@ -27,6 +27,10 @@ class RedirectIfAuthenticated
                     return redirect()->route('pelanggan.dashboard');
                 }
                 
+                if ($user->role === 'pegawai') {
+                    return redirect()->route('pegawai.dashboard');
+                }
+                
                 return redirect('/dashboard');
             }
         }

@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-end align-items-center mb-4">
         <div>
             <a href="{{ route('master-data.pegawai.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i>Tambah Pegawai
+                <i class="fas fa-plus me-1"></i>Tambah Pegawai
             </a>
         </div>
     </div>
