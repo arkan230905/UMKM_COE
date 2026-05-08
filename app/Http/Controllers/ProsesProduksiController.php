@@ -29,7 +29,22 @@ class ProsesProduksiController extends Controller
             ->orderBy('kode_proses')
             ->paginate(10);
         
-        return view('master-data.proses-produksi.index', compact('prosesProduksis'));
+        // Calculate statistics
+        $totalProses = $prosesProduksis->count();
+        $totalBiayaPerProduk = $prosesProduksis->sum('biaya_per_produk');
+        $rataRataTarif = $totalProses > 0 ? $prosesProduksis->sum('tarif_btkl') / $totalProses : 0;
+        $rataRataKapasitas = $totalProses > 0 ? $prosesProduksis->sum('kapasitas_per_jam') / $totalProses : 0;
+        $rataRataBiayaPerUnit = $totalProses > 0 ? $totalBiayaPerProduk / $totalProses : 0;
+
+        $statistics = [
+            'total_proses' => $totalProses,
+            'total_biaya_per_produk' => $totalBiayaPerProduk,
+            'rata_rata_tarif' => $rataRataTarif,
+            'rata_rata_kapasitas' => $rataRataKapasitas,
+            'rata_rata_biaya_per_unit' => $rataRataBiayaPerUnit,
+        ];
+        
+        return view('master-data.proses-produksi.index', compact('prosesProduksis', 'statistics'));
     }
 
     /**

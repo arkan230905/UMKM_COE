@@ -692,7 +692,7 @@ class BopController extends Controller
                         'rate_per_hour' => floatval($komponenRates[$index]),
                         'description' => $komponenDescs[$index] ?? '',
                         'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
-                        'coa_kredit' => $komponenCoaKredits[$index] ?? '210',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '510',
                     ];
                 }
             }

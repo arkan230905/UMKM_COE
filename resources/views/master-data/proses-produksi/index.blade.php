@@ -48,104 +48,89 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">No</th>
-                            <th>Kode</th>
-                            <th>Nama Proses</th>
-                            <th>Jabatan BTKL</th>
-                            <th class="text-end">Jumlah Pegawai</th>
-                            <th class="text-end">Tarif BTKL</th>
-                            <th class="text-center">Satuan</th>
-                            <th class="text-center">Kapasitas/Jam</th>
-                            <th class="text-end">Biaya per Produk</th>
-                            <th class="text-center">Deskripsi</th>
-                            <th class="text-center">Aksi</th>
+                            <th class="text-center" style="width: 8%">Kode</th>
+                            <th style="width: 15%">Nama Proses</th>
+                            <th style="width: 15%">Jabatan BTKL</th>
+                            <th style="width: 10%">Jumlah Pegawai</th>
+                            <th style="width: 12%">Tarif BTKL</th>
+                            <th style="width: 8%">Satuan</th>
+                            <th style="width: 12%">Kapasitas/Jam</th>
+                            <th style="width: 12%">Biaya per Produk</th>
+                            <th style="width: 15%">Deskripsi</th>
+                            <th style="width: 10%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($prosesProduksis as $key => $proses)
-                            <tr>
-                                <td class="text-center">{{ ($prosesProduksis->currentPage() - 1) * $prosesProduksis->perPage() + $key + 1 }}</td>
-                                <td><code>{{ $proses->kode_proses ?? 'N/A' }}</code></td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
-                                            <i class="fas fa-cogs text-primary"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold">{{ $proses->nama_proses }}</div>
-                                            @if($proses->deskripsi)
-                                                <small class="text-muted">{{ Str::limit($proses->deskripsi, 50) }}</small>
-                                            @endif
-                                        </div>
+                        @forelse($prosesProduksis as $proses)
+                        <tr>
+                            <td class="text-center">{{ $proses->kode_proses }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-gear-fill me-2 text-primary"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ $proses->nama_btkl ?? '-' }}</div>
+                                        <small class="text-muted">Nama proses produksi</small>
                                     </div>
-                                </td>
-                                <td>
-                                    @if($proses->jabatan)
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-success bg-opacity-10 p-1 me-2">
-                                                <i class="fas fa-users text-success"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold">{{ $proses->jabatan->nama }}</div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-muted">N/A</span>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @if($proses->jabatan)
-                                        {{ $proses->jabatan->pegawais->count() }} pegawai @ Rp {{ number_format($proses->jabatan->tarif, 0, ',', '.') }}/jam
-                                    @else
-                                        <span class="text-muted">N/A</span>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @if($proses->tarif_btkl > 0)
-                                        <div class="fw-semibold">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</div>
-                                        <small class="text-muted">per {{ $proses->satuan_btkl ?? 'jam' }}</small>
-                                    @else
-                                        <span class="text-muted">Rp 0</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-secondary">{{ $proses->satuan_btkl ?? 'Jam' }}</span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
-                                </td>
-                                <td class="text-end" 
-                                    data-biaya-per-produk="{{ $proses->biaya_btkl_per_produk > 0 ? number_format($proses->biaya_btkl_per_produk, 2, ',', '.') : '0' }}"
-                                    data-tarif="{{ number_format($proses->tarif_btkl, 0, ',', '.') }}"
-                                    data-kapasitas="{{ $proses->kapasitas_per_jam }}">
-                                    @if($proses->biaya_btkl_per_produk > 0)
-                                        <div class="fw-semibold text-success">Rp {{ number_format($proses->biaya_btkl_per_produk, 2, ',', '.') }}</div>
-                                        <small class="text-muted">per unit</small>
-                                    @else
-                                        <span class="text-muted">Rp 0</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    {{ $proses->deskripsi ?? '-' }}
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('master-data.btkl.show', $proses) }}" class="btn btn-outline-info" title="Detail">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ route('master-data.btkl.edit', $proses) }}" class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ route('master-data.btkl.destroy', $proses) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus proses ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-workspace me-2 text-info"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ $proses->jabatan->nama ?? '-' }}</div>
+                                        <small class="text-muted">{{ $proses->jabatan->kategori ?? '' }}</small>
                                     </div>
-                                </td>
-                            </tr>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-people-fill me-2 text-primary"></i>
+                                    <div>
+                                        <div class="fw-bold text-primary">{{ $proses->jabatan->pegawais->count() ?? 0 }} orang</div>
+                                        <small class="text-muted">Jabatan: {{ $proses->jabatan->nama ?? '-' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cash-stack me-2 text-success"></i>
+                                    <div>
+                                        <span class="fw-bold text-success">{{ number_format($proses->tarif_btkl, 0, ',', '.') }}</span>
+                                        <small class="text-muted d-block">per jam</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-info">{{ $proses->satuan ?? 'jam' }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-speedometer2 me-2 text-warning"></i>
+                                    <div>
+                                        <div class="fw-bold text-warning">{{ number_format($proses->kapasitas_per_jam) }} unit/jam</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cash-stack me-2 text-warning"></i>
+                                    <div>
+                                        <div class="fw-bold text-warning">{{ $proses->biaya_per_produk_formatted }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><small>{{ $proses->deskripsi_proses ?? '-' }}</small></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ route('master-data.btkl.edit', $proses->id) }}" class="btn btn-sm btn-warning rounded-pill px-3">
+                                        <i class="fas fa-edit me-1"></i>
+                                        <span class="d-none d-md-inline">Edit</span>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#deleteModal{{ $proses->id }}">
+                                        <i class="fas fa-trash me-1"></i>
+                                        <span class="d-none d-md-inline">Hapus</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                         @empty
                             <tr>
                                 <td colspan="11" class="text-center py-4">
@@ -162,25 +147,7 @@
             </div>
             
             @if($prosesProduksis->count() > 0)
-                <!-- Total Biaya Per Produk Summary -->
-                <div class="card-footer bg-primary bg-opacity-10">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h6 class="mb-0 text-primary">
-                                <i class="fas fa-calculator me-2"></i>Total Biaya Per Produk:
-                            </h6>
-                            <small class="text-muted">Jumlah semua biaya BTKL per unit produk</small>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            @php
-                                // Use biaya_btkl_per_produk from database
-                                $totalBiayaPerProduk = $prosesProduksis->sum('biaya_btkl_per_produk');
-                            @endphp
-                            <div class="display-6 fw-bold text-primary">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</div>
-                        </div>
-                    </div>
-                </div>
-                
+                <!-- Statistics Summary -->
                 <div class="card-footer bg-light">
                     <div class="row text-center">
                         <div class="col-md-3">
@@ -215,6 +182,25 @@
                             @endphp
                             <div class="fw-bold text-warning">Rp {{ number_format($avgBiayaPerUnit, 2, ',', '.') }}</div>
                             <small class="text-muted">Rata-rata Biaya/Unit</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Total Biaya Per Produk Summary - Paling Bawah -->
+                <div class="card-footer bg-warning bg-opacity-10">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-0 text-warning">
+                                <i class="fas fa-calculator me-2"></i>Total Biaya Per Produk:
+                            </h6>
+                            <small class="text-muted">Jumlah semua biaya BTKL per unit produk</small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            @php
+                                // Use biaya_btkl_per_produk from database
+                                $totalBiayaPerProduk = $prosesProduksis->sum('biaya_btkl_per_produk');
+                            @endphp
+                            <div class="display-6 fw-bold text-warning">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</div>
                         </div>
                     </div>
                 </div>

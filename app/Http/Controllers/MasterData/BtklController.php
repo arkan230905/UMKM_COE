@@ -86,7 +86,22 @@ class BtklController extends Controller
                 ->orderBy('kode_proses')
                 ->get();
 
-            return view('master-data.btkl.index', compact('btkls'));
+            // Calculate statistics
+            $totalProses = $btkls->count();
+            $totalBiayaPerProduk = $btkls->sum('biaya_per_produk');
+            $rataRataTarif = $totalProses > 0 ? $btkls->sum('tarif_btkl') / $totalProses : 0;
+            $rataRataKapasitas = $totalProses > 0 ? $btkls->sum('kapasitas_per_jam') / $totalProses : 0;
+            $rataRataBiayaPerUnit = $totalProses > 0 ? $totalBiayaPerProduk / $totalProses : 0;
+
+            $statistics = [
+                'total_proses' => $totalProses,
+                'total_biaya_per_produk' => $totalBiayaPerProduk,
+                'rata_rata_tarif' => $rataRataTarif,
+                'rata_rata_kapasitas' => $rataRataKapasitas,
+                'rata_rata_biaya_per_unit' => $rataRataBiayaPerUnit,
+            ];
+
+            return view('master-data.btkl.index', compact('btkls', 'statistics'));
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());

@@ -80,9 +80,13 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '551',  'nama_akun' => 'BOP - Air',                               'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '552',  'nama_akun' => 'BOP - Gas',                               'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '553',  'nama_akun' => 'BOP - Penyusutan Peralatan',              'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '554',  'nama_akun' => 'Harga Pokok Penjualan',                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '56',   'nama_akun' => 'Harga Pokok Penjualan',                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '57',   'nama_akun' => 'Biaya Air & Kebersihan',                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '590',  'nama_akun' => 'Beban Administrasi Bank',                'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '591',  'nama_akun' => 'Beban Pajak',                              'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '592',  'nama_akun' => 'Beban Denda',                              'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '593',  'nama_akun' => 'Beban Kerugian',                           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '594',  'nama_akun' => 'Beban Lain-lain',                         'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '536',  'nama_akun' => 'Biaya Air & Kebersihan',                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
         ];
 
         $rows = [];

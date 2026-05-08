@@ -415,10 +415,6 @@
                                    style="width:100%;padding:8px 12px;border:1.5px solid #E8DDD0;border-radius:8px;font-size:13px;color:#2C1810;background:white;outline:none;box-sizing:border-box;"
                                    onfocus="this.style.borderColor='#8B7355'" onblur="this.style.borderColor='#E8DDD0'"
                                    onkeydown="if(event.key==='Enter') simpanKatBaru()">
-                            <input type="text" id="new-kat-kode" placeholder="Kode (cth: MKN)" maxlength="20"
-                                   style="width:100%;padding:6px 12px;border:1.5px solid #E8DDD0;border-radius:8px;font-size:11px;color:#7A6349;background:white;outline:none;box-sizing:border-box;margin-top:5px;text-transform:uppercase;"
-                                   onfocus="this.style.borderColor='#8B7355'" onblur="this.style.borderColor='#E8DDD0'"
-                                   oninput="this.value=this.value.toUpperCase()">
                         </td>
                         <td style="padding:13px 12px;text-align:center;color:#C0B0A0;">—</td>
                         <td style="padding:13px 12px;text-align:center;">
@@ -513,9 +509,7 @@ function showAturAlert(msg, type) {
 // ── TAMBAH KATEGORI BARU ──────────────────────────────────
 window.simpanKatBaru = function() {
     var nama = document.getElementById('new-kat-nama').value.trim();
-    var kode = document.getElementById('new-kat-kode').value.trim();
     if (!nama) { document.getElementById('new-kat-nama').focus(); showAturAlert('Nama kategori wajib diisi.', 'error'); return; }
-    if (!kode) { document.getElementById('new-kat-kode').focus(); showAturAlert('Kode kategori wajib diisi.', 'error'); return; }
 
     var btn = document.getElementById('btn-simpan-baru');
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -524,7 +518,7 @@ window.simpanKatBaru = function() {
     fetch('{{ route("master-data.kategori-produk.store") }}', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json' },
-        body: JSON.stringify({ nama: nama, kode_kategori: kode })
+        body: JSON.stringify({ nama: nama })
     })
     .then(function(r){ return r.json(); })
     .then(function(data) {

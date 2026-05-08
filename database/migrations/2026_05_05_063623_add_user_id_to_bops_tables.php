@@ -13,20 +13,26 @@ return new class extends Migration
     {
         // Add user_id to bops table
         Schema::table('bops', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
-            $table->index('user_id');
+            if (!Schema::hasColumn('bops', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+                $table->index('user_id');
+            }
         });
 
         // Add user_id to bop_proses table
         Schema::table('bop_proses', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
-            $table->index('user_id');
+            if (!Schema::hasColumn('bop_proses', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+                $table->index('user_id');
+            }
         });
 
         // Add user_id to beban_operasional table
         Schema::table('beban_operasional', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
-            $table->index('user_id');
+            if (!Schema::hasColumn('beban_operasional', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+                $table->index('user_id');
+            }
         });
     }
 
@@ -37,23 +43,29 @@ return new class extends Migration
     {
         // Remove user_id from beban_operasional table
         Schema::table('beban_operasional', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('beban_operasional', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
 
         // Remove user_id from bop_proses table
         Schema::table('bop_proses', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('bop_proses', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
 
         // Remove user_id from bops table
         Schema::table('bops', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('bops', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
     }
 };

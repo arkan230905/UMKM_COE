@@ -57,15 +57,29 @@
                                                 <td>
                                                     <select name="komponen_coa_kredit[]" class="form-select form-select-sm" required>
                                                         <option value="">-- Pilih --</option>
-                                                        <optgroup label="Hutang">
-                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '21%')->orderBy('kode_akun')->get() as $coa)
-                                                                <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '210' ? 'selected' : '' }}>
+                                                        <optgroup label="BOP">
+                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                                                                <option value="{{ $coa->kode_akun }}">
                                                                     {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                                                 </option>
                                                             @endforeach
                                                         </optgroup>
-                                                        <optgroup label="Persediaan">
-                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '115%')->orderBy('kode_akun')->get() as $coa)
+                                                        <optgroup label="Beban Sewa">
+                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                                                                <option value="{{ $coa->kode_akun }}">
+                                                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                                </option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                        <optgroup label="BOP Lain">
+                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                                                                <option value="{{ $coa->kode_akun }}">
+                                                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                                </option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                        <optgroup label="Harga Pokok Penjualan">
+                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
                                                                 <option value="{{ $coa->kode_akun }}">
                                                                     {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                                                 </option>

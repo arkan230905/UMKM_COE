@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="fas fa-calendar-check me-2"></i>Data Presensi
         </h2>
@@ -21,13 +21,13 @@
     @endif
 
     <!-- Filter Section -->
-    <div class="card mb-3">
+    <div class="card mb-4">
         <div class="card-header">
             <h6 class="mb-0">
                 <i class="fas fa-filter me-2"></i>Filter Presensi
             </h6>
         </div>
-        <div class="card-body" style="padding: 12px;">
+        <div class="card-body">
             <form method="GET" action="{{ route('transaksi.presensi.index') }}">
                 <div class="row g-3">
                     <div class="col-md-3">
@@ -94,44 +94,54 @@
                 <i class="fas fa-list me-2"></i>Daftar Presensi
             </h5>
         </div>
-        <div class="card-body p-0" style="padding: 0;">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 5%; overflow: hidden; text-overflow: ellipsis;">No</th>
-                            <th style="width: 25%; overflow: hidden; text-overflow: ellipsis;">Pegawai</th>
-                            <th class="text-center" style="width: 12%; overflow: hidden; text-overflow: ellipsis;">Tanggal</th>
-                            <th class="text-center" style="width: 10%; overflow: hidden; text-overflow: ellipsis;">Jam Masuk</th>
-                            <th class="text-center" style="width: 10%; overflow: hidden; text-overflow: ellipsis;">Jam Keluar</th>
-                            <th class="text-center" style="width: 10%; overflow: hidden; text-overflow: ellipsis;">Jumlah Jam</th>
-                            <th class="text-center" style="width: 10%; overflow: hidden; text-overflow: ellipsis;">Status</th>
-                            <th class="text-center" style="width: 10%; overflow: hidden; text-overflow: ellipsis;">Aksi</th>
+                            <th class="text-center" style="width: 50px">No</th>
+                            <th>Pegawai</th>
+                            <th class="text-center" style="width: 100px">Tanggal</th>
+                            <th class="text-center" style="width: 80px">Jam Masuk</th>
+                            <th class="text-center" style="width: 80px">Jam Keluar</th>
+                            <th class="text-center" style="width: 80px">Jumlah Jam</th>
+                            <th class="text-center" style="width: 100px">Status</th>
+                            <th class="text-center" style="width: 100px">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($presensis as $presensi)
                         <tr>
-                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">{{ ($presensis->currentPage()-1)*$presensis->perPage() + $loop->iteration }}</td>
-                            <td style="overflow: hidden; text-overflow: ellipsis;">
-                                <div>
-                                    <div class="fw-semibold">{{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }}</div>
-                                    <small class="text-muted">{{ $presensi->pegawai->jabatan ?? 'Tidak ada jabatan' }}</small>
+                            <td class="text-center">{{ ($presensis->currentPage()-1)*$presensis->perPage() + $loop->iteration }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if($presensi->pegawai && $presensi->pegawai->foto)
+                                        <img src="{{ storage_url($presensi->pegawai->foto) }}"
+                                             alt="Foto" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #e9ecef;">
+                                    @else
+                                        <div style="width: 40px; height: 40px; border-radius: 50%; background: #6c757d; display: flex; align-items: center; justify-content: center; border: 2px solid #e9ecef; flex-shrink: 0;">
+                                            <i class="fas fa-user text-white" style="font-size: 0.9rem;"></i>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="fw-semibold">{{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }}</div>
+                                        <small class="text-muted">{{ $presensi->pegawai->jabatan ?? 'Tidak ada jabatan' }}</small>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">
+                            <td class="text-center">
                                 {{ $presensi->tgl_presensi ? $presensi->tgl_presensi->format('d/m/Y') : '-' }}
                             </td>
-                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">
+                            <td class="text-center">
                                 {{ $presensi->jam_masuk ? date('H:i', strtotime($presensi->jam_masuk)) : '-' }}
                             </td>
-                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">
+                            <td class="text-center">
                                 {{ $presensi->jam_keluar ? date('H:i', strtotime($presensi->jam_keluar)) : '-' }}
                             </td>
-                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">
+                            <td class="text-center">
                                 {{ $presensi->jumlah_jam !== null ? $presensi->jumlah_jam . ' jam' : '-' }}
                             </td>
-                            <td class="text-center" style="overflow: hidden; text-overflow: ellipsis;">
+                            <td class="text-center">
                                 @if($presensi->status === 'hadir')
                                     <span class="badge bg-success">Hadir</span>
                                 @elseif($presensi->status === 'terlambat')
@@ -167,7 +177,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4" style="overflow: hidden; text-overflow: ellipsis;">
+                            <td colspan="8" class="text-center py-4">
                                 <i class="fas fa-calendar-check fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data presensi</p>
                             </td>
