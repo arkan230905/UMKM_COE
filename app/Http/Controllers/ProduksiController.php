@@ -1194,17 +1194,78 @@ return response()->json([
             }
 
             if ($totalBOP > 0) {
-                \App\Models\JurnalUmum::create([
-                    'user_id' => $user_id,
-                    'coa_id' => $this->getCoaIdByKode('1173'),
-                    'tanggal' => $tanggal,
-                    'keterangan' => 'Transfer WIP BOP ke Barang Jadi',
-                    'debit' => 0,
-                    'kredit' => $totalBOP,
-                    'referensi' => $produksi->id,
-                    'tipe_referensi' => 'produksi_transfer',
-                    'created_by' => $user_id,
-                ]);
+                // Create individual journal entries for each BOP component with specific COA
+                $this->createBOPJournalEntries($produksi, $tanggal, $user_id);
+            }
+        }
+    }
+
+    /**
+     * Create BOP journal entries using specific COA from BOP proses setup
+     */
+    private function createBOPJournalEntries($produksi, $tanggal, $user_id)
+    {
+        // Get all BOP proses for this user
+        $bopProsesList = \App\Models\BopProses::where('user_id', $user_id)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($bopProsesList as $bopProses) {
+            // Get komponen_bop data
+            $komponenBop = $bopProses->komponen_bop;
+            if (is_string($komponenBop)) {
+                $komponenBop = json_decode($komponenBop, true) ?? [];
+            } elseif (!is_array($komponenBop)) {
+                $komponenBop = [];
+            }
+
+            // Calculate total BOP for this proses
+            $totalBopPerProduk = $bopProses->total_bop_per_produk ?? 0;
+            $totalBopAmount = $totalBopPerProduk * $produksi->qty_produksi;
+
+            if ($totalBopAmount > 0) {
+                // Create journal entry for each component with its specific COA
+                foreach ($komponenBop as $komp) {
+                    $componentName = $komp['component'] ?? 'BOP';
+                    $ratePerHour = $komp['rate_per_hour'] ?? 0;
+                    $coaDebit = $komp['coa_debit'] ?? '1173';
+                    $coaKredit = $komp['coa_kredit'] ?? '210';
+                    $description = $komp['description'] ?? '';
+
+                    // Calculate proportional amount for this component
+                    $totalRate = array_sum(array_column($komponenBop, 'rate_per_hour'));
+                    $componentAmount = $totalRate > 0 ? ($ratePerHour / $totalRate) * $totalBopAmount : 0;
+
+                    if ($componentAmount > 0) {
+                        // Create debit entry (WIP account)
+                        $coaDebitId = $this->getCoaIdByKode($coaDebit);
+                        \App\Models\JurnalUmum::create([
+                            'user_id' => $user_id,
+                            'coa_id' => $coaDebitId,
+                            'tanggal' => $tanggal,
+                            'keterangan' => "Transfer WIP BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang Jadi",
+                            'debit' => $componentAmount,
+                            'kredit' => 0,
+                            'referensi' => $produksi->id,
+                            'tipe_referensi' => 'produksi_transfer',
+                            'created_by' => $user_id,
+                        ]);
+
+                        // Create credit entry (liability/expense account)
+                        $coaKreditId = $this->getCoaIdByKode($coaKredit);
+                        \App\Models\JurnalUmum::create([
+                            'user_id' => $user_id,
+                            'coa_id' => $coaKreditId,
+                            'tanggal' => $tanggal,
+                            'keterangan' => "Transfer WIP BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang Jadi",
+                            'debit' => 0,
+                            'kredit' => $componentAmount,
+                            'referensi' => $produksi->id,
+                            'tipe_referensi' => 'produksi_transfer',
+                            'created_by' => $user_id,
+                        ]);
+                    }
+                }
             }
         }
     }

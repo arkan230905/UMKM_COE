@@ -107,7 +107,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Budget Bulanan <span class="text-danger">*</span></label>
-                        <input type="number" name="budget_bulanan" class="form-control" min="0" step="0.01" required>
+                        <input type="text" name="budget_bulanan" class="form-control" id="budget_bulanan" placeholder="0" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -138,7 +138,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Budget Bulanan <span class="text-danger">*</span></label>
-                        <input type="number" id="editBudget" name="budget_bulanan" class="form-control" min="0" step="0.01" required>
+                        <input type="text" id="editBudget" name="budget_bulanan" class="form-control" placeholder="0" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -162,6 +162,13 @@ function saveData(event) {
     const form = event.target;
     const formData = new FormData(form);
     const submitBtn = form.querySelector('button[type="submit"]');
+
+    // Convert formatted currency back to number before submitting
+    const budgetInput = document.getElementById('budget_bulanan');
+    if (budgetInput) {
+        const numericValue = formatCurrencyValue(budgetInput.value);
+        formData.set('budget_bulanan', numericValue);
+    }
 
     // Disable submit button to prevent double submission
     submitBtn.disabled = true;
@@ -203,7 +210,13 @@ function editItem(id) {
             if (data.success) {
                 document.getElementById('editId').value = data.data.id;
                 document.getElementById('editNamaBeban').value = data.data.nama_beban;
-                document.getElementById('editBudget').value = data.data.budget_bulanan;
+                
+                // Format the budget value with dots
+                const editBudgetInput = document.getElementById('editBudget');
+                if (editBudgetInput && data.data.budget_bulanan) {
+                    editBudgetInput.value = parseInt(data.data.budget_bulanan).toLocaleString('id-ID');
+                }
+                
                 new bootstrap.Modal(document.getElementById('editModal')).show();
             }
         });
@@ -214,6 +227,13 @@ function updateData(event) {
     const id = document.getElementById('editId').value;
     const formData = new FormData(event.target);
     const submitBtn = event.target.querySelector('button[type="submit"]');
+
+    // Convert formatted currency back to number before submitting
+    const editBudgetInput = document.getElementById('editBudget');
+    if (editBudgetInput) {
+        const numericValue = formatCurrencyValue(editBudgetInput.value);
+        formData.set('budget_bulanan', numericValue);
+    }
 
     // Disable submit button to prevent double submission
     submitBtn.disabled = true;
@@ -284,6 +304,61 @@ function filterData() {
         row.style.display = (matchSearch && matchStatus) ? '' : 'none';
     });
 }
+
+// Currency formatting functions
+function formatCurrency(input) {
+    // Remove all non-digit characters
+    let value = input.value.replace(/\D/g, '');
+    
+    // Convert to number and format with dots
+    if (value === '') {
+        input.value = '';
+        return;
+    }
+    
+    // Format with dots as thousand separators
+    let formatted = parseInt(value).toLocaleString('id-ID');
+    input.value = formatted;
+}
+
+function formatCurrencyValue(value) {
+    // Convert string with dots to number
+    return parseInt(value.replace(/\D/g, '')) || 0;
+}
+
+// Initialize currency formatting on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add currency formatting to budget input fields
+    const budgetInput = document.getElementById('budget_bulanan');
+    const editBudgetInput = document.getElementById('editBudget');
+    
+    if (budgetInput) {
+        budgetInput.addEventListener('input', function() {
+            formatCurrency(this);
+        });
+        
+        budgetInput.addEventListener('blur', function() {
+            if (this.value === '') {
+                this.value = '0';
+            }
+        });
+    }
+    
+    if (editBudgetInput) {
+        editBudgetInput.addEventListener('input', function() {
+            formatCurrency(this);
+        });
+        
+        editBudgetInput.addEventListener('blur', function() {
+            if (this.value === '') {
+                this.value = '0';
+            }
+        });
+    }
+});
+
+
+
 </script>
 @endpush
 @endsection
