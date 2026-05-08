@@ -222,7 +222,7 @@ if ($parentCoa) {
 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -310,7 +310,7 @@ if ($parentCoa) {
 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
