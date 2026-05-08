@@ -12,19 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pelanggans', function (Blueprint $table) {
-            // Add user_id column for multi-tenant isolation
-            $table->unsignedBigInteger('user_id')->after('id')->nullable();
-            
-            // Add foreign key constraint to users table
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            
-            // Add index for better performance
-            $table->index('user_id');
+            // Check if user_id column doesn't exist before adding it
+            if (!Schema::hasColumn('pelanggans', 'user_id')) {
+                // Add user_id column for multi-tenant isolation
+                $table->unsignedBigInteger('user_id')->after('id')->nullable();
+                
+                // Add foreign key constraint to users table
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+                
+                // Add index for better performance
+                $table->index('user_id');
+            }
         });
         
         // Update existing records to belong to the first user (ID=1) as default
         // This is a temporary fix - in production, you might want to handle this differently
-        \DB::table('pelanggans')->update(['user_id' => 1]);
+        \DB::table('pelanggans')->whereNull('user_id')->update(['user_id' => 1]);
     }
 
     /**
@@ -33,12 +36,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pelanggans', function (Blueprint $table) {
-            // Drop foreign key and index first
-            $table->dropForeign(['user_id']);
-            $table->dropIndex(['user_id']);
-            
-            // Drop the column
-            $table->dropColumn('user_id');
+            // Drop foreign key and index first if they exist
+            if (Schema::hasColumn('pelanggans', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id']);
+                
+                // Drop the column
+                $table->dropColumn('user_id');
+            }
         });
     }
 };
