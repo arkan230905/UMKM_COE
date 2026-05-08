@@ -3735,7 +3735,7 @@ Route::middleware(['auth'])->prefix('auto-reset')->name('auto-reset.')->group(fu
 // ================================================================
 // ROUTE PEGAWAI (Khusus untuk pegawai login)
 // ================================================================
-Route::middleware(['auth'])->prefix('pegawai')->name('pegawai.')->group(function () {
+Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {
     // Dashboard sederhana pegawai (optional)
     Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 

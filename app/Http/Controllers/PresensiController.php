@@ -619,7 +619,12 @@ $user = auth()->user();
         $pegawai = $user->pegawai;
 
         if (!$pegawai) {
-            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+            \Log::error('Pegawai not found for absen wajah', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_role' => $user->role
+            ]);
+            return redirect()->route('pegawai.dashboard')->with('error', 'Data pegawai tidak ditemukan. Hubungi administrator.');
         }
 
         $today = now()->toDateString();

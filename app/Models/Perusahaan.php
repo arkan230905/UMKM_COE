@@ -43,6 +43,14 @@ class Perusahaan extends Model
     }
 
     /**
+     * Get pegawai yang bekerja di perusahaan ini
+     */
+    public function pegawais()
+    {
+        return $this->hasMany(Pegawai::class, 'perusahaan_id');
+    }
+
+    /**
      * Get catalog photos for the company
      */
     public function catalogPhotos()
