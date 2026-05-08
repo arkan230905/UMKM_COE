@@ -52,14 +52,9 @@
                     <option value="">Pilih tipe</option>
                     <option value="Asset" {{ old('tipe_akun', $coa->tipe_akun)==='Asset'?'selected':'' }}>Aset</option>
                     <option value="Liability" {{ old('tipe_akun', $coa->tipe_akun)==='Liability'?'selected':'' }}>Kewajiban</option>
-                    <option value="Equity" {{ old('tipe_akun', $coa->tipe_akun)==='Equity'?'selected':'' }}>Modal / Ekuitas</option>
+                    <option value="Equity" {{ old('tipe_akun', $coa->tipe_akun)==='Equity'?'selected':'' }}>Modal</option>
                     <option value="Revenue" {{ old('tipe_akun', $coa->tipe_akun)==='Revenue'?'selected':'' }}>Pendapatan</option>
                     <option value="Expense" {{ old('tipe_akun', $coa->tipe_akun)==='Expense'?'selected':'' }}>Beban</option>
-                    <option value="Biaya Bahan Baku" {{ old('tipe_akun', $coa->tipe_akun)==='Biaya Bahan Baku'?'selected':'' }}>Biaya Bahan Baku</option>
-                    <option value="Biaya Tenaga Kerja Langsung" {{ old('tipe_akun', $coa->tipe_akun)==='Biaya Tenaga Kerja Langsung'?'selected':'' }}>Biaya Tenaga Kerja Langsung</option>
-                    <option value="Biaya Overhead Pabrik" {{ old('tipe_akun', $coa->tipe_akun)==='Biaya Overhead Pabrik'?'selected':'' }}>Biaya Overhead Pabrik</option>
-                    <option value="Biaya Tenaga Kerja Tidak Langsung" {{ old('tipe_akun', $coa->tipe_akun)==='Biaya Tenaga Kerja Tidak Langsung'?'selected':'' }}>Biaya Tenaga Kerja Tidak Langsung</option>
-                    <option value="BOP Tidak Langsung Lainnya" {{ old('tipe_akun', $coa->tipe_akun)==='BOP Tidak Langsung Lainnya'?'selected':'' }}>BOP Tidak Langsung Lainnya</option>
                 </select>
             </div>
 
