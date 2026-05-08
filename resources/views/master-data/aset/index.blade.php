@@ -256,7 +256,7 @@
         font-weight: 500;
     }
 
-    /* COA cell — kode dan nama sejajar rapi */
+    /* COA cell - kode dan nama sejajar rapi */
     .coa-cell {
         display: flex;
         flex-direction: column;
