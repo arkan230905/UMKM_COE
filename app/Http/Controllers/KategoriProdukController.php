@@ -14,7 +14,10 @@ class KategoriProdukController extends Controller
 
     public function index()
     {
-        $kategoris = KategoriProduk::withCount('produks')->orderBy('nama')->get();
+        $kategoris = KategoriProduk::where('user_id', auth()->id())
+            ->withCount('produks')
+            ->orderBy('nama')
+            ->get();
         return view('master-data.kategori-produk.index', compact('kategoris'));
     }
 
@@ -26,12 +29,13 @@ class KategoriProdukController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori',
+            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori,NULL,id,user_id,' . auth()->id(),
             'nama'          => 'required|string|max:100',
             'deskripsi'     => 'nullable|string',
         ]);
 
         $kategori = KategoriProduk::create([
+            'user_id'       => auth()->id(),
             'kode_kategori' => strtoupper($request->kode_kategori),
             'nama'          => $request->nama,
             'deskripsi'     => $request->deskripsi,
@@ -57,13 +61,23 @@ class KategoriProdukController extends Controller
 
     public function edit(KategoriProduk $kategoriProduk)
     {
+        // Ensure user can only edit their own categories
+        if ($kategoriProduk->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         return view('master-data.kategori-produk.edit', ['kategori' => $kategoriProduk]);
     }
 
     public function update(Request $request, KategoriProduk $kategoriProduk)
     {
+        // Ensure user can only update their own categories
+        if ($kategoriProduk->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
         $request->validate([
-            'kode_kategori' => 'required|string|max:20|unique:kategori_produks,kode_kategori,' . $kategoriProduk->id,
+            'kode_kategori' => 'required|string|max:20|unique:kategori_produks,kode_kategori,' . $kategoriProduk->id . ',id,user_id,' . auth()->id(),
             'nama'          => 'required|string|max:100',
             'deskripsi'     => 'nullable|string',
         ]);
@@ -84,6 +98,11 @@ class KategoriProdukController extends Controller
 
     public function destroy(KategoriProduk $kategoriProduk)
     {
+        // Ensure user can only delete their own categories
+        if ($kategoriProduk->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
         // Check if category has products
         if ($kategoriProduk->produks()->count() > 0) {
             return back()->with('error', 'Kategori tidak bisa dihapus karena masih digunakan oleh produk');
