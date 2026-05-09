@@ -1202,16 +1202,17 @@ return response()->json([
 
     /**
      * Create BOP journal entries using specific COA from BOP proses setup
+     * Multi-tenant support: Uses COA from bop_proses table for each user
      */
     private function createBOPJournalEntries($produksi, $tanggal, $user_id)
     {
-        // Get all BOP proses for this user
+        // Get all BOP proses for this user (multi-tenant support)
         $bopProsesList = \App\Models\BopProses::where('user_id', $user_id)
             ->where('is_active', true)
             ->get();
 
         foreach ($bopProsesList as $bopProses) {
-            // Get komponen_bop data
+            // Get komponen_bop data from database
             $komponenBop = $bopProses->komponen_bop;
             if (is_string($komponenBop)) {
                 $komponenBop = json_decode($komponenBop, true) ?? [];
@@ -1224,12 +1225,13 @@ return response()->json([
             $totalBopAmount = $totalBopPerProduk * $produksi->qty_produksi;
 
             if ($totalBopAmount > 0) {
-                // Create journal entry for each component with its specific COA
+                // Create journal entry for each component with its specific COA from database
                 foreach ($komponenBop as $komp) {
                     $componentName = $komp['component'] ?? 'BOP';
                     $ratePerHour = $komp['rate_per_hour'] ?? 0;
+                    // Use COA from bop_proses table (multi-tenant aware)
                     $coaDebit = $komp['coa_debit'] ?? '1173';
-                    $coaKredit = $komp['coa_kredit'] ?? '210';
+                    $coaKredit = $komp['coa_kredit'] ?? '510';
                     $description = $komp['description'] ?? '';
 
                     // Calculate proportional amount for this component
@@ -1237,31 +1239,31 @@ return response()->json([
                     $componentAmount = $totalRate > 0 ? ($ratePerHour / $totalRate) * $totalBopAmount : 0;
 
                     if ($componentAmount > 0) {
-                        // Create debit entry (WIP account)
-                        $coaDebitId = $this->getCoaIdByKode($coaDebit);
+                        // Create debit entry (WIP BOP account) with user-specific COA
+                        $coaDebitId = $this->getCoaIdByKode($coaDebit, $user_id);
                         \App\Models\JurnalUmum::create([
                             'user_id' => $user_id,
                             'coa_id' => $coaDebitId,
                             'tanggal' => $tanggal,
-                            'keterangan' => "Transfer WIP BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang Jadi",
+                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
                             'debit' => $componentAmount,
                             'kredit' => 0,
                             'referensi' => $produksi->id,
-                            'tipe_referensi' => 'produksi_transfer',
+                            'tipe_referensi' => 'produksi_bop',
                             'created_by' => $user_id,
                         ]);
 
-                        // Create credit entry (liability/expense account)
-                        $coaKreditId = $this->getCoaIdByKode($coaKredit);
+                        // Create credit entry (expense account) with user-specific COA
+                        $coaKreditId = $this->getCoaIdByKode($coaKredit, $user_id);
                         \App\Models\JurnalUmum::create([
                             'user_id' => $user_id,
                             'coa_id' => $coaKreditId,
                             'tanggal' => $tanggal,
-                            'keterangan' => "Transfer WIP BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang Jadi",
+                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
                             'debit' => 0,
                             'kredit' => $componentAmount,
                             'referensi' => $produksi->id,
-                            'tipe_referensi' => 'produksi_transfer',
+                            'tipe_referensi' => 'produksi_bop',
                             'created_by' => $user_id,
                         ]);
                     }
@@ -1273,10 +1275,12 @@ return response()->json([
     /**
      * Get COA ID by kode_akun - STRICT MODE (no fallback)
      * Throws exception if COA not found to prevent incorrect journal entries
+     * Multi-tenant support: Uses specific user_id parameter
      */
-    private function getCoaIdByKode($kodeAkun)
+    private function getCoaIdByKode($kodeAkun, $user_id = null)
     {
-        $user_id = auth()->id();
+        // Use provided user_id or current authenticated user
+        $user_id = $user_id ?? auth()->id();
         
         // Try to find the COA with user_id filter
         $coa = \App\Models\Coa::where('kode_akun', $kodeAkun)
