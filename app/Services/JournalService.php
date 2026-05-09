@@ -19,24 +19,25 @@ class JournalService
             
         if ($coa) {
             return (int)$coa->getAttribute('id');
-}
+        }
         
         // Fallback: ambil berdasarkan auth user
         if (auth()->check()) {
-            $coa = (clone $query)->where('user_id', auth()->id())->first();
+            $coa = Coa::where('kode_akun', $code)
+                ->where('user_id', auth()->id())
+                ->first();
             if ($coa) return (int)$coa->getAttribute('id');
         }
         
-        // Last fallback: ambil yang pertama
-        $coa = $query->first();
+        // Last fallback: ambil yang pertama tanpa filter user
+        $coa = Coa::where('kode_akun', $code)->first();
         if ($coa) return (int)$coa->getAttribute('id');
-
 
         throw new \RuntimeException(
             "COA dengan kode '{$code}' tidak ditemukan untuk user ID {$userId}. " .
             "Silakan buat COA terlebih dahulu di Master Data > Chart of Accounts."
         );
-}
+    }
 
     /**
      * Post a balanced journal entry with given lines. Each line element: ['code'=>account_code, 'debit'=>float, 'credit'=>float, 'memo'=>string (optional)]
