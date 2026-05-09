@@ -146,32 +146,38 @@ class PenggajianController extends Controller
             // STEP 1: Get data from KUALIFIKASI (JABATAN) - NOT from form
             $jenisPegawai = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
             
-            if (!$pegawai->jabatanRelasi) {
-                throw new \Exception('Pegawai tidak memiliki kualifikasi jabatan. Harap set jabatan terlebih dahulu.');
+            // Ambil data dari KUALIFIKASI (JABATAN) atau fallback ke pegawai
+            if ($pegawai->jabatanRelasi) {
+                $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
+                $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
+                $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
+                $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
+                $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
+            } else {
+                // Fallback ke data pegawai jika tidak ada jabatan
+                $gajiPokok = (float) ($pegawai->gaji_pokok ?? 0);
+                $tarifPerJam = (float) ($pegawai->tarif_per_jam ?? 0);
+                $tunjanganJabatan = (float) ($pegawai->tunjangan ?? 0);
+                $tunjanganTransport = 0;
+                $tunjanganKonsumsi = 0;
+                $asuransi = (float) ($pegawai->asuransi ?? 0);
             }
-            
-            // Ambil data dari KUALIFIKASI (JABATAN) dengan validasi
-            $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
-            $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
-            $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
-            $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
-            $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
-            $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
             
             // Validasi data kualifikasi berdasarkan jenis pegawai
             if ($jenisPegawai === 'btkl') {
                 if ($tarifPerJam <= 0) {
-                    throw new \Exception("Tarif per jam untuk pegawai BTKL '{$pegawai->nama}' belum diset di kualifikasi jabatan '{$pegawai->jabatanRelasi->nama}'.");
+                    throw new \Exception("Tarif per jam untuk pegawai BTKL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
                 }
             } else { // BTKTL
                 if ($gajiPokok <= 0) {
-                    throw new \Exception("Gaji pokok untuk pegawai BTKTL '{$pegawai->nama}' belum diset di kualifikasi jabatan '{$pegawai->jabatanRelasi->nama}'.");
+                    throw new \Exception("Gaji pokok untuk pegawai BTKTL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
                 }
             }
             
             // Warning jika asuransi 0 (opsional tapi sebaiknya ada)
             if ($asuransi <= 0) {
-                \Log::warning("Asuransi untuk jabatan '{$pegawai->jabatanRelasi->nama}' adalah 0. Pastikan ini sudah benar.");
+                \Log::warning("Asuransi untuk pegawai '{$pegawai->nama}' adalah 0. Pastikan ini sudah benar.");
             }
             
             // STEP 2: Get jam kerja from PRESENSI - NOT from form
