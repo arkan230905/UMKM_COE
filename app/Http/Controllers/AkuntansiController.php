@@ -910,7 +910,13 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'totalPendapatan', 'totalBeban',
             'labaKotor', 'labaBersih',
             'hppAmount', 'totalDiskonPenjualan',
-            'detailPenjualan', 'detailHpp'
-        ) + ['totalHpp' => $hppAmount]);
+            'detailPenjualan', 'detailHpp',
+            'accountData'
+        ) + [
+            'totalHpp' => $hppAmount,
+            'getSaldo' => function($coa) use ($accountData) {
+                return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            }
+        ]);
     }
 }
