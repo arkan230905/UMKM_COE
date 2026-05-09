@@ -807,6 +807,15 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->orderBy('kode_akun')
             ->get();
 
+        // Debug: Log periode dan COA count
+        \Log::info('Laba Rugi Report', [
+            'periode' => $periode,
+            'from' => $from,
+            'to' => $to,
+            'user_id' => auth()->id(),
+            'coa_count' => $coas->count()
+        ]);
+
         // Hitung mutasi per COA untuk periode ini
         $mutasi = \DB::table('jurnal_umum')
             ->select('coa_id', 
@@ -818,6 +827,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->groupBy('coa_id')
             ->get()
             ->keyBy('coa_id');
+
+        // Debug: Log mutasi count
+        \Log::info('Mutasi Count', ['count' => $mutasi->count()]);
 
         // Build account data with final balance
         $accountData = [];
@@ -903,6 +915,17 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->having('total_hpp', '>', 0)
             ->orderBy('total_hpp', 'desc')
             ->get();
+
+        // Debug: Log totals
+        \Log::info('Laba Rugi Totals', [
+            'totalPendapatan' => $totalPendapatan,
+            'totalBeban' => $totalBeban,
+            'hppAmount' => $hppAmount,
+            'labaKotor' => $labaKotor,
+            'labaBersih' => $labaBersih,
+            'detailPenjualan_count' => $detailPenjualan->count(),
+            'detailHpp_count' => $detailHpp->count()
+        ]);
 
         return view('akuntansi.laba_rugi', compact(
             'periode', 'from', 'to',
