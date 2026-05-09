@@ -467,9 +467,12 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         $totalHPP = $hppPerUnit * $qty;
         
         if ($totalHPP > 0) {
+            // Get HPP COA - use getOrCreateCoaHpp to find or create the account
+            $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            
             // Debit HPP account
             $lines[] = [
-                'code' => '554', // HARGA POKOK PENJUALAN (HPP) - Updated from 560 to 554
+                'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -522,9 +525,12 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         ]);
         
         if ($totalHPP > 0) {
+            // Get HPP COA - use getOrCreateCoaHpp to find or create the account
+            $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            
             // Debit HPP account
             $lines[] = [
-                'code' => '554', // HARGA POKOK PENJUALAN (HPP) - Updated from 560 to 554
+                'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
