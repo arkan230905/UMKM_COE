@@ -617,25 +617,70 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
      */
     private function getOrCreateCoaHpp($produk, $userId): string
     {
-        // Cari COA yang sudah ada
-        $existingCoa = $this->findOrCreateCoaHpp($produk, $userId);
-        if ($existingCoa) {
-            return $existingCoa;
-        }
-        
+        $namaProduk = $produk->nama_produk;
+        $tipeAkunVariants = ['Expense', 'Beban', 'Biaya', 'HPP', 'Cost'];
 
-        // Default to standard persediaan barang jadi account
-        // Cari COA Persediaan Barang Jadi yang ada di database
-        $persediaanCoa = Coa::where('tipe_akun', 'Asset')
-->where(function($query) {
-                $query->where('nama_akun', 'like', '%persediaan%barang%jadi%')
-                      ->orWhere('nama_akun', 'like', '%persediaan%produk%jadi%');
+        // 1. Spesifik per produk - exact match dulu
+        $q = Coa::withoutGlobalScopes()
+            ->where(function ($q2) use ($namaProduk) {
+                $q2->where('nama_akun', 'HPP ' . $namaProduk)
+                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk);
             })
-            ->orWhere('kode_akun', '116') // Persediaan Barang Jadi
-            ->orWhere('kode_akun', '1160')
-            ->first();
-        
-        return $persediaanCoa ? $persediaanCoa->kode_akun : '116';
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $q->first();
+        if ($found) return $found->kode_akun;
+
+        // 2. Spesifik per produk - partial match
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'like', '%HPP%' . $namaProduk . '%')
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $q->first();
+        if ($found) return $found->kode_akun;
+
+        // 3. HPP umum - cari berdasarkan nama terlebih dahulu
+        $qUmum = Coa::withoutGlobalScopes()
+            ->where(function ($q2) {
+                $q2->where('nama_akun', 'Harga Pokok Penjualan')
+                   ->orWhere('nama_akun', 'HPP')
+                   ->orWhere('nama_akun', 'like', '%Harga Pokok%');
+            })
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $qUmum)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $qUmum->first();
+        if ($found) return $found->kode_akun;
+
+        // 4. Fallback: cari berdasarkan kode (jika nama tidak ditemukan)
+        $qKode = Coa::withoutGlobalScopes()
+            ->where(function ($q2) {
+                $q2->where('kode_akun', '554')
+                   ->orWhere('kode_akun', '56')
+                   ->orWhere('kode_akun', '560');
+            })
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $qKode)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $qKode->first();
+        if ($found) return $found->kode_akun;
+
+        // Last resort: return default code
+        return '56';
     }
 
     /**

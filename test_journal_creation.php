@@ -53,19 +53,19 @@ try {
     echo "✓ Journal created successfully!\n";
     
     // Check if journal was created
-    $journal = \App\Models\JournalEntry::where('ref_type', 'sale')
+    $journal = \App\Models\JurnalUmum::where('ref_type', 'sale')
         ->where('ref_id', $penjualan->id)
-        ->with('linesWithAccount')
+        ->with('lines')
         ->first();
     
     if ($journal) {
         echo "\nJournal Details:\n";
         echo "ID: {$journal->id}\n";
-        echo "Lines: " . $journal->linesWithAccount->count() . "\n";
+        echo "Lines: " . $journal->lines->count() . "\n";
         
         $totalDebit = 0;
         $totalKredit = 0;
-        foreach ($journal->linesWithAccount as $line) {
+        foreach ($journal->lines as $line) {
             echo "  {$line->coa->kode_akun} | {$line->coa->nama_akun} | Dr: {$line->debit} | Cr: {$line->credit}\n";
             $totalDebit += $line->debit;
             $totalKredit += $line->credit;
