@@ -74,10 +74,21 @@ class RegisterController extends Controller
     {
         $perusahaanId = null;
 
+        // Create user first
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role' => $data['role'] ?? 'owner',
+            'perusahaan_id' => $perusahaanId,
+        ]);
+
+        // Create company if user is owner
         if (($data['role'] ?? null) === 'owner') {
             $kode = $this->generateCompanyCode();
 
             $perusahaanId = DB::table('perusahaan')->insertGetId([
+                'user_id' => $user->id, // CRITICAL: Link company to user for multi-tenant
                 'nama' => $data['company_nama'],
                 'alamat' => $data['company_alamat'],
                 'email' => $data['company_email'],
@@ -86,18 +97,13 @@ class RegisterController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            
+            // Update user with perusahaan_id
+            $user->update(['perusahaan_id' => $perusahaanId]);
         } elseif (in_array($data['role'] ?? null, ['never'], true)) {
             $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
             $perusahaanId = $perusahaan?->id;
         }
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => $data['role'] ?? 'owner',
-            'perusahaan_id' => $perusahaanId,
-        ]);
 
         // CRITICAL: Trigger event untuk setup data awal (COA, Satuan, dll)
         // Event HARUS di-dispatch untuk SETIAP user baru (multi-tenant)

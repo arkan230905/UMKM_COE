@@ -11,6 +11,26 @@ class Perusahaan extends Model
 
     protected $table = 'perusahaan';
 
+    /**
+     * Boot method untuk auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+        
+        static::updating(function ($model) {
+            // Ensure user_id tidak berubah saat update
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'nama', 
