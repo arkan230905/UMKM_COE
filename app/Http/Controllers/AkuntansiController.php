@@ -857,6 +857,23 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             return $saldo > 0;
         })->sortBy('kode_akun');
+
+        // Debug: Log pendapatan
+        $allPendapatanCoas = $coas->filter(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            return $first === '4';
+        });
+        \Log::info('Pendapatan COAs', [
+            'count' => $allPendapatanCoas->count(),
+            'filtered_count' => $pendapatan->count(),
+            'coas' => $allPendapatanCoas->map(function($coa) use ($accountData) {
+                return [
+                    'kode' => $coa->kode_akun,
+                    'nama' => $coa->nama_akun,
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0
+                ];
+            })->toArray()
+        ]);
         
         // Get HPP (560)
         $hppCoa = $coas->where('kode_akun', '560')->first();
@@ -871,6 +888,23 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             return $saldo > 0;
         })->sortBy('kode_akun');
+
+        // Debug: Log beban
+        $allBebanCoas = $coas->filter(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            return in_array($first, ['5', '6']);
+        });
+        \Log::info('Beban COAs', [
+            'count' => $allBebanCoas->count(),
+            'filtered_count' => $beban->count(),
+            'coas' => $allBebanCoas->map(function($coa) use ($accountData) {
+                return [
+                    'kode' => $coa->kode_akun,
+                    'nama' => $coa->nama_akun,
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0
+                ];
+            })->toArray()
+        ]);
         
         // Hitung total
         $totalPendapatan = $pendapatan->sum(function($coa) use ($accountData) {
