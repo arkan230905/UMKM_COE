@@ -228,7 +228,10 @@ class JournalValidationService
         // Prioritas: coa_id yang dipilih user
         if ($penjualan->coa_id) {
             $coa = Coa::withoutGlobalScopes()->find($penjualan->coa_id);
-            if ($coa) return $coa;
+            // Validasi bahwa COA yang dipilih adalah tipe Asset (Kas/Bank/Piutang)
+            if ($coa && in_array($coa->tipe_akun, $this->getTipeAkunVariants('Asset'))) {
+                return $coa;
+            }
         }
 
         // Fallback berdasarkan payment_method
@@ -237,15 +240,30 @@ class JournalValidationService
 
         switch ($penjualan->payment_method ?? 'cash') {
             case 'transfer':
-                $q->where('nama_akun', 'like', '%Bank%');
+                // Cari akun Bank dengan validasi nama
+                $q->where(function($q2) {
+                    $q2->where('nama_akun', 'like', '%Bank%')
+                       ->orWhere('nama_akun', 'like', '%Kas Bank%')
+                       ->orWhere('kode_akun', '111')
+                       ->orWhere('kode_akun', '1102');
+                });
                 break;
             case 'credit':
-                $q->where('nama_akun', 'like', '%Piutang%');
+                // Cari akun Piutang dengan validasi nama
+                $q->where(function($q2) {
+                    $q2->where('nama_akun', 'like', '%Piutang%')
+                       ->orWhere('nama_akun', 'like', '%Piutang Usaha%')
+                       ->orWhere('kode_akun', '113')
+                       ->orWhere('kode_akun', '103');
+                });
                 break;
             default: // cash
-                $q->where(function ($q2) {
+                // Cari akun Kas dengan validasi nama
+                $q->where(function($q2) {
                     $q2->where('nama_akun', 'Kas')
-                       ->orWhere('nama_akun', 'like', '%Kas%');
+                       ->orWhere('nama_akun', 'like', '%Kas%')
+                       ->orWhere('kode_akun', '112')
+                       ->orWhere('kode_akun', '101');
                 });
         }
 
@@ -262,12 +280,21 @@ class JournalValidationService
         // Map English to Indonesian terms
         $tipeAkunVariants = $this->getTipeAkunVariants($tipeAkun);
         
+        // 1. Cari exact match dulu
         $q = Coa::withoutGlobalScopes()
-            ->where(function($q) use ($namaAkun) {
-                // Search for exact match or partial match
-                $q->where('nama_akun', $namaAkun)
-                  ->orWhere('nama_akun', 'like', '%' . $namaAkun . '%');
-            })
+            ->where('nama_akun', $namaAkun)
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+        $found = $q->first();
+        if ($found) return $found;
+
+        // 2. Jika tidak ada exact match, cari partial match
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'like', '%' . $namaAkun . '%')
             ->whereIn('tipe_akun', $tipeAkunVariants);
 
         if ($userId) {
@@ -303,6 +330,19 @@ class JournalValidationService
     {
         $tipeAkunVariants = $this->getTipeAkunVariants('Revenue');
         
+        // 1. Exact match dulu
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'Pendapatan Lain-lain')
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+        $found = $q->first();
+        if ($found) return $found;
+
+        // 2. Partial match
         $q = Coa::withoutGlobalScopes()
             ->where('nama_akun', 'like', 'Pendapatan Lain%')
             ->whereIn('tipe_akun', $tipeAkunVariants);
@@ -322,11 +362,23 @@ class JournalValidationService
             $this->getTipeAkunVariants('Revenue')
         );
         
+        // 1. Exact match dulu
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'Diskon Penjualan')
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+        $found = $q->first();
+        if ($found) return $found;
+
+        // 2. Partial match dengan berbagai variasi nama
         $q = Coa::withoutGlobalScopes()
             ->where(function ($q2) {
                 $q2->where('nama_akun', 'like', '%Diskon%Penjualan%')
-                   ->orWhere('nama_akun', 'like', '%Potongan%Penjualan%')
-                   ->orWhere('nama_akun', 'Diskon Penjualan');
+                   ->orWhere('nama_akun', 'like', '%Potongan%Penjualan%');
             })
             ->whereIn('tipe_akun', $tipeAkunVariants);
 
@@ -380,12 +432,11 @@ class JournalValidationService
         $tipeAkunVariants[] = 'HPP'; // Add HPP as valid type
         $tipeAkunVariants[] = 'Cost';
 
-        // 1. Spesifik per produk
+        // 1. Spesifik per produk - exact match dulu
         $q = Coa::withoutGlobalScopes()
             ->where(function ($q2) use ($namaProduk) {
                 $q2->where('nama_akun', 'HPP ' . $namaProduk)
-                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk)
-                   ->orWhere('nama_akun', 'like', '%HPP%' . $namaProduk . '%');
+                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk);
             })
             ->whereIn('tipe_akun', $tipeAkunVariants);
 
@@ -396,13 +447,24 @@ class JournalValidationService
         $found = $q->first();
         if ($found) return $found;
 
-        // 2. HPP umum
+        // 2. Spesifik per produk - partial match
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'like', '%HPP%' . $namaProduk . '%')
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+        $found = $q->first();
+        if ($found) return $found;
+
+        // 3. HPP umum - cari berdasarkan nama terlebih dahulu
         $qUmum = Coa::withoutGlobalScopes()
             ->where(function ($q2) {
-                $q2->where('kode_akun', '554')
-                   ->orWhere('kode_akun', '56')
-                   ->orWhere('nama_akun', 'Harga Pokok Penjualan')
-                   ->orWhere('nama_akun', 'HPP');
+                $q2->where('nama_akun', 'Harga Pokok Penjualan')
+                   ->orWhere('nama_akun', 'HPP')
+                   ->orWhere('nama_akun', 'like', '%Harga Pokok%');
             })
             ->whereIn('tipe_akun', $tipeAkunVariants);
 
@@ -410,27 +472,44 @@ class JournalValidationService
             $found = (clone $qUmum)->where('user_id', $userId)->first();
             if ($found) return $found;
         }
+        $found = $qUmum->first();
+        if ($found) return $found;
 
-        return $qUmum->first();
+        // 4. Fallback: cari berdasarkan kode (jika nama tidak ditemukan)
+        $qKode = Coa::withoutGlobalScopes()
+            ->where(function ($q2) {
+                $q2->where('kode_akun', '554')
+                   ->orWhere('kode_akun', '56')
+                   ->orWhere('kode_akun', '560');
+            })
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $qKode)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+
+        return $qKode->first();
     }
 
     private function findPersediaanCoa(Produk $produk, ?int $userId): ?Coa
     {
-        // 1. Dari coa_persediaan_id produk
+        // 1. Dari coa_persediaan_id produk - dengan validasi tipe akun
         if (!empty($produk->coa_persediaan_id)) {
             $coa = Coa::withoutGlobalScopes()->find($produk->coa_persediaan_id);
-            if ($coa) return $coa;
+            if ($coa && in_array($coa->tipe_akun, $this->getTipeAkunVariants('Asset'))) {
+                return $coa;
+            }
         }
 
         $namaProduk = $produk->nama_produk;
         $tipeAkunVariants = $this->getTipeAkunVariants('Asset');
 
-        // 2. Spesifik per produk
+        // 2. Spesifik per produk - exact match dulu
         $q = Coa::withoutGlobalScopes()
             ->where(function ($q2) use ($namaProduk) {
                 $q2->where('nama_akun', 'Pers. Barang Jadi ' . $namaProduk)
-                   ->orWhere('nama_akun', 'Persediaan Barang Jadi ' . $namaProduk)
-                   ->orWhere('nama_akun', 'like', '%Barang Jadi%' . $namaProduk . '%');
+                   ->orWhere('nama_akun', 'Persediaan Barang Jadi ' . $namaProduk);
             })
             ->whereIn('tipe_akun', $tipeAkunVariants);
 
@@ -441,13 +520,24 @@ class JournalValidationService
         $found = $q->first();
         if ($found) return $found;
 
-        // 3. Persediaan umum
+        // 3. Spesifik per produk - partial match
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'like', '%Barang Jadi%' . $namaProduk . '%')
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+        $found = $q->first();
+        if ($found) return $found;
+
+        // 4. Persediaan umum - cari berdasarkan nama terlebih dahulu
         $qUmum = Coa::withoutGlobalScopes()
             ->where(function ($q2) {
-                $q2->where('kode_akun', '116')
-                   ->orWhere('kode_akun', '115')
-                   ->orWhere('nama_akun', 'Pers. Barang Jadi')
-                   ->orWhere('nama_akun', 'Persediaan Barang Jadi');
+                $q2->where('nama_akun', 'Pers. Barang Jadi')
+                   ->orWhere('nama_akun', 'Persediaan Barang Jadi')
+                   ->orWhere('nama_akun', 'like', '%Persediaan%Barang Jadi%');
             })
             ->whereIn('tipe_akun', $tipeAkunVariants);
 
@@ -455,8 +545,23 @@ class JournalValidationService
             $found = (clone $qUmum)->where('user_id', $userId)->first();
             if ($found) return $found;
         }
+        $found = $qUmum->first();
+        if ($found) return $found;
 
-        return $qUmum->first();
+        // 5. Fallback: cari berdasarkan kode (jika nama tidak ditemukan)
+        $qKode = Coa::withoutGlobalScopes()
+            ->where(function ($q2) {
+                $q2->where('kode_akun', '116')
+                   ->orWhere('kode_akun', '115');
+            })
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $qKode)->where('user_id', $userId)->first();
+            if ($found) return $found;
+        }
+
+        return $qKode->first();
     }
 
     private function getItems(Penjualan $penjualan): array
