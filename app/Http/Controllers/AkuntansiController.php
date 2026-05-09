@@ -875,16 +875,36 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             })->toArray()
         ]);
         
-        // Get HPP (560)
-        $hppCoa = $coas->where('kode_akun', '560')->first();
-        $hppAmount = $hppCoa ? ($accountData['560']['saldo_akhir'] ?? 0) : 0;
+        // Get HPP - cari akun dengan nama "Harga Pokok Penjualan" atau kode 56/560
+        $hppCoa = $coas->first(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '5') return false;
+            
+            // Cari berdasarkan nama atau kode
+            $isHpp = stripos($coa->nama_akun, 'harga pokok') !== false ||
+                     stripos($coa->nama_akun, 'hpp') !== false ||
+                     $coa->kode_akun === '56' ||
+                     $coa->kode_akun === '560';
+            
+            return $isHpp;
+        });
+        
+        $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
         
         // Filter akun beban (5xxx, 6xxx) excluding HPP
-        $beban = $coas->filter(function($coa) use ($accountData) {
-            // Exclude HPP from beban section
-            if ($coa->kode_akun == '560') return false;
+        $beban = $coas->filter(function($coa) use ($accountData, $hppCoa) {
             $first = substr($coa->kode_akun, 0, 1);
             if (!in_array($first, ['5', '6'])) return false;
+            
+            // Exclude HPP account
+            if ($hppCoa && $coa->id === $hppCoa->id) return false;
+            
+            // Also exclude if nama contains "harga pokok" or "hpp"
+            if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                stripos($coa->nama_akun, 'hpp') !== false) {
+                return false;
+            }
+            
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             return $saldo > 0;
         })->sortBy('kode_akun');
@@ -897,11 +917,15 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         \Log::info('Beban COAs', [
             'count' => $allBebanCoas->count(),
             'filtered_count' => $beban->count(),
-            'coas' => $allBebanCoas->map(function($coa) use ($accountData) {
+            'hpp_kode' => $hppCoa ? $hppCoa->kode_akun : 'NOT FOUND',
+            'hpp_nama' => $hppCoa ? $hppCoa->nama_akun : 'NOT FOUND',
+            'coas' => $allBebanCoas->map(function($coa) use ($accountData, $hppCoa) {
+                $isHpp = $hppCoa && $coa->id === $hppCoa->id;
                 return [
                     'kode' => $coa->kode_akun,
                     'nama' => $coa->nama_akun,
-                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0,
+                    'is_hpp' => $isHpp
                 ];
             })->toArray()
         ]);
