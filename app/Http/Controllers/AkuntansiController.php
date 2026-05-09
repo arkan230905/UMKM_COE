@@ -898,7 +898,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->whereBetween('p.tanggal', [$from, $to])
             ->selectRaw('pr.nama_produk,
                          SUM(pd.jumlah) as total_qty,
-                         SUM(pd.jumlah * COALESCE(pr.harga_bom, pr.harga_jual, 0)) as total_hpp')
+                         SUM(pd.jumlah * pr.harga_jual) as total_hpp')
             ->groupBy('pr.id', 'pr.nama_produk')
             ->having('total_hpp', '>', 0)
             ->orderBy('total_hpp', 'desc')
