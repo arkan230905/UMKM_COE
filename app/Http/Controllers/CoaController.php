@@ -352,8 +352,8 @@ if ($parentCoa) {
                 ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih memiliki {$childCount} sub-akun. Hapus sub-akun terlebih dahulu.");
         }
 
-        // Cek journal_lines
-        if (\App\Models\JournalLine::where($coaColumn, $coa->id)->count() > 0) {
+        // Cek jurnal_umum
+        if (\App\Models\JurnalUmum::where($coaColumn, $coa->id)->count() > 0) {
             return redirect()->route('master-data.coa.index')
                 ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena sudah digunakan dalam transaksi jurnal.");
         }

@@ -4,23 +4,22 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class DefaultCoaSeeder extends Seeder
+class SyncCOASafeSeeder extends Seeder
 {
     /**
-     * Buat 51 COA default untuk user baru yang register.
-     * Dipanggil dari CreateDefaultUserData listener.
+     * Sync COA database dengan DefaultCoaSeeder secara aman
+     * Update COA yang ada tanpa menghapus untuk menghindari foreign key constraint
      */
-    public function run(int $userId): void
+    public function run(): void
     {
-        // Jangan buat ulang jika sudah ada
-        if (DB::table('coas')->where('user_id', $userId)->exists()) {
-            return;
-        }
-
-        $now = now();
-
-        $coas = [
+        Log::info('Starting SyncCOASafeSeeder');
+        
+        $userId = 7;
+        
+        // COA dari DefaultCoaSeeder
+        $defaultCoas = [
             // NO | NAMA AKUN                              | KODE  | TIPE        | POSISI
             ['kode_akun' => '11',   'nama_akun' => 'Aset',                                    'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             ['kode_akun' => '111',  'nama_akun' => 'Kas Bank',                                'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
@@ -88,24 +87,70 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '594',  'nama_akun' => 'Beban Lain-lain',                         'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '536',  'nama_akun' => 'Biaya Air & Kebersihan',                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
         ];
-
-        $rows = [];
-        foreach ($coas as $coa) {
-            $rows[] = [
-                'user_id'            => $userId,
-                'kode_akun'          => $coa['kode_akun'],
-                'nama_akun'          => $coa['nama_akun'],
-                'tipe_akun'          => $coa['tipe_akun'],
-                'kategori_akun'      => $coa['tipe_akun'],
-                'saldo_normal'       => $coa['saldo_normal'],
-                'saldo_awal'         => 0,
-                'tanggal_saldo_awal' => $now,
-                'posted_saldo_awal'  => 0,
-                'created_at'         => $now,
-                'updated_at'         => $now,
-            ];
+        
+        $now = now();
+        
+        // Update COA yang sudah ada dengan data dari DefaultCoaSeeder
+        foreach ($defaultCoas as $defaultCoa) {
+            $existingCOA = DB::table('coas')
+                ->where('user_id', $userId)
+                ->where('kode_akun', $defaultCoa['kode_akun'])
+                ->first();
+            
+            if ($existingCOA) {
+                // Update COA yang sudah ada
+                DB::table('coas')
+                    ->where('id', $existingCOA->id)
+                    ->update([
+                        'nama_akun'          => $defaultCoa['nama_akun'],
+                        'tipe_akun'          => $defaultCoa['tipe_akun'],
+                        'kategori_akun'      => $defaultCoa['tipe_akun'],
+                        'saldo_normal'       => $defaultCoa['saldo_normal'],
+                        'updated_at'         => $now,
+                    ]);
+                
+                Log::info("Updated COA {$defaultCoa['kode_akun']}: {$defaultCoa['nama_akun']}");
+            } else {
+                // Insert COA baru
+                DB::table('coas')->insert([
+                    'user_id'            => $userId,
+                    'kode_akun'          => $defaultCoa['kode_akun'],
+                    'nama_akun'          => $defaultCoa['nama_akun'],
+                    'tipe_akun'          => $defaultCoa['tipe_akun'],
+                    'kategori_akun'      => $defaultCoa['tipe_akun'],
+                    'saldo_normal'       => $defaultCoa['saldo_normal'],
+                    'saldo_awal'         => 0,
+                    'tanggal_saldo_awal' => $now,
+                    'posted_saldo_awal'  => 0,
+                    'created_at'         => $now,
+                    'updated_at'         => $now,
+                ]);
+                
+                Log::info("Inserted COA {$defaultCoa['kode_akun']}: {$defaultCoa['nama_akun']}");
+            }
         }
-
-        DB::table('coas')->insert($rows);
+        
+        // Verifikasi hasil
+        $finalCount = DB::table('coas')
+            ->where('user_id', $userId)
+            ->count();
+        
+        Log::info("Final COA count for user {$userId}: {$finalCount}");
+        
+        // Tampilkan COA BOP yang sekarang ada
+        $bopCOAs = DB::table('coas')
+            ->where('user_id', $userId)
+            ->where('kode_akun', 'like', '53%')
+            ->orderBy('kode_akun')
+            ->get(['kode_akun', 'nama_akun']);
+        
+        Log::info("BOP COAs after sync:");
+        foreach ($bopCOAs as $coa) {
+            Log::info("  - {$coa->kode_akun}: {$coa->nama_akun}");
+        }
+        
+        $this->command->info('COA sync with DefaultCoaSeeder completed safely!');
+        $this->command->info("Total COAs for user {$userId}: {$finalCount}");
+        $this->command->info("BOP COAs: {$bopCOAs->count()} accounts");
     }
 }
