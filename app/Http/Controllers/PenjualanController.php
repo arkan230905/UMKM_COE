@@ -427,6 +427,20 @@ if ($request->filled('nomor_transaksi')) {
             ->where('ref_id', $penjualan->id)
             ->first();
 
+        // Jika jurnal belum ada dan validasi gagal, tampilkan error
+        if (!$journalEntry && !$validation['valid']) {
+            $namaAkunMissing = array_map(fn($m) => $m['nama'], $validation['missing']);
+            if (count($namaAkunMissing) === 1) {
+                $pesan = "Jurnal penjualan tidak dapat dibuat.\n" . $validation['missing'][0]['pesan'];
+            } else {
+                $pesanList = array_map(fn($m) => '• ' . $m['pesan'], $validation['missing']);
+                $pesan = "Jurnal penjualan tidak dapat dibuat. Akun berikut belum tersedia:\n"
+                       . implode("\n", $pesanList);
+            }
+            
+            session()->flash('error', $pesan);
+        }
+
         return view('transaksi.penjualan.jurnal', compact('penjualan', 'validation', 'journalEntry'));
     }
 
