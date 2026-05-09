@@ -4,23 +4,29 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class DefaultCoaSeeder extends Seeder
+class SyncCOAWithDefaultSeeder extends Seeder
 {
     /**
-     * Buat 51 COA default untuk user baru yang register.
-     * Dipanggil dari CreateDefaultUserData listener.
+     * Sync COA database dengan DefaultCoaSeeder
+     * Hapus semua COA user 7 dan buat ulang sesuai DefaultCoaSeeder
      */
-    public function run(int $userId): void
+    public function run(): void
     {
-        // Jangan buat ulang jika sudah ada
-        if (DB::table('coas')->where('user_id', $userId)->exists()) {
-            return;
-        }
-
-        $now = now();
-
-        $coas = [
+        Log::info('Starting SyncCOAWithDefaultSeeder');
+        
+        $user_id = 7;
+        
+        // Hapus semua COA untuk user ini
+        $deletedCount = DB::table('coas')
+            ->where('user_id', $user_id)
+            ->delete();
+        
+        Log::info("Deleted {$deletedCount} existing COA records for user {$user_id}");
+        
+        // Ambil COA dari DefaultCoaSeeder
+        $defaultCoas = [
             // NO | NAMA AKUN                              | KODE  | TIPE        | POSISI
             ['kode_akun' => '11',   'nama_akun' => 'Aset',                                    'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             ['kode_akun' => '111',  'nama_akun' => 'Kas Bank',                                'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
@@ -88,11 +94,13 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '594',  'nama_akun' => 'Beban Lain-lain',                         'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '536',  'nama_akun' => 'Biaya Air & Kebersihan',                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
         ];
-
+        
+        $now = now();
         $rows = [];
-        foreach ($coas as $coa) {
+        
+        foreach ($defaultCoas as $coa) {
             $rows[] = [
-                'user_id'            => $userId,
+                'user_id'            => $user_id,
                 'kode_akun'          => $coa['kode_akun'],
                 'nama_akun'          => $coa['nama_akun'],
                 'tipe_akun'          => $coa['tipe_akun'],
@@ -105,7 +113,34 @@ class DefaultCoaSeeder extends Seeder
                 'updated_at'         => $now,
             ];
         }
-
+        
+        // Insert COA baru
         DB::table('coas')->insert($rows);
+        
+        Log::info("Created " . count($rows) . " new COA records for user {$user_id}");
+        
+        // Verifikasi hasil
+        $finalCount = DB::table('coas')
+            ->where('user_id', $user_id)
+            ->count();
+        
+        Log::info("Final COA count for user {$user_id}: {$finalCount}");
+        
+        // Tampilkan COA BOP yang sekarang ada
+        $bopCOAs = DB::table('coas')
+            ->where('user_id', $user_id)
+            ->where('kode_akun', 'like', '53%')
+            ->orderBy('kode_akun')
+            ->get(['kode_akun', 'nama_akun']);
+        
+        Log::info("BOP COAs after sync:");
+        foreach ($bopCOAs as $coa) {
+            Log::info("  - {$coa->kode_akun}: {$coa->nama_akun}");
+        }
+        
+        $this->command->info('COA sync with DefaultCoaSeeder completed!');
+        $this->command->info("Deleted: {$deletedCount} records, Created: " . count($rows) . " records");
+        $this->command->info("Total COAs for user {$user_id}: {$finalCount}");
+        $this->command->info("BOP COAs: {$bopCOAs->count()} accounts");
     }
 }
