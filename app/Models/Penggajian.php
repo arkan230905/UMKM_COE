@@ -81,32 +81,33 @@ class Penggajian extends Model
                 throw new \Exception('COA Kas/Bank not found for code: ' . $penggajian->coa_kasbank);
             }
 
-            // Create journal entries
+            // Create journal entries using JournalService for proper balance validation
             $keterangan = "Penggajian {$pegawai->nama}";
+            
+            $lines = [
+                [
+                    'code' => $coaBebanGaji->kode_akun,
+                    'debit' => $penggajian->total_gaji,
+                    'credit' => 0,
+                    'memo' => $keterangan
+                ],
+                [
+                    'code' => $coaKasBank->kode_akun,
+                    'debit' => 0,
+                    'credit' => $penggajian->total_gaji,
+                    'memo' => $keterangan
+                ]
+            ];
 
-            // DEBIT: Beban Gaji
-            \App\Models\JurnalUmum::create([
-                'coa_id' => $coaBebanGaji->id,
-                'tanggal' => $penggajian->tanggal_penggajian,
-                'keterangan' => $keterangan,
-                'debit' => $penggajian->total_gaji,
-                'kredit' => 0,
-                'referensi' => $penggajian->id,
-                'tipe_referensi' => 'penggajian',
-                'created_by' => auth()->id() ?? 1,
-            ]);
-
-            // CREDIT: Kas/Bank
-            \App\Models\JurnalUmum::create([
-                'coa_id' => $coaKasBank->id,
-                'tanggal' => $penggajian->tanggal_penggajian,
-                'keterangan' => $keterangan,
-                'debit' => 0,
-                'kredit' => $penggajian->total_gaji,
-                'referensi' => $penggajian->id,
-                'tipe_referensi' => 'penggajian',
-                'created_by' => auth()->id() ?? 1,
-            ]);
+            $journalService = new \App\Services\JournalService();
+            $journalService->postWithUser(
+                $penggajian->tanggal_penggajian->format('Y-m-d'),
+                'penggajian',
+                $penggajian->id,
+                $keterangan,
+                $lines,
+                auth()->id() ?? 1
+            );
 
             \Log::info('Journal entries created for penggajian', [
                 'penggajian_id' => $penggajian->id,
