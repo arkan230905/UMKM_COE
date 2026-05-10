@@ -689,4 +689,51 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         // 4. Default fallback
         return '116';
     }
+
+    /**
+     * Create journal entry from pelunasan utang (debt payment)
+     * 
+     * @param \App\Models\PelunasanUtang $pelunasanUtang
+     * @return void
+     */
+    public static function createJournalFromPelunasanUtang($pelunasanUtang): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this pelunasan utang
+        $service->deleteByRef('debt_payment', $pelunasanUtang->id);
+        
+        $lines = [];
+        $amount = $pelunasanUtang->jumlah ?? 0;
+        
+        // Debit: COA Pelunasan yang dipilih user (mengurangi utang)
+        $coaPelunasan = $pelunasanUtang->coaPelunasan;
+        $kodeCoaPelunasan = $coaPelunasan ? $coaPelunasan->kode_akun : '210'; // Default ke Hutang Usaha jika tidak ada
+        
+        $lines[] = [
+            'code' => $kodeCoaPelunasan,
+            'debit' => $amount,
+            'credit' => 0,
+            'memo' => 'Pelunasan utang - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor')
+        ];
+        
+        // Credit: Kas/Bank account (mengurangi kas/bank)
+        $akunKas = $pelunasanUtang->akunKas;
+        $kodeAkun = $akunKas ? $akunKas->kode_akun : '112'; // Default ke Kas jika tidak ada
+        
+        $lines[] = [
+            'code' => $kodeAkun,
+            'debit' => 0,
+            'credit' => $amount,
+            'memo' => 'Pembayaran utang via ' . ($akunKas->nama_akun ?? 'Kas')
+        ];
+        
+        // Create journal entry
+        $memo = 'Pelunasan Utang #' . $pelunasanUtang->kode_transaksi . ' - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor');
+        $tanggal = $pelunasanUtang->tanggal instanceof \Carbon\Carbon ? 
+                   $pelunasanUtang->tanggal->format('Y-m-d') : 
+                   $pelunasanUtang->tanggal;
+        
+        $service->post($tanggal, 'debt_payment', $pelunasanUtang->id, $memo, $lines);
+    }
 }
