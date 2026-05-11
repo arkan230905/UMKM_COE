@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-05-11T07:47:00.000Z" agent="5.0" etag="fase1-master-data" version="21.6.5" type="device">
+  <diagram name="Fase 1 - Setup Master Data" id="fase1-master-data">
+    <mxGraphModel dx="1426" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Participants -->
+        <mxCell id="user" value="User" style="shape=umlLifeline;participant=umlActor;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="40" width="80" height="600" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="biayaBahanController" value="BiayaBahan&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="180" y="40" width="100" height="600" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="btklController" value="BTKL&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="310" y="40" width="100" height="600" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="bopController" value="BOP&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="440" y="40" width="100" height="600" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="database" value="Database" style="shape=umlLifeline;participant=umlEntity;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="570" y="40" width="100" height="600" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="stockService" value="StockService" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="40" width="100" height="600" as="geometry" />
+        </mxCell>
+        
+        <!-- Title -->
+        <mxCell id="title" value="FASE 1: SETUP MASTER DATA BIAYA" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="10" width="300" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Biaya Bahan Baku Flow -->
+        <mxCell id="msg1" value="create(produk_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="100" as="sourcePoint" />
+            <mxPoint x="230" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg2" value="Get Produk &amp; Bahan Baku" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="biayaBahanController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="120" as="sourcePoint" />
+            <mxPoint x="620" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg3" value="Produk &amp; Bahan Baku data" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="140" as="sourcePoint" />
+            <mxPoint x="230" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg4" value="Form Biaya Bahan Baku" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="biayaBahanController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="160" as="sourcePoint" />
+            <mxPoint x="90" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg5" value="store(bahan_baku_data)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="180" as="sourcePoint" />
+            <mxPoint x="230" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg6" value="Save BiayaBahanBaku" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="biayaBahanController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="200" as="sourcePoint" />
+            <mxPoint x="620" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg7" value="Update HargaPokokProduksi" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="biayaBahanController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="220" as="sourcePoint" />
+            <mxPoint x="620" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg8" value="Confirmation" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="240" as="sourcePoint" />
+            <mxPoint x="230" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg9" value="Success message" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="biayaBahanController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="260" as="sourcePoint" />
+            <mxPoint x="90" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- BTKL Flow -->
+        <mxCell id="msg10" value="create()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="280" as="sourcePoint" />
+            <mxPoint x="360" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg11" value="Get Jabatan &amp; Pegawai" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="300" as="sourcePoint" />
+            <mxPoint x="620" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg12" value="Jabatan &amp; Pegawai data" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="320" as="sourcePoint" />
+            <mxPoint x="360" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg13" value="Form BTKL" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="btklController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="340" as="sourcePoint" />
+            <mxPoint x="90" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg14" value="store(btkl_data)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="360" as="sourcePoint" />
+            <mxPoint x="360" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg15" value="Save BTKL" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="380" as="sourcePoint" />
+            <mxPoint x="620" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg16" value="Create ProsesProduksi" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="400" as="sourcePoint" />
+            <mxPoint x="620" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg17" value="syncBomFromMaterialChange()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="stockService">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="420" as="sourcePoint" />
+            <mxPoint x="750" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg18" value="Confirmation" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="440" as="sourcePoint" />
+            <mxPoint x="360" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg19" value="Success message" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="btklController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="460" as="sourcePoint" />
+            <mxPoint x="90" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- BOP Flow -->
+        <mxCell id="msg20" value="createProses()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="bopController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="480" as="sourcePoint" />
+            <mxPoint x="490" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg21" value="Get ProsesProduksi &amp; COA" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="bopController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="500" as="sourcePoint" />
+            <mxPoint x="620" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg22" value="Process &amp; COA data" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="bopController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="520" as="sourcePoint" />
+            <mxPoint x="490" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg23" value="Form BOP Proses" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="bopController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="540" as="sourcePoint" />
+            <mxPoint x="90" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg24" value="storeProses(bop_data)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="bopController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="560" as="sourcePoint" />
+            <mxPoint x="490" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg25" value="Save BOP Proses" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="bopController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="580" as="sourcePoint" />
+            <mxPoint x="620" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg26" value="Calculate total_bop_per_produk" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="bopController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="600" as="sourcePoint" />
+            <mxPoint x="620" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg27" value="Confirmation" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="bopController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="620" as="sourcePoint" />
+            <mxPoint x="490" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg28" value="Success message" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="bopController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="640" as="sourcePoint" />
+            <mxPoint x="90" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

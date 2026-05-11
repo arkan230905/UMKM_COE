@@ -1,5 +1,4 @@
-
-﻿<div class="sidebar">
+<div class="sidebar">
 {{-- ===== USER PROFILE ===== --}}
     <div class="sb-profile">
         <div class="sb-avatar">
