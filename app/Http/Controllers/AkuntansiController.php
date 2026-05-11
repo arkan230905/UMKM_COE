@@ -601,8 +601,122 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         // Gunakan NeracaService untuk konsistensi dengan neraca saldo
         $neracaService = app(\App\Services\NeracaService::class);
         $neraca = $neracaService->generateLaporanPosisiKeuangan($tanggalAwal, $tanggalAkhir);
+        
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
+        $labaRugiData = $this->calculateLabaRugiBersih($tanggalAwal, $tanggalAkhir);
+        $labaRugiBersih = $labaRugiData['laba_bersih'];
+        
+        // Tambahkan data laba/rugi ke neraca
+        $neraca['laba_rugi_berjalan'] = $labaRugiBersih;
+        $neraca['laba_rugi_akun_nama'] = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
+        $neraca['total_ekuitas_with_laba_rugi'] = $neraca['ekuitas']['total'] + $labaRugiBersih;
+        $neraca['total_kewajiban_ekuitas'] = $neraca['kewajiban']['total'] + $neraca['total_ekuitas_with_laba_rugi'];
+        
+        // Update status keseimbangan
+        $neraca['neraca_seimbang'] = abs($neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas']) < 0.01;
+        $neraca['selisih'] = $neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas'];
 
         return view('akuntansi.laporan_posisi_keuangan', compact('neraca', 'bulan', 'tahun'));
+    }
+
+    /**
+     * Hitung Laba/Rugi Bersih untuk periode tertentu
+     * Digunakan untuk Laporan Posisi Keuangan
+     */
+    private function calculateLabaRugiBersih($from, $to)
+    {
+        $coas = \App\Models\Coa::where('user_id', auth()->id())
+            ->orderBy('kode_akun')
+            ->get();
+
+        // Hitung mutasi per COA untuk periode ini
+        $mutasi = \DB::table('jurnal_umum')
+            ->select('coa_id', 
+                \DB::raw('SUM(debit) as total_debit'), 
+                \DB::raw('SUM(kredit) as total_kredit'))
+            ->where('user_id', auth()->id())
+            ->whereDate('tanggal', '>=', $from)
+            ->whereDate('tanggal', '<=', $to)
+            ->groupBy('coa_id')
+            ->get()
+            ->keyBy('coa_id');
+
+        // Build account data
+        $accountData = [];
+        foreach ($coas as $coa) {
+            $m = $mutasi[$coa->id] ?? null;
+            $debit = $m ? (float)$m->total_debit : 0;
+            $kredit = $m ? (float)$m->total_kredit : 0;
+            
+            $first = substr($coa->kode_akun, 0, 1);
+            $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
+            
+            $accountData[$coa->kode_akun] = [
+                'coa' => $coa,
+                'saldo_akhir' => $saldoAkhir
+            ];
+        }
+        
+        // Hitung Total Pendapatan (4xxx)
+        $totalPendapatan = 0;
+        foreach ($coas as $coa) {
+            if (substr($coa->kode_akun, 0, 1) === '4') {
+                $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+                if ($saldo > 0) {
+                    $totalPendapatan += $saldo;
+                }
+            }
+        }
+        
+        // Hitung HPP (5xx - Harga Pokok Penjualan)
+        $hppAmount = 0;
+        foreach ($coas as $coa) {
+            if (substr($coa->kode_akun, 0, 1) === '5') {
+                if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                    stripos($coa->nama_akun, 'hpp') !== false ||
+                    $coa->kode_akun === '56' ||
+                    $coa->kode_akun === '560') {
+                    $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+                    if ($saldo > 0) {
+                        $hppAmount += $saldo;
+                    }
+                }
+            }
+        }
+        
+        // Hitung Laba Kotor
+        $labaKotor = $totalPendapatan - $hppAmount;
+        
+        // Hitung Total Beban (5xx dan 6xx, excluding HPP)
+        $totalBeban = 0;
+        foreach ($coas as $coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if (in_array($first, ['5', '6'])) {
+                // Skip HPP accounts
+                if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                    stripos($coa->nama_akun, 'hpp') !== false ||
+                    $coa->kode_akun === '56' ||
+                    $coa->kode_akun === '560') {
+                    continue;
+                }
+                
+                $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+                if ($saldo > 0) {
+                    $totalBeban += $saldo;
+                }
+            }
+        }
+        
+        // Hitung Laba/Rugi Bersih
+        $labaBersih = $labaKotor - $totalBeban;
+        
+        return [
+            'total_pendapatan' => $totalPendapatan,
+            'hpp' => $hppAmount,
+            'laba_kotor' => $labaKotor,
+            'total_beban' => $totalBeban,
+            'laba_bersih' => $labaBersih
+        ];
     }
 
     private function getLaporanPosisiKeuanganData($bulan, $tahun)
@@ -760,9 +874,17 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             return $getFinalBalance($coa);
         });
         
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
+        $labaRugiBersih = $this->calculateLabaRugiBersih($from, $to)['laba_bersih'];
+        
+        // Tentukan nama akun berdasarkan nilai laba/rugi
+        $labaRugiAkunNama = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
+        
         $totalAset = $totalAsetLancar + $totalAsetTidakLancar;
         $totalKewajiban = $totalKewajibanPendek + $totalKewajibanPanjang;
-        $totalEkuitasWithProfitLoss = $totalEkuitas + $profitLoss;
+        
+        // ✅ PERBAIKAN: Total Ekuitas = Modal + Laba/Rugi Bersih
+        $totalEkuitasWithProfitLoss = $totalEkuitas + $labaRugiBersih;
         $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitasWithProfitLoss;
         
         return compact(
@@ -771,7 +893,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'totalAsetLancar', 'totalAsetTidakLancar',
             'totalKewajibanPendek', 'totalKewajibanPanjang', 'totalEkuitas',
             'totalAset', 'totalKewajiban', 'totalKewajibanEkuitas',
-            'getFinalBalance', 'profitLoss', 'totalRevenue', 'totalExpense'
+            'getFinalBalance', 'labaRugiBersih', 'labaRugiAkunNama',
+            'totalRevenue', 'totalExpense'
         );
     }
 

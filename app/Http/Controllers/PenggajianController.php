@@ -226,7 +226,7 @@ class PenggajianController extends Controller
             \Log::info('Data dari KUALIFIKASI dan PRESENSI:', [
                 'pegawai_id' => $pegawai->id,
                 'pegawai_nama' => $pegawai->nama,
-                'jabatan_nama' => $pegawai->jabatanRelasi->nama_jabatan,
+                'jabatan_nama' => $pegawai->jabatanRelasi?->nama_jabatan ?? 'N/A',
                 'jenis_pegawai' => $jenisPegawai,
                 'FROM_KUALIFIKASI' => [
                     'gaji_pokok' => $gajiPokok,
