@@ -13,28 +13,30 @@ class JournalService
     {
         $userId = $userId ?? auth()->id();
         
+        // 1. Coba cari dengan user_id yang spesifik
         $coa = Coa::where('kode_akun', $code)
             ->where('user_id', $userId)
             ->first();
-            
         if ($coa) {
             return (int)$coa->getAttribute('id');
         }
         
-        // Fallback: ambil berdasarkan auth user
-        if (auth()->check()) {
-            $coa = Coa::where('kode_akun', $code)
-                ->where('user_id', auth()->id())
-                ->first();
-            if ($coa) return (int)$coa->getAttribute('id');
+        // 2. Coba cari dengan user_id = NULL (shared COA)
+        $coa = Coa::where('kode_akun', $code)
+            ->whereNull('user_id')
+            ->first();
+        if ($coa) {
+            return (int)$coa->getAttribute('id');
         }
         
-        // Last fallback: ambil yang pertama tanpa filter user
+        // 3. Fallback: ambil yang pertama tanpa filter user (untuk backward compatibility)
         $coa = Coa::where('kode_akun', $code)->first();
-        if ($coa) return (int)$coa->getAttribute('id');
+        if ($coa) {
+            return (int)$coa->getAttribute('id');
+        }
 
         throw new \RuntimeException(
-            "COA dengan kode '{$code}' tidak ditemukan untuk user ID {$userId}. " .
+            "COA dengan kode '{$code}' tidak ditemukan. " .
             "Silakan buat COA terlebih dahulu di Master Data > Chart of Accounts."
         );
     }
@@ -70,7 +72,7 @@ class JournalService
                     'keterangan' => $lineMemo,
                     'debit' => $debit,
                     'kredit' => $credit,
-                    'referensi' => $refId,
+                    'referensi' => (string)$refId,
                     'tipe_referensi' => $refType,
                     'created_by' => $userId,
                 ]);
@@ -93,7 +95,7 @@ class JournalService
      */
     public function deleteByRef(string $refType, int $refId)
     {
-        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', $refId)->delete();
+        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', (string)$refId)->delete();
     }
 
     /**
@@ -101,7 +103,7 @@ class JournalService
      */
     public function getJournalEntries(string $refType, int $refId)
     {
-        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', $refId)->with('coa')->get();
+        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', (string)$refId)->with('coa')->get();
     }
 
     /**
@@ -383,7 +385,12 @@ class JournalService
         $lines = array_merge($lines, $hppLines);
         
         // Create journal entry
-        $memo = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
+        $paymentMethodLabel = match ($penjualan->payment_method ?? 'cash') {
+            'transfer' => 'Transfer',
+            'credit'   => 'Kredit',
+            default    => 'Tunai',
+        };
+        $memo = 'Penjualan (' . ($penjualan->nomor_penjualan ?? '#' . $penjualan->id) . ') - ' . $paymentMethodLabel;
         $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon ? 
                    $penjualan->tanggal->format('Y-m-d') : 
                    $penjualan->tanggal;

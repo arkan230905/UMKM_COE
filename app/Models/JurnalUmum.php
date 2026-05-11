@@ -41,6 +41,7 @@ class JurnalUmum extends Model
         'tanggal' => 'date',
         'debit' => 'decimal:2',
         'kredit' => 'decimal:2',
+        'referensi' => 'string',
     ];
 
     public function coa(): BelongsTo

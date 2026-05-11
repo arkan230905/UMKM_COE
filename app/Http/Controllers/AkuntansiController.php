@@ -131,30 +131,15 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        // Map ref_type to tipe_referensi for backward compatibility
-        $mappedRefType = $refType;
-        if ($refType === 'purchase') {
-            $mappedRefType = 'pembelian';
-        } elseif ($refType === 'sale') {
-            $mappedRefType = 'penjualan';
-        }
+        // Map ref_type to tipe_referensi - use actual values stored in database
+        $mappedRefType = match($refType) {
+            'purchase' => 'pembelian',
+            'sale' => 'sale',  // Jurnal penjualan disimpan dengan 'sale', bukan 'penjualan'
+            default => $refType
+        };
 
-        // Convert ref_id to referensi format if needed
-        $mappedRefId = $refId;
-        if ($refId && is_numeric($refId)) {
-            // If ref_id is numeric, try to find the actual reference number
-            if ($refType === 'purchase') {
-                $pembelian = \App\Models\Pembelian::find($refId);
-                if ($pembelian) {
-                    $mappedRefId = $pembelian->nomor_pembelian;
-                }
-            } elseif ($refType === 'sale') {
-                $penjualan = \App\Models\Penjualan::find($refId);
-                if ($penjualan) {
-                    $mappedRefId = $penjualan->nomor_penjualan;
-                }
-            }
-        }
+        // Keep ref_id as is - it's stored as string in jurnal_umum.referensi
+        $mappedRefId = $refId ? (string)$refId : null;
 
         // MULTI-TENANT: Query jurnal_umum (flat structure)
         $query = \DB::table('jurnal_umum as ju')

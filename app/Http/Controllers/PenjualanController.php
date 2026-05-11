@@ -421,14 +421,15 @@ if ($request->filled('nomor_transaksi')) {
         $validator  = new \App\Services\JournalValidationService();
         $validation = $validator->validate($penjualan);
 
-        // Ambil jurnal yang sudah ada (jika ada)
-        $journalEntry = \App\Models\JournalEntry::with('linesWithAccount')
-            ->where('ref_type', 'sale')
-            ->where('ref_id', $penjualan->id)
-            ->first();
+        // Ambil jurnal yang sudah ada dari jurnal_umum (jika ada)
+        $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sale')
+            ->where('referensi', (string)$penjualan->id)
+            ->with('coa')
+            ->orderBy('id')
+            ->get();
 
         // Jika jurnal belum ada dan validasi gagal, tampilkan error
-        if (!$journalEntry && !$validation['valid']) {
+        if ($journalLines->isEmpty() && !$validation['valid']) {
             $namaAkunMissing = array_map(fn($m) => $m['nama'], $validation['missing']);
             if (count($namaAkunMissing) === 1) {
                 $pesan = "Jurnal penjualan tidak dapat dibuat.\n" . $validation['missing'][0]['pesan'];
@@ -439,6 +440,22 @@ if ($request->filled('nomor_transaksi')) {
             }
             
             session()->flash('error', $pesan);
+        }
+
+        // Transform jurnal lines untuk kompatibilitas dengan view
+        $journalEntry = null;
+        if ($journalLines->isNotEmpty()) {
+            $journalEntry = (object) [
+                'linesWithAccount' => $journalLines->map(function($line) {
+                    return (object) [
+                        'debit' => $line->debit,
+                        'credit' => $line->kredit,
+                        'memo' => $line->keterangan,
+                        'coa' => $line->coa,
+                    ];
+                }),
+                'created_at' => $journalLines->first()->created_at,
+            ];
         }
 
         return view('transaksi.penjualan.jurnal', compact('penjualan', 'validation', 'journalEntry'));
