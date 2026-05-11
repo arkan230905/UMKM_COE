@@ -10,6 +10,16 @@ Route::get('/test-blade', function() {
     return view('test-blade');
 });
 
+// HPP Routes
+Route::middleware('auth')->prefix('hpp')->name('hpp.')->group(function() {
+    Route::get('/', [App\Http\Controllers\HppController::class, 'index'])->name('index');
+    Route::get('/create/{produkId}', [App\Http\Controllers\HppController::class, 'create'])->name('create');
+    Route::post('/store/{produkId}', [App\Http\Controllers\HppController::class, 'store'])->name('store');
+    Route::get('/show/{produkId}', [App\Http\Controllers\HppController::class, 'show'])->name('show');
+    Route::post('/recalculate/{produkId}', [App\Http\Controllers\HppController::class, 'recalculate'])->name('recalculate');
+    Route::get('/api/{produkId}', [App\Http\Controllers\HppController::class, 'apiGetHpp'])->name('api.get');
+});
+
 
 
 // IMPORT ALL STOCK FROM DATABASE TO STOCK MOVEMENTS
