@@ -310,14 +310,45 @@ class BahanPendukungController extends Controller
             $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
             $validated['coa_hpp_id'] = $request->coa_hpp_id;
             
+            // ✅ PERBAIKAN: Track stock changes to update StockMovement
+            $oldSaldoAwal = $bahanPendukung->saldo_awal;
+            $newSaldoAwal = $request->stok ?? 0;
+            $stockDifference = $newSaldoAwal - $oldSaldoAwal;
+            
             // Map stok to saldo_awal
-            $validated['saldo_awal'] = $request->stok ?? 0;
+            $validated['saldo_awal'] = $newSaldoAwal;
             
             \Log::info('Before update', [
-                'final_data' => $validated
+                'final_data' => $validated,
+                'old_stock' => $oldSaldoAwal,
+                'new_stock' => $newSaldoAwal,
+                'stock_difference' => $stockDifference
             ]);
             
             $bahanPendukung->update($validated);
+            
+            // ✅ PERBAIKAN: Create StockMovement adjustment if stock changed
+            if (abs($stockDifference) > 0.0001) {
+                \App\Models\StockMovement::create([
+                    'user_id' => auth()->id(),
+                    'item_type' => 'material',
+                    'item_id' => $bahanPendukung->id,
+                    'direction' => $stockDifference > 0 ? 'in' : 'out',
+                    'qty' => abs($stockDifference),
+                    'tanggal' => now()->toDateString(),
+                    'ref_type' => 'stock_adjustment',
+                    'ref_id' => $bahanPendukung->id,
+                    'keterangan' => 'Penyesuaian stok dari edit bahan pendukung: ' . $bahanPendukung->nama_bahan . ' (dari ' . $oldSaldoAwal . ' ke ' . $newSaldoAwal . ')',
+                ]);
+                
+                \Log::info('Stock adjustment created for BahanPendukung', [
+                    'id' => $bahanPendukung->id,
+                    'nama_bahan' => $bahanPendukung->nama_bahan,
+                    'old_stock' => $oldSaldoAwal,
+                    'new_stock' => $newSaldoAwal,
+                    'difference' => $stockDifference
+                ]);
+            }
             
             \Log::info('BahanPendukung updated successfully', [
                 'id' => $bahanPendukung->id,
@@ -357,12 +388,56 @@ class BahanPendukungController extends Controller
             // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
             $bahanPendukung = BahanPendukung::where('user_id', auth()->id())
                 ->findOrFail($bahanPendukung->id);
-                
+            
+            // Check for foreign key constraints before deleting
+            $constraints = [];
+            
+            // Check Pembelian Details references
+            try {
+                $pembelianDetailsCount = \DB::table('pembelian_details')->where('bahan_pendukung_id', $bahanPendukung->id)->count();
+                if ($pembelianDetailsCount > 0) {
+                    $constraints[] = "Pembelian Details ({$pembelianDetailsCount} record(s))";
+                }
+            } catch (\Exception $e) {
+                \Log::info('Pembelian Details table check skipped', ['error' => $e->getMessage()]);
+            }
+            
+            // Check Produksi Details references
+            try {
+                $produksiDetailsCount = \DB::table('produksi_details')->where('bahan_pendukung_id', $bahanPendukung->id)->count();
+                if ($produksiDetailsCount > 0) {
+                    $constraints[] = "Produksi Details ({$produksiDetailsCount} record(s))";
+                }
+            } catch (\Exception $e) {
+                \Log::info('Produksi Details table check skipped', ['error' => $e->getMessage()]);
+            }
+            
+            // If there are constraints, prevent deletion and show error
+            if (!empty($constraints)) {
+                $constraintList = implode(', ', $constraints);
+                return redirect()->route('master-data.bahan-pendukung.index')
+                    ->with('error', "Tidak dapat menghapus bahan pendukung '{$bahanPendukung->nama_bahan}' karena masih digunakan di: {$constraintList}. Hapus data terkait terlebih dahulu.");
+            }
+            
+            // If no constraints, proceed with deletion
             $bahanPendukung->delete();
+            
             return redirect()->route('master-data.bahan-pendukung.index')
-                ->with('success', 'Bahan pendukung berhasil dihapus');
+                ->with('success', "Data bahan pendukung '{$bahanPendukung->nama_bahan}' berhasil dihapus!");
+                
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle any other database constraint errors
+            if ($e->getCode() == '23000') {
+                return redirect()->route('master-data.bahan-pendukung.index')
+                    ->with('error', 'Tidak dapat menghapus data karena masih digunakan di tabel lain. Hapus data terkait terlebih dahulu.');
+            }
+            
+            return redirect()->route('master-data.bahan-pendukung.index')
+                ->with('error', 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage());
+                
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+            return redirect()->route('master-data.bahan-pendukung.index')
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 

@@ -134,7 +134,9 @@ class BahanBakuObserver
             }
         }
         
+        // ✅ PERBAIKAN: Disable BomJobBBB karena tabel bom_job_costings tidak ada
         // 2. Hitung biaya dari Bahan Baku (BomJobBBB)
+        /*
         $jobBBB = BomJobBBB::with('bahanBaku.satuan')
             ->whereHas('bomJobCosting', function($query) use ($produk) {
                 $query->where('produk_id', $produk->id);
@@ -158,6 +160,7 @@ class BahanBakuObserver
                 ]);
             }
         }
+        */
         
         // NOTE: Bahan Pendukung DIHAPUS dari perhitungan biaya bahan baku
         // Bahan pendukung akan dihitung di BOP sesuai permintaan user
@@ -167,7 +170,9 @@ class BahanBakuObserver
             'biaya_bahan' => $totalBiayaBahanBaku
         ]);
         
+        // ✅ PERBAIKAN: Disable BomJobCosting karena tabel bom_job_costings tidak ada
         // Update harga_bom dengan HPP lengkap (BBB + Bahan Pendukung + BTKL + BOP)
+        /*
         $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
         if ($bomJobCosting) {
             $produk->update([
@@ -181,12 +186,14 @@ class BahanBakuObserver
                 'harga_bom' => $bomJobCosting->total_hpp
             ]);
         } else {
+        */
             Log::info('💰 Biaya Bahan Updated', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahanBaku
+                'biaya_bahan' => $totalBiayaBahanBaku,
+                'note' => 'BomJobCosting disabled - table bom_job_costings does not exist'
             ]);
-        }
+        // }
     }
     
     /**
@@ -240,7 +247,9 @@ class BahanBakuObserver
             }
         }
         
+        // ✅ PERBAIKAN: Disable BomJobBBB karena tabel bom_job_costings tidak ada
         // 2. Proses BomJobBBB (primary BOM)
+        /*
         $bomJobBBBs = \App\Models\BomJobBBB::where('bahan_baku_id', $bahanBaku->id)
             ->with(['bomJobCosting.produk'])
             ->get();
@@ -251,6 +260,7 @@ class BahanBakuObserver
                 $affectedProducts[$bbb->bomJobCosting->produk->id] = $bbb->bomJobCosting->produk;
             }
         }
+        */
         
         // 3. Recalculate biaya untuk semua produk yang terpengaruh
         foreach ($affectedProducts as $produk) {
@@ -260,7 +270,8 @@ class BahanBakuObserver
         Log::info('📋 BOM Processing Complete', [
             'bahan_baku' => $bahanBaku->nama_bahan,
             'affected_products' => count($affectedProducts),
-            'product_names' => array_map(fn($p) => $p->nama_produk, $affectedProducts)
+            'product_names' => array_map(fn($p) => $p->nama_produk, $affectedProducts),
+            'note' => 'BomJobBBB processing disabled - table bom_job_costings does not exist'
         ]);
     }
     
@@ -378,7 +389,9 @@ class BahanBakuObserver
             }
         }
         
+        // ✅ PERBAIKAN: Disable BomJobCosting karena tabel bom_job_costings tidak ada
         // 2. Hitung biaya dari BomJobBBB yang masih ada
+        /*
         $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
         
         if ($bomJobCosting) {
@@ -412,18 +425,21 @@ class BahanBakuObserver
             }
             
             // NOTE: Bahan Pendukung DIHAPUS dari perhitungan biaya bahan baku
-        // Bahan pendukung akan dihitung di BOP sesuai permintaan user
+            // Bahan pendukung akan dihitung di BOP sesuai permintaan user
             
             // 4. Update BomJobCosting
             $bomJobCosting->recalculate();
         }
+        */
         
         // 5. Update biaya bahan di produk
         $produk->update([
             'biaya_bahan' => $totalBiayaBahan
         ]);
         
+        // ✅ PERBAIKAN: Disable harga_bom update karena tabel bom_job_costings tidak ada
         // 6. Update harga_bom dengan HPP lengkap
+        /*
         if ($bomJobCosting) {
             $produk->update([
                 'harga_bom' => $bomJobCosting->total_hpp
@@ -437,11 +453,14 @@ class BahanBakuObserver
                 'harga_bom' => $bomJobCosting->total_hpp
             ]);
         }
+        */
         
         Log::info('✅ Product Biaya Recalculated After Deletion', [
             'produk_id' => $produk->id,
             'nama_produk' => $produk->nama_produk,
-            'biaya_bahan' => $totalBiayaBahan
+            'biaya_bahan' => $totalBiayaBahan,
+            'bahan_dihapus' => $deletedBahan->nama_bahan,
+            'note' => 'BomJobCosting disabled - table bom_job_costings does not exist'
         ]);
     }
     

@@ -96,7 +96,7 @@
                             <label class="form-label">Stok</label>
                             <div class="input-group">
                                 <input type="text" name="stok" class="form-control number-input @error('stok') is-invalid @enderror" 
-                                       value="{{ old('stok', $bahanPendukung->stok) }}" placeholder="0">
+                                       value="{{ old('stok', rtrim(rtrim(number_format($bahanPendukung->stok, 4, ',', ''), '0'), ',')) }}" placeholder="0">
                                 <span class="input-group-text" id="satuan_utama_display"></span>
                             </div>
                             @error('stok')
