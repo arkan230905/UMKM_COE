@@ -79,6 +79,15 @@ class PenggajianController extends Controller
         try {
             $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
             
+            // Debug logging
+            \Log::info('getEmployeeData called', [
+                'pegawai_id' => $pegawaiId,
+                'pegawai_nama' => $pegawai->nama,
+                'jabatan_id' => $pegawai->jabatan_id,
+                'jabatan_relasi_loaded' => $pegawai->relationLoaded('jabatanRelasi'),
+                'jabatan_relasi_value' => $pegawai->jabatanRelasi ? $pegawai->jabatanRelasi->nama : 'NULL',
+            ]);
+            
             // Get current salary data from qualification (jabatan)
             $jabatan = $pegawai->jabatanRelasi;
             if ($jabatan) {
@@ -88,6 +97,11 @@ class PenggajianController extends Controller
                 $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
                 $asuransi = $jabatan->asuransi ?? 0;
+                
+                \Log::info('Tunjangan dari jabatan', [
+                    'tunjangan_transport' => $tunjanganTransport,
+                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                ]);
             } else {
                 // Fallback to pegawai stored values
                 $gajiPokok = $pegawai->gaji_pokok ?? 0;
@@ -96,6 +110,12 @@ class PenggajianController extends Controller
                 $tunjanganTransport = $pegawai->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $pegawai->tunjangan_konsumsi ?? 0;
                 $asuransi = $pegawai->asuransi ?? 0;
+                
+                \Log::warning('Fallback to pegawai stored values - jabatan is NULL', [
+                    'pegawai_id' => $pegawaiId,
+                    'tunjangan_transport' => $tunjanganTransport,
+                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                ]);
             }
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
@@ -114,6 +134,11 @@ class PenggajianController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Error in getEmployeeData', [
+                'pegawai_id' => $pegawaiId,
+                'error' => $e->getMessage(),
+            ]);
+            
             return response()->json([
                 'error' => 'Employee not found',
                 'message' => $e->getMessage()
