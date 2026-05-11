@@ -56,28 +56,32 @@
                         </label>
                         <select name="pegawai_id" id="pegawai_id" class="form-select form-select-lg" required onchange="loadPegawaiData()">
                             <option value="">-- Pilih Pegawai --</option>
-                            @foreach ($pegawais as $pegawai)
-                                @php
-                                    $jabatan = $pegawai->jabatanRelasi;
-                                    $gajiPokok = $jabatan ? ($jabatan->gaji_pokok ?? 0) : ($pegawai->gaji_pokok ?? 0);
-                                    $tarif = $jabatan ? ($jabatan->tarif_per_jam ?? 0) : ($pegawai->tarif_per_jam ?? 0);
-                                    $tunjanganJabatan = $jabatan ? ($jabatan->tunjangan ?? 0) : ($pegawai->tunjangan ?? 0);
-                                    $tunjanganTransport = $jabatan ? ($jabatan->tunjangan_transport ?? 0) : ($pegawai->tunjangan_transport ?? 0);
-                                    $tunjanganKonsumsi = $jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : ($pegawai->tunjangan_konsumsi ?? 0);
-                                    $asuransi = $jabatan ? ($jabatan->asuransi ?? 0) : ($pegawai->asuransi ?? 0);
-                                @endphp
-                                <option value="{{ $pegawai->id }}"
-                                        data-jenis="{{ strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl') }}"
-                                        data-gaji-pokok="{{ $gajiPokok }}"
-                                        data-tarif="{{ $tarif }}"
-                                        data-tunjangan-jabatan="{{ $tunjanganJabatan }}"
-                                        data-tunjangan-transport="{{ $tunjanganTransport }}"
-                                        data-tunjangan-konsumsi="{{ $tunjanganKonsumsi }}"
-                                        data-asuransi="{{ $asuransi }}">
-                                    {{ $pegawai->nama }} - {{ $pegawai->jabatan_nama ?? 'Staff' }} ({{ strtoupper($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'BTKTL') }})
-                                    [Gaji: {{ number_format($gajiPokok, 0, ',', '.') }}, Tarif: {{ number_format($tarif, 0, ',', '.') }}]
-                                </option>
-                            @endforeach
+                            @if(empty($pegawais))
+                                <option disabled>❌ Tidak ada pegawai untuk user ini</option>
+                            @else
+                                @foreach ($pegawais as $pegawai)
+                                    @php
+                                        $jabatan = $pegawai->jabatanRelasi;
+                                        $gajiPokok = $jabatan ? ($jabatan->gaji_pokok ?? 0) : ($pegawai->gaji_pokok ?? 0);
+                                        $tarif = $jabatan ? ($jabatan->tarif_per_jam ?? 0) : ($pegawai->tarif_per_jam ?? 0);
+                                        $tunjanganJabatan = $jabatan ? ($jabatan->tunjangan ?? 0) : ($pegawai->tunjangan ?? 0);
+                                        $tunjanganTransport = $jabatan ? ($jabatan->tunjangan_transport ?? 0) : ($pegawai->tunjangan_transport ?? 0);
+                                        $tunjanganKonsumsi = $jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : ($pegawai->tunjangan_konsumsi ?? 0);
+                                        $asuransi = $jabatan ? ($jabatan->asuransi ?? 0) : ($pegawai->asuransi ?? 0);
+                                    @endphp
+                                    <option value="{{ $pegawai->id }}"
+                                            data-jenis="{{ strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl') }}"
+                                            data-gaji-pokok="{{ $gajiPokok }}"
+                                            data-tarif="{{ $tarif }}"
+                                            data-tunjangan-jabatan="{{ $tunjanganJabatan }}"
+                                            data-tunjangan-transport="{{ $tunjanganTransport }}"
+                                            data-tunjangan-konsumsi="{{ $tunjanganKonsumsi }}"
+                                            data-asuransi="{{ $asuransi }}">
+                                        {{ $pegawai->nama }} - {{ $pegawai->jabatan_nama ?? 'Staff' }} ({{ strtoupper($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'BTKTL') }})
+                                        [Gaji: {{ number_format($gajiPokok, 0, ',', '.') }}, Tarif: {{ number_format($tarif, 0, ',', '.') }}]
+                                    </option>
+                                @endforeach
+                            @endif
                         </select>
                         @error('pegawai_id')
                             <div class="text-danger small mt-1">{{ $message }}</div>
@@ -392,6 +396,19 @@ let pegawaiData = {
 function loadPegawaiData() {
     const select = document.getElementById('pegawai_id');
     const pegawaiId = select.value;
+    const selectedOption = select.options[select.selectedIndex];
+    
+    console.log('=== loadPegawaiData called ===');
+    console.log('Pegawai ID:', pegawaiId);
+    console.log('Selected option data attributes:', {
+        jenis: selectedOption.dataset.jenis,
+        gajiPokok: selectedOption.dataset.gajiPokok,
+        tarif: selectedOption.dataset.tarif,
+        tunjanganJabatan: selectedOption.dataset.tunjanganJabatan,
+        tunjanganTransport: selectedOption.dataset.tunjanganTransport,
+        tunjanganKonsumsi: selectedOption.dataset.tunjanganKonsumsi,
+        asuransi: selectedOption.dataset.asuransi,
+    });
     
     if (pegawaiId) {
         console.log('Loading data for pegawai ID:', pegawaiId);
