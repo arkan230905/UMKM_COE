@@ -30,6 +30,9 @@ class NeracaService
         $kewajiban = $this->calculateKewajiban($neracaSaldo);
         $ekuitas = $this->calculateEkuitas($neracaSaldo);
         
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi
+        $labaRugiBersih = $this->calculateLabaRugi($neracaSaldo);
+        
         // Hitung total
         $totalAsetLancar = array_sum(array_column($asetLancar, 'saldo'));
         $totalAsetTidakLancar = array_sum(array_column($asetTidakLancar, 'saldo'));
@@ -37,7 +40,10 @@ class NeracaService
         
         $totalKewajiban = array_sum(array_column($kewajiban, 'saldo'));
         $totalEkuitas = array_sum(array_column($ekuitas, 'saldo'));
-        $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitas;
+        
+        // ✅ PERBAIKAN: Total Ekuitas = Modal + Laba/Rugi Bersih
+        $totalEkuitasWithLabaRugi = $totalEkuitas + $labaRugiBersih;
+        $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitasWithLabaRugi;
         
         // Cek keseimbangan neraca
         $isBalanced = abs($totalAset - $totalKewajibanEkuitas) < 0.01;
@@ -63,6 +69,9 @@ class NeracaService
                 'detail' => $ekuitas,
                 'total' => $totalEkuitas
             ],
+            'laba_rugi_berjalan' => $labaRugiBersih,
+            'laba_rugi_akun_nama' => $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan',
+            'total_ekuitas_with_laba_rugi' => $totalEkuitasWithLabaRugi,
             'total_kewajiban_ekuitas' => $totalKewajibanEkuitas,
             'neraca_seimbang' => $isBalanced,
             'selisih' => $selisih
