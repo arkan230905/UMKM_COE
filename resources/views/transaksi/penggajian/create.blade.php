@@ -401,7 +401,7 @@ function loadPegawaiData() {
         document.getElementById('submitBtn').innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
         
         // Get employee data from kualifikasi (jabatan)
-        fetch(`/api/pegawai/${pegawaiId}/data`)
+        fetch(`/transaksi/penggajian/pegawai/${pegawaiId}/data`)
             .then(response => {
                 console.log('API Response status:', response.status);
                 console.log('API Response URL:', response.url);
