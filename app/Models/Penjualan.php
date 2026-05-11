@@ -151,12 +151,38 @@ class Penjualan extends Model
         
         static::created(function ($penjualan) {
             // Create automatic journal entries
-            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            try {
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                \Log::info('Journal created successfully for penjualan', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create journal for penjualan', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
         });
         
         static::updated(function ($penjualan) {
             // Recreate journal entries if transaction is updated
-            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            try {
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                \Log::info('Journal updated successfully for penjualan', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to update journal for penjualan', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
         });
     }
 

@@ -40,7 +40,6 @@
 
 /* ── Main card ── */
 .lr-card { background:white; border-radius:12px; border:1px solid #E6E6E4; box-shadow:0 2px 10px rgba(0,0,0,0.05); overflow:hidden; margin-bottom:12px; }
-
 /* ── Section header strip ── */
 .sec-strip { display:flex; align-items:center; gap:10px; padding:13px 22px; border-bottom:1px solid #F0F0EE; }
 .sec-strip .sec-icon { width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; }
@@ -130,162 +129,8 @@
             <label>Periode</label>
             <input type="month" name="periode" value="{{ $periode }}">
         </div>
-
-        <div>
-          <label class="form-label">&nbsp;</label>
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-eye"></i> Tampilkan
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header bg-primary text-white">
-      <strong>LAPORAN LABA RUGI</strong>
-      <div class="float-end">
-        <strong>Periode: {{ \Carbon\Carbon::parse($periode . '-01')->isoFormat('MMMM YYYY') }}</strong>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle">
-          <!-- PENDAPATAN -->
-          <thead class="table-success">
-            <tr>
-              <th colspan="3" class="text-center">
-                <i class="bi bi-graph-up me-2"></i>PENDAPATAN
-              </th>
-            </tr>
-            <tr class="table-light">
-              <th style="width:15%">Kode Akun</th>
-              <th style="width:55%">Nama Akun</th>
-              <th class="text-end" style="width:30%">Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($pendapatan as $coa)
-              @php
-                $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-              @endphp
-              <tr>
-                <td><strong>{{ $coa->kode_akun }}</strong></td>
-                <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
-              </tr>
-            @empty
-              <tr>
-                <td colspan="3" class="text-center text-muted">Tidak ada data pendapatan</td>
-              </tr>
-            @endforelse
-          </tbody>
-          <tfoot class="table-success">
-            <tr>
-              <th colspan="2" class="text-end">TOTAL PENDAPATAN</th>
-              <th class="text-end">Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</th>
-            </tr>
-            @if($hppAmount != 0)
-            <tr class="table-warning">
-              <th colspan="2" class="text-end">Harga Pokok Penjualan (HPP)</th>
-              <th class="text-end">-Rp {{ number_format($hppAmount, 0, ',', '.') }}</th>
-            </tr>
-            <tr class="table-success">
-              <th colspan="2" class="text-end"><strong>LABA KOTOR</strong></th>
-              <th class="text-end"><strong>Rp {{ number_format($labaKotor, 0, ',', '.') }}</strong></th>
-            </tr>
-            @endif
-          </tfoot>
-
-          <!-- BEBAN -->
-          <thead class="table-danger">
-            <tr>
-              <th colspan="3" class="text-center">
-                <i class="bi bi-graph-down me-2"></i>BEBAN
-              </th>
-            </tr>
-            <tr class="table-light">
-              <th>Kode Akun</th>
-              <th>Nama Akun</th>
-              <th class="text-end">Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($beban as $coa)
-              @php
-                $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-              @endphp
-              <tr>
-                <td><strong>{{ $coa->kode_akun }}</strong></td>
-                <td>
-                  {{ $coa->nama_akun }}
-                  @if(str_contains(strtolower($coa->nama_akun), 'hpp') || str_contains(strtolower($coa->nama_akun), 'harga pokok'))
-                    <small class="badge bg-warning text-dark ms-2">HPP</small>
-                  @endif
-                </td>
-                <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
-              </tr>
-            @empty
-              <tr>
-                <td colspan="3" class="text-center text-muted">Tidak ada data beban</td>
-              </tr>
-            @endforelse
-          </tbody>
-          <tfoot class="table-danger">
-            <tr>
-              <th colspan="2" class="text-end">TOTAL BEBAN</th>
-              <th class="text-end">Rp {{ number_format($totalBeban, 0, ',', '.') }}</th>
-            </tr>
-          </tfoot>
-
-          <!-- LABA/RUGI BERSIH -->
-          <tfoot class="table-dark">
-            <tr>
-              <th colspan="2" class="text-end">
-                @if($labaBersih >= 0)
-                  <i class="bi bi-emoji-smile me-2"></i>LABA BERSIH
-                @else
-                  <i class="bi bi-emoji-frown me-2"></i>RUGI BERSIH
-                @endif
-              </th>
-              <th class="text-end {{ $labaBersih >= 0 ? 'text-success' : 'text-danger' }}">
-                Rp {{ number_format(abs($labaBersih), 0, ',', '.') }}
-              </th>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="mt-3">
-    <div class="row">
-      <div class="col-md-6">
-        <div class="alert alert-info">
-          <strong><i class="bi bi-info-circle"></i> Informasi Laba Rugi:</strong>
-          <ul class="mb-0 mt-2">
-            <li>Laporan laba rugi menunjukkan kinerja keuangan perusahaan</li>
-            <li>Laba Bersih = Total Pendapatan - Total Beban</li>
-            <li>Periode: {{ \Carbon\Carbon::parse($periode . '-01')->isoFormat('MMMM YYYY') }}</li>
-          </ul>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="alert {{ $labaBersih >= 0 ? 'alert-success' : 'alert-warning' }}">
-          <strong><i class="bi bi-calculator"></i> Ringkasan:</strong>
-          <ul class="mb-0 mt-2">
-            <li><strong>Total Pendapatan:</strong> Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</li>
-            @if($hppAmount != 0)
-            <li><strong>HPP:</strong> Rp {{ number_format($hppAmount, 0, ',', '.') }}</li>
-            <li><strong>Laba Kotor:</strong> Rp {{ number_format($labaKotor, 0, ',', '.') }}</li>
-            @endif
-            <li><strong>Total Beban:</strong> Rp {{ number_format($totalBeban, 0, ',', '.') }}</li>
-            <li><strong>{{ $labaBersih >= 0 ? 'Laba' : 'Rugi' }} Bersih:</strong> Rp {{ number_format(abs($labaBersih), 0, ',', '.') }}</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
+        <button type="submit" class="btn-show">Tampilkan</button>
+    </form>
 </div>
 
 {{-- ══════════════════════════════════════════
@@ -295,9 +140,6 @@
     <div class="ls-box">
         <div class="ls-label">Total Pendapatan</div>
         <div class="ls-value green">Rp {{ number_format($totalPendapatan,0,',','.') }}</div>
-        @if($totalDiskonPenjualan > 0)
-        <div style="font-size:10px;color:#C05020;margin-top:3px;">Diskon: −Rp {{ number_format($totalDiskonPenjualan,0,',','.') }}</div>
-        @endif
     </div>
     <div class="ls-divider"></div>
     <div class="ls-box">
@@ -358,30 +200,9 @@
 
     {{-- Total Pendapatan --}}
     <div class="lr-total">
-        <div class="rname">Total Pendapatan Bruto</div>
+        <div class="rname">Total Pendapatan</div>
         <div class="ramt green">Rp {{ number_format($totalPendapatan,0,',','.') }}</div>
     </div>
-
-    {{-- Diskon Penjualan sebagai pengurang (kontra-revenue) --}}
-    @if($totalDiskonPenjualan > 0)
-    @foreach($diskonPenjualan as $coa)
-    @php
-        $m = $mutasi[$coa->id] ?? null;
-        $nilaiDiskon = $m ? ((float)$m->total_debit - (float)$m->total_kredit) : 0;
-    @endphp
-    <div class="lr-hpp" style="background:#FFF5F0;">
-        <div class="rname">
-            <div class="main" style="color:#C05020;">{{ $coa->nama_akun }}</div>
-            <div class="hint" style="color:#D4A898;">Potongan/diskon kepada pelanggan</div>
-        </div>
-        <div class="ramt" style="color:#C05020;">− Rp {{ number_format($nilaiDiskon,0,',','.') }}</div>
-    </div>
-    @endforeach
-    <div class="lr-total" style="background:#FFF8F5;">
-        <div class="rname" style="color:#C05020;">Total Pendapatan Bersih</div>
-        <div class="ramt" style="color:#C05020;">Rp {{ number_format($totalPendapatanBersih,0,',','.') }}</div>
-    </div>
-    @endif
 
     {{-- HPP sebagai pengurang --}}
     <div class="lr-hpp">
@@ -468,10 +289,7 @@
         </div>
     </div>
     <div class="lr-hasil-footer">
-        <span><i class="fas fa-circle" style="color:#1A7A3C;font-size:7px;"></i> Pendapatan Bruto: Rp {{ number_format($totalPendapatan,0,',','.') }}</span>
-        @if($totalDiskonPenjualan > 0)
-        <span><i class="fas fa-circle" style="color:#C05020;font-size:7px;"></i> Diskon Penjualan: −Rp {{ number_format($totalDiskonPenjualan,0,',','.') }}</span>
-        @endif
+        <span><i class="fas fa-circle" style="color:#1A7A3C;font-size:7px;"></i> Pendapatan: Rp {{ number_format($totalPendapatan,0,',','.') }}</span>
         <span><i class="fas fa-circle" style="color:#B05030;font-size:7px;"></i> HPP: Rp {{ number_format($totalHpp,0,',','.') }}</span>
         <span><i class="fas fa-circle" style="color:#C0392B;font-size:7px;"></i> Biaya: Rp {{ number_format($totalBeban,0,',','.') }}</span>
     </div>

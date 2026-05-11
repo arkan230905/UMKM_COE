@@ -20,6 +20,7 @@ class Produk extends Model
         'kategori_id',
         'satuan_id',
         'harga_jual',
+        'harga_bom',
         'stok',
         'is_unlimited_stok',
         'stok_minimum',

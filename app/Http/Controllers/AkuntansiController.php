@@ -131,30 +131,15 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        // Map ref_type to tipe_referensi for backward compatibility
-        $mappedRefType = $refType;
-        if ($refType === 'purchase') {
-            $mappedRefType = 'pembelian';
-        } elseif ($refType === 'sale') {
-            $mappedRefType = 'penjualan';
-        }
+        // Map ref_type to tipe_referensi - use actual values stored in database
+        $mappedRefType = match($refType) {
+            'purchase' => 'pembelian',
+            'sale' => 'sale',  // Jurnal penjualan disimpan dengan 'sale', bukan 'penjualan'
+            default => $refType
+        };
 
-        // Convert ref_id to referensi format if needed
-        $mappedRefId = $refId;
-        if ($refId && is_numeric($refId)) {
-            // If ref_id is numeric, try to find the actual reference number
-            if ($refType === 'purchase') {
-                $pembelian = \App\Models\Pembelian::find($refId);
-                if ($pembelian) {
-                    $mappedRefId = $pembelian->nomor_pembelian;
-                }
-            } elseif ($refType === 'sale') {
-                $penjualan = \App\Models\Penjualan::find($refId);
-                if ($penjualan) {
-                    $mappedRefId = $penjualan->nomor_penjualan;
-                }
-            }
-        }
+        // Keep ref_id as is - it's stored as string in jurnal_umum.referensi
+        $mappedRefId = $refId ? (string)$refId : null;
 
         // MULTI-TENANT: Query jurnal_umum (flat structure)
         $query = \DB::table('jurnal_umum as ju')
@@ -807,6 +792,15 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->orderBy('kode_akun')
             ->get();
 
+        // Debug: Log periode dan COA count
+        \Log::info('Laba Rugi Report', [
+            'periode' => $periode,
+            'from' => $from,
+            'to' => $to,
+            'user_id' => auth()->id(),
+            'coa_count' => $coas->count()
+        ]);
+
         // Hitung mutasi per COA untuk periode ini
         $mutasi = \DB::table('jurnal_umum')
             ->select('coa_id', 
@@ -818,6 +812,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->groupBy('coa_id')
             ->get()
             ->keyBy('coa_id');
+
+        // Debug: Log mutasi count
+        \Log::info('Mutasi Count', ['count' => $mutasi->count()]);
 
         // Build account data with final balance
         $accountData = [];
@@ -845,20 +842,78 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             return $saldo > 0;
         })->sortBy('kode_akun');
+
+        // Debug: Log pendapatan
+        $allPendapatanCoas = $coas->filter(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            return $first === '4';
+        });
+        \Log::info('Pendapatan COAs', [
+            'count' => $allPendapatanCoas->count(),
+            'filtered_count' => $pendapatan->count(),
+            'coas' => $allPendapatanCoas->map(function($coa) use ($accountData) {
+                return [
+                    'kode' => $coa->kode_akun,
+                    'nama' => $coa->nama_akun,
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0
+                ];
+            })->toArray()
+        ]);
         
-        // Get HPP (560)
-        $hppCoa = $coas->where('kode_akun', '560')->first();
-        $hppAmount = $hppCoa ? ($accountData['560']['saldo_akhir'] ?? 0) : 0;
+        // Get HPP - cari akun dengan nama "Harga Pokok Penjualan" atau kode 56/560
+        $hppCoa = $coas->first(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '5') return false;
+            
+            // Cari berdasarkan nama atau kode
+            $isHpp = stripos($coa->nama_akun, 'harga pokok') !== false ||
+                     stripos($coa->nama_akun, 'hpp') !== false ||
+                     $coa->kode_akun === '56' ||
+                     $coa->kode_akun === '560';
+            
+            return $isHpp;
+        });
+        
+        $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
         
         // Filter akun beban (5xxx, 6xxx) excluding HPP
-        $beban = $coas->filter(function($coa) use ($accountData) {
-            // Exclude HPP from beban section
-            if ($coa->kode_akun == '560') return false;
+        $beban = $coas->filter(function($coa) use ($accountData, $hppCoa) {
             $first = substr($coa->kode_akun, 0, 1);
             if (!in_array($first, ['5', '6'])) return false;
+            
+            // Exclude HPP account
+            if ($hppCoa && $coa->id === $hppCoa->id) return false;
+            
+            // Also exclude if nama contains "harga pokok" or "hpp"
+            if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                stripos($coa->nama_akun, 'hpp') !== false) {
+                return false;
+            }
+            
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             return $saldo > 0;
         })->sortBy('kode_akun');
+
+        // Debug: Log beban
+        $allBebanCoas = $coas->filter(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            return in_array($first, ['5', '6']);
+        });
+        \Log::info('Beban COAs', [
+            'count' => $allBebanCoas->count(),
+            'filtered_count' => $beban->count(),
+            'hpp_kode' => $hppCoa ? $hppCoa->kode_akun : 'NOT FOUND',
+            'hpp_nama' => $hppCoa ? $hppCoa->nama_akun : 'NOT FOUND',
+            'coas' => $allBebanCoas->map(function($coa) use ($accountData, $hppCoa) {
+                $isHpp = $hppCoa && $coa->id === $hppCoa->id;
+                return [
+                    'kode' => $coa->kode_akun,
+                    'nama' => $coa->nama_akun,
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0,
+                    'is_hpp' => $isHpp
+                ];
+            })->toArray()
+        ]);
         
         // Hitung total
         $totalPendapatan = $pendapatan->sum(function($coa) use ($accountData) {
@@ -898,11 +953,22 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->whereBetween('p.tanggal', [$from, $to])
             ->selectRaw('pr.nama_produk,
                          SUM(pd.jumlah) as total_qty,
-                         SUM(pd.jumlah * COALESCE(pr.harga_bom, pr.harga_jual, 0)) as total_hpp')
+                         SUM(pd.jumlah * pr.harga_jual) as total_hpp')
             ->groupBy('pr.id', 'pr.nama_produk')
             ->having('total_hpp', '>', 0)
             ->orderBy('total_hpp', 'desc')
             ->get();
+
+        // Debug: Log totals
+        \Log::info('Laba Rugi Totals', [
+            'totalPendapatan' => $totalPendapatan,
+            'totalBeban' => $totalBeban,
+            'hppAmount' => $hppAmount,
+            'labaKotor' => $labaKotor,
+            'labaBersih' => $labaBersih,
+            'detailPenjualan_count' => $detailPenjualan->count(),
+            'detailHpp_count' => $detailHpp->count()
+        ]);
 
         return view('akuntansi.laba_rugi', compact(
             'periode', 'from', 'to',
@@ -910,7 +976,13 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'totalPendapatan', 'totalBeban',
             'labaKotor', 'labaBersih',
             'hppAmount', 'totalDiskonPenjualan',
-            'detailPenjualan', 'detailHpp'
-        ) + ['totalHpp' => $hppAmount]);
+            'detailPenjualan', 'detailHpp',
+            'accountData'
+        ) + [
+            'totalHpp' => $hppAmount,
+            'getSaldo' => function($coa) use ($accountData) {
+                return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            }
+        ]);
     }
 }

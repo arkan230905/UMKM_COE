@@ -13,30 +13,33 @@ class JournalService
     {
         $userId = $userId ?? auth()->id();
         
+        // 1. Coba cari dengan user_id yang spesifik
         $coa = Coa::where('kode_akun', $code)
             ->where('user_id', $userId)
             ->first();
-            
         if ($coa) {
             return (int)$coa->getAttribute('id');
-}
-        
-        // Fallback: ambil berdasarkan auth user
-        if (auth()->check()) {
-            $coa = (clone $query)->where('user_id', auth()->id())->first();
-            if ($coa) return (int)$coa->getAttribute('id');
         }
         
-        // Last fallback: ambil yang pertama
-        $coa = $query->first();
-        if ($coa) return (int)$coa->getAttribute('id');
-
+        // 2. Coba cari dengan user_id = NULL (shared COA)
+        $coa = Coa::where('kode_akun', $code)
+            ->whereNull('user_id')
+            ->first();
+        if ($coa) {
+            return (int)$coa->getAttribute('id');
+        }
+        
+        // 3. Fallback: ambil yang pertama tanpa filter user (untuk backward compatibility)
+        $coa = Coa::where('kode_akun', $code)->first();
+        if ($coa) {
+            return (int)$coa->getAttribute('id');
+        }
 
         throw new \RuntimeException(
-            "COA dengan kode '{$code}' tidak ditemukan untuk user ID {$userId}. " .
+            "COA dengan kode '{$code}' tidak ditemukan. " .
             "Silakan buat COA terlebih dahulu di Master Data > Chart of Accounts."
         );
-}
+    }
 
     /**
      * Post a balanced journal entry with given lines. Each line element: ['code'=>account_code, 'debit'=>float, 'credit'=>float, 'memo'=>string (optional)]
@@ -69,7 +72,7 @@ class JournalService
                     'keterangan' => $lineMemo,
                     'debit' => $debit,
                     'kredit' => $credit,
-                    'referensi' => $refId,
+                    'referensi' => (string)$refId,
                     'tipe_referensi' => $refType,
                     'created_by' => $userId,
                 ]);
@@ -92,7 +95,7 @@ class JournalService
      */
     public function deleteByRef(string $refType, int $refId)
     {
-        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', $refId)->delete();
+        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', (string)$refId)->delete();
     }
 
     /**
@@ -100,7 +103,7 @@ class JournalService
      */
     public function getJournalEntries(string $refType, int $refId)
     {
-        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', $refId)->with('coa')->get();
+        return JurnalUmum::where('tipe_referensi', $refType)->where('referensi', (string)$refId)->with('coa')->get();
     }
 
     /**
@@ -382,7 +385,12 @@ class JournalService
         $lines = array_merge($lines, $hppLines);
         
         // Create journal entry
-        $memo = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
+        $paymentMethodLabel = match ($penjualan->payment_method ?? 'cash') {
+            'transfer' => 'Transfer',
+            'credit'   => 'Kredit',
+            default    => 'Tunai',
+        };
+        $memo = 'Penjualan (' . ($penjualan->nomor_penjualan ?? '#' . $penjualan->id) . ') - ' . $paymentMethodLabel;
         $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon ? 
                    $penjualan->tanggal->format('Y-m-d') : 
                    $penjualan->tanggal;
@@ -466,9 +474,12 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         $totalHPP = $hppPerUnit * $qty;
         
         if ($totalHPP > 0) {
+            // Get HPP COA - use getOrCreateCoaHpp to find or create the account
+            $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            
             // Debit HPP account
             $lines[] = [
-                'code' => '554', // HARGA POKOK PENJUALAN (HPP) - Updated from 560 to 554
+                'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -521,9 +532,12 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         ]);
         
         if ($totalHPP > 0) {
+            // Get HPP COA - use getOrCreateCoaHpp to find or create the account
+            $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            
             // Debit HPP account
             $lines[] = [
-                'code' => '554', // HARGA POKOK PENJUALAN (HPP) - Updated from 560 to 554
+                'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -610,25 +624,70 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
      */
     private function getOrCreateCoaHpp($produk, $userId): string
     {
-        // Cari COA yang sudah ada
-        $existingCoa = $this->findOrCreateCoaHpp($produk, $userId);
-        if ($existingCoa) {
-            return $existingCoa;
-        }
-        
+        $namaProduk = $produk->nama_produk;
+        $tipeAkunVariants = ['Expense', 'Beban', 'Biaya', 'HPP', 'Cost'];
 
-        // Default to standard persediaan barang jadi account
-        // Cari COA Persediaan Barang Jadi yang ada di database
-        $persediaanCoa = Coa::where('tipe_akun', 'Asset')
-->where(function($query) {
-                $query->where('nama_akun', 'like', '%persediaan%barang%jadi%')
-                      ->orWhere('nama_akun', 'like', '%persediaan%produk%jadi%');
+        // 1. Spesifik per produk - exact match dulu
+        $q = Coa::withoutGlobalScopes()
+            ->where(function ($q2) use ($namaProduk) {
+                $q2->where('nama_akun', 'HPP ' . $namaProduk)
+                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk);
             })
-            ->orWhere('kode_akun', '116') // Persediaan Barang Jadi
-            ->orWhere('kode_akun', '1160')
-            ->first();
-        
-        return $persediaanCoa ? $persediaanCoa->kode_akun : '116';
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $q->first();
+        if ($found) return $found->kode_akun;
+
+        // 2. Spesifik per produk - partial match
+        $q = Coa::withoutGlobalScopes()
+            ->where('nama_akun', 'like', '%HPP%' . $namaProduk . '%')
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $q)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $q->first();
+        if ($found) return $found->kode_akun;
+
+        // 3. HPP umum - cari berdasarkan nama terlebih dahulu
+        $qUmum = Coa::withoutGlobalScopes()
+            ->where(function ($q2) {
+                $q2->where('nama_akun', 'Harga Pokok Penjualan')
+                   ->orWhere('nama_akun', 'HPP')
+                   ->orWhere('nama_akun', 'like', '%Harga Pokok%');
+            })
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $qUmum)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $qUmum->first();
+        if ($found) return $found->kode_akun;
+
+        // 4. Fallback: cari berdasarkan kode (jika nama tidak ditemukan)
+        $qKode = Coa::withoutGlobalScopes()
+            ->where(function ($q2) {
+                $q2->where('kode_akun', '554')
+                   ->orWhere('kode_akun', '56')
+                   ->orWhere('kode_akun', '560');
+            })
+            ->whereIn('tipe_akun', $tipeAkunVariants);
+
+        if ($userId) {
+            $found = (clone $qKode)->where('user_id', $userId)->first();
+            if ($found) return $found->kode_akun;
+        }
+        $found = $qKode->first();
+        if ($found) return $found->kode_akun;
+
+        // Last resort: return default code
+        return '56';
     }
 
     /**
