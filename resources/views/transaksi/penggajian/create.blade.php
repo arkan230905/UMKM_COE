@@ -417,6 +417,8 @@ function loadPegawaiData() {
             })
             .then(data => {
                 console.log('Data dari KUALIFIKASI:', data);
+                console.log('Tunjangan Transport:', data.tunjangan_transport);
+                console.log('Tunjangan Konsumsi:', data.tunjangan_konsumsi);
                 
                 if (data.error) {
                     console.error('API Error:', data.message);
@@ -432,6 +434,8 @@ function loadPegawaiData() {
                 pegawaiData.tunjanganKonsumsi = parseFloat(data.tunjangan_konsumsi) || 0;
                 pegawaiData.totalTunjangan = pegawaiData.tunjanganJabatan + pegawaiData.tunjanganTransport + pegawaiData.tunjanganKonsumsi;
                 pegawaiData.asuransi = parseFloat(data.asuransi) || 0;
+
+                console.log('pegawaiData after update:', pegawaiData);
 
                 // Update hidden fields
                 document.getElementById('hidden_gaji_pokok').value = pegawaiData.gajiPokok;
@@ -459,8 +463,17 @@ function loadPegawaiData() {
                 }
             })
             .catch(error => {
-                // Handle error silently - system uses default values
+                // Log error for debugging
+                console.error('ERROR in loadPegawaiData:', error);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
+                // Show alert to user
+                alert('Gagal memuat data pegawai: ' + error.message);
+                
+                // Handle error - system uses default values
                 resetPegawaiData();
+                enableSubmitButton();
             });
     } else {
         // Reset if no employee selected
@@ -470,6 +483,8 @@ function loadPegawaiData() {
 
 // Update display fields (READ-ONLY - data dari kualifikasi dan presensi)
 function updateDisplayFields() {
+    console.log('updateDisplayFields called with pegawaiData:', pegawaiData);
+    
     // Update display fields
     document.getElementById('display_tarif').value = pegawaiData.tarif.toLocaleString('id-ID');
     document.getElementById('display_jam_kerja').value = pegawaiData.jamKerja.toLocaleString('id-ID');
@@ -480,6 +495,10 @@ function updateDisplayFields() {
     document.getElementById('display_tunjangan_konsumsi').value = pegawaiData.tunjanganKonsumsi.toLocaleString('id-ID');
     document.getElementById('display_total_tunjangan').value = pegawaiData.totalTunjangan.toLocaleString('id-ID');
     document.getElementById('display_asuransi').value = pegawaiData.asuransi.toLocaleString('id-ID');
+
+    console.log('Display fields updated:');
+    console.log('  Tunjangan Transport:', document.getElementById('display_tunjangan_transport').value);
+    console.log('  Tunjangan Konsumsi:', document.getElementById('display_tunjangan_konsumsi').value);
 
     // Show/hide fields based on employee type
     updateFieldVisibility();
