@@ -92,7 +92,7 @@ class PenggajianController extends Controller
             $jabatan = $pegawai->jabatanRelasi;
             if ($jabatan) {
                 $gajiPokok = $jabatan->gaji_pokok ?? $pegawai->gaji_pokok ?? 0;
-                $tarif = $jabatan->tarif_per_jam ?? $pegawai->tarif_per_jam ?? 0;
+                $tarif = $jabatan->tarif_produk ?? $pegawai->tarif_per_jam ?? 0;
                 $tunjanganJabatan = $jabatan->tunjangan ?? 0;
                 $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
@@ -174,7 +174,7 @@ class PenggajianController extends Controller
             // Ambil data dari KUALIFIKASI (JABATAN) atau fallback ke pegawai
             if ($pegawai->jabatanRelasi) {
                 $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
-                $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
+                $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_produk ?? 0);
                 $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
                 $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
@@ -347,7 +347,7 @@ class PenggajianController extends Controller
             $jenisPegawai = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
             
             $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
-            $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
+            $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_produk ?? 0);
             $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
             $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
             $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
@@ -748,7 +748,7 @@ class PenggajianController extends Controller
         foreach ($semuaPegawai as $p) {
             $jenisP = strtolower($p->jenis_pegawai ?? 'btktl');
             $gajiPokok = (float) ($p->gaji_pokok ?? 0);
-            $tarifPerJam = (float) ($p->tarif_per_jam ?? 0);
+            $tarifPerJam = (float) ($p->tarif_produk ?? $p->tarif_per_jam ?? 0);
             $tunjangan = (float) ($p->tunjangan ?? 0);
             $asuransi = (float) ($p->asuransi ?? 0);
 
@@ -842,7 +842,7 @@ class PenggajianController extends Controller
             
             // Ambil data dari KUALIFIKASI (JABATAN) dengan validasi
             $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
-            $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
+            $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_produk ?? 0);
             $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
             $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
             $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);

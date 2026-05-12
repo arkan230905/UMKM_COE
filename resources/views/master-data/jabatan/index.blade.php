@@ -74,7 +74,7 @@
                             <th style="min-width: 110px">Tunj. Konsumsi</th>
                             <th>Asuransi</th>
                             <th>Gaji Pokok</th>
-                            <th>Tarif/Jam</th>
+                            <th>Tarif/Produk</th>
                             <th class="text-center" style="width: 90px">Aksi</th>
                         </tr>
                     </thead>

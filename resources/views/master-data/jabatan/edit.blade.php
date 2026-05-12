@@ -75,10 +75,10 @@
                         <small class="text-dark d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tarif/Jam (Rp)</label>
+                        <label class="form-label">Tarif/Produk (Rp)</label>
                         <input type="text" name="tarif" class="form-control money-input" value="{{ old('tarif',$jabatan->tarif) }}">
                         <small class="text-dark money-hint"></small>
-                        <small class="text-dark d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
+                        <small class="text-dark d-block">BTKL: tarif per produk. BTKTL: isi 0.</small>
                     </div>
                 </div>
 

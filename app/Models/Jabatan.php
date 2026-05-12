@@ -31,7 +31,7 @@ class Jabatan extends Model
         'tunjangan_konsumsi',
         'asuransi', 
         'tarif',
-        'tarif_per_jam', 
+        'tarif_produk', 
         'deskripsi',
         'user_id'
     ];
@@ -44,7 +44,7 @@ class Jabatan extends Model
         'tunjangan_konsumsi' => 'decimal:2',
         'asuransi' => 'decimal:2',
         'tarif' => 'decimal:2',
-        'tarif_per_jam' => 'decimal:2',
+        'tarif_produk' => 'decimal:2',
     ];
 
     /**
@@ -81,7 +81,7 @@ class Jabatan extends Model
     public function getTarifBtklAttribute()
     {
         $jumlahPegawai = $this->pegawais()->count();
-        return $this->tarif_per_jam * $jumlahPegawai;
+        return $this->tarif_produk * $jumlahPegawai;
     }
 
     /**

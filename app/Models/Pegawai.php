@@ -203,12 +203,12 @@ $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Get tarif per jam from related jabatan (kualifikasi)
+     * Get tarif produk from related jabatan (kualifikasi)
      */
-    public function getTarifPerJamFromJabatanAttribute()
+    public function getTarifProdukFromJabatanAttribute()
     {
         if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->tarif_per_jam ?? 0;
+            return $this->jabatanRelasi->tarif_produk ?? 0;
         }
         return $this->attributes['tarif_per_jam'] ?? 0;
     }
@@ -232,7 +232,7 @@ $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
         if (!is_object($this->jabatanRelasi)) {
             return [
                 'gaji_pokok' => $this->gaji_pokok ?? 0,
-                'tarif_per_jam' => $this->tarif_per_jam ?? 0,
+                'tarif_produk' => $this->tarif_per_jam ?? 0,
                 'tunjangan_jabatan' => $this->tunjangan ?? 0,
                 'tunjangan_transport' => 0,
                 'tunjangan_konsumsi' => 0,
@@ -243,7 +243,7 @@ $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         return [
             'gaji_pokok' => $this->jabatanRelasi->gaji_pokok ?? 0,
-            'tarif_per_jam' => $this->jabatanRelasi->tarif_per_jam ?? 0,
+            'tarif_produk' => $this->jabatanRelasi->tarif_produk ?? 0,
             'tunjangan_jabatan' => $this->jabatanRelasi->tunjangan ?? 0,
             'tunjangan_transport' => $this->jabatanRelasi->tunjangan_transport ?? 0,
             'tunjangan_konsumsi' => $this->jabatanRelasi->tunjangan_konsumsi ?? 0,
