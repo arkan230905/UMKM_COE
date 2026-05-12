@@ -1,4 +1,6 @@
+# =========================
 # Laravel
+# =========================
 /vendor
 /node_modules
 /public/build
@@ -11,10 +13,47 @@
 /bootstrap/cache/*
 .env
 
-# OS
+# =========================
+# Backup & Debug Files
+# =========================
+/backups_debug
+
+# File test/debug/fix yang memenuhi root project
+test_*
+verify_*
+fix_*
+simple_*
+update_*
+trace_*
+sync_*
+validate_*
+debug_*
+temp_*
+ultra_*
+understand_*
+start.ps1
+start.sh
+
+# =========================
+# SQL Dump & Temporary
+# =========================
+*.sql.bak
+*.tmp
+*.temp
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS Files
+# =========================
 .DS_Store
 Thumbs.db
 
-# IDE
+# =========================
+# IDE / Editor
+# =========================
 .vscode
 .idea
