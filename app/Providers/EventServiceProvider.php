@@ -7,9 +7,13 @@ use App\Models\BahanBaku;
 use App\Models\BahanPendukung;
 use App\Models\Pembelian;
 use App\Models\Penjualan;
-use App\Models\Produksi;
+use App\Models\Btkl;
 use App\Models\ProsesProduksi;
+use App\Models\BopProses;
+use App\Models\Produksi;
 use App\Models\User;
+use App\Services\BomSyncService;
+use Illuminate\Support\Facades\Log;
 use App\Observers\BahanBakuObserver;
 use App\Observers\BahanPendukungObserver;
 use App\Observers\PembelianObserver;
@@ -47,7 +51,7 @@ class EventServiceProvider extends ServiceProvider
         Pembelian::observe(PembelianJournalObserver::class);
         // Penjualan::observe(PenjualanObserver::class); // DISABLED: Replaced by JournalService::createJournalFromPenjualan
         Produksi::observe(ProduksiObserver::class);
-        ProsesProduksi::observe(BtklObserver::class);
+        Btkl::observe(BtklObserver::class);
         User::observe(UserObserver::class);
     }
 }

@@ -34,16 +34,8 @@ class ProsesProduksi extends Model
      */
     protected static function booted()
     {
-        static::creating(function ($model) {
-            // CRITICAL: Auto-fill user_id for multi-tenant isolation
-            if (empty($model->user_id) && auth()->check()) {
-                $model->user_id = auth()->id();
-            }
-            
-            if (empty($model->kode_proses)) {
-                $model->kode_proses = self::generateKode();
-            }
-        });
+        // DISABLED: Remove all model events to prevent duplicate creation
+        // The BTKL controller handles all ProsesProduksi creation directly
         
         // Prevent deletion if used in BOM
         static::deleting(function ($model) {

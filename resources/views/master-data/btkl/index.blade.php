@@ -5,7 +5,7 @@
 @push('styles')
 <style>
 .btkl-page { 
-    background: linear-gradient(135deg, #FFFEF7 0%, #FFF8E1 100%); 
+    background: #FFFFFF; 
     min-height: 100vh; 
     padding: 24px; 
     font-family: 'Inter', 'Segoe UI', sans-serif; 
@@ -24,13 +24,13 @@
     padding: 20px 24px; 
     background: white; 
     border-radius: 16px; 
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); 
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.08); 
 }
 
 .btkl-header-left h2 { 
     font-size: 24px; 
     font-weight: 700; 
-    color: #2D3748; 
+    color: #8B4513; 
     margin: 0; 
     display: flex; 
     align-items: center; 
@@ -39,14 +39,14 @@
 
 .btkl-header-left p { 
     font-size: 14px; 
-    color: #718096; 
+    color: #A0826D; 
     margin: 4px 0 0 0; 
 }
 
 .btkl-card { 
     background: white; 
     border-radius: 16px; 
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); 
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.08); 
     overflow: hidden; 
     border: 1px solid rgba(255, 255, 255, 0.8);
 }
@@ -57,8 +57,8 @@
 }
 
 .btkl-table thead th { 
-    background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); 
-    color: #374151; 
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%); 
+    color: #8B4513; 
     font-weight: 600; 
     font-size: 12px; 
     text-transform: uppercase; 
@@ -70,13 +70,13 @@
 
 .btkl-table tbody tr { 
     transition: all 0.2s ease; 
-    border-bottom: 1px solid #F3F4F6;
+    border-bottom: 1px solid #F5E6D3;
 }
 
 .btkl-table tbody tr:hover { 
-    background: linear-gradient(90deg, #FFFEF7 0%, #FFF8E1 100%); 
+    background: linear-gradient(90deg, #FFF8F0 0%, #F5E6D3 100%); 
     transform: translateY(-1px); 
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.06);
 }
 
 .btkl-table tbody td { 
@@ -84,6 +84,7 @@
     vertical-align: middle; 
     border: none; 
     font-size: 14px;
+    color: #5D4037;
 }
 
 .badge-custom { 
@@ -97,13 +98,13 @@
 }
 
 .badge-kode { 
-    background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%); 
-    color: #4338CA; 
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%); 
+    color: #8B4513; 
 }
 
 .badge-satuan { 
-    background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%); 
-    color: #1E40AF; 
+    background: linear-gradient(135deg, #FAF0E6 0%, #F5E6D3 100%); 
+    color: #A0826D; 
 }
 
 .icon-wrapper { 
@@ -123,28 +124,28 @@
 }
 
 .icon-gear { 
-    background: linear-gradient(135deg, #FEE2E2 0%, #FCD34D 100%); 
-    color: #92400E; 
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%); 
+    color: #8B4513; 
 }
 
 .icon-person { 
-    background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%); 
-    color: #4338CA; 
+    background: linear-gradient(135deg, #FFF8F0 0%, #F5E6D3 100%); 
+    color: #8B4513; 
 }
 
 .icon-people { 
-    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%); 
-    color: #065F46; 
+    background: linear-gradient(135deg, #FAF0E6 0%, #F5E6D3 100%); 
+    color: #A0826D; 
 }
 
 .icon-cash { 
-    background: linear-gradient(135deg, #D1FAE5 0%, #10B981 100%); 
-    color: #065F46; 
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%); 
+    color: #8B4513; 
 }
 
 .icon-warning { 
-    background: linear-gradient(135deg, #FEF3C7 0%, #FBBF24 100%); 
-    color: #92400E; 
+    background: linear-gradient(135deg, #FFF8F0 0%, #F5E6D3 100%); 
+    color: #8B4513; 
 }
 
 .btn-elegant { 
@@ -157,36 +158,36 @@
 }
 
 .btn-primary-elegant { 
-    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); 
+    background: linear-gradient(135deg, #8B4513 0%, #A0826D 100%); 
     color: white; 
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
 }
 
 .btn-primary-elegant:hover { 
     transform: translateY(-2px); 
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
 }
 
 .btn-warning-elegant { 
-    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); 
-    color: white; 
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D5C4 100%); 
+    color: #8B4513; 
 }
 
 .btn-danger-elegant { 
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); 
+    background: linear-gradient(135deg, #D2691E 0%, #8B4513 100%); 
     color: white; 
 }
 
 .modal-header-elegant { 
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); 
+    background: linear-gradient(135deg, #8B4513 0%, #A0826D 100%); 
     color: white; 
     border-radius: 16px 16px 0 0;
 }
 
-.text-primary-custom { color: #667EEA; }
-.text-success-custom { color: #10B981; }
-.text-warning-custom { color: #F59E0B; }
-.text-danger-custom { color: #EF4444; }
+.text-primary-custom { color: #8B4513; }
+.text-success-custom { color: #A0826D; }
+.text-warning-custom { color: #D2691E; }
+.text-danger-custom { color: #8B4513; }
 </style>
 @endpush
 
@@ -222,29 +223,94 @@
         </div>
     @endif
 
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #4B382A 0%, #6B4E3A 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div style="background: rgba(255, 255, 255, 0.2); color: white; width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="bi bi-gear-fill"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0 text-white-50">Total Proses</h6>
+                            <h3 class="mb-0">{{ $btkls->count() }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #4B382A 0%, #6B4E3A 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div style="background: rgba(255, 255, 255, 0.2); color: white; width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="bi bi-cash-stack"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0 text-white-50">Total Tarif</h6>
+                            <h3 class="mb-0">Rp {{ number_format($btkls->sum('tarif_btkl'), 0, ',', '.') }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #4B382A 0%, #6B4E3A 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div style="background: rgba(255, 255, 255, 0.2); color: white; width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="bi bi-clock-fill"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0 text-white-50">Rata-rata Tarif/Jam</h6>
+                            <h3 class="mb-0">Rp {{ number_format($btkls->avg('tarif_btkl'), 0, ',', '.') }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #4B382A 0%, #6B4E3A 100%);">
+                <div class="card-body text-white">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div style="background: rgba(255, 255, 255, 0.2); color: white; width: 48px; height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                <i class="bi bi-box-seam"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0 text-white-50">Rata-rata Biaya/Unit</h6>
+                            <h3 class="mb-0">Rp {{ number_format($btkls->avg('tarif_btkl'), 2, ',', '.') }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="btkl-card">
         <div class="table-responsive">
             <table class="table btkl-table align-middle mb-0">
                 <thead class="btkl-table-thead">
                     <tr>
-                        <th class="text-center" style="width: 8%">Kode</th>
-                        <th style="width: 15%">Nama Proses</th>
-                        <th style="width: 15%">Jabatan BTKL</th>
-                        <th style="width: 10%">Jumlah Pegawai</th>
-                        <th style="width: 12%">Tarif BTKL</th>
-                        <th style="width: 8%">Satuan</th>
-                        <th style="width: 12%">Kapasitas/Jam</th>
-                        <th style="width: 12%">Biaya Per Produk</th>
-                        <th style="width: 15%">Deskripsi</th>
-                        <th style="width: 10%">Aksi</th>
+                        <th style="width: 20%">Nama Proses</th>
+                        <th style="width: 20%">Jabatan BTKL</th>
+                        <th style="width: 15%">Jumlah Pegawai</th>
+                        <th style="width: 20%">Biaya Per Produk</th>
+                        <th style="width: 20%">Deskripsi</th>
+                        <th style="width: 5%">Aksi</th>
                     </tr>
                 </thead>
                     <tbody>
                         @forelse($btkls as $btkl)
                         <tr>
-                            <td class="text-center">
-                                <span class="badge-custom badge-kode">{{ $btkl->kode_proses }}</span>
-                            </td>
                             <td>
                                 <div class="icon-wrapper">
                                     <div class="icon-custom icon-gear">
@@ -280,33 +346,12 @@
                             </td>
                             <td>
                                 <div class="icon-wrapper">
-                                    <div class="icon-custom icon-cash">
-                                        <i class="bi bi-cash-stack"></i>
-                                    </div>
-                                    <div>
-                                        <span class="fw-bold text-success-custom">{{ $btkl->tarif_per_jam_formatted }}</span>
-                                        @if(!$btkl->is_consistent)
-                                            <i class="bi bi-exclamation-triangle-fill text-warning-custom ms-1" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Tarif tidak sesuai dengan kualifikasi pegawai"></i>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge-custom badge-satuan">{{ $btkl->satuan }}</span>
-                            </td>
-                            <td>
-                                <span class="fw-bold">{{ number_format($btkl->kapasitas_per_jam) }} pcs</span>
-                            </td>
-                            <td>
-                                <div class="icon-wrapper">
                                     <div class="icon-custom icon-warning">
                                         <i class="bi bi-cash-stack"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-bold text-warning-custom">{{ $btkl->biaya_per_produk_formatted }}</div>
-                                        <small class="text-muted">Rp {{ number_format($btkl->tarif_btkl / $btkl->kapasitas_per_jam, 2, ",", ".") }}</small>
+                                        <div class="fw-bold text-warning-custom">Rp {{ number_format($btkl->prosesProduksi->biaya_btkl_per_produk ?? 0, 2, ",", ".") }}</div>
+                                        <small class="text-muted">Rp {{ number_format($btkl->kapasitas_per_jam > 0 ? $btkl->tarif_btkl / $btkl->kapasitas_per_jam : 0, 2, ",", ".") }}</small>
                                     </div>
                                 </div>
                             </td>
@@ -336,7 +381,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="10" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <div class="text-center">
                                     <div class="icon-custom icon-warning" style="width: 64px; height: 64px; margin: 0 auto 16px;">
                                         <i class="bi bi-inbox" style="font-size: 28px;"></i>
@@ -356,60 +401,7 @@
         </div>
     </div>
 
-    <!-- Statistics Summary -->
-    <div class="btkl-card mt-4">
-        <div class="p-4" style="background: linear-gradient(135deg, #FFFEF7 0%, #FFF8E1 100%);">
-            <h5 class="mb-4 text-center fw-bold" style="color: #2D3748;">
-                <i class="bi bi-graph-up me-2"></i>Ringkasan Statistik BTKL
-            </h5>
-            <div class="row g-4">
-                <div class="col-md-3">
-                    <div class="text-center p-3 rounded-3" style="background: white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
-                        <div class="icon-custom icon-person mb-2" style="width: 48px; height: 48px; margin: 0 auto;">
-                            <i class="bi bi-gear-fill" style="font-size: 20px; color: #4338CA;"></i>
-                        </div>
-                        <h6 class="text-muted mb-1">Total Proses</h6>
-                        <h4 class="fw-bold text-primary-custom">{{ number_format($statistics['total_proses'], 0, ',', '.') }}</h4>
-                        <p class="text-muted mb-0 mt-2">Rp {{ number_format($statistics['rata_rata_tarif'], 0, ',', '.') }}</p>
-                        <small class="text-muted">Rata-rata Tarif/Jam</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-center p-3 rounded-3" style="background: white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
-                        <div class="icon-custom icon-people mb-2" style="width: 48px; height: 48px; margin: 0 auto;">
-                            <i class="bi bi-speedometer2" style="font-size: 20px; color: #065F46;"></i>
-                        </div>
-                        <h6 class="text-muted mb-1">Rata-rata Kapasitas/Jam</h6>
-                        <h4 class="fw-bold text-success-custom">{{ number_format($statistics['rata_rata_kapasitas'], 0, ',', '.') }} pcs</h4>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="text-center p-3 rounded-3" style="background: white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);">
-                        <div class="icon-custom icon-cash mb-2" style="width: 48px; height: 48px; margin: 0 auto;">
-                            <i class="bi bi-calculator" style="font-size: 20px; color: #10B981;"></i>
-                        </div>
-                        <h6 class="text-muted mb-1">Rata-rata Biaya/Unit</h6>
-                        <h4 class="fw-bold text-success-custom">Rp {{ number_format($statistics['rata_rata_biaya_per_unit'], 2, ',', '.') }}</h4>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Total Biaya Per Produk - Paling Bawah -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #FEF3C7 0%, #FBBF24 100%); border: 2px solid #F59E0B; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);">
-                        <div class="icon-custom icon-warning mb-3" style="width: 64px; height: 64px; margin: 0 auto; background: linear-gradient(135deg, #FEF3C7 0%, #FBBF24 100%);">
-                            <i class="bi bi-cash-stack" style="font-size: 28px; color: #92400E;"></i>
-                        </div>
-                        <h5 class="text-white mb-2 fw-bold">Total Biaya Per Produk</h5>
-                        <h3 class="text-white fw-bold mb-0">Rp {{ number_format($statistics['total_biaya_per_produk'], 2, ',', '.') }}</h3>
-                        <p class="text-white mb-0 mt-2">Jumlah semua biaya BTKL per unit produk</p>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
 
 <!-- Delete Modals -->
 @forelse($btkls as $btkl)

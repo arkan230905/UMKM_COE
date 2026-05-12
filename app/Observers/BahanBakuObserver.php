@@ -135,7 +135,7 @@ class BahanBakuObserver
         }
         
         // ✅ PERBAIKAN: Disable BomJobBBB karena tabel bom_job_costings tidak ada
-        // 2. Hitung biaya dari Bahan Baku (BomJobBBB)
+        // 2. Hitung biaya dari Bahan Baku (BomJobBBB) - DISABLED
         /*
         $jobBBB = BomJobBBB::with('bahanBaku.satuan')
             ->whereHas('bomJobCosting', function($query) use ($produk) {

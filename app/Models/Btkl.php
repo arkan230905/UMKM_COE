@@ -18,6 +18,7 @@ class Btkl extends Model
         'kode_proses',
         'nama_btkl',
         'jabatan_id',
+        'tarif_btkl',
         'tarif_per_jam',
         'satuan',
         'kapasitas_per_jam',
@@ -59,6 +60,14 @@ class Btkl extends Model
     public function jabatan()
     {
         return $this->belongsTo(Jabatan::class, 'jabatan_id');
+    }
+
+    /**
+     * Relasi ke model ProsesProduksi
+     */
+    public function prosesProduksi()
+    {
+        return $this->hasOne(ProsesProduksi::class, 'btkl_id');
     }
 
     /**
@@ -170,6 +179,6 @@ class Btkl extends Model
      */
     public function getTarifBtklAttribute()
     {
-        return $this->tarif_per_jam;
+        return $this->attributes['tarif_btkl'] ?? 0;
     }
 }

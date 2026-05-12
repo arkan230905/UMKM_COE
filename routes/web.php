@@ -2768,16 +2768,16 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{produk_id}', [BomController::class, 'destroy'])->name('destroy');
         });
         
-        // BTKL Routes (Biaya Tenaga Kerja Langsung) - Using ProsesProduksiController
+        // BTKL Routes (Biaya Tenaga Kerja Langsung) - Using BtklController
         Route::prefix('btkl')->name('btkl.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\ProsesProduksiController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\ProsesProduksiController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\ProsesProduksiController::class, 'store'])->name('store');
-            Route::get('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'show'])->name('show');
-            Route::get('/{prosesProduksi}/edit', [\App\Http\Controllers\ProsesProduksiController::class, 'edit'])->name('edit');
-            Route::put('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update'])->name('update');
-            Route::patch('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update']);
-            Route::delete('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'destroy'])->name('destroy');
+            Route::get('/', [\App\Http\Controllers\MasterData\BtklController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\MasterData\BtklController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\MasterData\BtklController::class, 'store'])->name('store');
+            Route::get('/{prosesProduksi}', [\App\Http\Controllers\MasterData\BtklController::class, 'show'])->name('show');
+            Route::get('/{prosesProduksi}/edit', [\App\Http\Controllers\MasterData\BtklController::class, 'edit'])->name('edit');
+            Route::put('/{prosesProduksi}', [\App\Http\Controllers\MasterData\BtklController::class, 'update'])->name('update');
+            Route::patch('/{prosesProduksi}', [\App\Http\Controllers\MasterData\BtklController::class, 'update']);
+            Route::delete('/{prosesProduksi}', [\App\Http\Controllers\MasterData\BtklController::class, 'destroy'])->name('destroy');
         });
         
         // Beban Operasional Routes (Separated from BOP)

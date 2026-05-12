@@ -24,6 +24,13 @@ class BomSyncService
             
             Log::info("BomSyncService: Starting sync for {$type} ID {$materialId}");
             
+            // Check if bom_job_costings table exists before proceeding
+            if (!self::bomJobCostingTableExists()) {
+                Log::warning("BomSyncService: bom_job_costings table does not exist, skipping sync");
+                DB::commit();
+                return;
+            }
+            
             // Get all BOM Job Costings that need to be updated
             $bomJobCostings = BomJobCosting::all();
             
@@ -43,6 +50,19 @@ class BomSyncService
             DB::rollBack();
             Log::error("BomSyncService: Sync failed - " . $e->getMessage());
             throw $e;
+        }
+    }
+    
+    /**
+     * Check if bom_job_costings table exists
+     */
+    private static function bomJobCostingTableExists()
+    {
+        try {
+            $tables = DB::select('SHOW TABLES LIKE "bom_job_costings"');
+            return !empty($tables);
+        } catch (\Exception $e) {
+            return false;
         }
     }
     
@@ -171,6 +191,13 @@ class BomSyncService
             
             Log::info("BomSyncService: Starting full sync");
             
+            // Check if bom_job_costings table exists before proceeding
+            if (!self::bomJobCostingTableExists()) {
+                Log::warning("BomSyncService: bom_job_costings table does not exist, skipping full sync");
+                DB::commit();
+                return;
+            }
+            
             // First, ensure all products have BomJobCosting
             self::ensureAllProductsHaveBomJobCosting();
             
@@ -200,6 +227,12 @@ class BomSyncService
     {
         try {
             Log::info("BomSyncService: Ensuring all products have BomJobCosting");
+            
+            // Check if bom_job_costings table exists before proceeding
+            if (!self::bomJobCostingTableExists()) {
+                Log::warning("BomSyncService: bom_job_costings table does not exist, skipping ensureAllProductsHaveBomJobCosting");
+                return;
+            }
             
             $products = Produk::all();
             $createdCount = 0;
@@ -243,6 +276,13 @@ class BomSyncService
             DB::beginTransaction();
             
             Log::info("BomSyncService: Starting auto-population for all products");
+            
+            // Check if bom_job_costings table exists before proceeding
+            if (!self::bomJobCostingTableExists()) {
+                Log::warning("BomSyncService: bom_job_costings table does not exist, skipping autoPopulateAllProducts");
+                DB::commit();
+                return;
+            }
             
             // Get all active BTKL and BOP data
             $btklData = Btkl::where('is_active', true)->with('jabatan')->get();
@@ -369,6 +409,13 @@ class BomSyncService
     {
         try {
             DB::beginTransaction();
+            
+            // Check if bom_job_costings table exists before proceeding
+            if (!self::bomJobCostingTableExists()) {
+                Log::warning("BomSyncService: bom_job_costings table does not exist, skipping syncBomByProduct");
+                DB::commit();
+                return;
+            }
             
             $bomJobCosting = BomJobCosting::where('produk_id', $productId)->first();
             

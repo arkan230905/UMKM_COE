@@ -146,6 +146,7 @@ class PegawaiController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
+            'jabatan_id' => $validated['jabatan_id'],
             'jenis_pegawai' => strtolower($validated['kategori']),
 
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,

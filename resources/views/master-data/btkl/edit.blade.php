@@ -169,7 +169,7 @@
 
                     <div class="col-12">
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
                                 <i class="bi bi-save me-1"></i> Update Data
                             </button>
                             <a href="{{ route('master-data.btkl.index') }}" class="btn btn-secondary">
@@ -243,6 +243,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     kapasitasInput.addEventListener('input', updateBiayaPerProduk);
+
+    // Form submission validation
+    document.getElementById('submitBtn').addEventListener('click', function(e) {
+        const selectedJabatanId = parseInt(jabatanSelect.value);
+        
+        if (!selectedJabatanId) {
+            e.preventDefault();
+            alert('Silakan pilih jabatan terlebih dahulu!');
+            jabatanSelect.focus();
+            return false;
+        }
+        
+        const jabatan = employeeData.find(j => j.id === selectedJabatanId);
+        if (!jabatan) {
+            e.preventDefault();
+            alert('Jabatan tidak valid!');
+            return false;
+        }
+        
+        // Ensure tariff is calculated correctly
+        const jumlahPegawai = jabatan.pegawai_count || 0;
+        const tarifPerJamJabatan = jabatan.tarif || 0;
+        const calculatedTarif = jumlahPegawai * tarifPerJamJabatan;
+        
+        console.log('Final validation:', {
+            jumlahPegawai,
+            tarifPerJamJabatan,
+            calculatedTarif,
+            currentTarifBtkl
+        });
+        
+        // Force update currentTarifBtkl with calculated value
+        currentTarifBtkl = calculatedTarif;
+        
+        if (calculatedTarif <= 0) {
+            e.preventDefault();
+            alert('Tarif BTKL harus lebih dari 0! Pastikan jabatan memiliki tarif dan pegawai.');
+            jabatanSelect.focus();
+            return false;
+        }
+        
+        console.log('Form submission validated with tariff:', calculatedTarif);
+        return true;
+    });
     
     // Clean number formatting function
     function formatNumberClean(number) {
