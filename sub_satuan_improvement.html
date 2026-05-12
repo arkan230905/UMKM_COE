@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sub Satuan Conversion Improvement</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .before { background: #fff3cd; border-color: #ffeaa7; }
+        .after { background: #d4edda; border-color: #c3e6cb; }
+        .info-box { background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .conversion-box { background: #d4edda; border: 1px solid #c3e6cb; padding: 10px; margin: 5px 0; border-radius: 5px; font-weight: bold; }
+        .input-box { background: #f8f9fa; border: 1px solid #dee2e6; padding: 8px; margin: 5px 0; border-radius: 3px; }
+        .price-box { background: #fff3cd; border: 1px solid #ffeaa7; padding: 8px; margin: 5px 0; border-radius: 3px; font-weight: bold; }
+        .total-box { background: #cce5ff; border: 1px solid #99d6ff; padding: 8px; margin: 5px 0; border-radius: 3px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Peningkatan UI Sub Satuan Conversion</h1>
+    
+    <div class="section before">
+        <h2>❌ Sebelum (Membingungkan)</h2>
+        <p>Sub satuan ditampilkan dalam kotak-kotak kecil yang sulit dibaca:</p>
+        <div style="display: flex; gap: 10px;">
+            <div class="input-box" style="flex: 1;">Sub Satuan 1<br>Gram (1 Kilogram = 1000 Gram)</div>
+            <div class="input-box" style="flex: 1;">Sub Satuan 2<br>Potong (1 Kilogram = 4 Potong)</div>
+            <div class="input-box" style="flex: 1;">Sub Satuan 3<br>Ons (1 Kilogram = 10 Ons)</div>
+            <div class="input-box" style="flex: 1;">Pilih Sub Satuan<br>[Dropdown]</div>
+        </div>
+        <p><strong>Masalah:</strong> User bingung mana yang informasi dan mana yang harus dipilih.</p>
+    </div>
+    
+    <div class="section after">
+        <h2>✅ Sesudah (Jelas dan Terstruktur)</h2>
+        
+        <div class="info-box">
+            <h3>📋 Data Konversi Sub Satuan Saat Ini</h3>
+            <div style="display: flex; gap: 15px;">
+                <div><strong>Sub Satuan 1:</strong><br>Gram (1 Kilogram = 1000 Gram)</div>
+                <div><strong>Sub Satuan 2:</strong><br>Potong (1 Kilogram = 4 Potong)</div>
+                <div><strong>Sub Satuan 3:</strong><br>Ons (1 Kilogram = 10 Ons)</div>
+            </div>
+        </div>
+        
+        <h4>🛒 Pilihan untuk Pembelian Kali Ini:</h4>
+        <div style="display: flex; gap: 15px; align-items: end;">
+            <div style="flex: 1;">
+                <strong>Pilih Sub Satuan:</strong><br>
+                <select class="input-box" style="width: 100%; padding: 8px;">
+                    <option>-- Gunakan Satuan Utama --</option>
+                    <option selected>Potong (1 Kilogram = 4 Potong)</option>
+                    <option>Gram (1 Kilogram = 1000 Gram)</option>
+                    <option>Ons (1 Kilogram = 10 Ons)</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <strong>Konversi untuk Pembelian Ini:</strong><br>
+                <div class="conversion-box">1 Satuan Utama = 4 Potong</div>
+            </div>
+            <div style="flex: 1;">
+                <strong>Jumlah dalam Sub Satuan:</strong><br>
+                <input type="number" class="input-box" style="width: 100%; padding: 8px;" placeholder="20" value="20">
+            </div>
+        </div>
+        
+        <h4>💰 Informasi Harga:</h4>
+        <div style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <strong>Harga per Potong:</strong><br>
+                <div class="price-box">Rp 12,500</div>
+            </div>
+            <div style="flex: 1;">
+                <strong>Total Harga Sub Satuan:</strong><br>
+                <div class="total-box">Rp 250,000</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>🔄 Contoh Skenario Penggunaan</h2>
+        
+        <h3>Skenario: Membeli Ayam Potong</h3>
+        <ol>
+            <li><strong>User melihat info konversi:</strong>
+                <ul>
+                    <li>Sub Satuan 1: Gram (1 Kilogram = 1000 Gram)</li>
+                    <li>Sub Satuan 2: Potong (1 Kilogram = 4 Potong)</li>
+                    <li>Sub Satuan 3: Ons (1 Kilogram = 10 Ons)</li>
+                </ul>
+            </li>
+            <li><strong>User memilih "Potong" dari dropdown</strong></li>
+            <li><strong>Sistem menampilkan:</strong> "1 Satuan Utama = 4 Potong"</li>
+            <li><strong>User input jumlah:</strong> 20 potong</li>
+            <li><strong>Sistem hitung otomatis:</strong>
+                <ul>
+                    <li>Harga per Potong: Rp 12,500</li>
+                    <li>Total: 20 × Rp 12,500 = Rp 250,000</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <div class="section">
+        <h2>🎯 Keuntungan Peningkatan</h2>
+        <ul>
+            <li>✅ <strong>Informasi terpisah jelas</strong> - Data konversi ditampilkan sebagai informasi saja</li>
+            <li>✅ <strong>Pilihan jelas</strong> - Dropdown terpisah untuk memilih sub satuan yang akan digunakan</li>
+            <li>✅ <strong>Konversi spesifik</strong> - Menampilkan konversi khusus untuk pembelian ini</li>
+            <li>✅ <strong>Visual lebih baik</strong> - Warna-warna berbeda untuk setiap jenis informasi</li>
+            <li>✅ <strong>Perhitungan otomatis</strong> - Harga dan total dihitung otomatis</li>
+        </ul>
+    </div>
+    
+    <p><strong>Test URL:</strong> <a href="http://localhost:8000/transaksi/pembelian/create" target="_blank">Purchase Create Form</a></p>
+</body>
+</html>

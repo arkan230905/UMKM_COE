@@ -1,0 +1,86 @@
+[
+    {
+        "id": 15,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 16,
+        "jumlah": "50.0000",
+        "satuan": "Gram",
+        "harga_satuan": "59504.76",
+        "subtotal": "2975238.00",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:35"
+    },
+    {
+        "id": 16,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 17,
+        "jumlah": "50.0000",
+        "satuan": "Gram",
+        "harga_satuan": "59504.76",
+        "subtotal": "2975238.00",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:35"
+    },
+    {
+        "id": 17,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 18,
+        "jumlah": "1.0000",
+        "satuan": "Sendok Teh",
+        "harga_satuan": "20647.05",
+        "subtotal": "20647.05",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:35"
+    },
+    {
+        "id": 18,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 21,
+        "jumlah": "1.0000",
+        "satuan": "Sendok Makan",
+        "harga_satuan": "602.73",
+        "subtotal": "602.73",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:35"
+    },
+    {
+        "id": 19,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 13,
+        "jumlah": "600.0000",
+        "satuan": "Mililiter",
+        "harga_satuan": "4.62",
+        "subtotal": "2771.41",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:34"
+    },
+    {
+        "id": 20,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 14,
+        "jumlah": "500.0000",
+        "satuan": "Mililiter",
+        "harga_satuan": "32.13",
+        "subtotal": "16063.43",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:34"
+    },
+    {
+        "id": 21,
+        "bom_job_costing_id": 2,
+        "bahan_pendukung_id": 22,
+        "jumlah": "1.0000",
+        "satuan": "Pieces",
+        "harga_satuan": "4857.15",
+        "subtotal": "4857.15",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-08 00:04:35"
+    }
+]

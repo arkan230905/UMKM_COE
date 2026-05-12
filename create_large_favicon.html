@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Large Favicon Creator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        canvas { border: 2px solid #ddd; margin: 10px 0; display: block; }
+        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 14px; }
+        button:hover { background: #0056b3; }
+        .preview { text-align: center; margin: 20px 0; }
+        h1 { color: #333; text-align: center; }
+        .info { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 SIMCOST Favicon Creator</h1>
+        
+        <div class="info">
+            <strong>Info:</strong> Tool ini akan membuat favicon khusus untuk SIMCOST dengan ukuran besar dan kontras tinggi agar terlihat jelas di tab browser.
+        </div>
+        
+        <div class="preview">
+            <h3>Preview Favicon (48x48):</h3>
+            <canvas id="faviconCanvas" width="48" height="48"></canvas>
+            <br>
+            <button onclick="createFavicon()">Generate Favicon</button>
+            <button onclick="downloadFavicon()">Download PNG</button>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>📋 Cara Penggunaan:</h3>
+            <ol>
+                <li>Klik "Generate Favicon" untuk membuat favicon</li>
+                <li>Klik "Download PNG" untuk mengunduh</li>
+                <li>Simpan file sebagai <code>favicon.png</code> di folder <code>public/</code></li>
+                <li>Refresh browser untuk melihat perubahan</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function createFavicon() {
+            const canvas = document.getElementById('faviconCanvas');
+            const ctx = canvas.getContext('2d');
+            const size = 48;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Set high quality rendering
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Background circle dengan gradient
+            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(1, '#f8f9fa');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - 2, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Border
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Text SIMCOST dengan font yang lebih besar
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // SIM
+            ctx.fillStyle = '#007bff';
+            ctx.font = 'bold 10px Arial, sans-serif';
+            ctx.fillText('SIM', size/2, size/2 - 6);
+            
+            // COST
+            ctx.fillStyle = '#28a745';
+            ctx.font = 'bold 8px Arial, sans-serif';
+            ctx.fillText('COST', size/2, size/2 + 6);
+            
+            // Icon kecil di bawah
+            ctx.fillStyle = '#007bff';
+            ctx.fillRect(size/2 - 8, size/2 + 12, 16, 2);
+            ctx.fillStyle = '#28a745';
+            ctx.fillRect(size/2 - 6, size/2 + 16, 12, 2);
+            
+            console.log('Favicon berhasil dibuat!');
+        }
+        
+        function downloadFavicon() {
+            const canvas = document.getElementById('faviconCanvas');
+            
+            // Create a larger canvas for better quality
+            const largeCanvas = document.createElement('canvas');
+            const largeCtx = largeCanvas.getContext('2d');
+            largeCanvas.width = 64;
+            largeCanvas.height = 64;
+            
+            // Scale up the favicon
+            largeCtx.imageSmoothingEnabled = false;
+            largeCtx.drawImage(canvas, 0, 0, 64, 64);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = 'favicon.png';
+            link.href = largeCanvas.toDataURL('image/png');
+            link.click();
+            
+            console.log('Favicon berhasil diunduh!');
+        }
+        
+        // Auto generate saat halaman dimuat
+        window.onload = function() {
+            createFavicon();
+        };
+    </script>
+</body>
+</html>

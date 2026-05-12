@@ -1,0 +1,14 @@
+[
+    {
+        "id": 3,
+        "bom_job_costing_id": 2,
+        "bahan_baku_id": 6,
+        "jumlah": "1.0000",
+        "satuan": "Potong",
+        "harga_satuan": "7500.00",
+        "subtotal": "7500.00",
+        "keterangan": null,
+        "created_at": "2026-04-01 13:21:24",
+        "updated_at": "2026-04-07 23:56:42"
+    }
+]

@@ -1,0 +1,98 @@
+/* Financial Report Styles - Accounting Standards Compliant */
+
+.financial-report {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 400; /* Normal weight by default */
+}
+
+.financial-report .table td, 
+.financial-report .table th {
+    border: none;
+    vertical-align: middle;
+    padding: 0.5rem 0.75rem; /* Consistent spacing */
+}
+
+/* Section titles (ASET, KEWAJIBAN DAN EKUITAS) */
+.financial-report .section-title {
+    background-color: #f8f9fa;
+    border-top: 2px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600; /* Semi-bold */
+    text-transform: uppercase;
+    color: #495057;
+}
+
+/* Subsection headers (Aset Lancar, Kewajiban Pendek, etc.) */
+.financial-report .subsection-header {
+    font-weight: 600; /* Semi-bold */
+    color: #495057;
+    padding-left: 1.5rem;
+}
+
+/* Regular account items */
+.financial-report .account-item {
+    font-weight: 400; /* Normal weight */
+    color: #6c757d;
+    padding-left: 2.5rem;
+}
+
+/* Account codes - center aligned */
+.financial-report .account-code {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 400; /* Normal weight */
+}
+
+/* Subtotals (Jumlah Aset Lancar, etc.) */
+.financial-report .subtotal {
+    border-top: 1px solid #dee2e6;
+    border-bottom: 1px solid #495057;
+    font-weight: 600; /* Semi-bold */
+    color: #495057;
+    padding-left: 1.5rem;
+}
+
+/* Main totals (JUMLAH ASET, JUMLAH KEWAJIBAN DAN EKUITAS) */
+.financial-report .total-row {
+    background-color: #e3f2fd;
+    border: 2px solid #1976d2;
+    font-weight: 700; /* Bold */
+    color: #1976d2;
+    font-size: 1.05em;
+}
+
+/* Amount formatting - right aligned */
+.financial-report .amount {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 400; /* Normal weight for amounts */
+    white-space: nowrap;
+}
+
+/* Spacing rows */
+.financial-report .spacing-row {
+    height: 0.75rem;
+}
+
+/* Large spacing between major sections */
+.financial-report .large-spacing {
+    height: 1.5rem;
+}
+
+/* Print styles */
+@media print {
+    .financial-report {
+        font-size: 12pt;
+    }
+    
+    .financial-report .section-title {
+        background-color: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .financial-report .total-row {
+        background-color: #e8f4fd !important;
+        -webkit-print-color-adjust: exact;
+    }
+}

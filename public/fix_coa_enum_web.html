@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix COA Enum - Web Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .alert { padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .alert-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .alert-danger { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; font-size: 14px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .code { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; margin: 10px 0; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        #output { background: #000; color: #0f0; padding: 15px; border-radius: 5px; font-family: monospace; height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix COA Enum "BEBAN" Error</h1>
+        
+        <div class="alert alert-info">
+            <strong>Masalah:</strong> Error "Data truncated for column 'tipe_akun'" saat update COA dengan nilai "BEBAN".<br>
+            <strong>Solusi:</strong> Tool ini akan memperbaiki enum database untuk mendukung semua nilai tipe akun.
+        </div>
+
+        <div class="step">
+            <h3>📋 Langkah Perbaikan:</h3>
+            <ol>
+                <li>Cek struktur enum saat ini</li>
+                <li>Update enum untuk mendukung semua nilai</li>
+                <li>Test update yang bermasalah</li>
+                <li>Verifikasi perbaikan</li>
+            </ol>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button onclick="fixEnum()" id="fixBtn">🚀 Perbaiki Enum Database</button>
+            <button onclick="testUpdate()" id="testBtn" disabled>🧪 Test Update COA</button>
+            <button onclick="clearOutput()">🗑️ Clear Output</button>
+        </div>
+
+        <div class="step">
+            <h3>📊 Output:</h3>
+            <div id="output">Klik "Perbaiki Enum Database" untuk memulai...\n</div>
+        </div>
+
+        <div class="alert alert-danger">
+            <strong>⚠️ Penting:</strong> Pastikan Anda memiliki backup database sebelum menjalankan perbaikan ini.
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += message + '\n';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        async function fixEnum() {
+            const fixBtn = document.getElementById('fixBtn');
+            const testBtn = document.getElementById('testBtn');
+            
+            fixBtn.disabled = true;
+            fixBtn.textContent = '⏳ Memperbaiki...';
+            
+            log('🔧 Memulai perbaikan enum tipe_akun...');
+            log('');
+
+            try {
+                // Step 1: Check current enum
+                log('Step 1: Memeriksa struktur enum saat ini...');
+                const checkResponse = await fetch('/fix-coa-enum-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+                
+                if (checkResponse.ok) {
+                    const checkResult = await checkResponse.text();
+                    log('✅ ' + checkResult);
+                } else {
+                    log('❌ Gagal memeriksa enum');
+                }
+
+                // Step 2: Fix enum
+                log('');
+                log('Step 2: Memperbaiki enum...');
+                const fixResponse = await fetch('/fix-coa-enum-update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+                
+                if (fixResponse.ok) {
+                    const fixResult = await fixResponse.text();
+                    log('✅ ' + fixResult);
+                    testBtn.disabled = false;
+                } else {
+                    log('❌ Gagal memperbaiki enum');
+                }
+
+                log('');
+                log('🎉 Perbaikan selesai! Silakan test update COA.');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+            
+            fixBtn.disabled = false;
+            fixBtn.textContent = '🚀 Perbaiki Enum Database';
+        }
+
+        async function testUpdate() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = '⏳ Testing...';
+            
+            log('');
+            log('🧪 Testing update COA ID 166...');
+            
+            try {
+                const testResponse = await fetch('/fix-coa-enum-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+                
+                if (testResponse.ok) {
+                    const testResult = await testResponse.text();
+                    log('✅ ' + testResult);
+                    log('');
+                    log('🎉 SUCCESS! COA dapat diupdate dengan tipe "BEBAN"');
+                    log('Sekarang Anda dapat edit COA tanpa error.');
+                } else {
+                    log('❌ Test gagal: ' + await testResponse.text());
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+            
+            testBtn.disabled = false;
+            testBtn.textContent = '🧪 Test Update COA';
+        }
+    </script>
+</body>
+</html>

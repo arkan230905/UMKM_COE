@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Color Contrast Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .example-box { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .before { background: #f8d7da; border-color: #f5c6cb; }
+        .after { background: #d4edda; border-color: #c3e6cb; }
+        .price-demo { padding: 15px; margin: 10px 0; border-radius: 5px; font-weight: bold; text-align: center; font-size: 18px; }
+        .bad-contrast { background: #007bff; color: white; }
+        .good-contrast { background: #17a2b8; color: #212529; }
+        .comparison { display: flex; gap: 20px; align-items: center; }
+        .demo-section { flex: 1; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Perbaikan Kontras Warna - Total Harga Sub Satuan</h1>
+    
+    <div class="example-box before">
+        <h2>❌ Sebelum (Kontras Buruk)</h2>
+        <p>Teks putih di background biru gelap sulit dibaca:</p>
+        <div class="price-demo bad-contrast">Rp 1.600.000</div>
+        <p><strong>Masalah:</strong> Teks putih di background biru tidak terlihat jelas, terutama di layar tertentu!</p>
+    </div>
+    
+    <div class="example-box after">
+        <h2>✅ Sesudah (Kontras Baik)</h2>
+        <p>Teks hitam di background biru muda mudah dibaca:</p>
+        <div class="price-demo good-contrast">Rp 1.600.000</div>
+        <p><strong>Keuntungan:</strong> Teks hitam di background terang memberikan kontras yang sangat baik!</p>
+    </div>
+    
+    <div class="example-box">
+        <h2>🔍 Perbandingan Kontras</h2>
+        <div class="comparison">
+            <div class="demo-section">
+                <h3>Sebelum</h3>
+                <div class="price-demo bad-contrast">
+                    bg-primary + text-white<br>
+                    Rp 1.600.000
+                </div>
+                <p>❌ Sulit dibaca</p>
+            </div>
+            <div class="demo-section">
+                <h3>Sesudah</h3>
+                <div class="price-demo good-contrast">
+                    bg-info + text-dark<br>
+                    Rp 1.600.000
+                </div>
+                <p>✅ Mudah dibaca</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="example-box">
+        <h2>🎯 Perubahan yang Diterapkan</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="background: #f8f9fa;">
+                <th style="border: 1px solid #ddd; padding: 10px;">Aspek</th>
+                <th style="border: 1px solid #ddd; padding: 10px;">Sebelum</th>
+                <th style="border: 1px solid #ddd; padding: 10px;">Sesudah</th>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;"><strong>Background</strong></td>
+                <td style="border: 1px solid #ddd; padding: 10px;">bg-primary (biru gelap)</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">bg-info (biru muda)</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;"><strong>Text Color</strong></td>
+                <td style="border: 1px solid #ddd; padding: 10px;">text-white (putih)</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">text-dark (hitam)</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;"><strong>Kontras</strong></td>
+                <td style="border: 1px solid #ddd; padding: 10px;">❌ Rendah</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">✅ Tinggi</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;"><strong>Keterbacaan</strong></td>
+                <td style="border: 1px solid #ddd; padding: 10px;">❌ Sulit</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">✅ Mudah</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="example-box">
+        <h2>💡 Prinsip Desain yang Diterapkan</h2>
+        <ul>
+            <li>✅ <strong>Kontras Tinggi:</strong> Teks gelap di background terang</li>
+            <li>✅ <strong>Aksesibilitas:</strong> Mudah dibaca untuk semua pengguna</li>
+            <li>✅ <strong>Konsistensi:</strong> Selaras dengan elemen form lainnya</li>
+            <li>✅ <strong>Profesional:</strong> Tampilan yang bersih dan mudah dibaca</li>
+        </ul>
+    </div>
+    
+    <div class="example-box">
+        <h2>🎨 Skema Warna Lengkap Form</h2>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+                <h4>Harga per Sub Satuan</h4>
+                <div style="background: #ffc107; color: #212529; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center;">
+                    Rp 64.000
+                </div>
+                <small>bg-warning + text-dark</small>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <h4>Total Harga Sub Satuan</h4>
+                <div style="background: #17a2b8; color: #212529; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center;">
+                    Rp 1.600.000
+                </div>
+                <small>bg-info + text-dark</small>
+            </div>
+        </div>
+    </div>
+    
+    <p><strong>Test URL:</strong> <a href="http://localhost:8000/transaksi/pembelian/create" target="_blank">Purchase Create Form</a></p>
+    
+    <p><em>Sekarang angka total harga sub satuan akan terlihat jelas dengan teks hitam di background biru muda!</em></p>
+</body>
+</html>

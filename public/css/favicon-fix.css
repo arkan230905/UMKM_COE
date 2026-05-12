@@ -1,0 +1,63 @@
+/* Favicon optimization untuk logo asli - MEMAKSA UKURAN BESAR */
+
+/* PRIORITAS TERTINGGI: Favicon ukuran besar */
+link[rel="icon"][sizes="128x128"] {
+    /* Memaksa browser gunakan ukuran ini */
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: crisp-edges !important;
+    image-rendering: high-quality !important;
+    
+    /* Filter untuk kontras maksimal */
+    -webkit-filter: contrast(1.6) brightness(1.5) saturate(1.5) !important;
+    filter: contrast(1.6) brightness(1.5) saturate(1.5) !important;
+}
+
+/* Ukuran 96x96 sebagai backup */
+link[rel="icon"][sizes="96x96"] {
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: crisp-edges !important;
+    -webkit-filter: contrast(1.5) brightness(1.4) saturate(1.4) !important;
+    filter: contrast(1.5) brightness(1.4) saturate(1.4) !important;
+}
+
+/* Optimasi rendering untuk semua favicon */
+link[rel="icon"], 
+link[rel="shortcut icon"] {
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: crisp-edges !important;
+    image-rendering: high-quality !important;
+}
+
+/* Memastikan favicon tidak blur dan terlihat BESAR */
+link[rel*="icon"] {
+    /* Tingkatkan kontras dan brightness untuk visibilitas MAKSIMAL */
+    -webkit-filter: contrast(1.4) brightness(1.3) saturate(1.3) !important;
+    filter: contrast(1.4) brightness(1.3) saturate(1.3) !important;
+}
+
+/* Untuk browser modern - memaksa ukuran favicon BESAR */
+@media (min-resolution: 1dppx) {
+    link[rel="icon"][sizes="128x128"] {
+        /* Prioritas tertinggi untuk ukuran 128x128 */
+        image-rendering: -webkit-optimize-contrast !important;
+        -webkit-transform: scale(1) !important;
+        transform: scale(1) !important;
+    }
+}
+
+/* Fallback untuk memastikan favicon terlihat */
+head link[rel*="icon"] {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* CSS khusus untuk memaksa favicon terlihat LEBIH BESAR */
+link[rel="icon"][sizes="128x128"],
+link[rel="icon"][sizes="96x96"],
+link[rel="icon"][sizes="64x64"] {
+    /* Prioritas tinggi untuk ukuran besar */
+    -webkit-transform: scale(1.1) !important;
+    transform: scale(1.1) !important;
+}

@@ -1,0 +1,79 @@
+<?php
+
+use App\Http\Controllers\Api\BopApiController;
+use App\Http\Controllers\Api\BtklApiController;
+use App\Http\Controllers\PresensiController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+// Recent Attendance API
+Route::get('/recent-attendance', [PresensiController::class, 'apiRecentAttendance'])->name('api.recent-attendance');
+
+// BOP API Routes
+Route::prefix('bop')->group(function () {
+    Route::post('/update-aktual', [BopApiController::class, 'updateAktual'])->name('api.bop.update-aktual');
+});
+
+// BTKL API Routes
+Route::prefix('btkl')->group(function () {
+    Route::get('/jabatan/{jabatanId}', [BtklApiController::class, 'getByJabatan'])->name('api.btkl.by-jabatan');
+    Route::get('/proses/{prosesId}', [BtklApiController::class, 'getByProses'])->name('api.btkl.by-proses');
+    Route::get('/', [BtklApiController::class, 'index'])->name('api.btkl.index');
+});
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+
+// Asset related API routes
+Route::prefix('asets')->middleware('auth:sanctum')->group(function () {
+    // CRUD Aset
+    Route::get('/', [\App\Http\Controllers\Api\AsetController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\AsetController::class, 'store']);
+    Route::get('/{aset}', [\App\Http\Controllers\Api\AsetController::class, 'show']);
+    Route::put('/{aset}', [\App\Http\Controllers\Api\AsetController::class, 'update']);
+    Route::delete('/{aset}', [\App\Http\Controllers\Api\AsetController::class, 'destroy']);
+
+    // Depreciation Schedule
+    Route::post('/{aset}/generate-schedule', [\App\Http\Controllers\Api\AsetController::class, 'generateSchedule']);
+    Route::post('/{aset}/save-schedule', [\App\Http\Controllers\Api\AsetController::class, 'saveSchedule']);
+    Route::get('/{aset}/depreciation-schedules', [\App\Http\Controllers\Api\AsetController::class, 'depreciationSchedules']);
+});
+
+// Depreciation Schedule routes
+Route::prefix('depreciation-schedules')->middleware('auth:sanctum')->group(function () {
+    Route::post('/{schedule}/post', [\App\Http\Controllers\Api\AsetController::class, 'postSchedule']);
+    Route::post('/{schedule}/reverse', [\App\Http\Controllers\Api\AsetController::class, 'reverseSchedule']);
+});
+
+// Kategori options (public)
+Route::get('/aset/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
+
+// Produk API Routes
+Route::get('/produk/{id}', function($id) {
+    $produk = \App\Models\Produk::find($id);
+    if (!$produk) {
+        return response()->json(['success' => false, 'message' => 'Produk tidak ditemukan'], 404);
+    }
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'id' => $produk->id,
+            'nama_produk' => $produk->nama_produk,
+            'harga_jual' => $produk->harga_jual,
+            'stok' => $produk->stok,
+            'barcode' => $produk->barcode
+        ]
+    ]);
+})->name('api.produk.show');

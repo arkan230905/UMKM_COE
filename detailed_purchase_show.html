@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detailed Purchase Show Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .header { background: #f8f9fa; border-color: #dee2e6; }
+        .conversion { background: #fff3cd; border-color: #ffeaa7; }
+        .detail { background: #d1ecf1; border-color: #bee5eb; }
+        .calculation { background: #d4edda; border-color: #c3e6cb; }
+        .info-box { background: #f8f9fa; border: 1px solid #dee2e6; padding: 8px; margin: 5px 0; border-radius: 4px; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; }
+        .alert-success { background: #d4edda; border: 1px solid #c3e6cb; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; }
+        .bg-primary { background: #007bff; }
+        .bg-success { background: #28a745; }
+        .bg-warning { background: #ffc107; color: #212529; }
+        .bg-info { background: #17a2b8; }
+        .row { display: flex; gap: 15px; margin: 10px 0; }
+        .col { flex: 1; }
+    </style>
+</head>
+<body>
+    <h1>📋 Halaman Detail Pembelian - Sedetail Create Form</h1>
+    
+    <div class="section header">
+        <h2>📝 Informasi Pembelian</h2>
+        <div class="row">
+            <div class="col">
+                <strong>Vendor:</strong><br>
+                <div class="info-box">Tel-Mart (Bahan Baku)</div>
+            </div>
+            <div class="col">
+                <strong>Nomor Faktur:</strong><br>
+                <div class="info-box">INV-2026-001</div>
+            </div>
+            <div class="col">
+                <strong>Tanggal:</strong><br>
+                <div class="info-box">07-04-2026</div>
+            </div>
+            <div class="col">
+                <strong>Metode Pembayaran:</strong><br>
+                <div class="info-box">💵 Kas Bank</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section conversion">
+        <h2>🔄 Contoh Konversi Satuan Pembelian</h2>
+        <div class="row">
+            <div class="col">
+                <h4>Satuan Bahan & Konversi</h4>
+                <ul>
+                    <li>• 1 Liter = 1 kg (cairan utama)</li>
+                    <li>• 1 Ton = 1000 kg (bahan utama)</li>
+                    <li>• 1 Kg = 2 Kg (bahan khusus)</li>
+                    <li>• 1 Kg = 1 Kg (bahan normal)</li>
+                    <li>• 500 Gram = 0.5 Kg</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h4>Satuan Konversi</h4>
+                <ul>
+                    <li>• 1 Tabung = 12 kg (tabung 12 kg)</li>
+                    <li>• 1 Karung = 25 kg (karung 25 kg)</li>
+                    <li>• 1 Kaleng = 5.5 kg (kaleng 5.5 kg)</li>
+                    <li>• 1 Jerigen = 5 kg (jerigen 5 kg)</li>
+                    <li>• 1 Karton = 0.5 kg (karton 0.5 kg)</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h4>Estimasi Harga Satuan</h4>
+                <ul>
+                    <li>• 1 kg = Rp 5000 = Rp 5000 Gram</li>
+                    <li>• 1 Liter = Rp 6000 = Rp 6000 Liter</li>
+                    <li>• 1 Kaleng = Rp 27500 = Rp 5000 Kg</li>
+                    <li>• 1 Tabung = Rp 60000 = Rp 5000 Kg</li>
+                    <li>• 1 Ton = Rp 5000000 = Rp 5000 Kg</li>
+                </ul>
+            </div>
+        </div>
+        <div class="alert alert-info">
+            <strong>Tips:</strong> Sistem telah mengkonversi satuan pembelian ke satuan utama untuk perhitungan stok sesuai faktor konversi yang digunakan.
+        </div>
+    </div>
+    
+    <div class="section detail">
+        <h2>📦 Detail Barang yang Dibeli</h2>
+        
+        <div style="border: 1px solid #17a2b8; border-radius: 8px; margin: 15px 0;">
+            <div style="background: #f8f9fa; padding: 10px; border-bottom: 1px solid #dee2e6;">
+                <h3>🥩 Item #1: Ayam Potong</h3>
+            </div>
+            <div style="padding: 15px;">
+                <!-- Basic Info -->
+                <div class="row">
+                    <div class="col">
+                        <strong>Nama Item:</strong><br>
+                        <div class="info-box">Ayam Potong<br><small>Bahan Baku</small></div>
+                    </div>
+                    <div class="col">
+                        <strong>Jumlah:</strong><br>
+                        <div class="info-box">50.00</div>
+                    </div>
+                    <div class="col">
+                        <strong>Satuan Pembelian:</strong><br>
+                        <div class="info-box">Ekor</div>
+                    </div>
+                    <div class="col">
+                        <strong>Harga per Satuan:</strong><br>
+                        <div class="info-box">Rp 32.000</div>
+                    </div>
+                    <div class="col">
+                        <strong>Harga Total:</strong><br>
+                        <div class="info-box" style="background: #28a745; color: white;">Rp 1.600.000</div>
+                    </div>
+                    <div class="col">
+                        <strong>Status:</strong><br>
+                        <div class="info-box"><span class="badge bg-success">Tersimpan</span></div>
+                    </div>
+                </div>
+                
+                <!-- Conversion Info -->
+                <div class="row" style="margin-top: 15px;">
+                    <div class="col">
+                        <strong>Satuan Utama Item:</strong><br>
+                        <div class="info-box">Kilogram</div>
+                    </div>
+                    <div class="col">
+                        <strong>Jumlah dalam Satuan Utama:</strong><br>
+                        <div class="info-box">40.00 Kilogram</div>
+                    </div>
+                    <div class="col">
+                        <strong>Konversi yang Digunakan:</strong><br>
+                        <div class="info-box" style="background: #f8f9fa;">50.00 Ekor = 40.00 Kilogram</div>
+                    </div>
+                    <div class="col">
+                        <strong>Harga per Satuan Utama:</strong><br>
+                        <div class="info-box" style="background: #ffc107;">Rp 40.000</div>
+                    </div>
+                </div>
+                
+                <!-- Sub Satuan Section -->
+                <div style="border: 1px solid #17a2b8; border-radius: 6px; margin-top: 15px;">
+                    <div style="background: #17a2b8; color: white; padding: 8px;">
+                        <h4>🔄 Konversi Sub Satuan</h4>
+                    </div>
+                    <div style="padding: 10px;">
+                        <!-- Available Sub Units -->
+                        <div class="alert alert-info">
+                            <h4>📋 Data Konversi Sub Satuan yang Tersedia</h4>
+                            <div class="row">
+                                <div class="col">
+                                    <strong>Sub Satuan 1:</strong><br>
+                                    Gram (1 Kilogram = 1000 Gram)
+                                </div>
+                                <div class="col">
+                                    <strong>Sub Satuan 2:</strong><br>
+                                    Potong (1 Kilogram = 4 Potong)
+                                </div>
+                                <div class="col">
+                                    <strong>Sub Satuan 3:</strong><br>
+                                    Ons (1 Kilogram = 10 Ons)
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Manual Conversion Used -->
+                        <div class="alert alert-success">
+                            <h4>⚙️ Konversi Manual yang Digunakan</h4>
+                            <div class="row">
+                                <div class="col">
+                                    <strong>Sub Satuan Dipilih:</strong><br>
+                                    <span class="badge bg-primary">Potong</span>
+                                </div>
+                                <div class="col">
+                                    <strong>Konversi yang Digunakan:</strong><br>
+                                    <div class="info-box" style="background: #28a745; color: white;">1 Kilogram = 5 Potong</div>
+                                </div>
+                                <div class="col">
+                                    <strong>Jumlah dalam Sub Satuan:</strong><br>
+                                    <div class="info-box" style="background: #ffc107;">200.00 Potong</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Price Info -->
+                            <div class="row" style="margin-top: 10px;">
+                                <div class="col">
+                                    <strong>Harga per Potong:</strong><br>
+                                    <div class="info-box" style="background: #ffc107; font-weight: bold;">Rp 8.000</div>
+                                </div>
+                                <div class="col">
+                                    <strong>Total Harga Sub Satuan:</strong><br>
+                                    <div class="info-box" style="background: #17a2b8; color: white; font-weight: bold;">Rp 1.600.000</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section calculation">
+        <h2>🧮 Perhitungan Biaya</h2>
+        <div class="row">
+            <div class="col">
+                <strong>Subtotal:</strong><br>
+                <div class="info-box">Rp 1.600.000</div>
+            </div>
+            <div class="col">
+                <strong>Biaya Kirim:</strong><br>
+                <div class="info-box">Rp 50.000</div>
+            </div>
+            <div class="col">
+                <strong>PPN (%):</strong><br>
+                <div class="info-box">11%</div>
+            </div>
+            <div class="col">
+                <strong>PPN Nominal:</strong><br>
+                <div class="info-box">Rp 176.000</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section" style="background: #d4edda; text-align: center;">
+        <h2>💰 Total Harga Pembelian</h2>
+        <h1 style="color: #007bff; margin: 0;">Rp 1.826.000</h1>
+    </div>
+    
+    <div class="section">
+        <h2>📝 Keterangan</h2>
+        <div class="info-box">
+            Pembelian ayam potong untuk produksi minggu ini. Kualitas bagus dan fresh.
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>✅ Fitur Baru yang Ditambahkan</h2>
+        <ul>
+            <li>✅ <strong>Informasi Vendor Lengkap</strong> - Nama vendor dengan kategori</li>
+            <li>✅ <strong>Contoh Konversi Satuan</strong> - Sama seperti di halaman create</li>
+            <li>✅ <strong>Detail Item Lengkap</strong> - Setiap item ditampilkan dalam card terpisah</li>
+            <li>✅ <strong>Konversi Sub Satuan Detail</strong> - Menampilkan semua data konversi yang tersedia</li>
+            <li>✅ <strong>Konversi Manual yang Digunakan</strong> - Menampilkan konversi khusus yang dipilih saat pembelian</li>
+            <li>✅ <strong>Harga per Sub Satuan</strong> - Perhitungan harga per unit sub satuan</li>
+            <li>✅ <strong>Perhitungan Biaya Lengkap</strong> - Subtotal, biaya kirim, PPN dengan format yang sama</li>
+            <li>✅ <strong>Total Harga Prominent</strong> - Ditampilkan dengan format yang menonjol</li>
+            <li>✅ <strong>Keterangan</strong> - Menampilkan keterangan jika ada</li>
+        </ul>
+    </div>
+    
+    <p><strong>Test URL:</strong> <a href="http://localhost:8000/transaksi/pembelian/{id}" target="_blank">Purchase Detail Page</a></p>
+    
+    <p><em>Sekarang halaman detail pembelian menampilkan informasi sedetail halaman create, termasuk semua konversi sub satuan dan perhitungan yang digunakan!</em></p>
+</body>
+</html>

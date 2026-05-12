@@ -1,0 +1,160 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Retur Pembelian #{{ $pembelian->id }}</h3>
+        <a href="{{ route('transaksi.pembelian.index') }}?tab=retur" class="btn btn-secondary">Kembali</a>
+    </div>
+
+    <form action="{{ route('transaksi.retur-pembelian.store') }}" method="POST">
+        @csrf
+        <input type="hidden" name="pembelian_id" value="{{ $pembelian->id }}">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tanggal Retur</label>
+                        <input type="date" name="return_date" class="form-control" value="{{ old('return_date', now()->toDateString()) }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Jenis Retur <span class="text-danger">*</span></label>
+                        <select name="jenis_retur" class="form-control" required>
+                            <option value="">-- Pilih Jenis Retur --</option>
+                            <option value="refund" {{ old('jenis_retur') == 'refund' ? 'selected' : '' }}>Refund (Pengembalian Uang)</option>
+                            <option value="tukar_barang" {{ old('jenis_retur') == 'tukar_barang' ? 'selected' : '' }}>Tukar Barang</option>
+                        </select>
+                        @error('jenis_retur')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Alasan Singkat <span class="text-danger">*</span></label>
+                        <input type="text" name="alasan" class="form-control" value="{{ old('alasan') }}" required>
+                        @error('alasan')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Catatan</label>
+                        <textarea name="memo" class="form-control" rows="2">{{ old('memo') }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="mb-2">Pilih Barang yang Diretur</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width:5%">No</th>
+                        <th>Nama Bahan</th>
+                        <th class="text-end">Qty Beli</th>
+                        <th class="text-end">Qty Retur Sebelumnya</th>
+                        <th class="text-end">Qty Maks Retur</th>
+                        <th class="text-end" style="width:15%">Qty Retur</th>
+                        <th>Satuan</th>
+                        <th class="text-end">Harga Satuan</th>
+                        <th class="text-end">Subtotal (otomatis)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(($pembelian->details ?? []) as $i => $d)
+                        @php
+                            $returned = 0;
+                            if (isset($existingReturns[$d->id])) {
+                                $returned = $existingReturns[$d->id]->sum('quantity');
+                            }
+                            $maxRet = max(0, (float)($d->jumlah ?? 0) - (float)$returned);
+                        @endphp
+                        <tr>
+                            <td>{{ $i + 1 }}</td>
+                            <td>
+                                @if($d->bahan_baku_id && $d->bahanBaku)
+                                    {{ $d->bahanBaku->nama_bahan }}
+                                @elseif($d->bahan_pendukung_id && $d->bahanPendukung)
+                                    {{ $d->bahanPendukung->nama_bahan }}
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
+                            <td class="text-end">{{ rtrim(rtrim(number_format($returned,4,',','.'),'0'),',') }}</td>
+                            <td class="text-end">{{ rtrim(rtrim(number_format($maxRet,4,',','.'),'0'),',') }}</td>
+                            <td>
+                                <input type="hidden" name="items[{{ $i }}][pembelian_detail_id]" value="{{ $d->id }}">
+                                <input type="hidden" name="items[{{ $i }}][satuan]" value="{{ $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanPendukung->satuanRelation->nama ?? 'kg') }}">
+                                <input type="number" step="0.0001" min="0" max="{{ $maxRet }}" name="items[{{ $i }}][qty]" class="form-control text-end" value="{{ old("items.$i.qty", 0) }}">
+                            </td>
+                            <td>{{ $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanPendukung->satuanRelation->nama ?? '-') }}</td>
+                            <td class="text-end">Rp {{ number_format($d->harga_satuan,0,',','.') }}</td>
+                            <td class="text-end text-muted small">Akan dihitung saat simpan</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3 d-flex justify-content-between">
+            <small class="text-muted">Qty retur tidak boleh melebihi qty beli dikurangi total retur sebelumnya.</small>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Simpan Retur</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+            
+            // Validasi alasan
+            const alasan = document.querySelector('input[name="alasan"]');
+            if (!alasan || !alasan.value.trim()) {
+                e.preventDefault();
+                alert('Alasan retur harus diisi!');
+                if (alasan) alasan.focus();
+                return false;
+            }
+            
+            // Validasi jenis retur
+            const jenisRetur = document.querySelector('select[name="jenis_retur"]');
+            if (!jenisRetur || !jenisRetur.value) {
+                e.preventDefault();
+                alert('Jenis retur harus dipilih!');
+                if (jenisRetur) jenisRetur.focus();
+                return false;
+            }
+            
+            // Validasi minimal ada 1 item dengan qty > 0
+            const qtyInputs = document.querySelectorAll('input[name*="[qty]"]');
+            let hasValidItem = false;
+            
+            qtyInputs.forEach(function(input) {
+                const qty = parseFloat(input.value) || 0;
+                if (qty > 0) {
+                    hasValidItem = true;
+                }
+            });
+            
+            if (!hasValidItem) {
+                e.preventDefault();
+                alert('Minimal harus ada 1 item dengan qty retur lebih dari 0!');
+                return false;
+            }
+            
+            // Disable submit button untuk mencegah double submit
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menyimpan...';
+            
+            console.log('Form validation passed, submitting...');
+            return true;
+        });
+    }
+});
+</script>
+@endsection

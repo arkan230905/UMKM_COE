@@ -1,0 +1,962 @@
+@extends('layouts.app')
+
+@section('title', 'Satuan')
+
+@push('styles')
+<style>
+/* Brown Theme */
+.bg-brown {
+    background: #8B7355 !important;
+}
+
+/* Card Enhancement */
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(111, 78, 55, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 15px rgba(111, 78, 55, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Horizontal Tabs Style */
+.horizontal-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #f0e6dc;
+    padding-bottom: 0;
+    background: linear-gradient(to bottom, #faf8f6, transparent);
+    padding: 1rem 0 0;
+    margin: -1rem -1rem 1.5rem -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #8B7355;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: #7a6348;
+    background: rgba(139, 115, 85, 0.05);
+    transform: translateY(-1px);
+}
+
+.tab-btn.active {
+    color: #8B7355;
+    font-weight: 600;
+    border-bottom-color: #8B7355;
+    background: rgba(139, 115, 85, 0.08);
+}
+
+.tab-separator {
+    color: #d4c4b0;
+    font-size: 1.2rem;
+    margin: 0 0.75rem;
+    user-select: none;
+    font-weight: 300;
+}
+
+/* Table Enhancement */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(111, 78, 55, 0.05);
+}
+
+.table thead th {
+    background: #8B7355;
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 1rem;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #faf8f6;
+    transform: scale(1.01);
+}
+
+.table tbody td {
+    padding: 0.875rem 1rem;
+    vertical-align: middle;
+    border-color: #f0e6dc;
+}
+
+/* Badge Enhancement */
+.badge {
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+/* Button Enhancement */
+.btn-outline-primary {
+    border-color: #8B7355;
+    color: #8B7355;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background-color: #8B7355;
+    border-color: #8B7355;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(139, 115, 85, 0.2);
+}
+
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+/* Header Button Enhancement */
+.btn-light {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #8B7355;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-light:hover {
+    background: white;
+    color: #8B7355;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(139, 115, 85, 0.2);
+}
+
+.btn-brown {
+    background: #8B7355;
+    border: none;
+    color: white;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-brown:hover {
+    background: #7a6348;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(139, 115, 85, 0.3);
+}
+
+.tab-content-custom {
+    margin-top: 1rem;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Empty State Enhancement */
+.text-muted {
+    color: #8B7355 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .horizontal-tabs {
+        gap: 0.25rem;
+        padding: 0.75rem 0.5rem 0;
+        margin: -0.75rem -0.5rem 1.5rem -0.5rem;
+    }
+    
+    .tab-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .tab-separator {
+        margin: 0 0.25rem;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem;
+    }
+    
+    .btn-light {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
+</style>
+@endpush
+
+@section('content')
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-brown text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-balance-scale me-2"></i>
+                        Satuan
+                    </h5>
+                    <button type="button" class="btn btn-light btn-sm" onclick="showAddSatuanModal()">
+                        <i class="fas fa-plus me-2"></i>Tambah Satuan
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Custom Horizontal Tab Navigation -->
+                    <div class="horizontal-tabs mb-4">
+                        <button class="tab-btn active" data-tab="satuan" onclick="switchTab('satuan')">
+                            Satuan
+                        </button>
+                        <span class="tab-separator">|</span>
+                        <button class="tab-btn" data-tab="konversi" onclick="switchTab('konversi')">
+                            Konversi
+                        </button>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content-custom">
+                        <!-- TAB 1: SATUAN -->
+                        <div class="tab-panel active" id="satuan-panel">
+                            <!-- Tabel Satuan Sederhana -->
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th width="20%">Kode Satuan</th>
+                                            <th width="60%">Nama Satuan</th>
+                                            <th width="20%" class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($satuans as $satuan)
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-primary">
+                                                        {{ $satuan->kode }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ $satuan->nama }}</strong>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editSatuan({{ $satuan->id }})">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan({{ $satuan->id }})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted py-4">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                                    <p class="mb-0">Belum ada data satuan</p>
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: KONVERSI -->
+                        <div class="tab-panel" id="konversi-panel" style="display: none;">
+                            <!-- Alert Info -->
+                            <div class="alert alert-warning mb-4">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    Alat Pengecekan Konversi Satuan
+                                </h6>
+                                <p class="mb-2">
+                                    <strong>Tab ini HANYA UNTUK CEK</strong> - tidak mengubah data, tidak menyimpan transaksi, 
+                                    tidak memengaruhi stok atau costing.
+                                </p>
+                                <p class="mb-0">
+                                    Gunakan untuk mengecek informasi konversi satuan secara cepat dan mudah.
+                                </p>
+                            </div>
+
+                            <!-- Konversi Tool -->
+                            <div class="row">
+                                <div class="col-md-8 mx-auto">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <form id="konversiChecker">
+                                                <!-- Input Jumlah -->
+                                                <div class="mb-4">
+                                                    <label for="jumlah" class="form-label fw-bold">
+                                                        Jumlah
+                                                    </label>
+                                                    <input 
+                                                        type="number" 
+                                                        id="jumlah" 
+                                                        class="form-control form-control-lg text-center"
+                                                        step="0.01"
+                                                        min="0"
+                                                        placeholder="Masukkan jumlah"
+                                                        value="1"
+                                                    >
+                                                    <div class="form-text">Masukkan angka yang ingin dikonversi</div>
+                                                </div>
+
+                                                <!-- Satuan Asal dan Tujuan -->
+                                                <div class="row mb-4">
+                                                    <div class="col-md-6">
+                                                        <label for="satuan_asal" class="form-label fw-bold">
+                                                            Dari Satuan
+                                                        </label>
+                                                        <select id="satuan_asal" class="form-select form-select-lg">
+                                                            <option value="">-- Pilih Satuan --</option>
+                                                        </select>
+                                                        <div class="form-text">Satuan asal yang akan dikonversi</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label for="satuan_tujuan" class="form-label fw-bold">
+                                                            Ke Satuan
+                                                        </label>
+                                                        <select id="satuan_tujuan" class="form-select form-select-lg">
+                                                            <option value="">-- Pilih Satuan --</option>
+                                                        </select>
+                                                        <div class="form-text">Satuan tujuan konversi</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Hasil Konversi -->
+                                                <div class="mb-4">
+                                                    <label for="hasil" class="form-label fw-bold">
+                                                        Hasil
+                                                    </label>
+                                                    <input 
+                                                        type="text" 
+                                                        id="hasil" 
+                                                        class="form-control form-control-lg text-center bg-light fs-4"
+                                                        readonly
+                                                        placeholder="Hasil akan muncul otomatis"
+                                                    >
+                                                    <div class="form-text">Hasil konversi otomatis (read-only)</div>
+                                                </div>
+
+                                                <!-- Info Konversi -->
+                                                <div id="infoKonversi" class="alert alert-secondary" style="display: none;">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-info-circle me-2"></i>
+                                                        <span id="infoText" class="fw-bold"></span>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Reference -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="card border-0">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-book me-2"></i>
+                                                Referensi Konversi Umum
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <h6 class="fw-bold text-primary">Berat</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li>1 Kilogram = 1.000 Gram</li>
+                                                        <li>1 Kilogram = 10 Ons</li>
+                                                        <li>1 Ons = 100 Gram</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <h6 class="fw-bold text-success">Volume</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li>1 Liter = 1.000 Mililiter</li>
+                                                        <li>1 Galon = 3,785 Liter</li>
+                                                        <li>1 Sendok Makan = 15 Mililiter</li>
+                                                        <li>1 Sendok Teh = 5 Mililiter</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <h6 class="fw-bold text-warning">Pieces</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li>1 Pieces = 1 Potong</li>
+                                                        <li>1 Bungkus = 1 unit</li>
+                                                        <li>1 Ekor = 1 unit</li>
+                                                        <li>1 Siung = 1 unit</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Satuan -->
+<div class="modal fade" id="editSatuanModal" tabindex="-1" aria-labelledby="editSatuanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-brown text-white">
+                <h5 class="modal-title" id="editSatuanModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Satuan
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSatuanForm">
+                    <input type="hidden" id="editSatuanId">
+                    <div class="mb-3">
+                        <label for="editKodeSatuan" class="form-label fw-bold">
+                            Kode Satuan
+                        </label>
+                        <input type="text" class="form-control" id="editKodeSatuan" placeholder="Contoh: BOX, PCS, KG" required>
+                        <div class="form-text">Kode unik untuk identifikasi satuan</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNamaSatuan" class="form-label fw-bold">
+                            Nama Satuan
+                        </label>
+                        <input type="text" class="form-control" id="editNamaSatuan" placeholder="Contoh: Box, Pieces, Kilogram" required>
+                        <div class="form-text">Nama lengkap satuan yang akan ditampilkan</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-brown" onclick="updateSatuan()">
+                    <i class="fas fa-save me-2"></i>Update
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Satuan -->
+<div class="modal fade" id="addSatuanModal" tabindex="-1" aria-labelledby="addSatuanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-brown text-white">
+                <h5 class="modal-title" id="addSatuanModalLabel">
+                    <i class="fas fa-plus me-2"></i>Tambah Satuan Baru
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSatuanForm">
+                    <div class="mb-3">
+                        <label for="kodeSatuan" class="form-label fw-bold">
+                            Kode Satuan
+                        </label>
+                        <input type="text" class="form-control" id="kodeSatuan" placeholder="Contoh: BOX, PCS, KG" required>
+                        <div class="form-text">Kode unik untuk identifikasi satuan</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="namaSatuan" class="form-label fw-bold">
+                            Nama Satuan
+                        </label>
+                        <input type="text" class="form-control" id="namaSatuan" placeholder="Contoh: Box, Pieces, Kilogram" required>
+                        <div class="form-text">Nama lengkap satuan yang akan ditampilkan</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-brown" onclick="saveSatuan()">
+                    <i class="fas fa-save me-2"></i>Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+// Custom tab switching function
+function switchTab(tabName) {
+    // Hide all panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+        panel.style.display = 'none';
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected panel
+    const targetPanel = document.getElementById(tabName + '-panel');
+    if (targetPanel) {
+        targetPanel.classList.add('active');
+        targetPanel.style.display = 'block';
+    }
+    
+    // Add active class to clicked button
+    const targetBtn = document.querySelector('[data-tab="' + tabName + '"]');
+    if (targetBtn) {
+        targetBtn.classList.add('active');
+    }
+}
+
+// Show Add Satuan Modal
+function showAddSatuanModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addSatuanModal'));
+    document.getElementById('addSatuanForm').reset();
+    modal.show();
+}
+
+// Save Satuan
+function saveSatuan() {
+    const kode = document.getElementById('kodeSatuan').value.trim();
+    const nama = document.getElementById('namaSatuan').value.trim();
+    
+    if (!kode || !nama) {
+        alert('Mohon lengkapi semua field!');
+        return;
+    }
+    
+    // Send AJAX request to save
+    fetch('/master-data/satuan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            kode: kode,
+            nama: nama
+        })
+    })
+    .then(response => {
+        console.log('Save response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Save response data:', data);
+        if (data.success) {
+            // Add to table
+            const newRow = `
+                <tr>
+                    <td>
+                        <span class="badge bg-primary">
+                            ${kode.toUpperCase()}
+                        </span>
+                    </td>
+                    <td>
+                        <strong>${nama}</strong>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editSatuan(${data.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan(${data.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            
+            // Add to table
+            const tbody = document.querySelector('#satuan-panel tbody');
+            if (tbody.querySelector('tr td[colspan="3"]')) {
+                // Remove empty state if exists
+                tbody.innerHTML = '';
+            }
+            tbody.insertAdjacentHTML('beforeend', newRow);
+            
+            // Add to satuanData array
+            satuanData.push({
+                id: data.id,
+                kode: kode.toUpperCase(),
+                nama: nama
+            });
+            
+            // Update dropdowns
+            initializeDropdowns();
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addSatuanModal'));
+            modal.hide();
+            
+            // Show success message
+            showSuccessMessage('Satuan berhasil ditambahkan!');
+        } else {
+            alert('Gagal menambahkan data: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal menambahkan data. Silakan coba lagi.');
+    });
+}
+
+// Show success message
+function showSuccessMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+
+// Data satuan yang tersedia
+const satuanData = @json($satuans ?? []);
+
+// Konversi faktor ke satuan dasar (kg/gram/liter)
+// Hanya untuk satuan yang ada di database
+const konversiFaktor = {
+    // Berat
+    'kilogram': 1,
+    'gram': 0.001,
+    'ons': 0.1,
+    
+    // Volume
+    'liter': 1,
+    'mililiter': 0.001,
+    'galon': 3.785,
+    
+    // Pieces (diasumsikan 1:1 untuk konversi universal)
+    'pieces': 1,
+    'potong': 1,
+    'bungkus': 1,
+    'ekor': 1,
+    'siung': 1,
+    'tabung': 1,
+    'sendok makan': 0.015,
+    'sendok teh': 0.005,
+    
+    // Lainnya
+    'watt': 1 // Unit daya, tidak bisa dikonversi ke satuan lain
+};
+
+// Initialize dropdowns
+function initializeDropdowns() {
+    const satuanAsal = document.getElementById('satuan_asal');
+    const satuanTujuan = document.getElementById('satuan_tujuan');
+    
+    // Clear existing options
+    satuanAsal.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+    satuanTujuan.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+    
+    // Add satuan options from database ONLY
+    satuanData.forEach(satuan => {
+        const optionAsal = new Option(satuan.nama, satuan.nama.toLowerCase());
+        const optionTujuan = new Option(satuan.nama, satuan.nama.toLowerCase());
+        
+        satuanAsal.add(optionAsal);
+        satuanTujuan.add(optionTujuan);
+    });
+}
+
+// Konversi satuan
+function konversiSatuan(jumlah, dari, ke) {
+    if (!jumlah || !dari || !ke) return 0;
+    
+    const dariNormal = dari.toLowerCase().trim();
+    const keNormal = ke.toLowerCase().trim();
+    
+    // Jika satuan sama
+    if (dariNormal === keNormal) return jumlah;
+    
+    // Dapatkan faktor konversi
+    const faktorDari = konversiFaktor[dariNormal] || 1;
+    const faktorKe = konversiFaktor[keNormal] || 1;
+    
+    // Konversi: jumlah * (faktorDari / faktorKe)
+    const hasil = jumlah * (faktorDari / faktorKe);
+    
+    return hasil;
+}
+
+// Update hasil konversi
+function updateHasil() {
+    const jumlah = parseFloat(document.getElementById('jumlah').value) || 0;
+    const satuanAsal = document.getElementById('satuan_asal').value;
+    const satuanTujuan = document.getElementById('satuan_tujuan').value;
+    const hasilField = document.getElementById('hasil');
+    const infoDiv = document.getElementById('infoKonversi');
+    const infoText = document.getElementById('infoText');
+    
+    if (jumlah > 0 && satuanAsal && satuanTujuan) {
+        const hasil = konversiSatuan(jumlah, satuanAsal, satuanTujuan);
+        
+        if (hasil > 0) {
+            hasilField.value = formatNumber(hasil);
+            
+            // Show info
+            const satuanAsalDisplay = satuanAsal.toUpperCase();
+            const satuanTujuanDisplay = satuanTujuan.toUpperCase();
+            infoText.textContent = `${formatNumber(jumlah)} ${satuanAsalDisplay} = ${formatNumber(hasil)} ${satuanTujuanDisplay}`;
+            infoDiv.style.display = 'block';
+            
+            // Add animation
+            hasilField.classList.add('border-success');
+            setTimeout(() => {
+                hasilField.classList.remove('border-success');
+            }, 1000);
+        } else {
+            hasilField.value = '0';
+            infoDiv.style.display = 'none';
+        }
+    } else {
+        hasilField.value = '';
+        infoDiv.style.display = 'none';
+    }
+}
+
+// Format number
+function formatNumber(num) {
+    // Format dengan pemisah ribuan menggunakan titik
+    if (num >= 1) {
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 4
+        }).format(num).replace(/,/g, '.');
+    } else {
+        return num.toFixed(4).replace(/\.?0+$/, '');
+    }
+}
+
+// Edit Satuan - Show modal with existing data
+function editSatuan(id) {
+    // Find satuan data from the satuanData array
+    const satuan = satuanData.find(s => s.id == id);
+    
+    if (satuan) {
+        // Populate form with existing data
+        document.getElementById('editSatuanId').value = satuan.id;
+        document.getElementById('editKodeSatuan').value = satuan.kode;
+        document.getElementById('editNamaSatuan').value = satuan.nama;
+        
+        // Show edit modal
+        const modal = new bootstrap.Modal(document.getElementById('editSatuanModal'));
+        modal.show();
+    } else {
+        alert('Data satuan tidak ditemukan!');
+    }
+}
+
+// Update Satuan - Save changes via AJAX
+function updateSatuan() {
+    const id = document.getElementById('editSatuanId').value;
+    const kode = document.getElementById('editKodeSatuan').value.trim();
+    const nama = document.getElementById('editNamaSatuan').value.trim();
+    
+    if (!kode || !nama) {
+        alert('Mohon lengkapi semua field!');
+        return;
+    }
+    
+    // Send AJAX request to update
+    fetch(`/master-data/satuan/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            _method: 'PUT',
+            kode: kode,
+            nama: nama
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Update the table row
+            const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
+            if (row) {
+                row.cells[0].innerHTML = `<span class="badge bg-primary">${kode.toUpperCase()}</span>`;
+                row.cells[1].innerHTML = `<strong>${nama}</strong>`;
+            }
+            
+            // Update satuanData array
+            const satuanIndex = satuanData.findIndex(s => s.id == id);
+            if (satuanIndex !== -1) {
+                satuanData[satuanIndex].kode = kode.toUpperCase();
+                satuanData[satuanIndex].nama = nama;
+            }
+            
+            // Close modal and show success
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editSatuanModal'));
+            modal.hide();
+            
+            showSuccessMessage('Berhasil di update!');
+        } else {
+            alert('Gagal memperbarui data: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal memperbarui data. Silakan coba lagi.');
+    });
+}
+
+// Delete Satuan - Confirm and delete via AJAX
+function deleteSatuan(id) {
+    const satuan = satuanData.find(s => s.id == id);
+    
+    if (!satuan) {
+        alert('Data satuan tidak ditemukan!');
+        return;
+    }
+    
+    // Confirm deletion
+    if (confirm(`Apakah Anda yakin ingin menghapus satuan "${satuan.nama}"?`)) {
+        // Send AJAX request to delete
+        fetch(`/master-data/satuan/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                _method: 'DELETE'
+            })
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Delete response data:', data);
+            if (data.success) {
+                // Remove the table row
+                const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
+                if (row) {
+                    row.remove();
+                }
+                
+                // Remove from satuanData array
+                const satuanIndex = satuanData.findIndex(s => s.id == id);
+                if (satuanIndex !== -1) {
+                    satuanData.splice(satuanIndex, 1);
+                }
+                
+                // Show success message
+                showSuccessMessage('Satuan berhasil dihapus!');
+                
+                // Check if table is empty and show empty state
+                const tbody = document.querySelector('#satuan-panel tbody');
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p class="mb-0">Belum ada data satuan</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } else {
+                alert('Gagal menghapus data: ' + (data.message || 'Terjadi kesalahan'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal menghapus data. Silakan coba lagi.');
+        });
+    }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDropdowns();
+    
+    // Add event listeners
+    document.getElementById('jumlah').addEventListener('input', updateHasil);
+    document.getElementById('satuan_asal').addEventListener('change', updateHasil);
+    document.getElementById('satuan_tujuan').addEventListener('change', updateHasil);
+    
+    // Auto-swap satuan
+    document.getElementById('satuan_asal').addEventListener('dblclick', function() {
+        const asal = this.value;
+        const tujuan = document.getElementById('satuan_tujuan').value;
+        
+        if (asal && tujuan) {
+            this.value = tujuan;
+            document.getElementById('satuan_tujuan').value = asal;
+            updateHasil();
+        }
+    });
+    
+    // Initial calculation
+    updateHasil();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+            case 's':
+                e.preventDefault();
+                document.getElementById('jumlah').focus();
+                break;
+            case 'a':
+                e.preventDefault();
+                document.getElementById('satuan_asal').focus();
+                break;
+            case 't':
+                e.preventDefault();
+                document.getElementById('satuan_tujuan').focus();
+                break;
+        }
+    }
+});
+</script>
+@endpush
+@endsection

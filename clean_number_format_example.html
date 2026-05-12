@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clean Number Format Example</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .example-box { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .before { background: #f8d7da; border-color: #f5c6cb; }
+        .after { background: #d4edda; border-color: #c3e6cb; }
+        .test-case { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .input-demo { padding: 8px; border: 1px solid #ced4da; border-radius: 4px; margin: 5px; display: inline-block; min-width: 100px; text-align: center; font-weight: bold; }
+        .good { background: #d4edda; }
+        .bad { background: #f8d7da; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>🔢 Clean Number Format - Perbaikan Format Angka</h1>
+    
+    <div class="example-box before">
+        <h2>❌ Format Lama (Tidak Rapi)</h2>
+        <p>Semua angka menggunakan <code>toFixed(4)</code> yang menghasilkan format jelek:</p>
+        <div class="test-case">
+            <strong>Contoh Input:</strong><br>
+            <span class="input-demo bad">25.0000</span>
+            <span class="input-demo bad">10.5000</span>
+            <span class="input-demo bad">0.7500</span>
+            <span class="input-demo bad">100.0000</span>
+        </div>
+        <p><strong>Masalah:</strong> Terlalu banyak angka 0 yang tidak perlu!</p>
+    </div>
+    
+    <div class="example-box after">
+        <h2>✅ Format Baru (Bersih & Rapi)</h2>
+        <p>Menggunakan fungsi <code>formatCleanNumber()</code> yang cerdas:</p>
+        <div class="test-case">
+            <strong>Contoh Output:</strong><br>
+            <span class="input-demo good">25</span>
+            <span class="input-demo good">10.5</span>
+            <span class="input-demo good">0.75</span>
+            <span class="input-demo good">100</span>
+        </div>
+        <p><strong>Keuntungan:</strong> Bersih, mudah dibaca, dan profesional!</p>
+    </div>
+    
+    <div class="example-box">
+        <h2>🧮 Logika Format Baru</h2>
+        <table>
+            <tr>
+                <th>Input Angka</th>
+                <th>Format Lama</th>
+                <th>Format Baru</th>
+                <th>Keterangan</th>
+            </tr>
+            <tr>
+                <td>25</td>
+                <td class="bad">25.0000</td>
+                <td class="good">25</td>
+                <td>Bilangan bulat → tanpa desimal</td>
+            </tr>
+            <tr>
+                <td>10.5</td>
+                <td class="bad">10.5000</td>
+                <td class="good">10.5</td>
+                <td>1 desimal → tampil 1 desimal</td>
+            </tr>
+            <tr>
+                <td>7.75</td>
+                <td class="bad">7.7500</td>
+                <td class="good">7.75</td>
+                <td>2 desimal → tampil 2 desimal</td>
+            </tr>
+            <tr>
+                <td>3.333333</td>
+                <td class="bad">3.3333</td>
+                <td class="good">3.33</td>
+                <td>Banyak desimal → maksimal 2 desimal</td>
+            </tr>
+            <tr>
+                <td>0</td>
+                <td class="bad">0.0000</td>
+                <td class="good">0</td>
+                <td>Nol → tampil nol saja</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="example-box">
+        <h2>💻 Kode Fungsi Baru</h2>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>function formatCleanNumber(num) {
+    if (num === 0) return '0';
+    
+    // Round to 2 decimal places
+    const rounded = Math.round(num * 100) / 100;
+    
+    // If it's a whole number, return without decimal
+    if (rounded % 1 === 0) {
+        return rounded.toString();
+    }
+    
+    // If it has decimals, show max 2 decimal places
+    return rounded.toFixed(2).replace(/\.?0+$/, '');
+}</code></pre>
+    </div>
+    
+    <div class="example-box">
+        <h2>🎯 Contoh Penggunaan di Form</h2>
+        
+        <h3>Skenario: Membeli Ayam Potong</h3>
+        <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
+            <div>
+                <strong>Konversi:</strong><br>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="background: #17a2b8; color: white; padding: 5px 10px; border-radius: 3px;">1 Ekor =</span>
+                    <input type="number" value="4.5" style="padding: 5px; text-align: center; font-weight: bold; width: 60px;">
+                    <span style="background: #28a745; color: white; padding: 5px 10px; border-radius: 3px;">Potong</span>
+                </div>
+            </div>
+            <div>
+                <strong>Jumlah:</strong><br>
+                <input type="number" value="22.5" style="padding: 8px; font-weight: bold; width: 80px; text-align: center;">
+                <small style="display: block;">Potong</small>
+            </div>
+        </div>
+        
+        <p><strong>Hasil Format:</strong></p>
+        <ul>
+            <li>Konversi: <span class="input-demo good">4.5</span> (bukan 4.5000)</li>
+            <li>Jumlah: <span class="input-demo good">22.5</span> (bukan 22.5000)</li>
+            <li>Jika input 25: <span class="input-demo good">25</span> (bukan 25.00)</li>
+        </ul>
+    </div>
+    
+    <div class="example-box">
+        <h2>✅ Perubahan yang Diterapkan</h2>
+        <ul>
+            <li>✅ <strong>Input step</strong>: Diubah dari 0.0001 ke 0.01 (lebih praktis)</li>
+            <li>✅ <strong>Format display</strong>: Menggunakan formatCleanNumber() untuk tampilan bersih</li>
+            <li>✅ <strong>Bilangan bulat</strong>: Tampil tanpa desimal (25 bukan 25.00)</li>
+            <li>✅ <strong>Desimal</strong>: Maksimal 2 angka di belakang koma (10.5 bukan 10.5000)</li>
+            <li>✅ <strong>Konsisten</strong>: Semua input sub satuan menggunakan format yang sama</li>
+        </ul>
+    </div>
+    
+    <p><strong>Test URL:</strong> <a href="http://localhost:8000/transaksi/pembelian/create" target="_blank">Purchase Create Form</a></p>
+    
+    <p><em>Catatan: Pilih item dan sub satuan untuk melihat format angka yang baru dan lebih bersih!</em></p>
+</body>
+</html>

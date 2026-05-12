@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Stock Report</title>
+</head>
+<body>
+    <h1>Test Stock Report Links</h1>
+    <p>Click the links below to test the stock report:</p>
+    
+    <h2>Air (Bahan Pendukung ID: 13)</h2>
+    <ul>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=bahan_pendukung&item_id=13" target="_blank">Air - All Units</a></li>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=bahan_pendukung&item_id=13&satuan_id=21" target="_blank">Air - Liter (Primary)</a></li>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=bahan_pendukung&item_id=13&satuan_id=18" target="_blank">Air - Kilogram</a></li>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=bahan_pendukung&item_id=13&satuan_id=19" target="_blank">Air - Mililiter</a></li>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=bahan_pendukung&item_id=13&satuan_id=29" target="_blank">Air - Galon</a></li>
+    </ul>
+    
+    <h2>Other Items</h2>
+    <ul>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=bahan_pendukung&item_id=23" target="_blank">Cabe Merah (ID: 23)</a></li>
+        <li><a href="http://localhost:8000/laporan/stok?tipe=material&item_id=5" target="_blank">Ayam Potong (ID: 5)</a></li>
+    </ul>
+    
+    <p><strong>Expected Result:</strong> Each stock report should now show "Stok Awal" entries with the initial stock from the master tables, dated 01/04/2026.</p>
+</body>
+</html>

@@ -1,0 +1,536 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\BahanBaku;
+use App\Models\Satuan;
+use App\Services\BomSyncService;
+use App\Services\BahanBakuService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class BahanBakuController extends Controller
+{
+    // Menampilkan semua data bahan baku
+    public function index()
+    {
+        // MULTI-TENANT: Filter by user_id to prevent data leakage
+        // Sort by created_at ascending (oldest to newest)
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        // Hitung harga rata-rata untuk setiap bahan baku
+        foreach ($bahanBaku as $bahan) {
+            $averageHarga = $this->getAverageHargaSatuan($bahan->id);
+            
+            // Jika ada harga rata-rata, gunakan itu. Jika tidak, gunakan harga default
+            if ($averageHarga > 0) {
+                $bahan->harga_satuan_display = $averageHarga;
+            } else {
+                $bahan->harga_satuan_display = $bahan->harga_satuan;
+            }
+        }
+        
+        return view('master-data.bahan-baku.index', compact('bahanBaku'));
+    }
+
+    // Menampilkan detail bahan baku
+    public function show($id)
+    {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
+        
+        // Hitung harga rata-rata untuk display
+        $averageHarga = $this->getAverageHargaSatuan($bahanBaku->id);
+        
+        // Jika ada harga rata-rata, gunakan itu. Jika tidak, gunakan harga default
+        if ($averageHarga > 0) {
+            $bahanBaku->harga_satuan_display = $averageHarga;
+        } else {
+            $bahanBaku->harga_satuan_display = $bahanBaku->harga_satuan;
+        }
+
+        // Hitung sub satuan prices dengan formula yang benar
+        $bahanBakuService = new BahanBakuService();
+        $subSatuanPrices = $bahanBakuService->calculateSubSatuanPrices($bahanBaku->id);
+        
+        return view('master-data.bahan-baku.show', compact('bahanBaku', 'subSatuanPrices'));
+    }
+
+    // Menampilkan form tambah data
+    public function create()
+    {
+        // 🔒 SECURITY: Filter satuan and coa by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
+        return view('master-data.bahan-baku.create', compact('satuans', 'coas'));
+    }
+
+    // Simpan data baru ke database
+    public function store(Request $request)
+    {
+        // Convert comma decimal inputs to dot format for validation and storage
+        $this->convertCommaToDecimal($request);
+        
+        $request->validate([
+            'nama_bahan' => 'required|string|max:255|unique:bahan_bakus,nama_bahan,NULL,id,user_id,'.auth()->id(),
+            'satuan_id' => 'required|exists:satuans,id',
+            'stok' => 'nullable|numeric|min:0',
+            'harga_satuan' => 'required|numeric|min:0',
+
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,' . auth()->id(),
+'stok_minimum' => 'nullable|numeric|min:0',
+            'deskripsi' => 'nullable|string|max:1000',
+            'sub_satuan_1_id' => 'required|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'nullable|numeric|min:0.01',
+            'sub_satuan_3_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'nullable|numeric|min:0.01',
+            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
+        ]);
+
+        // Auto generate kode_bahan if not provided
+        $kodeBahan = $request->kode_bahan;
+        if (empty($kodeBahan)) {
+            $lastBahan = BahanBaku::orderBy('id', 'desc')->first();
+            $nextNumber = $lastBahan ? $lastBahan->id + 1 : 1;
+            $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        }
+        
+        // CRITICAL: Add user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::create([
+            'user_id' => auth()->id(),
+            'nama_bahan' => $request->nama_bahan,
+            'kode_bahan' => $kodeBahan,
+            'satuan_id' => $request->satuan_id,
+            'saldo_awal' => $request->stok ?? 0,
+            'harga_satuan' => $request->harga_satuan,
+            'stok_minimum' => $request->stok_minimum ?? 0,
+            'deskripsi' => $request->deskripsi,
+            'sub_satuan_1_id' => $request->sub_satuan_1_id,
+            'sub_satuan_1_konversi' => $request->sub_satuan_1_konversi,
+            'sub_satuan_1_nilai' => $request->sub_satuan_1_nilai,
+            'sub_satuan_2_id' => $request->sub_satuan_2_id,
+            'sub_satuan_2_konversi' => $request->sub_satuan_2_konversi,
+            'sub_satuan_2_nilai' => $request->sub_satuan_2_nilai,
+            'sub_satuan_3_id' => $request->sub_satuan_3_id,
+            'sub_satuan_3_konversi' => $request->sub_satuan_3_konversi,
+            'sub_satuan_3_nilai' => $request->sub_satuan_3_nilai,
+            'coa_pembelian_id' => $request->coa_pembelian_id,
+            'coa_persediaan_id' => $request->coa_persediaan_id,
+            'coa_hpp_id' => $request->coa_hpp_id,
+            'user_id' => auth()->id(),
+        ]);
+
+        // IMPORTANT: Create initial stock movement for saldo_awal
+        if (($request->stok ?? 0) > 0) {
+            \App\Models\StockMovement::create([
+                'user_id' => auth()->id(),
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'direction' => 'in',
+                'qty' => $request->stok,
+                'tanggal' => now()->toDateString(),
+                'ref_type' => 'initial_stock',
+                'ref_id' => $bahanBaku->id,
+                'keterangan' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
+            ]);
+        }
+        
+        // Update COA Persediaan saldo_awal (jika ada) - DISABLED
+        // Logika ini dinonaktifkan untuk mencegah bahan baku mengupdate saldo awal COA
+        if ($request->coa_persediaan_id && ($request->stok ?? 0) > 0) {
+            \Log::info("Skipping COA saldo awal update for bahan baku", [
+                'bahan_baku' => $bahanBaku->nama_bahan,
+                'coa_code' => $request->coa_persediaan_id,
+                'stok' => $request->stok,
+                'harga_satuan' => $request->harga_satuan,
+                'reason' => 'COA saldo awal update disabled for bahan baku'
+            ]);
+            
+            // COMMENTED OUT - Logika lama yang mengupdate saldo awal COA
+            /*
+            $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
+                ->where('user_id', auth()->id())
+                ->first();
+                
+            if ($coa) {
+                $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
+                $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
+                $coa->save();
+            }
+            */
+        }
+
+        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
+    }
+
+    // Menampilkan form edit
+    public function edit($id)
+    {
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
+        
+        // 🔒 SECURITY: Filter satuan and coa by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
+        return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans', 'coas'));
+    }
+
+    // Update data
+    public function update(Request $request, $id)
+    {
+        // Convert comma decimal inputs to dot format for validation and storage
+        $this->convertCommaToDecimal($request);
+        
+        $validatedData = $request->validate([
+            'nama_bahan' => 'required|string|max:255',
+            'satuan_id' => 'required|exists:satuans,id',
+            'stok' => 'nullable|numeric|min:0',
+            'harga_satuan' => 'required|numeric|min:0',
+            'stok_minimum' => 'nullable|numeric|min:0',
+            'deskripsi' => 'nullable|string|max:1000',
+            'sub_satuan_1_id' => 'required|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'nullable|numeric|min:0.01',
+            'sub_satuan_3_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'nullable|numeric|min:0.01',
+            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
+        ]);
+
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
+        
+        // ✅ PERBAIKAN: Track stock changes to update StockMovement
+        $oldSaldoAwal = $bahanBaku->saldo_awal;
+        $newSaldoAwal = $request->stok ?? 0;
+        $stockDifference = $newSaldoAwal - $oldSaldoAwal;
+        
+        // Update properties one by one and save
+        $bahanBaku->nama_bahan = $request->nama_bahan;
+        $bahanBaku->satuan_id = $request->satuan_id;
+        $bahanBaku->saldo_awal = $newSaldoAwal;
+        $bahanBaku->harga_satuan = $request->harga_satuan ?: $bahanBaku->harga_rata_rata;
+        $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
+        $bahanBaku->deskripsi = $request->deskripsi;
+        $bahanBaku->sub_satuan_1_id = $request->sub_satuan_1_id;
+        $bahanBaku->sub_satuan_1_konversi = $request->sub_satuan_1_konversi;
+        $bahanBaku->sub_satuan_1_nilai = $request->sub_satuan_1_nilai;
+        $bahanBaku->sub_satuan_2_id = $request->sub_satuan_2_id;
+        $bahanBaku->sub_satuan_2_konversi = $request->sub_satuan_2_konversi;
+        $bahanBaku->sub_satuan_2_nilai = $request->sub_satuan_2_nilai;
+        $bahanBaku->sub_satuan_3_id = $request->sub_satuan_3_id;
+        $bahanBaku->sub_satuan_3_konversi = $request->sub_satuan_3_konversi;
+        $bahanBaku->sub_satuan_3_nilai = $request->sub_satuan_3_nilai;
+        
+        // Update COA fields
+        $bahanBaku->coa_pembelian_id = $request->coa_pembelian_id;
+        $bahanBaku->coa_persediaan_id = $request->coa_persediaan_id;
+        $bahanBaku->coa_hpp_id = $request->coa_hpp_id;
+        
+        // Save changes
+        $bahanBaku->save();
+        
+        // ✅ PERBAIKAN: Create StockMovement adjustment if stock changed
+        if (abs($stockDifference) > 0.0001) {
+            \App\Models\StockMovement::create([
+                'user_id' => auth()->id(),
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'direction' => $stockDifference > 0 ? 'in' : 'out',
+                'qty' => abs($stockDifference),
+                'tanggal' => now()->toDateString(),
+                'ref_type' => 'stock_adjustment',
+                'ref_id' => $bahanBaku->id,
+                'keterangan' => 'Penyesuaian stok dari edit bahan baku: ' . $bahanBaku->nama_bahan . ' (dari ' . $oldSaldoAwal . ' ke ' . $newSaldoAwal . ')',
+            ]);
+            
+            \Log::info('Stock adjustment created for BahanBaku', [
+                'id' => $bahanBaku->id,
+                'nama_bahan' => $bahanBaku->nama_bahan,
+                'old_stock' => $oldSaldoAwal,
+                'new_stock' => $newSaldoAwal,
+                'difference' => $stockDifference
+            ]);
+        }
+
+        // ✅ PERBAIKAN: Disable BomSyncService karena tabel bom_job_costings tidak ada
+        // Sync BOM when bahan baku price changes
+        // BomSyncService::syncBomFromMaterialChange('bahan_baku', $bahanBaku->id);
+        
+        \Log::info('Bahan Baku updated successfully', [
+            'id' => $bahanBaku->id,
+            'nama_bahan' => $bahanBaku->nama_bahan,
+            'harga_satuan' => $bahanBaku->harga_satuan,
+            'note' => 'BomSyncService disabled - table bom_job_costings does not exist'
+        ]);
+
+        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
+    }
+
+    // Hapus data
+    public function destroy($id)
+    {
+        try {
+            // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+            $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
+            
+            // Check for foreign key constraints before deleting
+            $constraints = [];
+            
+            // ✅ PERBAIKAN: Skip BOM Job BBB check karena tabel tidak ada
+            // Check BOM Job BBB references - DISABLED
+            // $bomJobBbbCount = \DB::table('bom_job_bbb')->where('bahan_baku_id', $id)->count();
+            // if ($bomJobBbbCount > 0) {
+            //     $constraints[] = "BOM Job Costing ({$bomJobBbbCount} record(s))";
+            // }
+            
+            // Check BOM Details references - with try-catch for safety
+            try {
+                $bomDetailsCount = \DB::table('bom_details')->where('bahan_baku_id', $id)->count();
+                if ($bomDetailsCount > 0) {
+                    $constraints[] = "BOM Details ({$bomDetailsCount} record(s))";
+                }
+            } catch (\Exception $e) {
+                \Log::info('BOM Details table check skipped', ['error' => $e->getMessage()]);
+            }
+            
+            // Check Pembelian Details references
+            $pembelianDetailsCount = \DB::table('pembelian_details')->where('bahan_baku_id', $id)->count();
+            if ($pembelianDetailsCount > 0) {
+                $constraints[] = "Pembelian Details ({$pembelianDetailsCount} record(s))";
+            }
+            
+            // Check Produksi Details references
+            $produksiDetailsCount = \DB::table('produksi_details')->where('bahan_baku_id', $id)->count();
+            if ($produksiDetailsCount > 0) {
+                $constraints[] = "Produksi Details ({$produksiDetailsCount} record(s))";
+            }
+            
+            // If there are constraints, prevent deletion and show error
+            if (!empty($constraints)) {
+                $constraintList = implode(', ', $constraints);
+                return redirect()->route('master-data.bahan-baku.index')
+                    ->with('error', "Tidak dapat menghapus bahan baku '{$bahanBaku->nama_bahan}' karena masih digunakan di: {$constraintList}. Hapus data terkait terlebih dahulu.");
+            }
+            
+            // If no constraints, proceed with deletion
+            $bahanBaku->delete();
+            
+            return redirect()->route('master-data.bahan-baku.index')
+                ->with('success', "Data bahan baku '{$bahanBaku->nama_bahan}' berhasil dihapus!");
+                
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle any other database constraint errors
+            if ($e->getCode() == '23000') {
+                return redirect()->route('master-data.bahan-baku.index')
+                    ->with('error', 'Tidak dapat menghapus data karena masih digunakan di tabel lain. Hapus data terkait terlebih dahulu.');
+            }
+            
+            return redirect()->route('master-data.bahan-baku.index')
+                ->with('error', 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage());
+                
+        } catch (\Exception $e) {
+            return redirect()->route('master-data.bahan-baku.index')
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update sub satuan prices untuk bahan baku tertentu
+     */
+    public function updateSubSatuanPrices($id)
+    {
+        try {
+            $bahanBakuService = new BahanBakuService();
+            $result = $bahanBakuService->updateSubSatuanPrices($id);
+            
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Harga sub satuan berhasil diperbarui'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada perubahan yang diperlukan'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get average harga satuan untuk bahan baku
+     */
+    public function getAverageHargaSatuan($bahanBakuId)
+    {
+        $bahanBaku = BahanBaku::findOrFail($bahanBakuId);
+        
+        // Ambil semua pembelian detail untuk bahan baku ini
+        $details = \App\Models\PembelianDetail::where('bahan_baku_id', $bahanBakuId)
+            ->with(['pembelian'])
+            ->get();
+        
+        if ($details->isEmpty()) {
+            return 0;
+        }
+        
+        // Hitung total harga dan total quantity dalam satuan utama
+        $totalHarga = 0;
+        $totalQuantity = 0;
+        
+        foreach ($details as $detail) {
+            // Gunakan jumlah_dalam_satuan_utama untuk perhitungan yang benar
+            $quantityInMainUnit = $detail->jumlah_dalam_satuan_utama ?? 0;
+            
+            // Jika jumlah_dalam_satuan_utama = 0, skip detail ini
+            if ($quantityInMainUnit <= 0) {
+                continue;
+            }
+            
+            // Hitung total harga untuk detail ini
+            $detailTotalHarga = ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            
+            $totalHarga += $detailTotalHarga;
+            $totalQuantity += $quantityInMainUnit;
+        }
+        
+        // Hitung harga rata-rata per satuan utama
+        $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
+        
+        return $averageHarga;
+    }
+
+    /**
+     * Convert comma decimal inputs to dot format for proper validation and storage
+     */
+    private function convertCommaToDecimal(Request $request)
+    {
+        $fieldsToConvert = [
+            'harga_satuan', 'stok', 'stok_minimum',
+            'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
+            'sub_satuan_2_konversi', 'sub_satuan_2_nilai', 
+            'sub_satuan_3_konversi', 'sub_satuan_3_nilai'
+        ];
+        
+        foreach ($fieldsToConvert as $field) {
+            if ($request->has($field) && $request->input($field) !== null) {
+                $value = $request->input($field);
+                $convertedValue = $this->smartNumberConversion($value);
+                $request->merge([$field => $convertedValue]);
+            }
+        }
+    }
+    
+    /**
+     * Smart number conversion that handles various Indonesian number formats
+     */
+    private function smartNumberConversion($value)
+    {
+        // Remove any spaces
+        $value = trim($value);
+        
+        // If empty, return as is
+        if (empty($value)) {
+            return $value;
+        }
+        
+        // Count dots and commas to determine format
+        $dotCount = substr_count($value, '.');
+        $commaCount = substr_count($value, ',');
+        
+        // If no dots or commas, it's already a clean number
+        if ($dotCount === 0 && $commaCount === 0) {
+            return $value;
+        }
+        
+        // Find positions of last dot and comma
+        $lastDotPos = strrpos($value, '.');
+        $lastCommaPos = strrpos($value, ',');
+        
+        // Case 1: Only commas (Indonesian decimal: 1,5 or 1000,50)
+        if ($commaCount > 0 && $dotCount === 0) {
+            return str_replace(',', '.', $value);
+        }
+        
+        // Case 2: Only dots
+        if ($dotCount > 0 && $commaCount === 0) {
+            // If multiple dots, treat all but last as thousand separators
+            if ($dotCount > 1) {
+                $parts = explode('.', $value);
+                $lastPart = array_pop($parts);
+                // If last part has 3 digits, it's likely a thousand separator (e.g., 1.000.000)
+                if (strlen($lastPart) === 3 && ctype_digit($lastPart)) {
+                    return implode('', array_merge($parts, [$lastPart]));
+                } else {
+                    // Last part is decimal (e.g., 1.000.50)
+                    return implode('', $parts) . '.' . $lastPart;
+                }
+            } else {
+                // Single dot - check if it's thousand separator or decimal
+                $parts = explode('.', $value);
+                if (count($parts) === 2) {
+                    $beforeDot = $parts[0];
+                    $afterDot = $parts[1];
+                    
+                    // If after dot has exactly 3 digits and all are digits, and before dot is 1-3 digits
+                    // it's likely a thousand separator (e.g., 1.000, 15.000)
+                    if (strlen($afterDot) === 3 && ctype_digit($afterDot) && 
+                        strlen($beforeDot) >= 1 && strlen($beforeDot) <= 3 && ctype_digit($beforeDot)) {
+                        return $beforeDot . $afterDot;
+                    } else {
+                        // Otherwise it's a decimal separator (e.g., 2.5, 50.75)
+                        return $value;
+                    }
+                } else {
+                    return $value;
+                }
+            }
+        }
+        
+        // Case 3: Both dots and commas
+        if ($dotCount > 0 && $commaCount > 0) {
+            // Determine which is the decimal separator based on position
+            if ($lastCommaPos > $lastDotPos) {
+                // Comma is decimal separator (e.g., 1.000,50)
+                $integerPart = substr($value, 0, $lastCommaPos);
+                $decimalPart = substr($value, $lastCommaPos + 1);
+                $integerPart = str_replace('.', '', $integerPart); // Remove thousand separators
+                return $integerPart . '.' . $decimalPart;
+            } else {
+                // Dot is decimal separator (e.g., 1,000.50)
+                $integerPart = substr($value, 0, $lastDotPos);
+                $decimalPart = substr($value, $lastDotPos + 1);
+                $integerPart = str_replace(',', '', $integerPart); // Remove thousand separators
+                return $integerPart . '.' . $decimalPart;
+            }
+        }
+        
+        // Fallback: return original value
+        return $value;
+    }
+}

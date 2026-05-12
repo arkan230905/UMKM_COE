@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Migrate Penggajian & Pembayaran Beban</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 15px 30px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; }
+        button:hover { background: #218838; }
+        #result { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 1px solid #ddd; }
+        .loading { color: #007bff; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Migrate Penggajian & Pembayaran Beban</h1>
+        <p>Klik tombol di bawah untuk memigrasikan data penggajian dan pembayaran beban ke sistem jurnal modern.</p>
+        
+        <button onclick="runMigration()">JALANKAN MIGRASI SEKARANG</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function runMigration() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p class="loading">⏳ Sedang memproses migrasi...</p>';
+            
+            fetch('/migrate-to-modern-journal')
+                .then(response => response.text())
+                .then(data => {
+                    resultDiv.innerHTML = data;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = '<p class="error">❌ Error: ' + error + '</p>';
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barcode Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        input { padding: 10px; font-size: 16px; width: 300px; }
+        button { padding: 10px 20px; margin: 10px; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Barcode Functionality Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Product Data</h3>
+        <div class="result">
+            <strong>Ayam Crispy Macdi</strong> - Barcode: 8992000000001 - Price: Rp 45,000<br>
+            <strong>Ayam Goreng Bundo</strong> - Barcode: 8992000000002 - Price: Rp 45,000
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Manual Barcode Test</h3>
+        <input type="text" id="barcodeInput" placeholder="Enter barcode (e.g., 8992000000001)">
+        <button onclick="testBarcode()">Test Barcode</button>
+        <div id="result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Instructions for Testing</h3>
+        <ol>
+            <li>Go to <a href="http://127.0.0.1:8000/transaksi/penjualan/create" target="_blank">Sales Transaction Page</a></li>
+            <li>In the barcode scanner field, type: <strong>8992000000001</strong></li>
+            <li>Press Enter or wait for automatic processing</li>
+            <li>Verify that "Ayam Crispy Macdi" is added to the table with correct price</li>
+            <li>Test with barcode: <strong>8992000000002</strong> for "Ayam Goreng Bundo"</li>
+            <li>Test scanning the same barcode twice - it should increment quantity</li>
+            <li>Test typing partial numbers to see real-time search results</li>
+        </ol>
+    </div>
+
+    <script>
+        // Simulate the product data from the database
+        const productData = {
+            '8992000000001': {
+                id: 1,
+                nama: 'Ayam Crispy Macdi',
+                harga: 45000,
+                stok: 160,
+                barcode: '8992000000001'
+            },
+            '8992000000002': {
+                id: 2,
+                nama: 'Ayam Goreng Bundo',
+                harga: 45000,
+                stok: 160,
+                barcode: '8992000000002'
+            }
+        };
+
+        function testBarcode() {
+            const barcode = document.getElementById('barcodeInput').value.trim();
+            const result = document.getElementById('result');
+            
+            if (!barcode) {
+                result.innerHTML = '<span style="color: red;">Please enter a barcode</span>';
+                return;
+            }
+            
+            const product = productData[barcode];
+            
+            if (product) {
+                result.innerHTML = `
+                    <span style="color: green;">✓ Product Found!</span><br>
+                    <strong>${product.nama}</strong><br>
+                    Price: Rp ${product.harga.toLocaleString('id-ID')}<br>
+                    Stock: ${product.stok}<br>
+                    Barcode: ${product.barcode}
+                `;
+            } else {
+                result.innerHTML = `<span style="color: red;">✗ Product not found for barcode: ${barcode}</span>`;
+            }
+        }
+
+        // Allow Enter key to test
+        document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testBarcode();
+            }
+        });
+    </script>
+</body>
+</html>

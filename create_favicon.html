@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .preview { display: flex; align-items: center; gap: 20px; margin: 20px 0; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Favicon Generator untuk SIMCOST</h1>
+        <p>Tool ini akan membuat favicon yang optimal dari logo yang ada.</p>
+        
+        <div>
+            <input type="file" id="logoInput" accept="image/*">
+            <button onclick="generateFavicon()">Generate Favicon</button>
+        </div>
+        
+        <div class="preview">
+            <div>
+                <h3>Original Logo:</h3>
+                <canvas id="originalCanvas" width="200" height="200"></canvas>
+            </div>
+            <div>
+                <h3>Favicon 32x32:</h3>
+                <canvas id="favicon32" width="32" height="32"></canvas>
+            </div>
+            <div>
+                <h3>Favicon 64x64:</h3>
+                <canvas id="favicon64" width="64" height="64"></canvas>
+            </div>
+        </div>
+        
+        <div>
+            <button onclick="downloadFavicon(32)">Download 32x32</button>
+            <button onclick="downloadFavicon(64)">Download 64x64</button>
+            <button onclick="downloadAll()">Download All Sizes</button>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Instruksi:</h3>
+            <ol>
+                <li>Pilih file logo.png dari folder public/images</li>
+                <li>Klik "Generate Favicon"</li>
+                <li>Download favicon yang dihasilkan</li>
+                <li>Ganti file favicon di aplikasi</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let originalImage = null;
+        
+        document.getElementById('logoInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        originalImage = img;
+                        drawOriginal();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        function drawOriginal() {
+            const canvas = document.getElementById('originalCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw with aspect ratio maintained
+            const scale = Math.min(canvas.width / originalImage.width, canvas.height / originalImage.height);
+            const x = (canvas.width - originalImage.width * scale) / 2;
+            const y = (canvas.height - originalImage.height * scale) / 2;
+            
+            ctx.drawImage(originalImage, x, y, originalImage.width * scale, originalImage.height * scale);
+        }
+        
+        function generateFavicon() {
+            if (!originalImage) {
+                alert('Pilih logo terlebih dahulu!');
+                return;
+            }
+            
+            // Generate 32x32 favicon
+            generateSize(32);
+            // Generate 64x64 favicon
+            generateSize(64);
+        }
+        
+        function generateSize(size) {
+            const canvas = document.getElementById('favicon' + size);
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Enable image smoothing for better quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Draw image to fit canvas
+            ctx.drawImage(originalImage, 0, 0, size, size);
+            
+            // Apply sharpening filter
+            const imageData = ctx.getImageData(0, 0, size, size);
+            const data = imageData.data;
+            
+            // Simple contrast enhancement
+            for (let i = 0; i < data.length; i += 4) {
+                // Increase contrast
+                data[i] = Math.min(255, data[i] * 1.2);     // Red
+                data[i + 1] = Math.min(255, data[i + 1] * 1.2); // Green
+                data[i + 2] = Math.min(255, data[i + 2] * 1.2); // Blue
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+        
+        function downloadFavicon(size) {
+            const canvas = document.getElementById('favicon' + size);
+            const link = document.createElement('a');
+            link.download = `favicon-${size}x${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        function downloadAll() {
+            downloadFavicon(32);
+            setTimeout(() => downloadFavicon(64), 500);
+        }
+    </script>
+</body>
+</html>

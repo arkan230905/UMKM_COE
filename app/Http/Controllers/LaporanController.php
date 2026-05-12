@@ -1,0 +1,1950 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Pembelian;
+use App\Models\Penjualan;
+use App\Models\Produk;
+use App\Models\StockMovement;
+use App\Models\StockLayer;
+use App\Models\BahanBaku;
+use App\Models\ReturPenjualan;
+use Illuminate\Http\Request;
+use App\Models\Pembelian as PembelianModel;
+use PDF;
+
+class LaporanController extends Controller
+{
+    // === LAPORAN PEMBELIAN ===
+    public function pembelian(Request $request)
+    {
+        $query = $this->getPembelianQuery($request);
+        
+        // Get all data for calculation
+        $allPembelian = $query->get();
+        
+        // Calculate totals dengan logic yang sama dengan transaksi/pembelian
+        $totalPembelian = $allPembelian->sum(function($p) {
+            // Hitung total dari details untuk konsistensi (sama seperti admin)
+            $totalPembelian = 0;
+            if ($p->details && $p->details->count() > 0) {
+                $totalPembelian = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                });
+            }
+            
+            // Jika ada total_harga di database, gunakan yang lebih besar (sama seperti admin)
+            if ($p->total_harga > $totalPembelian) {
+                $totalPembelian = $p->total_harga;
+            }
+            
+            return $totalPembelian;
+        });
+        
+        $totalTransaksi = $allPembelian->count();
+        
+        // Total pembelian (sesuai filter tanggal) - sudah dihitung di atas
+        $totalPembelianFiltered = $totalPembelian;
+        
+        // Total pembelian tunai (cash) - sesuai filter tanggal dengan logic yang sama
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pembelianTunaiQuery = Pembelian::with(['details'])
+            ->where('user_id', auth()->id())
+            ->where('payment_method', 'cash')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->when($request->has('vendor_id') && $request->vendor_id, function($q) use ($request) {
+                return $q->where('vendor_id', $request->vendor_id);
+            });
+            
+        $pembelianTunai = $pembelianTunaiQuery->get();
+        $totalPembelianTunai = $pembelianTunai->sum(function($p) {
+            // Logic yang sama dengan total pembelian
+            $totalPembelian = 0;
+            if ($p->details && $p->details->count() > 0) {
+                $totalPembelian = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                });
+            }
+            
+            if ($p->total_harga > $totalPembelian) {
+                $totalPembelian = $p->total_harga;
+            }
+            
+            return $totalPembelian;
+        });
+        
+        // Total pembelian yang belum lunas (credit dan status != lunas) - sesuai filter tanggal
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pembelianBelumLunasQuery = Pembelian::with(['details'])
+            ->where('user_id', auth()->id())
+            ->where('payment_method', 'credit')
+            ->where('status', '!=', 'lunas')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->when($request->has('vendor_id') && $request->vendor_id, function($q) use ($request) {
+                return $q->where('vendor_id', $request->vendor_id);
+            });
+            
+        $pembelianBelumLunas = $pembelianBelumLunasQuery->get();
+        $totalPembelianBelumLunas = $pembelianBelumLunas->sum(function($p) {
+            // Gunakan sisa_pembayaran jika ada, kalau tidak hitung dari total - terbayar
+            $sisaUtang = $p->sisa_pembayaran ?? 0;
+            if ($sisaUtang == 0) {
+                // Hitung total dengan logic yang sama
+                $total = 0;
+                if ($p->details && $p->details->count() > 0) {
+                    $total = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
+                
+                if ($p->total_harga > $total) {
+                    $total = $p->total_harga;
+                }
+                
+                $sisaUtang = max(0, $total - ($p->terbayar ?? 0));
+            }
+            return $sisaUtang;
+        });
+        
+        $pembelian = $query->paginate(15);
+        $vendors = \App\Models\Vendor::all();
+
+        return view('laporan.pembelian.index', compact(
+            'pembelian', 
+            'vendors', 
+            'totalPembelian', 
+            'totalTransaksi',
+            'totalPembelianFiltered',
+            'totalPembelianTunai',
+            'totalPembelianBelumLunas'
+        ));
+    }
+
+    // === HELPER METHODS ===
+    
+    /**
+     * Get biaya bahan per unit from BomJobCosting (same as produksi logic)
+     * Static method that can be called from views
+     */
+    public static function getBiayaBahanPerUnit($produkId)
+    {
+        // Get BomJobCosting for this product
+        $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produkId)->first();
+        
+        if (!$bomJobCosting) {
+            return 0;
+        }
+        
+        // Calculate total biaya bahan (same as produksi create)
+        $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+        
+        return $totalBiayaBahan > 0 ? $totalBiayaBahan : 0;
+    }
+
+    // === LAPORAN STOK ===
+    /**
+     * Ensure initial stock entry exists and is accurate for an item
+     */
+    private function ensureAccurateInitialStock($tipe, $itemId, $item)
+    {
+        // DISABLED: This function was causing data corruption by overwriting correct initial stock
+        // The function kept resetting Ayam Kampung from 40 ekor back to 13 ekor based on master data
+        // All initial stock should be managed manually or through proper data migration
+        return;
+        
+        if (!$item) {
+            return;
+        }
+        
+        // IMPORTANT: Do NOT create initial stock for products
+        // Products should only get stock from production, not initial stock
+        // The 'stok' field in produks table represents current stock level,
+        // but this should come from production movements, not initial_stock entries
+        if ($tipe == 'product') {
+            return;
+        }
+        
+        $itemType = $tipe == 'bahan_pendukung' ? 'support' : $tipe;
+        
+        // TEMPORARY FIX: Set correct initial stock for Ayam Potong (ID 5)
+        if ($itemId == 5 && $tipe == 'material') {
+            $correctQty = 50.0; // Correct initial stock
+            $correctUnitCost = 32000.0; // Rp 32,000 per kg
+        } else {
+            $correctQty = (float)($item->saldo_awal ?? 0);
+            $correctUnitCost = (float)($item->harga_satuan ?? 0);
+        }
+        
+        if ($correctQty <= 0) {
+            return;
+        }
+        
+        $correctTotalCost = $correctQty * $correctUnitCost;
+        $initialDate = '2026-04-01';
+        
+        // Check if initial stock entry exists
+        $existingInitialStock = StockMovement::where('item_type', $itemType)
+            ->where('item_id', $itemId)
+            ->where('ref_type', 'initial_stock')
+            ->first();
+        
+        if ($existingInitialStock) {
+            // Check if existing data is incorrect and update if needed
+            if (abs($existingInitialStock->qty - $correctQty) > 0.01 || 
+                abs($existingInitialStock->unit_cost - $correctUnitCost) > 0.01) {
+                
+                $existingInitialStock->update([
+                    'qty' => $correctQty,
+                    'unit_cost' => $correctUnitCost,
+                    'total_cost' => $correctTotalCost,
+                    'tanggal' => $initialDate
+                ]);
+                
+                // Also update corresponding stock_layer entry
+                $existingStockLayer = StockLayer::where('item_type', $itemType)
+                    ->where('item_id', $itemId)
+                    ->where('ref_type', 'initial_stock')
+                    ->first();
+                
+                if ($existingStockLayer) {
+                    $existingStockLayer->update([
+                        'qty' => $correctQty,
+                        'unit_cost' => $correctUnitCost,
+                        'remaining_qty' => $correctQty,
+                        'tanggal' => $initialDate
+                    ]);
+                }
+            }
+        } else {
+            // Create new initial stock entry
+            StockMovement::create([
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'tanggal' => $initialDate,
+                'ref_type' => 'initial_stock',
+                'ref_id' => null,
+                'direction' => 'in',
+                'qty' => $correctQty,
+                'unit_cost' => $correctUnitCost,
+                'total_cost' => $correctTotalCost,
+                'satuan_id' => $item->satuan_id ?? ($tipe == 'bahan_pendukung' ? $item->satuan_id : null),
+                'keterangan' => 'Stok Awal'
+            ]);
+            
+            // Also create corresponding stock_layer entry
+            StockLayer::create([
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'tanggal' => $initialDate,
+                'ref_type' => 'initial_stock',
+                'ref_id' => null,
+                'qty' => $correctQty,
+                'unit_cost' => $correctUnitCost,
+                'remaining_qty' => $correctQty
+            ]);
+        }
+    }
+
+    public function stok(Request $request)
+    {
+        $tipe = $request->get('tipe', 'material'); // material|product|bahan_pendukung
+        $from = $request->get('from');
+        $to = $request->get('to');
+        $itemId = $request->get('item_id'); // Remove default to item_id=2
+        $satuanId = $request->get('satuan_id');
+
+        // Daftar item untuk dropdown - CRITICAL: Filter by user_id untuk multi-tenant
+        $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
+            ->orderBy('nama_bahan', 'asc')
+            ->get();
+        $products = Produk::with('satuan')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama_produk', 'asc')
+            ->get();
+        $bahanPendukungs = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
+            ->orderBy('nama_bahan', 'asc')
+            ->get();
+
+        // Initialize variables
+        $movements = collect();
+        $saldoAwalQty = 0.0;
+        $saldoAwalNilai = 0.0;
+        $running = [];
+        $conversionData = [];
+        $item = null;
+        $availableSatuans = [];
+        $dailyStock = [];
+
+        try {
+            // Handle any selected item
+            if ($itemId) {
+                // Get item data and conversion ratios from database
+                if ($tipe == 'material') {
+                    $item = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                } elseif ($tipe == 'product') {
+                    $item = Produk::with('satuan')->find($itemId);
+                } elseif ($tipe == 'bahan_pendukung') {
+                    $item = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                }
+                
+                // Prepare available satuans for dropdown - ambil dari database
+                $availableSatuans = [];
+                if ($item) {
+                    $mainSatuan = $tipe == 'bahan_pendukung' ? $item->satuanRelation : $item->satuan;
+                    
+                    if ($mainSatuan) {
+                        $availableSatuans[] = [
+                            'id' => $mainSatuan->id,
+                            'nama' => $mainSatuan->nama ?? $mainSatuan->nama_satuan ?? 'Unit',
+                            'is_primary' => true,
+                            'conversion_to_primary' => 1,
+                            'price_conversion' => 1 // Primary unit has 1:1 price conversion
+                        ];
+                        
+                        // Add sub satuan 1 if available - USE NILAI for BOTH quantity and price conversion
+                        if (isset($item->sub_satuan_1_id) && $item->sub_satuan_1_id && $item->subSatuan1) {
+                            $quantityRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for quantity conversion (consistent with master data display)
+                            $priceRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for price conversion
+                            $availableSatuans[] = [
+                                'id' => $item->subSatuan1->id,
+                                'nama' => $item->subSatuan1->nama ?? $item->subSatuan1->nama_satuan ?? 'Sub Unit 1',
+                                'is_primary' => false,
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
+                            ];
+                        }
+                        
+                        // Add sub satuan 2 if available - USE NILAI for BOTH quantity and price conversion
+                        if (isset($item->sub_satuan_2_id) && $item->sub_satuan_2_id && $item->subSatuan2) {
+                            $quantityRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Use nilai for quantity conversion (consistent with master data display)
+                            $priceRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Use nilai for price conversion
+                            $availableSatuans[] = [
+                                'id' => $item->subSatuan2->id,
+                                'nama' => $item->subSatuan2->nama ?? $item->subSatuan2->nama_satuan ?? 'Sub Unit 2',
+                                'is_primary' => false,
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
+                            ];
+                        }
+                        
+                        // Add sub satuan 3 if available - USE NILAI for BOTH quantity and price conversion
+                        if (isset($item->sub_satuan_3_id) && $item->sub_satuan_3_id && $item->subSatuan3) {
+                            $quantityRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for quantity conversion (consistent with master data display)
+                            $priceRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for price conversion
+                            $availableSatuans[] = [
+                                'id' => $item->subSatuan3->id,
+                                'nama' => $item->subSatuan3->nama ?? $item->subSatuan3->nama_satuan ?? 'Sub Unit 3',
+                                'is_primary' => false,
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
+                            ];
+                        }
+                    }
+                }
+                
+                // Load actual conversion data from database relationships
+                if ($item) {
+                    // Load the item with all its relationships
+                    if ($tipe == 'material') {
+                        $item = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                    } elseif ($tipe == 'product') {
+                        $item = Produk::with('satuan')->find($itemId);
+                    } elseif ($tipe == 'bahan_pendukung') {
+                        $item = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                    }
+                }
+            }
+            $movQ = StockMovement::query()->where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe);
+            
+            // CRITICAL MULTI-TENANT: Filter item_ids yang hanya milik user yang login
+            if ($tipe == 'material') {
+                $allowedItemIds = BahanBaku::where('user_id', auth()->id())->pluck('id');
+            } elseif ($tipe == 'product') {
+                $allowedItemIds = Produk::where('user_id', auth()->id())->pluck('id');
+            } elseif ($tipe == 'bahan_pendukung') {
+                $allowedItemIds = \App\Models\BahanPendukung::where('user_id', auth()->id())->pluck('id');
+            } else {
+                $allowedItemIds = collect();
+            }
+            $movQ->whereIn('item_id', $allowedItemIds);
+            
+            if ($itemId) { 
+                // Pastikan item_id yang dipilih memang milik user yang login
+                if (!$allowedItemIds->contains($itemId)) {
+                    throw new \Exception('Item tidak ditemukan atau bukan milik Anda.');
+                }
+                $movQ->where('item_id', $itemId); 
+                
+                // Get item data and conversion ratios
+                if ($tipe == 'material') {
+                    $item = BahanBaku::find($itemId);
+                } elseif ($tipe == 'product') {
+                    $item = Produk::find($itemId);
+                } elseif ($tipe == 'bahan_pendukung') {
+                    $item = \App\Models\BahanPendukung::find($itemId);
+                }
+                
+                // Prepare conversion data
+                $conversionData = [
+                    'primary' => [
+                        'nama' => $item->satuanRelation->nama_satuan ?? '',
+                        'konversi' => 1
+                    ]
+                ];
+                
+                // Prepare available satuans for dropdown
+                $availableSatuans = [];
+                $mainSatuan = $tipe == 'bahan_pendukung' ? $item->satuanRelation : $item->satuan;
+                
+                if ($mainSatuan) {
+                    $availableSatuans[] = [
+                        'id' => $mainSatuan->id,
+                        'nama' => $mainSatuan->nama,
+                        'is_primary' => true,
+                        'conversion_to_primary' => 1,
+                        'price_conversion' => 1 // Primary unit has 1:1 price conversion
+                    ];
+                    
+                    // Add sub satuan 1 with CORRECT conversion ratio - USE NILAI for both quantity and price
+                    if ($item->sub_satuan_1_id) {
+                        $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
+                        if ($subSatuan1) {
+                            // Use nilai for both quantity and price conversion (consistent with master data display)
+                            $quantityRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for quantity conversion
+                            $priceRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for price conversion
+                            $availableSatuans[] = [
+                                'id' => $subSatuan1->id,
+                                'nama' => $subSatuan1->nama,
+                                'is_primary' => false,
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
+                            ];
+                        }
+                    }
+                    
+                    // Add sub satuan 2 with CORRECT conversion ratio - USE MANUAL DATA if available, otherwise master data
+                    if ($item->sub_satuan_2_id) {
+                        $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
+                        if ($subSatuan2) {
+                            // Check if there's manual conversion data for this sub satuan from recent purchases
+                            $manualConversion = null;
+                            
+                            // Check if manual_conversion_data column exists first
+                            try {
+                                $columnExists = \DB::select("SHOW COLUMNS FROM stock_movements LIKE 'manual_conversion_data'");
+                                if (!empty($columnExists)) {
+                                    $manualConversion = \DB::table('stock_movements')
+                                        ->where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+                                        ->where('item_id', $itemId)
+                                        ->where('ref_type', 'purchase')
+                                        ->whereNotNull('manual_conversion_data')
+                                        ->orderBy('tanggal', 'desc')
+                                        ->first();
+                                }
+                            } catch (\Exception $e) {
+                                // Column doesn't exist yet, skip manual conversion check
+                                \Log::info("manual_conversion_data column not found, using master data");
+                            }
+                            
+                            $quantityRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Default to master data
+                            $priceRatio = (float)($item->sub_satuan_2_nilai ?? 1);
+                            $isManual = false;
+                            
+                            // Use manual conversion data if available
+                            if ($manualConversion && $manualConversion->manual_conversion_data) {
+                                $manualData = json_decode($manualConversion->manual_conversion_data, true);
+                                if ($manualData && isset($manualData['sub_satuan_id']) && $manualData['sub_satuan_id'] == $subSatuan2->id) {
+                                    // Use manual conversion data
+                                    $quantityRatio = (float)($manualData['manual_conversion_factor'] ?? 1);
+                                    $priceRatio = (float)($manualData['manual_conversion_factor'] ?? 1);
+                                    $isManual = true;
+                                    \Log::info("Using manual conversion for sub satuan 2", [
+                                        'sub_satuan_id' => $subSatuan2->id,
+                                        'manual_factor' => $quantityRatio,
+                                        'master_factor' => $item->sub_satuan_2_nilai
+                                    ]);
+                                }
+                            }
+                            
+                            $availableSatuans[] = [
+                                'id' => $subSatuan2->id,
+                                'nama' => $subSatuan2->nama,
+                                'is_primary' => false,
+                                'conversion_to_primary' => $quantityRatio,
+                                'price_conversion' => $priceRatio,
+                                'is_manual' => $isManual
+                            ];
+                        }
+                    }
+                    
+                    // Add sub satuan 3 with CORRECT conversion ratio - USE NILAI for both quantity and price
+                    if ($item->sub_satuan_3_id) {
+                        $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
+                        if ($subSatuan3) {
+                            $quantityRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for quantity conversion
+                            $priceRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for price conversion
+                            $availableSatuans[] = [
+                                'id' => $subSatuan3->id,
+                                'nama' => $subSatuan3->nama,
+                                'is_primary' => false,
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
+                            ];
+                        }
+                    }
+                }
+                
+                // Add sub units if they exist
+                if ($item->sub_satuan_1_id && $item->sub_satuan_1) {
+                    $conversionData['sub1'] = [
+                        'nama' => $item->sub_satuan_1->nama_satuan,
+                        'konversi' => $item->sub_satuan_1_nilai ?? 1
+                    ];
+                }
+                if ($item->sub_satuan_2_id && $item->sub_satuan_2) {
+                    $conversionData['sub2'] = [
+                        'nama' => $item->sub_satuan_2->nama_satuan,
+                        'konversi' => $item->sub_satuan_2_nilai ?? 1
+                    ];
+                }
+                if ($item->sub_satuan_3_id && $item->sub_satuan_3) {
+                    $conversionData['sub3'] = [
+                        'nama' => $item->sub_satuan_3->nama_satuan,
+                        'konversi' => $item->sub_satuan_3_nilai ?? 1
+                    ];
+                }
+                
+                // Start with 0 as initial stock (don't use master data)
+                $saldoAwalQty = 0.0;
+                $saldoAwalNilai = 0.0;
+                
+                // Calculate all movements before the selected date range
+                if ($from) {
+                    $before = StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+                        ->where('item_id', $itemId)
+                        ->whereDate('tanggal', '<', $from)
+                        ->orderBy('tanggal', 'asc')
+                        ->get();
+                        
+                    foreach ($before as $m) {
+                        if ($m->direction === 'in') {
+                            $saldoAwalQty += (float)$m->qty;
+                            $saldoAwalNilai += (float)($m->total_cost ?? 0);
+                        } else {
+                            $saldoAwalQty -= (float)$m->qty;
+                            $saldoAwalNilai -= (float)($m->total_cost ?? 0);
+                        }
+                    }
+                    
+                    // If no movements before date range, check for initial_stock movement or use master data
+                    if ($before->isEmpty()) {
+                        $initialStockMovement = StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+                            ->where('item_id', $itemId)
+                            ->where('ref_type', 'initial_stock')
+                            ->first();
+                        
+                        if ($initialStockMovement) {
+                            $saldoAwalQty = (float)($initialStockMovement->qty ?? 0);
+                            $saldoAwalNilai = (float)($initialStockMovement->total_cost ?? 0);
+                        } elseif ($item && $item->saldo_awal > 0) {
+                            $saldoAwalQty = (float)($item->saldo_awal ?? 0);
+                            $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                            
+                            // Create initial stock movement for consistency
+                            StockMovement::create([
+                                'item_type' => $tipe == 'bahan_pendukung' ? 'support' : $tipe,
+                                'item_id' => $itemId,
+                                'tanggal' => '2026-04-23', // Use correct initial stock date
+                                'ref_type' => 'initial_stock',
+                                'ref_id' => null,
+                                'direction' => 'in',
+                                'qty' => $saldoAwalQty,
+                                'unit' => $item->satuan->nama ?? 'unit',
+                                'unit_cost' => (float)($item->harga_satuan ?? 0),
+                                'total_cost' => $saldoAwalNilai,
+                                'keterangan' => 'Stok Awal'
+                            ]);
+                        }
+                    }
+                }
+            }
+            
+            // If no date range specified, get all movements
+            if (!$from && !$to) {
+                // Get initial stock from stock movements (initial_stock type) first
+                $initialStockMovement = StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+                    ->where('item_id', $itemId)
+                    ->where('ref_type', 'initial_stock')
+                    ->first();
+                
+                if ($initialStockMovement) {
+                    $saldoAwalQty = (float)($initialStockMovement->qty ?? 0);
+                    $saldoAwalNilai = (float)($initialStockMovement->total_cost ?? 0);
+                } else {
+                    // Fallback to saldo_awal from master data if no initial_stock movement
+                    if ($item && $item->saldo_awal > 0) {
+                        $saldoAwalQty = (float)($item->saldo_awal ?? 0);
+                        $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                        
+                        // Create initial stock movement for consistency
+                        StockMovement::create([
+                            'item_type' => $tipe == 'bahan_pendukung' ? 'support' : $tipe,
+                            'item_id' => $itemId,
+                            'tanggal' => '2026-04-23', // Use correct initial stock date
+                            'ref_type' => 'initial_stock',
+                            'ref_id' => null,
+                            'direction' => 'in',
+                            'qty' => $saldoAwalQty,
+                            'unit' => $item->satuan->nama ?? 'unit',
+                            'unit_cost' => (float)($item->harga_satuan ?? 0),
+                            'total_cost' => $saldoAwalNilai,
+                            'keterangan' => 'Stok Awal'
+                        ]);
+                    }
+                }
+                
+                $movements = $movQ->orderBy('tanggal', 'asc')
+                                 ->orderBy('id', 'asc')
+                                 ->get();
+                                 
+                // Filter out invalid purchase movements (orphaned ones), refund returns, and manual adjustments
+                $movements = $movements->filter(function($movement) {
+                    // Filter out manual adjustment entries
+                    if ($movement->ref_type === 'manual_adjustment' || $movement->ref_type === 'adjustment') {
+                        return false; // Skip all adjustment entries
+                    }
+                    
+                    // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
+                    if ($movement->ref_type === 'retur_penjualan') {
+                        $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
+                        if ($returPenjualan && $returPenjualan->jenis_retur === 'refund') {
+                            return false; // Skip refund returns (barang cacat)
+                        }
+                    }
+                    
+                    // Keep all other movements including purchases without valid ref_id
+                    return true;
+                });
+            } else {
+                // Get movements within date range
+                if ($from) { 
+                    $movQ->whereDate('tanggal', '>=', $from); 
+                }
+                if ($to) {   
+                    $movQ->whereDate('tanggal', '<=', $to); 
+                }
+                
+                // Ensure accurate initial stock entry exists
+                $this->ensureAccurateInitialStock($tipe, $itemId, $item);
+                
+                $movements = $movQ->orderBy('tanggal', 'asc')
+                                 ->orderBy('id', 'asc')
+                                 ->get();
+                                 
+                // Filter out invalid purchase movements (orphaned ones), refund returns, and manual adjustments
+                $movements = $movements->filter(function($movement) {
+                    // Filter out manual adjustment entries
+                    if ($movement->ref_type === 'manual_adjustment' || $movement->ref_type === 'adjustment') {
+                        return false; // Skip all adjustment entries
+                    }
+                    
+                    // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
+                    if ($movement->ref_type === 'retur_penjualan') {
+                        $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
+                        if ($returPenjualan && $returPenjualan->jenis_retur === 'refund') {
+                            return false; // Skip refund returns (barang cacat)
+                        }
+                    }
+                    
+                    // Keep all other movements including purchases without valid ref_id
+                    return true;
+                });
+            }
+
+            // Build daily stock card
+            $dailyStock = [];
+            
+            // Build daily stock card - show each transaction individually with correct opening balance date
+                if ($movements->count() > 0) {
+                    // Initialize running totals
+                    $runningQty = $saldoAwalQty;
+                    $runningNilai = $saldoAwalNilai;
+                    
+                    // Get the first transaction date for saldo awal
+                    $firstMovement = $movements->first();
+                    $firstTransactionDate = is_string($firstMovement->tanggal) ? $firstMovement->tanggal : $firstMovement->tanggal->format('Y-m-d');
+                    
+                    // Use 23/04/2026 for initial stock date as per user requirement
+                    $initialStockDate = '2026-04-23';
+                    
+                    // Add opening balance row using the correct initial stock date
+                    if ($runningQty > 0 || $runningNilai > 0) {
+                        $dailyStock[] = [
+                            'tanggal' => $initialStockDate, // Use 23/04/2026 as per user requirement
+                            'saldo_awal_qty' => $runningQty,
+                            'saldo_awal_nilai' => $runningNilai,
+                            'pembelian_qty' => 0,
+                            'pembelian_nilai' => 0,
+                            'penjualan_qty' => 0,
+                            'penjualan_nilai' => 0,
+                            'produksi_qty' => 0,
+                            'produksi_nilai' => 0,
+                            'saldo_akhir_qty' => $runningQty,
+                            'saldo_akhir_nilai' => $runningNilai,
+                            'ref_type' => 'opening_balance',
+                            'ref_id' => '',
+                            'is_opening_balance' => true
+                        ];
+                    }
+                    
+                    // Process individual movements
+                    foreach ($movements as $m) {
+                        $dateStr = is_string($m->tanggal) ? $m->tanggal : $m->tanggal->format('Y-m-d');
+                        
+                        // No opening balance for individual transactions
+                        $saldoAwalQty = 0;
+                        $saldoAwalNilai = 0;
+                        
+                        // Initialize transaction variables
+                        $dailyInQty = 0;
+                        $dailyInNilai = 0;
+                        $dailyOutQty = 0;
+                        $dailyOutNilai = 0;
+                        $dailySaleQty = 0;
+                        $dailySaleNilai = 0;
+                        
+                        // Process movement based on type and direction
+                        if ($m->direction === 'in') {
+                            if ($m->ref_type === 'purchase' || $m->ref_type === 'replacement') {
+                                // Purchases and replacement goods go to pembelian column
+                                $dailyInQty = (float)$m->qty;
+                                $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
+                                $dailyInNilai = (float)$totalCost;
+                            } elseif ($m->ref_type === 'production' && $tipe === 'product') {
+                                // Production IN for products goes to produksi column
+                                $dailyOutQty = (float)$m->qty;
+                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'retur_tukar_terima') {
+                                // Retur barang masuk - show as positive purchase
+                                $dailyInQty = (float)$m->qty;
+                                $dailyInNilai = (float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'initial_stock') {
+                                // Skip initial_stock - handled by opening balance
+                                continue;
+                            }
+                        } else {
+                            // OUT movements
+                            if (str_contains($m->ref_type, 'retur') && $m->ref_type !== 'retur_tukar_terima' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // ONLY show actual retur pembelian as negative purchase
+                                // Exclude production-related movements that might have 'retur' in ref_type
+                                if ($m->ref_type === 'retur' || $m->ref_type === 'retur_tukar_kirim' || $m->ref_type === 'return') {
+                                    $dailyInQty = -(float)$m->qty;
+                                    $dailyInNilai = -(float)($m->total_cost ?? 0);
+                                }
+                            } elseif ($m->ref_type === 'production' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // Production consumption - show in produksi column ONLY
+                                $dailyOutQty = (float)$m->qty;
+                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
+                                // Sales for products
+                                $dailySaleQty = (float)$m->qty;
+                                $dailySaleNilai = (float)($m->total_cost ?? 0);
+                            }
+                        }
+                        
+                        // Update running totals
+                        if ($m->direction === 'in') {
+                            $runningQty += (float)$m->qty;
+                            $runningNilai += (float)($m->total_cost ?? 0);
+                        } else {
+                            $runningQty -= (float)$m->qty;
+                            $runningNilai -= (float)($m->total_cost ?? 0);
+                        }
+                        
+                        // Add to daily stock
+                        $dailyStock[] = [
+                            'tanggal' => $dateStr,
+                            'saldo_awal_qty' => $saldoAwalQty,
+                            'saldo_awal_nilai' => $saldoAwalNilai,
+                            'pembelian_qty' => $dailyInQty,
+                            'pembelian_nilai' => $dailyInNilai,
+                            'penjualan_qty' => $dailySaleQty,
+                            'penjualan_nilai' => $dailySaleNilai,
+                            'produksi_qty' => $dailyOutQty,
+                            'produksi_nilai' => $dailyOutNilai,
+                            'saldo_akhir_qty' => $runningQty,
+                            'saldo_akhir_nilai' => $runningNilai,
+                            'ref_type' => $m->ref_type,
+                            'ref_id' => $m->ref_id,
+                            'is_opening_balance' => false,
+                            'manual_conversion_data' => $m->manual_conversion_data ? json_decode($m->manual_conversion_data, true) : null,
+                            'qty_as_input' => $m->qty_as_input,
+                            'satuan_as_input' => $m->satuan_as_input
+                        ];
+                    }
+                } else {
+                // No movements, just show initial stock if there's any
+                if ($saldoAwalQty > 0 || $saldoAwalNilai > 0) {
+                    $dailyStock[] = [
+                        'tanggal' => $from ?? now()->format('Y-m-d'),
+                        'saldo_awal_qty' => $saldoAwalQty,
+                        'saldo_awal_nilai' => $saldoAwalNilai,
+                        'pembelian_qty' => 0,
+                        'pembelian_nilai' => 0,
+                        'penjualan_qty' => 0,
+                        'penjualan_nilai' => 0,
+                        'produksi_qty' => 0,
+                        'produksi_nilai' => 0,
+                        'saldo_akhir_qty' => $saldoAwalQty,
+                        'saldo_akhir_nilai' => $saldoAwalNilai,
+                        'ref_type' => 'opening_balance',
+                        'ref_id' => '',
+                        'is_opening_balance' => true
+                    ];
+                }
+            }
+
+            // Untuk tampilan ringkasan saldo per item bila item belum dipilih
+            if (!$itemId) {
+                $allQ = StockMovement::where('item_type', $tipe);
+                if ($from) { 
+                    $allQ->whereDate('tanggal', '>=', $from); 
+                }
+                if ($to) {   
+                    $allQ->whereDate('tanggal', '<=', $to); 
+                }
+                
+                $all = $allQ->get();
+                
+                // Hitung saldo per item dari awal sampai periode yang dipilih
+                foreach ($all as $m) {
+                    $sign = $m->direction === 'in' ? 1 : -1;
+                    $saldoPerItem[$m->item_id] = ($saldoPerItem[$m->item_id] ?? 0) + ($sign * (float)$m->qty);
+                }
+                
+                // Jika tidak ada filter tanggal, gunakan stok dari stock movements (real-time)
+                if (!$from && !$to) {
+                    // Calculate stock from movements for real-time accuracy
+                    if ($tipe == 'material') {
+                        foreach ($materials as $m) {
+                            $stockIn = StockMovement::where('item_type', 'bahan_baku')
+                                ->where('item_id', $m->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'bahan_baku')
+                                ->where('item_id', $m->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$m->id] = $stockIn - $stockOut;
+                        }
+                    } elseif ($tipe == 'product') {
+                        foreach ($products as $p) {
+                            $stockIn = StockMovement::where('item_type', 'product')
+                                ->where('item_id', $p->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'product')
+                                ->where('item_id', $p->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$p->id] = $stockIn - $stockOut;
+                            
+                            // Also update the master data for consistency
+                            $p->stok = $stockIn - $stockOut;
+                            $p->save();
+                        }
+                    } elseif ($tipe == 'bahan_pendukung') {
+                        foreach ($bahanPendukungs as $bp) {
+                            $stockIn = StockMovement::where('item_type', 'bahan_pendukung')
+                                ->where('item_id', $bp->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'bahan_pendukung')
+                                ->where('item_id', $bp->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$bp->id] = $stockIn - $stockOut;
+                        }
+                    }
+                }
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in stok method: ' . $e->getMessage());
+            session()->flash('error', 'Terjadi kesalahan saat memuat data stok: ' . $e->getMessage());
+            
+            // Initialize variables for error case
+            $dailyStock = [];
+        }
+
+        return view('laporan.stok.index', compact(
+            'tipe', 
+            'from', 
+            'to', 
+            'itemId', 
+            'movements', 
+            'materials', 
+            'products', 
+            'bahanPendukungs',
+            'saldoAwalQty', 
+            'saldoAwalNilai', 
+            'running',
+            'dailyStock',
+            'conversionData',
+            'item',
+            'availableSatuans'
+        ))->with('debug_info', [
+            'total_movements' => $movements->count(),
+            'daily_stock_count' => count($dailyStock),
+            'has_manual_conversion' => isset($manualConversion) && $manualConversion ? 'Yes' : 'No',
+            'sample_movement' => $movements->first() ? [
+                'qty' => $movements->first()->qty,
+                'total_cost' => $movements->first()->total_cost,
+                'ref_type' => $movements->first()->ref_type
+            ] : null,
+            'potong_conversion_factor' => $availableSatuans ? collect($availableSatuans)->where('nama', 'Potong')->first()['conversion_to_primary'] ?? 'not found' : 'no satuans'
+        ]);
+    }
+    
+    public function exportStok(Request $request)
+    {
+        // Check if item is selected
+        if (!$request->has('item_id') || !$request->item_id) {
+            return redirect()->back()->with('error', 'Silakan pilih item terlebih dahulu untuk export PDF.');
+        }
+
+        $tipe = $request->get('tipe', 'material');
+        $itemId = $request->item_id;
+        $satuanId = $request->satuan_id;
+
+        // Get selected item data
+        $selectedItem = null;
+        $itemName = '';
+        
+        if($tipe == 'material') {
+            $selectedItem = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+                ->find($itemId);
+            $itemName = $selectedItem->nama_bahan ?? 'Item';
+        } elseif($tipe == 'product') {
+            $selectedItem = Produk::with('satuan')->find($itemId);
+            $itemName = $selectedItem->nama_produk ?? 'Item';
+        } elseif($tipe == 'bahan_pendukung') {
+            $selectedItem = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+                ->find($itemId);
+            $itemName = $selectedItem->nama_bahan ?? 'Item';
+        }
+
+        if (!$selectedItem) {
+            return redirect()->back()->with('error', 'Item yang dipilih tidak ditemukan.');
+        }
+
+        // Get available units for this item using CORRECT conversion ratios
+        $units = [];
+        if($selectedItem) {
+            if($tipe == 'material') {
+                $units = [
+                    ['id' => $selectedItem->satuan->id, 'name' => $selectedItem->satuan->nama, 'is_primary' => true, 'conversion' => 1]
+                ];
+                if($selectedItem->subSatuan1) {
+                    $units[] = ['id' => $selectedItem->subSatuan1->id, 'name' => $selectedItem->subSatuan1->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_1_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan2) {
+                    $units[] = ['id' => $selectedItem->subSatuan2->id, 'name' => $selectedItem->subSatuan2->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_2_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan3) {
+                    $units[] = ['id' => $selectedItem->subSatuan3->id, 'name' => $selectedItem->subSatuan3->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_3_nilai ?? 1];
+                }
+            } elseif($tipe == 'product') {
+                $units = [
+                    ['id' => $selectedItem->satuan->id, 'name' => $selectedItem->satuan->nama, 'is_primary' => true, 'conversion' => 1]
+                ];
+            } elseif($tipe == 'bahan_pendukung') {
+                $units = [
+                    ['id' => $selectedItem->satuanRelation->id, 'name' => $selectedItem->satuanRelation->nama, 'is_primary' => true, 'conversion' => 1]
+                ];
+                if($selectedItem->subSatuan1) {
+                    $units[] = ['id' => $selectedItem->subSatuan1->id, 'name' => $selectedItem->subSatuan1->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_1_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan2) {
+                    $units[] = ['id' => $selectedItem->subSatuan2->id, 'name' => $selectedItem->subSatuan2->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_2_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan3) {
+                    $units[] = ['id' => $selectedItem->subSatuan3->id, 'name' => $selectedItem->subSatuan3->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_3_nilai ?? 1];
+                }
+            }
+        }
+
+        // Filter by selected unit if specified
+        $selectedUnit = $satuanId;
+        $showAllUnits = empty($selectedUnit);
+
+        // Get stock movements for selected item - SIMPLIFIED VERSION
+        $stockData = [];
+        foreach($units as $unit) {
+            if($showAllUnits || $selectedUnit == $unit['id']) {
+                // Get actual stock movements from database
+                $itemType = $tipe == 'bahan_pendukung' ? 'support' : $tipe;
+                $movements = \App\Models\StockMovement::where('item_type', $itemType)
+                    ->where('item_id', $itemId)
+                    ->whereNotIn('ref_type', ['manual_adjustment', 'adjustment']) // Exclude adjustment entries
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+                
+                $dailyStock = [];
+                $runningQty = 0;
+                $runningValue = 0;
+                
+                foreach($movements as $movement) {
+                    // Calculate running balance
+                    if($movement->direction === 'in') {
+                        $runningQty += $movement->qty;
+                        $runningValue += $movement->total_cost ?? 0;
+                    } else {
+                        $runningQty -= $movement->qty;
+                        $runningValue -= $movement->total_cost ?? 0;
+                    }
+                    
+                    // Convert to selected unit
+                    $convertedQty = $runningQty * $unit['conversion'];
+                    $unitPrice = $runningQty > 0 ? $runningValue / $runningQty : 0;
+                    $convertedPrice = $unit['conversion'] > 0 ? $unitPrice / $unit['conversion'] : $unitPrice;
+                    
+                    // Determine transaction type and amounts
+                    $saldoAwalQty = 0;
+                    $saldoAwalHarga = 0;
+                    $saldoAwalTotal = 0;
+                    $pembelianQty = 0;
+                    $pembelianHarga = 0;
+                    $pembelianTotal = 0;
+                    $produksiQty = 0;
+                    $produksiHarga = 0;
+                    $produksiTotal = 0;
+                    
+                    if($movement->ref_type === 'initial_stock') {
+                        $saldoAwalQty = $movement->qty * $unit['conversion'];
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $saldoAwalHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $saldoAwalTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
+                    } elseif($movement->ref_type === 'purchase' && $movement->direction === 'in') {
+                        $pembelianQty = $movement->qty * $unit['conversion'];
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
+                    } elseif((str_contains($movement->ref_type, 'retur') || $movement->ref_type === 'retur_tukar_kirim') && $movement->direction === 'out') {
+                        // RETUR PEMBELIAN - tampilkan di kolom pembelian dengan tanda minus
+                        // ONLY for actual retur pembelian, not production movements
+                        if ($movement->ref_type === 'retur' || $movement->ref_type === 'retur_tukar_kirim' || $movement->ref_type === 'return') {
+                            $pembelianQty = -($movement->qty * $unit['conversion']); // Negatif untuk retur
+                            // Use item's harga_satuan as fallback when movement unit_cost is 0
+                            $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                            $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                            $pembelianTotal = $movement->total_cost > 0 ? -($movement->total_cost) : -($movement->qty * $unitCost); // Negatif untuk retur
+                            
+                            \Log::info('RETUR KELUAR DETECTED', [
+                                'ref_type' => $movement->ref_type,
+                                'qty' => $movement->qty,
+                                'pembelian_qty' => $pembelianQty,
+                                'unit_name' => $unit['name']
+                            ]);
+                        }
+                    } elseif($movement->ref_type === 'retur_tukar_terima' && $movement->direction === 'in') {
+                        // RETUR BARANG MASUK - tampilkan di kolom pembelian dengan tanda plus
+                        $pembelianQty = $movement->qty * $unit['conversion']; // Positif untuk retur masuk
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost); // Positif untuk retur masuk
+                        
+                        \Log::info('RETUR MASUK DETECTED', [
+                            'ref_type' => $movement->ref_type,
+                            'qty' => $movement->qty,
+                            'pembelian_qty' => $pembelianQty,
+                            'unit_name' => $unit['name']
+                        ]);
+                    } elseif($movement->ref_type === 'production' && $movement->direction === 'out') {
+                        $produksiQty = $movement->qty * $unit['conversion'];
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $produksiHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $produksiTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
+                    }
+                    
+                    $dailyStock[] = [
+                        'tanggal' => \Carbon\Carbon::parse($movement->tanggal)->format('d/m/Y'),
+                        'ref_type' => $movement->ref_type,
+                        'saldo_awal_qty' => $saldoAwalQty,
+                        'saldo_awal_harga' => $saldoAwalHarga,
+                        'saldo_awal_total' => $saldoAwalTotal,
+                        'pembelian_qty' => $pembelianQty,
+                        'pembelian_harga' => $pembelianHarga,
+                        'pembelian_total' => $pembelianTotal,
+                        'penjualan_qty' => 0, // For now, focus on materials
+                        'penjualan_harga' => 0,
+                        'penjualan_total' => 0,
+                        'produksi_qty' => $produksiQty,
+                        'produksi_harga' => $produksiHarga,
+                        'produksi_total' => $produksiTotal,
+                        'saldo_akhir_qty' => $convertedQty,
+                        'saldo_akhir_harga' => $convertedPrice,
+                        'saldo_akhir_total' => $runningValue,
+                    ];
+                }
+                
+                // If no movements, show current stock as initial
+                if(empty($dailyStock)) {
+                    $currentQty = $selectedItem->saldo_awal ?? 0;
+                    $currentPrice = $selectedItem->harga_satuan ?? 0;
+                    $convertedQty = $currentQty * $unit['conversion'];
+                    $convertedPrice = $unit['conversion'] > 0 ? $currentPrice / $unit['conversion'] : $currentPrice;
+                    
+                    $dailyStock = [[
+                        'tanggal' => '01/04/2026',
+                        'ref_type' => 'initial_stock',
+                        'saldo_awal_qty' => $convertedQty,
+                        'saldo_awal_harga' => $convertedPrice,
+                        'saldo_awal_total' => $currentQty * $currentPrice,
+                        'pembelian_qty' => 0,
+                        'pembelian_harga' => 0,
+                        'pembelian_total' => 0,
+                        'penjualan_qty' => 0,
+                        'penjualan_harga' => 0,
+                        'penjualan_total' => 0,
+                        'produksi_qty' => 0,
+                        'produksi_harga' => 0,
+                        'produksi_total' => 0,
+                        'saldo_akhir_qty' => $convertedQty,
+                        'saldo_akhir_harga' => $convertedPrice,
+                        'saldo_akhir_total' => $currentQty * $currentPrice,
+                    ]];
+                }
+                
+                $stockData[] = [
+                    'unit' => $unit,
+                    'itemName' => $itemName,
+                    'dailyStock' => $dailyStock
+                ];
+            }
+        }
+
+        // Calculate summary for selected item
+        $totalMovements = \App\Models\StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+            ->where('item_id', $itemId)
+            ->count();
+            
+        $summary = [
+            'item_name' => $itemName,
+            'item_type' => $tipe,
+            'total_units' => count($stockData),
+            'total_movements' => $totalMovements
+        ];
+
+        $pdf = PDF::loadView('laporan.stok.export-single', compact(
+            'stockData',
+            'selectedItem',
+            'summary'
+        ));
+        
+        return $pdf->download('laporan-stok-' . str_replace(' ', '-', strtolower($itemName)) . '-' . date('Y-m-d') . '.pdf');
+    }
+    
+    // === EKSPOR LAPORAN PEMBELIAN ===
+    public function exportPembelian(Request $request)
+    {
+        $query = $this->getPembelianQuery($request);
+        $pembelian = $query->get();
+        $total = $pembelian->sum('total');
+        
+        $filename = 'laporan-pembelian-' . now()->format('Y-m-d') . '.xlsx';
+        
+        return response()->streamDownload(function() use ($pembelian, $total) {
+            $handle = fopen('php://output', 'w');
+            
+            // Header
+            fputcsv($handle, [
+                'No', 'No. Transaksi', 'Tanggal', 'Vendor', 
+                'Metode Pembayaran', 'Keterangan', 'Total (Rp)'
+            ]);
+            
+            // Data
+            foreach ($pembelian as $index => $item) {
+                // Format payment method
+                $paymentMethodText = '';
+                switch($item->payment_method) {
+                    case 'cash':
+                        $paymentMethodText = 'Tunai';
+                        break;
+                    case 'transfer':
+                        $paymentMethodText = 'Transfer';
+                        break;
+                    case 'credit':
+                        $paymentMethodText = 'Kredit';
+                        break;
+                    default:
+                        $paymentMethodText = ucfirst($item->payment_method ?? 'Tunai');
+                }
+                
+                fputcsv($handle, [
+                    $index + 1,
+                    $item->no_pembelian,
+                    $item->tanggal->format('d/m/Y'),
+                    $item->vendor->nama_vendor ?? '-',
+                    $paymentMethodText,
+                    $item->keterangan ?? '-',
+                    number_format($item->total, 0, ',', '.')
+                ]);
+            }
+            
+            // Total
+            fputcsv($handle, ['', '', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
+            
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+    
+    // === EKSPOR LAPORAN PENJUALAN ===
+    public function exportPenjualan(Request $request)
+    {
+        $query = $this->getPenjualanQuery($request);
+        $penjualan = $query->get();
+        $total = $penjualan->sum('total');
+        
+        // Calculate totals for summary
+        $totalPenjualanFiltered = $total;
+        $totalPenjualanTunai = $penjualan->where('payment_method', 'cash')->sum('total');
+        $totalPenjualanKredit = $penjualan->where('payment_method', 'credit')->sum('total');
+        
+        $filename = 'laporan-penjualan-' . now()->format('Y-m-d') . '.pdf';
+        
+        $data = [
+            'penjualan' => $penjualan,
+            'totalPenjualanFiltered' => $totalPenjualanFiltered,
+            'totalPenjualanTunai' => $totalPenjualanTunai,
+            'totalPenjualanKredit' => $totalPenjualanKredit,
+            'startDate' => $request->start_date,
+            'endDate' => $request->end_date,
+            'paymentMethod' => $request->payment_method,
+        ];
+        
+        $pdf = PDF::loadView('laporan.penjualan.export-pdf', $data);
+        
+        return $pdf->download($filename);
+    }
+    
+    // Helper method untuk query pembelian
+    private function getPembelianQuery(Request $request)
+    {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuanRelation'])
+            ->where('user_id', auth()->id())
+            ->orderBy('tanggal', 'desc');
+            
+        // Filter berdasarkan tanggal
+        if ($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date) {
+            $query->whereBetween('tanggal', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        }
+        
+        // Filter berdasarkan vendor
+        if ($request->has('vendor_id') && $request->vendor_id) {
+            $query->where('vendor_id', $request->vendor_id);
+        }
+        
+        return $query;
+    }
+
+    // === LAPORAN PENJUALAN ===
+    public function penjualan(Request $request)
+    {
+        $query = $this->getPenjualanQuery($request);
+        
+        // Get all data for calculation
+        $allPenjualan = $query->get();
+        
+        // Calculate totals properly
+        $totalPenjualan = $allPenjualan->sum(function($p) {
+            $total = $p->total ?? 0;
+            // Jika total = 0, hitung dari details
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        $totalTransaksi = $allPenjualan->count();
+        
+        // Calculate additional statistics for the summary boxes
+        
+        // Total penjualan (sesuai filter tanggal)
+        $totalPenjualanFiltered = $totalPenjualan; // Sudah sesuai filter dari query utama
+        
+        // Total penjualan tunai (cash) - sesuai filter tanggal
+        $penjualanTunai = Penjualan::with(['details'])
+            ->where('payment_method', 'cash')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->get();
+            
+        $totalPenjualanTunai = $penjualanTunai->sum(function($p) {
+            $total = $p->total ?? 0;
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        // Total penjualan kredit - sesuai filter tanggal
+        $penjualanKredit = Penjualan::with(['details'])
+            ->where('payment_method', 'credit')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->get();
+            
+        $totalPenjualanKredit = $penjualanKredit->sum(function($p) {
+            $total = $p->total ?? 0;
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        $penjualan = $query->paginate(15);
+
+        // Get data retur penjualan untuk tab retur
+        try {
+            $returPenjualans = \App\Models\ReturPenjualan::with(['penjualan', 'pelanggan', 'detailReturPenjualans.produk'])
+                ->when($request->tanggal_mulai && $request->tanggal_selesai, function($q) use ($request) {
+                    return $q->whereBetween('tanggal', [$request->tanggal_mulai, $request->tanggal_selesai]);
+                })
+                ->when($request->status, function($q) use ($request) {
+                    return $q->where('status', $request->status);
+                })
+                ->orderBy('tanggal', 'desc')
+                ->get();
+        } catch (\Exception $e) {
+            // If there's an error, create empty collection
+            $returPenjualans = collect([]);
+            \Log::error('Error loading retur penjualans: ' . $e->getMessage());
+        }
+
+        // Debug: Log the count of return data
+        \Log::info('Retur Penjualan Count: ' . $returPenjualans->count());
+
+
+
+        return view('laporan.penjualan.index', compact(
+            'penjualan', 
+            'totalPenjualan', 
+            'totalTransaksi',
+            'totalPenjualanFiltered',
+            'totalPenjualanTunai',
+            'totalPenjualanKredit',
+            'returPenjualans'
+        ));
+    }
+    
+    // Helper method untuk query penjualan
+    private function getPenjualanQuery(Request $request)
+    {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Penjualan::with(['produk','details','returs'])
+            ->where('user_id', auth()->id())
+            ->orderBy('tanggal', 'desc')->orderBy('id', 'desc');
+            
+        // Filter berdasarkan tanggal
+        if ($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date) {
+            $query->whereBetween('tanggal', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        }
+        
+        // Filter berdasarkan payment method
+        if ($request->has('payment_method') && $request->payment_method) {
+            $query->where('payment_method', $request->payment_method);
+        }
+        
+        return $query;
+    }
+
+    // === LAPORAN RETUR (Purchase Returns Only) ===
+    public function laporanRetur(Request $request)
+    {
+        // Filter untuk Retur Pembelian saja (sales returns sudah dipindah ke laporan penjualan)
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
+            ->where('user_id', auth()->id())
+            ->where('type', 'purchase')
+            ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
+                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
+            })
+            ->when($request->purchase_status, function($q) use ($request) {
+                return $q->where('status', $request->purchase_status);
+            })
+            ->orderBy('return_date', 'asc');
+
+        // Get data
+        $purchaseReturns = $purchaseReturnQuery->paginate(15);
+
+        // Calculate totals
+        $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
+            return $retur->total_with_ppn ?? 0;
+        });
+
+        return view('laporan.retur.index', compact(
+            'purchaseReturns', 
+            'totalPurchaseReturns'
+        ));
+    }
+
+    // === LAPORAN PENGAJIAN ===
+    public function laporanPenggajian(Request $request)
+    {
+        // MULTI-TENANT: Filter by user_id
+        $query = \App\Models\Penggajian::with(['pegawai'])
+            ->where('user_id', auth()->id())
+            ->when($request->bulan, function($q) use ($request) {
+                $bulan = \Carbon\Carbon::parse($request->bulan);
+                return $q->whereYear('tanggal_penggajian', $bulan->year)
+                       ->whereMonth('tanggal_penggajian', $bulan->month);
+            })
+            ->latest('tanggal_penggajian');
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $penggajians = $query->get();
+            $total = $penggajians->sum('total_gaji');
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.penggajian.pdf', compact('penggajians', 'total'));
+            return $pdf->download('laporan-penggajian-' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        $penggajians = $query->get();
+        $total = $penggajians->sum('total_gaji');
+
+        return view('laporan.penggajian.index', compact('penggajians', 'total'));
+    }
+
+    // === LAPORAN PEMBAYARAN BEBAN ===
+    public function laporanPembayaranBeban(Request $request)
+    {
+        // Get the selected period or default to current month
+        $selectedMonth = $request->bulan ? \Carbon\Carbon::parse($request->bulan) : now();
+        
+        // MULTI-TENANT: Get all pembayaran beban for logged-in user in selected period using direct query
+        $pembayaranQuery = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas'])
+            ->where('user_id', auth()->id())
+            ->whereYear('tanggal', $selectedMonth->year)
+            ->whereMonth('tanggal', $selectedMonth->month);
+        
+        $pembayaranBeban = $pembayaranQuery->get();
+        
+        // Build the Budget vs Actual data
+        $laporanData = collect([]);
+        $totalBudget = 0;
+        $totalAktual = 0;
+        $totalSelisih = 0;
+        
+        // Group by beban operasional or COA for reporting
+        $groupedPembayaran = $pembayaranBeban->groupBy(function($item) {
+            return $item->beban_operasional_id ? 'beban_' . $item->beban_operasional_id : 'coa_' . $item->akun_beban_id;
+        });
+        
+        foreach ($groupedPembayaran as $groupKey => $pembayaranGroup) {
+            $totalAmount = $pembayaranGroup->sum('jumlah');
+            $firstItem = $pembayaranGroup->first();
+            
+            $namaBeban = 'Unknown';
+            $kategori = 'Uncategorized';
+            $budget = 0;
+            
+            if ($firstItem->beban_operasional_id) {
+                // Use direct query to get beban operasional data (avoid Eloquent relationship issues)
+                $bebanOperasional = \App\Models\BebanOperasional::find($firstItem->beban_operasional_id);
+                
+                if ($bebanOperasional && $bebanOperasional->created_by == auth()->id()) {
+                    $namaBeban = $bebanOperasional->nama_beban;
+                    $kategori = $bebanOperasional->kategori;
+                    $budget = $bebanOperasional->budget_bulanan ?? 0;
+                } else {
+                    // If beban operasional belongs to different user or not found, treat as direct expense
+                    $namaBeban = $firstItem->coaBeban ? $firstItem->coaBeban->nama_akun : 'Unknown';
+                    $kategori = 'Direct Expense (Cross-User)';
+                    $budget = 0;
+                }
+            } elseif ($firstItem->coaBeban) {
+                // If only linked to COA
+                $namaBeban = $firstItem->coaBeban->nama_akun;
+                $kategori = 'Direct Expense';
+                $budget = 0; // No budget if not linked to beban operasional
+            }
+            
+            $selisih = $budget - $totalAmount;
+            $status = $totalAmount > $budget ? 'Over Budget' : 'Aman';
+            
+            $laporanData->push((object) [
+                'id' => $firstItem->id,
+                'kategori' => $kategori,
+                'nama_beban' => $namaBeban,
+                'budget_bulanan' => $budget,
+                'aktual_bulan_ini' => $totalAmount,
+                'selisih' => $selisih,
+                'status' => $status,
+                'status_color' => $totalAmount > $budget ? 'danger' : 'success',
+                'keterangan' => $firstItem->keterangan,
+            ]);
+            
+            $totalBudget += $budget;
+            $totalAktual += $totalAmount;
+            $totalSelisih += $selisih;
+        }
+        
+        // Sort by kategori then nama_beban
+        $laporanData = $laporanData->sortBy(['kategori', 'nama_beban'])->values();
+        
+        // Summary data
+        $summary = (object) [
+            'total_budget' => $totalBudget,
+            'total_aktual' => $totalAktual,
+            'total_selisih' => $totalSelisih,
+            'overall_status' => $totalAktual > $totalBudget ? 'Over Budget' : 'Aman',
+            'overall_status_color' => $totalAktual > $totalBudget ? 'danger' : 'success',
+        ];
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pembayaran-beban.pdf', compact(
+                'laporanData', 
+                'summary', 
+                'selectedMonth'
+            ));
+            return $pdf->download('laporan-pembayaran-beban-' . $selectedMonth->format('Y-m') . '.pdf');
+        }
+
+        return view('laporan.pembayaran-beban.index', compact(
+            'laporanData', 
+            'summary', 
+            'selectedMonth'
+        ));
+    }
+
+    // === LAPORAN PELUNASAN UTANG ===
+    public function laporanPelunasanUtang(Request $request)
+    {
+        // MULTI-TENANT: Query untuk daftar pembelian kredit yang belum lunas
+        $pembelianBelumLunas = \App\Models\Pembelian::with(['vendor', 'details.bahanBaku'])
+            ->where('user_id', auth()->id())
+            ->where('payment_method', 'credit')
+            ->where('status', '!=', 'lunas')
+            ->orderBy('tanggal', 'desc')
+            ->get()
+            ->map(function($pembelian) {
+                // Ambil total dari field total_harga
+                $total = $pembelian->total_harga ?? 0;
+                
+                // Jika total 0, hitung dari detail pembelian
+                if ($total == 0 && $pembelian->details->count() > 0) {
+                    $total = $pembelian->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
+                
+                // Ambil terbayar dari field terbayar
+                $terbayar = $pembelian->terbayar ?? 0;
+                
+                // Hitung sisa utang
+                $sisa = max(0, $total - $terbayar);
+                
+                // Format daftar item dengan bullet points
+                $pembelian->items = $pembelian->details->map(function($detail) {
+                    if ($detail->bahanBaku) {
+                        $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                        return sprintf(
+                            '• %s (%s %s) - Rp %s = Rp %s',
+                            $detail->bahanBaku->nama_bahan,
+                            number_format($detail->jumlah, 0, ',', '.'),
+                            $detail->bahanBaku->satuan ?? 'unit',
+                            number_format($detail->harga_satuan, 0, ',', '.'),
+                            number_format($subtotal, 0, ',', '.')
+                        );
+                    }
+                    return '';
+                })->filter()->toArray();
+                
+                // Gabungkan semua item dengan newline
+                $pembelian->items_formatted = implode("\n", $pembelian->items);
+                
+                // Simpan nilai numerik untuk perhitungan
+                $pembelian->total_numerik = $total;
+                $pembelian->terbayar_numerik = $terbayar;
+                $pembelian->sisa_utang_numerik = $sisa;
+                
+                // Format untuk tampilan
+                $pembelian->total_tagihan = 'Rp ' . number_format($total, 0, ',', '.');
+                $pembelian->terbayar = 'Rp ' . number_format($terbayar, 0, ',', '.');
+                $pembelian->sisa_utang = 'Rp ' . number_format($sisa, 0, ',', '.');
+                
+                return $pembelian;
+            })
+            ->filter(function($pembelian) {
+                // Hanya tampilkan yang masih ada sisa utang
+                return $pembelian->sisa_utang_numerik > 0;
+            });
+
+        // MULTI-TENANT: Query untuk riwayat pelunasan - FIXED query
+        $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
+            ->where('user_id', auth()->id())
+            ->when($request->bulan, function($q) use ($request) {
+                $bulan = \Carbon\Carbon::parse($request->bulan);
+                return $q->whereYear('tanggal', $bulan->year)
+                       ->whereMonth('tanggal', $bulan->month);
+            })
+            ->orderBy('tanggal', 'desc');
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $pelunasanUtang = $query->get()->map(function($item) {
+                // Add calculated fields for display
+                $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+                $item->dibayar_bersih = $item->jumlah;
+                return $item;
+            });
+            
+            $total = $pelunasanUtang->sum('dibayar_bersih');
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.pdf', [
+                'pelunasanUtang' => $pelunasanUtang,
+                'pembelianBelumLunas' => $pembelianBelumLunas,
+                'total' => $total
+            ]);
+            return $pdf->download('laporan-pelunasan-utang-' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        $pelunasanUtang = $query->paginate(15);
+        
+        // Add calculated fields for each item
+        $pelunasanUtang->getCollection()->transform(function($item) {
+            $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+            $item->dibayar_bersih = $item->jumlah;
+            return $item;
+        });
+        
+        $total = $pelunasanUtang->sum('jumlah'); // Sum of displayed payments
+
+        return view('laporan.pelunasan-utang.index', [
+            'pelunasanUtang' => $pelunasanUtang,
+            'pembelianBelumLunas' => $pembelianBelumLunas,
+            'total' => $total
+        ]);
+    }
+
+    // === LAPORAN ALIRAN KAS DAN BANK ===
+    public function laporanAliranKas(Request $request)
+    {
+        // MULTI-TENANT: Ambil saldo awal kas dan bank dari COA (filtered by user_id)
+        $kas = \App\Models\Coa::where('kode_akun', '112')
+                ->where('user_id', auth()->id())
+                ->first(); // Kas
+        $bank = \App\Models\Coa::where('kode_akun', '111')
+                ->where('user_id', auth()->id())
+                ->first(); // Kas Bank
+        
+        $saldoAwalKas = $kas->saldo_awal ?? 0;
+        $saldoAwalBank = $bank->saldo_awal ?? 0;
+        
+        // Filter tanggal
+        $startDate = $request->start_date ?? now()->startOfMonth()->format('Y-m-d');
+        $endDate = $request->end_date ?? now()->endOfMonth()->format('Y-m-d');
+        
+        // Ambil semua transaksi dalam periode
+        $transaksi = collect();
+        
+        // 1. Pendapatan dari Penjualan (Uang Masuk) - Gunakan journal entries untuk konsistensi
+        $penjualanJournalEntries = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->join('coas', 'journal_lines.coa_id', '=', 'coas.id')
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->where('journal_lines.debit', '>', 0)
+            ->whereIn('coas.kode_akun', ['111', '112']) // Kas Bank (111) dan Kas (112)
+            ->where('journal_entries.ref_type', 'sale')
+            ->get()
+            ->map(function($jl) {
+                $keterangan = 'Penjualan Produk';
+                if ($jl->ref_id) {
+                    $penjualan = \App\Models\Penjualan::find($jl->ref_id);
+                    if ($penjualan) {
+                        $keterangan .= ' - ' . ($penjualan->nomor_surat_jalan ?? 'SJ-' . date('Ymd', strtotime($jl->tanggal)) . '-' . str_pad($penjualan->id, 3, '0', STR_PAD_LEFT));
+                    }
+                }
+                
+                return [
+                    'tanggal' => $jl->tanggal,
+                    'keterangan' => $keterangan,
+                    'uang_masuk' => $jl->debit,
+                    'uang_keluar' => 0,
+                    'jenis' => $jl->kode_akun == '112' ? 'kas' : 'bank'
+                ];
+            });
+        
+        // 2. Pembayaran Beban (Uang Keluar)
+        $bebans = \App\Models\ExpensePayment::whereBetween('tanggal', [$startDate, $endDate])
+            ->with('coa')
+            ->get()
+            ->map(function($b) {
+                return [
+                    'tanggal' => $b->tanggal,
+                    'keterangan' => 'Pembayaran Beban - ' . ($b->coa->nama_akun ?? 'Beban'),
+                    'uang_masuk' => 0,
+                    'uang_keluar' => $b->jumlah ?? 0,
+                    'jenis' => 'kas'
+                ];
+            });
+        
+        // 3. Pelunasan Utang (Uang Keluar)
+        $pelunasans = \App\Models\ApSettlement::whereBetween('tanggal', [$startDate, $endDate])
+            ->with('pembelian.vendor')
+            ->get()
+            ->map(function($p) {
+                return [
+                    'tanggal' => $p->tanggal,
+                    'keterangan' => 'Pelunasan Utang - ' . ($p->pembelian->vendor->nama ?? 'Vendor'),
+                    'uang_masuk' => 0,
+                    'uang_keluar' => $p->dibayar_bersih ?? 0,
+                    'jenis' => $p->coa_kasbank == '102' ? 'bank' : 'kas'
+                ];
+            });
+        
+        // 4. Penggajian (Uang Keluar)
+        $penggajians = \App\Models\Penggajian::whereBetween('periode', [$startDate, $endDate])
+            ->with('pegawai')
+            ->get()
+            ->map(function($g) {
+                return [
+                    'tanggal' => $g->periode,
+                    'keterangan' => 'Penggajian - ' . ($g->pegawai->nama ?? 'Pegawai'),
+                    'uang_masuk' => 0,
+                    'uang_keluar' => $g->total_gaji ?? 0,
+                    'jenis' => 'kas'
+                ];
+            });
+        
+        // Gabungkan semua transaksi
+        $transaksi = $transaksi->concat($penjualanJournalEntries)
+            ->concat($bebans)
+            ->concat($pelunasans)
+            ->concat($penggajians)
+            ->sortBy('tanggal')
+            ->values();
+        
+        // Hitung total
+        $totalMasuk = $transaksi->sum('uang_masuk');
+        $totalKeluar = $transaksi->sum('uang_keluar');
+        $saldoAkhir = $saldoAwalKas + $saldoAwalBank + $totalMasuk - $totalKeluar;
+        
+        return view('laporan.aliran-kas.index', compact(
+            'transaksi', 
+            'saldoAwalKas', 
+            'saldoAwalBank', 
+            'totalMasuk', 
+            'totalKeluar', 
+            'saldoAkhir',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+
+
+    // === INVOICE PEMBELIAN (PRINTABLE) ===
+    public function invoicePembelian($id)
+    {
+        $pembelian = PembelianModel::with(['vendor', 'details.bahanBaku'])->findOrFail($id);
+        return view('laporan.pembelian.invoice', compact('pembelian'));
+    }
+
+    // === INVOICE PENJUALAN (PRINTABLE) ===
+    public function invoicePenjualan($id)
+    {
+        $penjualan = Penjualan::with(['produk','details.produk'])->findOrFail($id);
+        return view('laporan.penjualan.invoice', compact('penjualan'));
+    }
+
+    // Alias for invoicePenjualan
+    public function invoice($id)
+    {
+        return $this->invoicePenjualan($id);
+    }
+
+    /**
+     * Get item with proper relationships loaded consistently
+     * 
+     * @param string $tipe
+     * @param int $itemId
+     * @return mixed
+     */
+    private function getItemWithConversions($tipe, $itemId)
+    {
+        switch ($tipe) {
+            case 'material':
+                return BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            case 'product':
+                return Produk::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            case 'bahan_pendukung':
+                return \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Get available satuans with consistent conversion logic
+     * ALWAYS uses sub_satuan_X_konversi fields (not nilai fields)
+     * 
+     * @param mixed $item
+     * @param string $tipe
+     * @return array
+     */
+    private function getAvailableSatuans($item, $tipe)
+    {
+        if (!$item) {
+            return [];
+        }
+
+        $availableSatuans = [];
+        
+        // Get main satuan
+        $mainSatuan = ($tipe == 'bahan_pendukung') ? $item->satuanRelation : $item->satuan;
+        
+        if ($mainSatuan) {
+            // Add primary unit
+            $availableSatuans[] = [
+                'id' => $mainSatuan->id,
+                'nama' => $mainSatuan->nama,
+                'is_primary' => true,
+                'conversion_to_primary' => 1.0
+            ];
+            
+            // Add sub satuan 1 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_1_id && $item->subSatuan1) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 1);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan1->id,
+                        'nama' => $item->subSatuan1->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+            
+            // Add sub satuan 2 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_2_id && $item->subSatuan2) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 2);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan2->id,
+                        'nama' => $item->subSatuan2->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+            
+            // Add sub satuan 3 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_3_id && $item->subSatuan3) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 3);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan3->id,
+                        'nama' => $item->subSatuan3->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+        }
+        
+        return $availableSatuans;
+    }
+
+    /**
+     * Get consistent conversion factor - ensures we always use the right field
+     * Priority: konversi field > nilai field > 1.0 (fallback)
+     * 
+     * @param mixed $item
+     * @param int $subSatuanNumber (1, 2, or 3)
+     * @return float
+     */
+    private function getConsistentConversionFactor($item, $subSatuanNumber)
+    {
+        $konversiField = "sub_satuan_{$subSatuanNumber}_konversi";
+        $nilaiField = "sub_satuan_{$subSatuanNumber}_nilai";
+        
+        // Priority 1: Use konversi field if it has a valid value (> 0)
+        $konversiValue = (float)($item->$konversiField ?? 0);
+        if ($konversiValue > 0) {
+            return $konversiValue;
+        }
+        
+        // Priority 2: Use nilai field if konversi is not set and nilai has valid value
+        $nilaiValue = (float)($item->$nilaiField ?? 0);
+        if ($nilaiValue > 0) {
+            // Auto-sync: Update konversi field with nilai value for future consistency
+            $item->update([$konversiField => $nilaiValue]);
+            return $nilaiValue;
+        }
+        
+        // Priority 3: Fallback to 1.0
+        return 1.0;
+    }
+
+    /**
+     * Ensure conversion consistency for new items
+     * This method should be called when new items are created
+     * 
+     * @param mixed $item
+     * @return void
+     */
+    public static function ensureConversionConsistency($item)
+    {
+        $updated = false;
+        
+        // Check and sync sub_satuan_1
+        if ($item->sub_satuan_1_id && $item->sub_satuan_1_nilai > 0 && $item->sub_satuan_1_konversi <= 0) {
+            $item->sub_satuan_1_konversi = $item->sub_satuan_1_nilai;
+            $updated = true;
+        }
+        
+        // Check and sync sub_satuan_2
+        if ($item->sub_satuan_2_id && $item->sub_satuan_2_nilai > 0 && $item->sub_satuan_2_konversi <= 0) {
+            $item->sub_satuan_2_konversi = $item->sub_satuan_2_nilai;
+            $updated = true;
+        }
+        
+        // Check and sync sub_satuan_3
+        if ($item->sub_satuan_3_id && $item->sub_satuan_3_nilai > 0 && $item->sub_satuan_3_konversi <= 0) {
+            $item->sub_satuan_3_konversi = $item->sub_satuan_3_nilai;
+            $updated = true;
+        }
+        
+        if ($updated) {
+            $item->save();
+        }
+    }
+}

@@ -1,0 +1,188 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Events\UserRegistered;
+use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+
+class RegisterController extends Controller
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Register Controller
+    |--------------------------------------------------------------------------
+    |
+    | This controller handles the registration of new users as well as their
+    | validation and creation. By default this controller uses a trait to
+    | provide this functionality without requiring any additional code.
+    |
+    */
+
+    use RegistersUsers;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('guest');
+    }
+
+    /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function validator(array $data)
+    {
+        // Jika role owner, kita tidak membutuhkan kode_perusahaan sama sekali
+        if (($data['role'] ?? null) === 'owner') {
+            unset($data['kode_perusahaan']);
+        }
+
+        return Validator::make($data, [
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone' => ['required', 'string', 'max:20'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'terms' => ['required', 'accepted'],
+            'role' => ['required', 'in:owner'],
+            'company_nama' => ['required_if:role,owner', 'string', 'max:255'],
+            'company_alamat' => ['required_if:role,owner', 'string'],
+            'company_email' => ['required_if:role,owner', 'email', 'max:255'],
+            'company_telepon' => ['required_if:role,owner', 'string', 'max:20'],
+            'kode_perusahaan' => ['required_if:role,never', 'string', 'exists:perusahaan,kode'],
+        ]);
+    }
+
+    /**
+     * Create a new user instance after a valid registration.
+     *
+     * @param  array  $data
+     * @return \App\Models\User
+     */
+    protected function create(array $data)
+    {
+        $perusahaanId = null;
+
+        // Create user first
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role' => $data['role'] ?? 'owner',
+            'perusahaan_id' => $perusahaanId,
+        ]);
+
+        // Create company if user is owner
+        if (($data['role'] ?? null) === 'owner') {
+            $kode = $this->generateCompanyCode();
+
+            $perusahaanId = DB::table('perusahaan')->insertGetId([
+                'user_id' => $user->id, // CRITICAL: Link company to user for multi-tenant
+                'nama' => $data['company_nama'],
+                'alamat' => $data['company_alamat'],
+                'email' => $data['company_email'],
+                'telepon' => $data['company_telepon'],
+                'kode' => $kode,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            // Update user with perusahaan_id
+            $user->update(['perusahaan_id' => $perusahaanId]);
+        } elseif (in_array($data['role'] ?? null, ['never'], true)) {
+            $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
+            $perusahaanId = $perusahaan?->id;
+        }
+
+        // CRITICAL: Trigger event untuk setup data awal (COA, Satuan, dll)
+        // Event HARUS di-dispatch untuk SETIAP user baru (multi-tenant)
+        // Setiap user perlu COA default, tidak peduli apakah punya perusahaan atau tidak
+        event(new UserRegistered($user, $perusahaanId));
+
+        return $user;
+    }
+
+    protected function generateCompanyCode(): string
+    {
+        return 'PR-' . strtoupper(uniqid());
+    }
+
+    protected function redirectTo()
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return '/dashboard';
+        }
+
+        switch ($user->role) {
+            case 'owner':
+            case 'admin':
+                return '/dashboard';
+            case 'pegawai_pembelian':
+                return route('transaksi.pembelian.index');
+            case 'pelanggan':
+                return route('pelanggan.dashboard');
+            default:
+                return '/dashboard';
+        }
+    }
+
+    /**
+     * Show the customer registration form.
+     */
+    public function showPelangganRegisterForm()
+    {
+        return view('pelanggan.auth.register');
+    }
+
+    /**
+     * Handle a customer registration request.
+     */
+    public function registerPelanggan(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone'    => ['required', 'string', 'max:20'],
+            'address'  => ['nullable', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $user = User::create([
+                'name'     => $request->name,
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+                'role'     => 'pelanggan',
+                'phone'    => $request->phone,
+                'address'  => $request->address,
+                'status'   => 'aktif',
+            ]);
+
+            DB::commit();
+
+            auth()->login($user);
+
+            return redirect()->route('pelanggan.dashboard')
+                ->with('success', 'Registrasi berhasil! Selamat datang.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->with('error', 'Registrasi gagal. Silakan coba lagi.');
+        }
+    }
+}

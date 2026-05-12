@@ -1,0 +1,206 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use App\Scopes\UserScope;
+
+class PembelianDetail extends Model
+{
+    use HasFactory;
+
+    protected $table = 'pembelian_details';
+
+    protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
+        'pembelian_id',
+        'tipe_item',
+        'bahan_baku_id',
+        'bahan_pendukung_id',
+        'jumlah',
+        'satuan',
+        'harga_satuan',
+        'subtotal',
+        'faktor_konversi',
+        'jumlah_satuan_utama',
+        'sub_satuan_id',
+        'sub_satuan_nama',
+        'manual_conversion_factor',
+        'jumlah_sub_satuan',
+        'manual_conversion_data',
+    ];
+
+    /**
+     * Boot method - auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
+        static::creating(function ($model) {
+            // Auto-fill user_id dari pembelian atau auth
+            if (empty($model->user_id)) {
+                if ($model->pembelian_id) {
+                    $pembelian = Pembelian::find($model->pembelian_id);
+                    if ($pembelian) {
+                        $model->user_id = $pembelian->user_id;
+                    }
+                } elseif (auth()->check()) {
+                    $model->user_id = auth()->id();
+                }
+            }
+        });
+    }
+
+    protected $casts = [
+        'jumlah' => 'float',
+        'harga_satuan' => 'float',
+        'subtotal' => 'float',
+        'faktor_konversi' => 'decimal:4',
+        'jumlah_satuan_utama' => 'decimal:4',
+        'manual_conversion_factor' => 'decimal:4',
+        'jumlah_sub_satuan' => 'decimal:4',
+        'manual_conversion_data' => 'json',
+    ];
+
+    protected $appends = ['nama_bahan', 'tipe_bahan', 'satuan_utama', 'satuan_nama'];
+
+    /**
+     * Relasi ke Pembelian
+     */
+    public function pembelian()
+    {
+        return $this->belongsTo(Pembelian::class, 'pembelian_id');
+    }
+
+    /**
+     * Relasi ke BahanBaku
+     */
+    public function bahanBaku()
+    {
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id');
+    }
+
+    /**
+     * Relasi ke BahanPendukung
+     */
+    public function bahanPendukung()
+    {
+        return $this->belongsTo(BahanPendukung::class, 'bahan_pendukung_id');
+    }
+
+    /**
+     * Relasi ke Satuan
+     */
+    public function satuanRelation()
+    {
+        return $this->belongsTo(Satuan::class, 'satuan', 'id');
+    }
+
+    /**
+     * Relasi ke PembelianDetailKonversi
+     */
+    public function konversiManual()
+    {
+        return $this->hasMany(PembelianDetailKonversi::class, 'pembelian_detail_id');
+    }
+
+    /**
+     * Relasi ke konversi tambahan (alias)
+     */
+    public function additionalConversions()
+    {
+        return $this->hasMany(PembelianDetailKonversi::class, 'pembelian_detail_id');
+    }
+
+    /**
+     * Alias untuk bahanBaku (untuk backward compatibility)
+     */
+    public function bahan_baku()
+    {
+        return $this->bahanBaku();
+    }
+    
+    /**
+     * Get nama bahan (bahan baku atau bahan pendukung)
+     */
+    public function getNamaBahanAttribute()
+    {
+        if ($this->bahan_baku_id && $this->bahanBaku) {
+            return $this->bahanBaku->nama_bahan;
+        }
+        if ($this->bahan_pendukung_id && $this->bahanPendukung) {
+            return $this->bahanPendukung->nama_bahan;
+        }
+        return '-';
+    }
+    
+    /**
+     * Get tipe bahan
+     */
+    public function getTipeBahanAttribute()
+    {
+        if ($this->bahan_baku_id) {
+            return 'Bahan Baku';
+        }
+        if ($this->bahan_pendukung_id) {
+            return 'Bahan Pendukung';
+        }
+        return '-';
+    }
+    
+    /**
+     * Get jumlah dalam satuan utama (untuk keperluan stok)
+     * Prioritas: 1. Manual input from DB field, 2. Calculated from faktor_konversi
+     */
+    public function getJumlahSatuanUtamaAttribute()
+    {
+        // Check if the field exists in database and has a value
+        if (isset($this->attributes['jumlah_satuan_utama']) && $this->attributes['jumlah_satuan_utama'] !== null) {
+            return (float) $this->attributes['jumlah_satuan_utama'];
+        }
+        
+        // Fallback to calculated value
+        return $this->jumlah * ($this->faktor_konversi ?? 1);
+    }
+    
+    /**
+     * Get nama satuan pembelian
+     */
+    public function getSatuanNamaAttribute()
+    {
+        // Try to get satuan name from relationship first
+        if ($this->satuanRelation) {
+            return $this->satuanRelation->nama;
+        }
+        
+        // If relationship fails, try to find satuan manually
+        if ($this->satuan) {
+            $satuan = \App\Models\Satuan::find($this->satuan);
+            if ($satuan) {
+                return $satuan->nama;
+            }
+        }
+        
+        // Fallback to raw satuan value or default
+        return $this->satuan ?? 'unit';
+    }
+    
+    /**
+     * Get nama satuan utama
+     */
+    public function getSatuanUtamaAttribute()
+    {
+        if ($this->bahan_baku_id && $this->bahanBaku && $this->bahanBaku->satuan) {
+            return $this->bahanBaku->satuan->nama;
+        }
+        if ($this->bahan_pendukung_id && $this->bahanPendukung && $this->bahanPendukung->satuanRelation) {
+            return $this->bahanPendukung->satuanRelation->nama;
+        }
+        return 'unit';
+    }
+}

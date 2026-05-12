@@ -1,0 +1,247 @@
+@extends('layouts.app')
+
+@section('title', 'Daftar Pegawai')
+
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        <div>
+            <a href="{{ route('master-data.pegawai.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Tambah Pegawai
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-1">
+                <i class="bi bi-people-fill me-2"></i>Daftar Pegawai
+            </h5>
+            
+            <!-- Modern Filter Section -->
+            <form method="GET" action="{{ route('master-data.pegawai.index') }}" class="d-flex align-items-center gap-2" style="margin-left: 30px;">
+                <div class="d-flex shadow-sm" style="border-radius: 20px; overflow: hidden; background: white; min-width: 320px;">
+                    <input type="text" 
+                           name="search" 
+                           value="{{ request('search') }}" 
+                           class="form-control border-0" 
+                           placeholder="Cari pegawai"
+                           style="padding: 8px 15px; background: white; border-radius: 20px 0 0 20px; outline: none; box-shadow: none; font-size: 14px;">
+                    
+                    <select name="jenis" class="form-select border-0" style="padding: 8px 12px; background: white; border-radius: 0 20px 20px 0; outline: none; box-shadow: none; border-left: 1px solid #e0e0e0; font-size: 14px;">
+                        <option value="">Semua Kategori</option>
+                        <option value="btkl" {{ request('jenis') == 'btkl' ? 'selected' : '' }}>BTKL</option>
+                        <option value="btktl" {{ request('jenis') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn shadow-sm" style="border-radius: 20px; padding: 8px 20px; background: #8B7355; color: white; border: none; font-size: 14px;">
+                    <i class="bi bi-search me-1"></i>Cari
+                </button>
+                
+                @if(request('search') || request('jenis'))
+                    <a href="{{ route('master-data.pegawai.index') }}" class="btn btn-outline-secondary" style="border-radius: 20px; padding: 8px 15px; font-size: 14px;">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                    </a>
+                @endif
+            </form>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px">No</th>
+                            <th>Kode</th>
+                            <th>Nama</th>
+                            <th>Jabatan</th>
+                            <th class="text-center">Kategori</th>
+                            <th>Bank</th>
+                            <th>No. Rekening</th>
+                            <th>Nama Rekening</th>
+                            <th>Alamat</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($pegawais as $index => $pegawai)
+                        @php($rowKey = $pegawai->getKey())
+                        <tr>
+                            <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
+                            <td>{{ $pegawai->kode_pegawai }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ $pegawai->nama }}</div>
+                                <small class="text-muted">{{ $pegawai->email }}</small>
+                            </td>
+                            <td>{{ $pegawai->jabatan }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ $pegawai->jenis_pegawai == 'btkl' ? 'primary' : 'success' }}">
+                                    {{ strtoupper($pegawai->jenis_pegawai) }}
+                                </span>
+                            </td>
+                            <td>{{ strtoupper($pegawai->bank ?? '-') }}</td>
+                            <td>{{ $pegawai->nomor_rekening ?? '-' }}</td>
+                            <td>{{ $pegawai->nama_rekening ?? '-' }}</td>
+                            <td><small>{{ $pegawai->alamat ?? '-' }}</small></td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ route('master-data.pegawai.edit', $pegawai) }}"
+                                       class="btn btn-outline-primary"
+                                       data-bs-toggle="tooltip"
+                                       title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('master-data.pegawai.destroy', $pegawai) }}" method="POST" class="d-inline delete-form" data-pegawai-nama="{{ $pegawai->nama }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button"
+                                                class="btn btn-outline-danger delete-btn"
+                                                title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="10" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-people display-6 d-block mb-2"></i>
+                                    Tidak ada data pegawai yang ditemukan.
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card-footer bg-white border-top-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        @if($pegawais->total() > 0)
+                            Menampilkan {{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + 1 }} - 
+                            {{ min($pegawais->currentPage() * $pegawais->perPage(), $pegawais->total()) }} 
+                            dari {{ $pegawais->total() }} data
+                        @else
+                            Tidak ada data yang ditemukan
+                        @endif
+                    </div>
+                    @if($pegawais->hasPages())
+                    <div>
+                        {{ $pegawais->withQueryString()->links() }}
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@push('scripts')
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Inisialisasi tooltip
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Handle delete button dengan SweetAlert2
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const form = this.closest('.delete-form');
+                const pegawaiNama = form.getAttribute('data-pegawai-nama');
+                
+                Swal.fire({
+                    title: 'Konfirmasi Hapus',
+                    html: `Apakah Anda yakin ingin menghapus pegawai:<br><strong>${pegawaiNama}</strong><br><small class="text-muted">Data yang sudah dihapus tidak dapat dikembalikan.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return new Promise((resolve) => {
+                            form.submit();
+                            resolve();
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                });
+            });
+        });
+    });
+    
+    // Auto close alert setelah 5 detik
+    setTimeout(function() {
+        document.querySelectorAll('.alert.alert-success, .alert.alert-danger').forEach(function (alertEl) {
+            try {
+                var bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
+                bsAlert.close();
+            } catch (e) {
+                // ignore
+            }
+        });
+    }, 5000);
+</script>
+@endpush
+
+<style>
+    .table-responsive { overflow-x: auto; }
+    .avatar {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        border-top: none;
+    }
+    .table > :not(:first-child) {
+        border-top: 1px solid #e9ecef;
+    }
+    .card {
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    .form-control, .form-select {
+        border-radius: 0.375rem;
+    }
+    .btn {
+        border-radius: 0.375rem;
+    }
+    
+    /* Pagination styling */
+    .pagination {
+        margin-bottom: 0;
+    }
+    .pagination .page-link {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    .pagination .page-link svg {
+        width: 14px;
+        height: 14px;
+    }
+</style>
+@endsection

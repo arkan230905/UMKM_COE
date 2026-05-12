@@ -1,0 +1,51 @@
+<?php
+
+return [
+    'required' => 'Kolom :attribute wajib diisi.',
+    'string' => 'Kolom :attribute harus berupa teks.',
+    'email' => 'Kolom :attribute harus berupa alamat email yang valid.',
+    'max' => [
+        'string' => 'Kolom :attribute tidak boleh lebih dari :max karakter.',
+    ],
+    'min' => [
+        'string' => 'Kolom :attribute harus minimal :min karakter.',
+    ],
+    'confirmed' => 'Konfirmasi :attribute tidak cocok.',
+    'unique' => ':attribute sudah digunakan.',
+    'accepted' => 'Kolom :attribute harus disetujui.',
+    'in' => ':attribute yang dipilih tidak valid.',
+    'lowercase' => 'Kolom :attribute harus huruf kecil.',
+    'after' => 'Kolom :attribute harus berupa tanggal setelah :date.',
+    'after_or_equal' => 'Kolom :attribute harus berupa tanggal setelah atau sama dengan :date.',
+    'before' => 'Kolom :attribute harus berupa tanggal sebelum :date.',
+    'before_or_equal' => 'Kolom :attribute harus berupa tanggal sebelum atau sama dengan :date.',
+    'date' => 'Kolom :attribute harus berupa tanggal yang valid.',
+    'numeric' => 'Kolom :attribute harus berupa angka.',
+    'min' => [
+        'numeric' => 'Kolom :attribute harus minimal :min.',
+        'string' => 'Kolom :attribute harus minimal :min karakter.',
+    ],
+
+    'attributes' => [
+        'name' => 'nama',
+        'username' => 'username',
+        'email' => 'email',
+        'password' => 'kata sandi',
+        'password_confirmation' => 'konfirmasi kata sandi',
+        'role' => 'peran',
+        'phone' => 'nomor telepon',
+        'terms' => 'syarat dan ketentuan',
+        'company_nama' => 'nama perusahaan',
+        'company_alamat' => 'alamat perusahaan',
+        'company_email' => 'email perusahaan',
+        'company_telepon' => 'telepon perusahaan',
+        'kode_perusahaan' => 'kode perusahaan',
+        'tanggal_beli' => 'tanggal pembelian',
+        'tanggal_akuisisi' => 'tanggal mulai penyusutan',
+        'nama_aset' => 'nama aset',
+        'kategori_aset_id' => 'kategori aset',
+        'harga_perolehan' => 'harga perolehan',
+        'biaya_perolehan' => 'biaya perolehan',
+        'keterangan' => 'keterangan',
+    ],
+];
