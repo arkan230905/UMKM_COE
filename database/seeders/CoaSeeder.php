@@ -5,13 +5,12 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class JasukeCoaSeeder extends Seeder
+class CoaSeeder extends Seeder
 {
     public function run(): void
     {
-        // Daftar COA sesuai permintaan Owner (Sistem Manufaktur Jasuke)
-        $coas = [
-            // Nama Akun, Kode Akun, Tipe, Posisi (Saldo Normal)
+        $data = [
+            // Nama Akun, Kode, Tipe, Saldo Normal
             ['Aset', '11', 'Aset', 'debit'],
             ['Kas Bank', '111', 'Aset', 'debit'],
             ['Kas', '112', 'Aset', 'debit'],
@@ -65,21 +64,18 @@ class JasukeCoaSeeder extends Seeder
             ['Harga Pokok Penjualan', '554', 'Biaya', 'debit'],
         ];
 
-        foreach ($coas as $coa) {
+        foreach ($data as $item) {
             DB::table('accounts')->updateOrInsert(
-                ['kode_akun' => $coa[1]], // Cek berdasarkan kode unik
+                ['kode_akun' => $item[1]], // Unik berdasarkan kode
                 [
-                    'company_id' => 1, // Pastikan ID Perusahaan sinkron dengan CompanySeeder
-                    'nama_akun' => $coa[0],
-                    'tipe_akun' => $coa[2],
-                    'saldo_normal' => strtolower($coa[3]),
-                    'saldo_awal' => 0, // Sesuai permintaan Owner: Murni Manual
+                    'nama_akun' => $item[0],
+                    'tipe_akun' => $item[2],
+                    'saldo_normal' => $item[3],
+                    'saldo_awal' => 0, // Set manual ke 0
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
             );
         }
-
-        echo "✅ JasukeCoaSeeder: Seluruh akun manufaktur berhasil disinkronkan.\n";
     }
 }
