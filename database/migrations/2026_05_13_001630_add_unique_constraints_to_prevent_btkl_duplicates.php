@@ -12,30 +12,36 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Bersihkan data duplikat terlebih dahulu agar penambahan Unique Constraint tidak gagal
+        // 1. Bersihkan data duplikat terlebih dahulu
         $this->cleanupDuplicates();
 
-        // 2. Add unique constraint ke tabel 'btkls'
-        Schema::table('btkls', function (Blueprint $table) {
-            if (Schema::hasColumns('btkls', ['user_id', 'kode_proses'])) {
-                // Gunakan try-catch untuk menghindari error jika index sudah ada
-                try {
+        // 2. Handle tabel 'btkls'
+        if (Schema::hasTable('btkls')) {
+            Schema::table('btkls', function (Blueprint $table) {
+                // Hapus jika sudah ada untuk menghindari 'Duplicate key name'
+                if ($this->hasIndex('btkls', 'unique_user_kode_proses')) {
+                    $table->dropUnique('unique_user_kode_proses');
+                }
+                
+                if (Schema::hasColumns('btkls', ['user_id', 'kode_proses'])) {
                     $table->unique(['user_id', 'kode_proses'], 'unique_user_kode_proses');
-                } catch (\Exception $e) {}
-            }
-        });
+                }
+            });
+        }
 
-        // 3. Add unique constraint ke tabel 'proses_produksis'
-        Schema::table('proses_produksis', function (Blueprint $table) {
-            // Kita cek apakah kolom btkl_id ada. 
-            // Jika sudah dihapus di migrasi sebelumnya, gunakan kolom lain yang unik (misal: nama_proses atau lainnya)
-            // Di sini saya tambahkan pengecekan agar tidak FAIL.
-            if (Schema::hasColumns('proses_produksis', ['user_id', 'btkl_id'])) {
-                try {
+        // 3. Handle tabel 'proses_produksis'
+        if (Schema::hasTable('proses_produksis')) {
+            Schema::table('proses_produksis', function (Blueprint $table) {
+                // Hapus jika sudah ada
+                if ($this->hasIndex('proses_produksis', 'unique_user_btkl_id')) {
+                    $table->dropUnique('unique_user_btkl_id');
+                }
+
+                if (Schema::hasColumns('proses_produksis', ['user_id', 'btkl_id'])) {
                     $table->unique(['user_id', 'btkl_id'], 'unique_user_btkl_id');
-                } catch (\Exception $e) {}
-            }
-        });
+                }
+            });
+        }
     }
 
     /**
@@ -44,16 +50,34 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('btkls', function (Blueprint $table) {
-            try {
+            if ($this->hasIndex('btkls', 'unique_user_kode_proses')) {
                 $table->dropUnique('unique_user_kode_proses');
-            } catch (\Exception $e) {}
+            }
         });
 
         Schema::table('proses_produksis', function (Blueprint $table) {
-            try {
+            if ($this->hasIndex('proses_produksis', 'unique_user_btkl_id')) {
                 $table->dropUnique('unique_user_btkl_id');
-            } catch (\Exception $e) {}
+            }
         });
+    }
+
+    /**
+     * Helper untuk mengecek keberadaan index
+     */
+    private function hasIndex($table, $name): bool
+    {
+        $conn = Schema::getConnection();
+        $dbName = $conn->getDatabaseName();
+        
+        $results = DB::select("
+            SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS 
+            WHERE TABLE_SCHEMA = ? 
+            AND TABLE_NAME = ? 
+            AND INDEX_NAME = ?
+        ", [$dbName, $table, $name]);
+
+        return count($results) > 0;
     }
 
     /**
@@ -61,7 +85,6 @@ return new class extends Migration
      */
     private function cleanupDuplicates()
     {
-        // Bersihkan duplikat di btkls
         if (Schema::hasColumns('btkls', ['user_id', 'kode_proses'])) {
             DB::statement("
                 DELETE t1 FROM btkls t1
@@ -72,7 +95,6 @@ return new class extends Migration
             ");
         }
 
-        // Bersihkan duplikat di proses_produksis (Hanya jika kolom btkl_id masih ada)
         if (Schema::hasColumns('proses_produksis', ['user_id', 'btkl_id'])) {
             DB::statement("
                 DELETE t1 FROM proses_produksis t1
