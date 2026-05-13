@@ -11,38 +11,36 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bop_proses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('proses_produksi_id')->constrained('proses_produksis')->onDelete('cascade');
-            
-            // Komponen BOP per jam (basis jam mesin)
-            $table->decimal('listrik_per_jam', 15, 2)->default(0)->comment('Biaya listrik per jam mesin');
-            $table->decimal('gas_bbm_per_jam', 15, 2)->default(0)->comment('Biaya gas/BBM per jam mesin');
-            $table->decimal('penyusutan_mesin_per_jam', 15, 2)->default(0)->comment('Penyusutan mesin per jam');
-            $table->decimal('maintenance_per_jam', 15, 2)->default(0)->comment('Biaya maintenance per jam');
-            $table->decimal('gaji_mandor_per_jam', 15, 2)->default(0)->comment('Gaji mandor per jam');
-            $table->decimal('lain_lain_per_jam', 15, 2)->default(0)->comment('Biaya overhead lainnya per jam');
-            
-            // Calculated fields
-            $table->decimal('total_bop_per_jam', 15, 2)->default(0)->comment('Total BOP per jam (auto calculated)');
-            $table->integer('kapasitas_per_jam')->default(0)->comment('Kapasitas per jam (sync dari BTKL)');
-            $table->decimal('bop_per_unit', 15, 4)->default(0)->comment('BOP per unit produk (auto calculated)');
-            
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-            
-            // Indexes
-            $table->index('proses_produksi_id');
-            $table->index('is_active');
-            
-            // Unique constraint: satu BOP per proses
-            $table->unique('proses_produksi_id', 'bop_proses_unique');
-        });
+        if (!Schema::hasTable('bop_proses')) {
+            Schema::create('bop_proses', function (Blueprint $table) {
+                $table->id();
+                
+                // Relasi Owner/User (Multi-tenant)
+                $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+                
+                // Relasi Produk
+                $table->foreignId('produk_id')->constrained('produks')->onDelete('cascade');
+                
+                // Rincian Komponen BOP (Decimal 15,2)
+                $table->decimal('listrik_per_produk', 15, 2)->default(0);
+                $table->decimal('air_per_produk', 15, 2)->default(0);
+                $table->decimal('gas_per_produk', 15, 2)->default(0);
+                $table->decimal('penyusutan_per_produk', 15, 2)->default(0);
+                $table->decimal('pemeliharaan_per_produk', 15, 2)->default(0);
+                $table->decimal('lain_lain_per_produk', 15, 2)->default(0);
+                
+                $table->decimal('total_bop_per_produk', 15, 2)->default(0);
+                
+                $table->timestamps();
+
+                // Optimasi Performa untuk pencatatan dan pelaporan HPP
+                $table->index('user_id', 'idx_bop_user');
+                $table->index('produk_id', 'idx_bop_produk');
+                $table->index(['user_id', 'produk_id'], 'idx_bop_user_produk');
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('bop_proses');

@@ -9,9 +9,12 @@ class RekapPresensiBulanan extends Model
 {
     use HasFactory;
 
+    // Menentukan nama tabel secara eksplisit
     protected $table = 'rekap_presensi_bulanan';
 
+    // Menambahkan user_id ke fillable agar bisa disimpan berdasarkan pemilik data
     protected $fillable = [
+        'user_id',
         'pegawai_id',
         'periode_bulan',
         'periode_tahun',
@@ -25,6 +28,7 @@ class RekapPresensiBulanan extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
         'periode_bulan' => 'integer',
         'periode_tahun' => 'integer',
         'total_hari_hadir' => 'integer',
@@ -37,7 +41,15 @@ class RekapPresensiBulanan extends Model
     ];
 
     /**
-     * Relasi ke pegawai
+     * Relasi ke User (Pemilik data/Owner)
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relasi ke Pegawai
      */
     public function pegawai()
     {
@@ -45,7 +57,7 @@ class RekapPresensiBulanan extends Model
     }
 
     /**
-     * Get nama bulan
+     * Get nama bulan (Accessor)
      */
     public function getNamaBulanAttribute()
     {
@@ -59,7 +71,7 @@ class RekapPresensiBulanan extends Model
     }
 
     /**
-     * Get periode label
+     * Get periode label (Accessor)
      */
     public function getPeriodeLabelAttribute()
     {
@@ -67,42 +79,48 @@ class RekapPresensiBulanan extends Model
     }
 
     /**
-     * Generate or update rekap for specific pegawai and periode
+     * Generate atau update rekap untuk pegawai dan periode tertentu
      */
     public static function generateRekap($pegawaiId, $bulan, $tahun)
     {
-        // Get all presensi for this periode
+        // Mendapatkan user_id dari user yang sedang login agar data terikat ke owner
+        $currentUserId = auth()->id();
+
+        // Ambil semua presensi untuk periode ini
         $presensiList = Presensi::where('pegawai_id', $pegawaiId)
             ->where('periode_bulan', $bulan)
             ->where('periode_tahun', $tahun)
             ->get();
 
-        // Calculate totals
+        // Hitung total
         $totalHariHadir = $presensiList->where('status', 'Hadir')->count();
         $totalAlpha = $presensiList->where('status', 'Alpha')->count();
         $totalMasukSaja = $presensiList->where('status', 'Masuk Saja')->count();
         $totalJamBulanan = $presensiList->sum('jumlah_jam');
 
-        // Get target hari kerja
-        $targetHariKerja = KalenderKerja::getTargetHariKerja($bulan, $tahun);
+        // Ambil target hari kerja (Asumsi model KalenderKerja tersedia)
+        $targetHariKerja = class_exists(KalenderKerja::class) 
+            ? KalenderKerja::getTargetHariKerja($bulan, $tahun) 
+            : 20;
 
-        // Calculate persentase kehadiran
+        // Hitung persentase kehadiran
         $persentaseKehadiran = $targetHariKerja > 0 
             ? ($totalHariHadir / $targetHariKerja) * 100 
             : 0;
 
-        // Get pegawai tarif
+        // Ambil data pegawai untuk menghitung tarif gaji
         $pegawai = Pegawai::find($pegawaiId);
-        $tarifPerJam = $pegawai && $pegawai->jabatan 
+        $tarifPerJam = ($pegawai && $pegawai->jabatan) 
             ? $pegawai->jabatan->tarif_btkl 
             : 0;
 
-        // Calculate estimasi gaji
+        // Hitung estimasi gaji
         $estimasiGaji = $totalJamBulanan * $tarifPerJam;
 
-        // Update or create rekap
+        // Update atau create rekap dengan menyertakan user_id
         return static::updateOrCreate(
             [
+                'user_id' => $currentUserId,
                 'pegawai_id' => $pegawaiId,
                 'periode_bulan' => $bulan,
                 'periode_tahun' => $tahun,
@@ -120,11 +138,12 @@ class RekapPresensiBulanan extends Model
     }
 
     /**
-     * Generate rekap for all pegawai in specific periode
+     * Generate rekap untuk semua pegawai aktif di periode tertentu
      */
     public static function generateRekapBulanan($bulan, $tahun)
     {
-        $pegawaiList = Pegawai::where('status', 'aktif')->get();
+        // Mengambil pegawai yang milik user yang sedang login
+        $pegawaiList = Pegawai::where('user_id', auth()->id())->get();
         $results = [];
 
         foreach ($pegawaiList as $pegawai) {

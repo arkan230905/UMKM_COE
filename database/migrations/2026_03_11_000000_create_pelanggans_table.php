@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('pelanggans', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade'); 
             $table->string('kode_pelanggan')->unique();
             $table->string('nama_pelanggan');
             $table->string('alamat')->nullable();
@@ -17,8 +18,8 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->text('keterangan')->nullable();
             $table->timestamps();
-        });
-    }
+            });
+        }
 
     public function down(): void
     {

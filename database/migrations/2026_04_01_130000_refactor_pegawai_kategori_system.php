@@ -3,80 +3,82 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up()
     {
-        // Create kategori_pegawai table
-        Schema::create('kategori_pegawai', function (Blueprint $table) {
-            $table->id();
-            $table->string('nama', 50)->unique(); // BTKL, BTKTL
-            $table->string('deskripsi')->nullable();
-            $table->timestamps();
-        });
+        // 1. Buat tabel kategori_pegawai jika belum ada
+        if (!Schema::hasTable('kategori_pegawai')) {
+            Schema::create('kategori_pegawai', function (Blueprint $table) {
+                $table->id();
+                $table->string('nama', 50)->unique(); // BTKL, BTKTL
+                $table->string('deskripsi')->nullable();
+                $table->timestamps();
+            });
 
-        // Insert default categories
-        DB::table('kategori_pegawai')->insert([
-            ['nama' => 'BTKL', 'deskripsi' => 'Tenaga Kerja Langsung', 'created_at' => now(), 'updated_at' => now()],
-            ['nama' => 'BTKTL', 'deskripsi' => 'Bukan Tenaga Kerja Langsung', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+            // Isi data default untuk Manufaktur (Process Costing)
+            DB::table('kategori_pegawai')->insert([
+                ['nama' => 'BTKL', 'deskripsi' => 'Biaya Tenaga Kerja Langsung (Produksi)', 'created_at' => now(), 'updated_at' => now()],
+                ['nama' => 'BTKTL', 'deskripsi' => 'Biaya Tenaga Kerja Tidak Langsung (Admin/Lainnya)', 'created_at' => now(), 'updated_at' => now()],
+            ]);
+        }
 
-        // Add kategori_id to jabatans table
+        // 2. Tambah kategori_id ke jabatans (Gunakan pengecekan agar tidak error duplicate)
         Schema::table('jabatans', function (Blueprint $table) {
-            $table->foreignId('kategori_id')->nullable()->after('id')->constrained('kategori_pegawai');
+            if (!Schema::hasColumn('jabatans', 'kategori_id')) {
+                $table->foreignId('kategori_id')->nullable()->after('id')->constrained('kategori_pegawai');
+            }
         });
 
-        // Add kategori_id to pegawais table
+        // 3. Tambah kategori_id ke pegawais (Gunakan pengecekan)
         Schema::table('pegawais', function (Blueprint $table) {
-            $table->foreignId('kategori_id')->nullable()->after('jabatan')->constrained('kategori_pegawai');
+            if (!Schema::hasColumn('pegawais', 'kategori_id')) {
+                // Pastikan 'jabatan' adalah kolom yang sudah ada di Master Pegawai Anda
+                $table->foreignId('kategori_id')->nullable()->after('jabatan')->constrained('kategori_pegawai');
+            }
         });
 
-        // Backfill jabatans.kategori_id based on existing kategori field
-        DB::statement('
+        // 4. Sinkronisasi Data (Backfill)
+        // Mengisi kategori_id berdasarkan teks yang sudah ada di kolom lama
+        DB::statement("
             UPDATE jabatans j 
             SET kategori_id = (
                 CASE 
-                    WHEN LOWER(j.kategori) LIKE \'%btkl%\' THEN (SELECT id FROM kategori_pegawai WHERE nama = \'BTKL\')
-                    WHEN LOWER(j.kategori) LIKE \'%btktl%\' THEN (SELECT id FROM kategori_pegawai WHERE nama = \'BTKTL\')
+                    WHEN LOWER(j.kategori) LIKE '%btkl%' THEN (SELECT id FROM kategori_pegawai WHERE nama = 'BTKL' LIMIT 1)
+                    WHEN LOWER(j.kategori) LIKE '%btktl%' THEN (SELECT id FROM kategori_pegawai WHERE nama = 'BTKTL' LIMIT 1)
                     ELSE NULL
                 END
             )
-        ');
+        ");
 
-        // Backfill pegawais.kategori_id based on existing jenis_pegawai field
-        DB::statement('
+        DB::statement("
             UPDATE pegawais p 
             SET kategori_id = (
                 CASE 
-                    WHEN LOWER(p.jenis_pegawai) = \'btkl\' THEN (SELECT id FROM kategori_pegawai WHERE nama = \'BTKL\')
-                    WHEN LOWER(p.jenis_pegawai) = \'btktl\' THEN (SELECT id FROM kategori_pegawai WHERE nama = \'BTKTL\')
+                    WHEN LOWER(p.jenis_pegawai) = 'btkl' THEN (SELECT id FROM kategori_pegawai WHERE nama = 'BTKL' LIMIT 1)
+                    WHEN LOWER(p.jenis_pegawai) = 'btktl' THEN (SELECT id FROM kategori_pegawai WHERE nama = 'BTKTL' LIMIT 1)
                     ELSE NULL
                 END
             )
-        ');
-
-        // Update jabatans table to use proper field names
-        Schema::table('jabatans', function (Blueprint $table) {
-            // Keep 'tarif' as is - we use tarif per product, not per hour
-            if (!Schema::hasColumn('jabatans', 'gaji_pokok')) {
-                if (Schema::hasColumn('jabatans', 'gaji')) {
-                    $table->renameColumn('gaji', 'gaji_pokok');
-                }
-            }
-        });
+        ");
     }
 
     public function down()
     {
         Schema::table('pegawais', function (Blueprint $table) {
-            $table->dropForeign(['kategori_id']);
-            $table->dropColumn('kategori_id');
+            if (Schema::hasColumn('pegawais', 'kategori_id')) {
+                $table->dropForeign(['kategori_id']);
+                $table->dropColumn('kategori_id');
+            }
         });
 
         Schema::table('jabatans', function (Blueprint $table) {
-            $table->dropForeign(['kategori_id']);
-            $table->dropColumn('kategori_id');
+            if (Schema::hasColumn('jabatans', 'kategori_id')) {
+                $table->dropForeign(['kategori_id']);
+                $table->dropColumn('kategori_id');
+            }
         });
 
         Schema::dropIfExists('kategori_pegawai');

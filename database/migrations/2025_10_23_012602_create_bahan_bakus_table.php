@@ -10,11 +10,15 @@ return new class extends Migration
     {
         Schema::create('bahan_bakus', function (Blueprint $table) {
             $table->id();
+            // Tambahkan user_id
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('nama_bahan');
             $table->decimal('stok', 15, 2)->default(0);
             $table->string('satuan');
             $table->decimal('harga_satuan', 15, 2)->default(0);
             $table->timestamps();
+
+            $table->index('user_id');
         });
     }
 
