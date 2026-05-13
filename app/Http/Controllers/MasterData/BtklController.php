@@ -182,7 +182,14 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
                 'biaya_btkl_per_produk' => $biayaBtklPerProduk,
             ]);
 
-            BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            // ✅ PERBAIKAN: Disable BomSyncService karena menyebabkan error dengan tabel kode_proses
+            // BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            
+            \Log::info('BTKL created successfully', [
+                'btkl_id' => $btkl->id,
+                'kode_proses' => $validated['kode_proses'],
+                'note' => 'BomSyncService disabled - table kode_proses issue'
+            ]);
 
             DB::commit();
 
@@ -263,7 +270,14 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
                 ]);
             }
 
-            BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            // ✅ PERBAIKAN: Disable BomSyncService karena menyebabkan error dengan tabel kode_proses
+            // BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            
+            \Log::info('BTKL updated successfully', [
+                'btkl_id' => $btkl->id,
+                'kode_proses' => $btkl->kode_proses,
+                'note' => 'BomSyncService disabled - table kode_proses issue'
+            ]);
 
             DB::commit();
 
