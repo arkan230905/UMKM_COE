@@ -79,6 +79,11 @@ COA untuk penggajian yang HARUS ada:
 Total: **16 Satuan** per user
 - ONS, KG, ML, G, LTR, PTG, EKOR, SDT, SDM, PCS, BNGKS, CUP, GL, TBG, SNG, KLG
 
+#### Tabel `kategori_bahan_pendukung`
+**PENTING:** Harus memiliki kolom `user_id`
+- Script `setup_hosting.php` akan otomatis menambahkan jika belum ada
+- Default kategori: Gas, Bumbu, Minyak, Air, Listrik, Kemasan, Lainnya
+
 ### 4. File .env untuk Hosting
 
 ```env
@@ -183,6 +188,9 @@ php artisan migrate:fresh --force
 
 ### Stock Tidak Update
 **Solusi:** Sudah diperbaiki di controller. Pastikan menggunakan versi terbaru.
+
+### Error: Column 'user_id' not found in kategori_bahan_pendukung
+**Solusi:** Jalankan `php setup_hosting.php` yang akan otomatis menambahkan kolom user_id
 
 ## 📝 Catatan Penting
 

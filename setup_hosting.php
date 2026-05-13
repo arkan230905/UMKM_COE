@@ -11,6 +11,7 @@ $app = require_once __DIR__.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 echo "🚀 Setup Hosting - UMKM COE\n";
 echo str_repeat("=", 70) . "\n\n";
@@ -72,8 +73,37 @@ foreach ($users as $user) {
 }
 echo "\n";
 
-// 4. Setup Satuan for each user
-echo "4️⃣  Setting up Satuan...\n";
+// 4. Fix kategori_bahan_pendukung table (add user_id if missing)
+echo "4️⃣  Fixing kategori_bahan_pendukung table...\n";
+
+if (!Schema::hasColumn('kategori_bahan_pendukung', 'user_id')) {
+    echo "   ⚠️  Column user_id missing, adding...\n";
+    
+    try {
+        DB::statement('ALTER TABLE kategori_bahan_pendukung ADD COLUMN user_id BIGINT UNSIGNED NULL AFTER id');
+        DB::statement('ALTER TABLE kategori_bahan_pendukung ADD INDEX kategori_bahan_pendukung_user_id_index (user_id)');
+        DB::statement('ALTER TABLE kategori_bahan_pendukung ADD CONSTRAINT kategori_bahan_pendukung_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE');
+        
+        // Update existing records
+        $updated = DB::table('kategori_bahan_pendukung')->update(['user_id' => 1]);
+        echo "      ✅ Column added and {$updated} records updated\n";
+    } catch (\Exception $e) {
+        echo "      ❌ Error: " . $e->getMessage() . "\n";
+    }
+} else {
+    echo "   ✅ Column user_id already exists\n";
+    
+    // Make sure all records have user_id
+    $nullCount = DB::table('kategori_bahan_pendukung')->whereNull('user_id')->count();
+    if ($nullCount > 0) {
+        DB::table('kategori_bahan_pendukung')->whereNull('user_id')->update(['user_id' => 1]);
+        echo "   ✅ Updated {$nullCount} records with NULL user_id\n";
+    }
+}
+echo "\n";
+
+// 5. Setup Satuan for each user
+echo "5️⃣  Setting up Satuan...\n";
 
 $defaultSatuanData = [
     ['kode' => 'ONS', 'nama' => 'Ons'],
@@ -119,8 +149,8 @@ foreach ($users as $user) {
 }
 echo "\n";
 
-// 5. Verify setup
-echo "5️⃣  Verifying setup...\n";
+// 6. Verify setup
+echo "6️⃣  Verifying setup...\n";
 $allGood = true;
 
 foreach ($users as $user) {
@@ -144,7 +174,7 @@ if ($allGood) {
     echo "   ⚠️  Some users have incomplete data\n\n";
 }
 
-// 6. Summary
+// 7. Summary
 echo str_repeat("=", 70) . "\n";
 echo "📊 Setup Summary:\n";
 echo "   Total Users: " . DB::table('users')->count() . "\n";
