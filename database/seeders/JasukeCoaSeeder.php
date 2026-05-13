@@ -7,17 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class JasukeCoaSeeder extends Seeder
 {
-    /**
-     * SEEDER UNTUK TABEL ACCOUNTS
-     * 
-     * Standarisasi: Menggunakan tabel 'accounts' (bukan 'coas')
-     * Kolom yang digunakan: kode_akun, nama_akun, tipe_akun, saldo_normal, saldo_awal
-     */
     public function run(): void
     {
-        // Daftar COA sesuai permintaan Owner (Sistem Manufaktur Jasuke)
-        $accounts = [
-            // Nama Akun, Kode Akun, Tipe, Posisi (Saldo Normal)
+        $coas = [
             ['Aset', '11', 'Aset', 'debit'],
             ['Kas Bank', '111', 'Aset', 'debit'],
             ['Kas', '112', 'Aset', 'debit'],
@@ -71,21 +63,19 @@ class JasukeCoaSeeder extends Seeder
             ['Harga Pokok Penjualan', '554', 'Biaya', 'debit'],
         ];
 
-        foreach ($accounts as $account) {
+        foreach ($coas as $coa) {
             DB::table('accounts')->updateOrInsert(
-                ['kode_akun' => $account[1]], // Cek berdasarkan kode unik
+                ['kode_akun' => $coa[1]],
                 [
-                    'company_id' => null, // Nullable - bisa diisi manual nanti
-                    'nama_akun' => $account[0],
-                    'tipe_akun' => $account[2],
-                    'saldo_normal' => strtolower($account[3]),
-                    'saldo_awal' => 0, // Sesuai permintaan Owner: Murni Manual, tidak otomatis
+                    'company_id' => 1,
+                    'nama_akun' => $coa[0],
+                    'tipe_akun' => $coa[2],
+                    'saldo_normal' => $coa[3],
+                    'saldo_awal' => 0, // Manual sesuai request Owner
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
             );
         }
-
-        echo "✅ JasukeCoaSeeder: Seluruh akun manufaktur berhasil disinkronkan ke tabel 'accounts'.\n";
     }
 }
