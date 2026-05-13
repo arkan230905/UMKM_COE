@@ -9,9 +9,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            CompanySeeder::class,     // 1. Isi Perusahaan dulu
-            CoaTemplateSeeder::class, // 2. Isi Template COA
-            JasukeCoaSeeder::class,   // 3. Baru isi COA spesifik Jasuke
+            CompanySeeder::class,     // Isi Perusahaan ID 1
+            CoaTemplateSeeder::class, // Isi Template Master
+            JasukeCoaSeeder::class,   // Isi COA Spesifik Jasuke
         ]);
     }
 }
