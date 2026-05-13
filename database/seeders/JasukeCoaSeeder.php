@@ -7,10 +7,16 @@ use Illuminate\Support\Facades\DB;
 
 class JasukeCoaSeeder extends Seeder
 {
+    /**
+     * SEEDER UNTUK TABEL ACCOUNTS
+     * 
+     * Standarisasi: Menggunakan tabel 'accounts' (bukan 'coas')
+     * Kolom yang digunakan: kode_akun, nama_akun, tipe_akun, saldo_normal, saldo_awal
+     */
     public function run(): void
     {
         // Daftar COA sesuai permintaan Owner (Sistem Manufaktur Jasuke)
-        $coas = [
+        $accounts = [
             // Nama Akun, Kode Akun, Tipe, Posisi (Saldo Normal)
             ['Aset', '11', 'Aset', 'debit'],
             ['Kas Bank', '111', 'Aset', 'debit'],
@@ -65,21 +71,21 @@ class JasukeCoaSeeder extends Seeder
             ['Harga Pokok Penjualan', '554', 'Biaya', 'debit'],
         ];
 
-        foreach ($coas as $coa) {
+        foreach ($accounts as $account) {
             DB::table('accounts')->updateOrInsert(
-                ['kode_akun' => $coa[1]], // Cek berdasarkan kode unik
+                ['kode_akun' => $account[1]], // Cek berdasarkan kode unik
                 [
-                    'company_id' => 1, // Pastikan ID Perusahaan sinkron dengan CompanySeeder
-                    'nama_akun' => $coa[0],
-                    'tipe_akun' => $coa[2],
-                    'saldo_normal' => strtolower($coa[3]),
-                    'saldo_awal' => 0, // Sesuai permintaan Owner: Murni Manual
+                    'company_id' => null, // Nullable - bisa diisi manual nanti
+                    'nama_akun' => $account[0],
+                    'tipe_akun' => $account[2],
+                    'saldo_normal' => strtolower($account[3]),
+                    'saldo_awal' => 0, // Sesuai permintaan Owner: Murni Manual, tidak otomatis
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
             );
         }
 
-        echo "✅ JasukeCoaSeeder: Seluruh akun manufaktur berhasil disinkronkan.\n";
+        echo "✅ JasukeCoaSeeder: Seluruh akun manufaktur berhasil disinkronkan ke tabel 'accounts'.\n";
     }
 }

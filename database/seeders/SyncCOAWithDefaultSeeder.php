@@ -19,7 +19,7 @@ class SyncCOAWithDefaultSeeder extends Seeder
         $user_id = 7;
         
         // Hapus semua COA untuk user ini
-        $deletedCount = DB::table('coas')
+        $deletedCount = DB::table('accounts')
             ->where('user_id', $user_id)
             ->delete();
         
@@ -115,19 +115,19 @@ class SyncCOAWithDefaultSeeder extends Seeder
         }
         
         // Insert COA baru
-        DB::table('coas')->insert($rows);
+        DB::table('accounts')->insert($rows);
         
         Log::info("Created " . count($rows) . " new COA records for user {$user_id}");
         
         // Verifikasi hasil
-        $finalCount = DB::table('coas')
+        $finalCount = DB::table('accounts')
             ->where('user_id', $user_id)
             ->count();
         
         Log::info("Final COA count for user {$user_id}: {$finalCount}");
         
         // Tampilkan COA BOP yang sekarang ada
-        $bopCOAs = DB::table('coas')
+        $bopCOAs = DB::table('accounts')
             ->where('user_id', $user_id)
             ->where('kode_akun', 'like', '53%')
             ->orderBy('kode_akun')

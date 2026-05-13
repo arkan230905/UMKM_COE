@@ -23,7 +23,7 @@ return new class extends Migration
                 // Add foreign key constraint
                 $table->foreign('kode_akun')
                     ->references('kode_akun')
-                    ->on('coas')
+                    ->on('accounts')
                     ->onUpdate('cascade')
                     ->onDelete('cascade');
             });

@@ -3,7 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Models\Coa;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -13,10 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         // Add COA 1130 - PPN Masukan if it doesn't exist
-        $exists = Coa::where('kode_akun', '1130')->exists();
+        $exists = DB::table('accounts')->where('kode_akun', '1130')->exists();
         
         if (!$exists) {
-            Coa::create([
+            DB::table('accounts')->insert([
                 'kode_akun' => '1130',
                 'nama_akun' => 'PPN Masukan',
                 'tipe_akun' => 'Asset',
@@ -28,6 +28,8 @@ return new class extends Migration
                 'tanggal_saldo_awal' => now()->format('Y-m-d H:i:s'),
                 'posted_saldo_awal' => false,
                 'keterangan' => 'PPN Masukan dari pembelian',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }
@@ -38,6 +40,6 @@ return new class extends Migration
     public function down(): void
     {
         // Delete COA 1130 if it exists
-        Coa::where('kode_akun', '1130')->delete();
+        DB::table('accounts')->where('kode_akun', '1130')->delete();
     }
 };

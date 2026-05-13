@@ -72,10 +72,10 @@ return new class extends Migration
 
         foreach ($missingAccounts as $account) {
             // Cek apakah akun sudah ada
-            $exists = DB::table('coas')->where('kode_akun', $account['kode_akun'])->exists();
+            $exists = DB::table('accounts')->where('kode_akun', $account['kode_akun'])->exists();
             
             if (!$exists) {
-                DB::table('coas')->insert(array_merge($account, [
+                DB::table('accounts')->insert(array_merge($account, [
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]));
@@ -89,6 +89,6 @@ return new class extends Migration
     public function down(): void
     {
         $codes = ['1101', '1102', '1103', '101', '102', '2101'];
-        DB::table('coas')->whereIn('kode_akun', $codes)->delete();
+        DB::table('accounts')->whereIn('kode_akun', $codes)->delete();
     }
 };

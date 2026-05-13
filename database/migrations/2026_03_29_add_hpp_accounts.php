@@ -13,14 +13,14 @@ return new class extends Migration
         $now = Carbon::now();
         
         // Check which columns exist in the coas table
-        $hasIsAkunHeader = Schema::hasColumn('coas', 'is_akun_header');
-        $hasKategoriAkun = Schema::hasColumn('coas', 'kategori_akun');
-        $hasKodeInduk = Schema::hasColumn('coas', 'kode_induk');
-        $hasSaldoNormal = Schema::hasColumn('coas', 'saldo_normal');
-        $hasSaldoAwal = Schema::hasColumn('coas', 'saldo_awal');
-        $hasTanggalSaldoAwal = Schema::hasColumn('coas', 'tanggal_saldo_awal');
-        $hasPostedSaldoAwal = Schema::hasColumn('coas', 'posted_saldo_awal');
-        $hasKeterangan = Schema::hasColumn('coas', 'keterangan');
+        $hasIsAkunHeader = Schema::hasColumn('accounts', 'is_akun_header');
+        $hasKategoriAkun = Schema::hasColumn('accounts', 'kategori_akun');
+        $hasKodeInduk = Schema::hasColumn('accounts', 'kode_induk');
+        $hasSaldoNormal = Schema::hasColumn('accounts', 'saldo_normal');
+        $hasSaldoAwal = Schema::hasColumn('accounts', 'saldo_awal');
+        $hasTanggalSaldoAwal = Schema::hasColumn('accounts', 'tanggal_saldo_awal');
+        $hasPostedSaldoAwal = Schema::hasColumn('accounts', 'posted_saldo_awal');
+        $hasKeterangan = Schema::hasColumn('accounts', 'keterangan');
         
         // Build accounts array based on available columns
         $hppAccounts = [];
@@ -87,9 +87,9 @@ return new class extends Migration
 
         // Insert HPP accounts with existence check
         foreach ($hppAccounts as $account) {
-            $exists = DB::table('coas')->where('kode_akun', $account['kode_akun'])->exists();
+            $exists = DB::table('accounts')->where('kode_akun', $account['kode_akun'])->exists();
             if (!$exists) {
-                DB::table('coas')->insert($account);
+                DB::table('accounts')->insert($account);
             }
         }
     }
@@ -97,6 +97,6 @@ return new class extends Migration
     public function down()
     {
         // Remove HPP accounts
-        DB::table('coas')->whereIn('kode_akun', ['1600', '1601', '1602', '1603'])->delete();
+        DB::table('accounts')->whereIn('kode_akun', ['1600', '1601', '1602', '1603'])->delete();
     }
 };

@@ -11,17 +11,17 @@ return new class extends Migration
         Schema::table('asets', function (Blueprint $table) {
             // Add asset COA field if it doesn't exist
             if (!Schema::hasColumn('asets', 'asset_coa_id')) {
-                $table->foreignId('asset_coa_id')->nullable()->after('coa_id')->constrained('coas')->onDelete('set null');
+                $table->foreignId('asset_coa_id')->nullable()->after('coa_id')->constrained('accounts')->onDelete('set null');
             }
             
             // Add accumulated depreciation COA field if it doesn't exist
             if (!Schema::hasColumn('asets', 'accum_depr_coa_id')) {
-                $table->foreignId('accum_depr_coa_id')->nullable()->after('asset_coa_id')->constrained('coas')->onDelete('set null');
+                $table->foreignId('accum_depr_coa_id')->nullable()->after('asset_coa_id')->constrained('accounts')->onDelete('set null');
             }
             
             // Add expense COA field if it doesn't exist
             if (!Schema::hasColumn('asets', 'expense_coa_id')) {
-                $table->foreignId('expense_coa_id')->nullable()->after('accum_depr_coa_id')->constrained('coas')->onDelete('set null');
+                $table->foreignId('expense_coa_id')->nullable()->after('accum_depr_coa_id')->constrained('accounts')->onDelete('set null');
             }
         });
     }

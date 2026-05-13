@@ -36,7 +36,7 @@ return new class extends Migration
              * Tabel akun Anda bernama 'accounts', bukan 'coas'.
              */
             $table->unsignedBigInteger('coa_id')->nullable();
-            $table->foreign('coa_id')->references('id')->on('coas')->onDelete('set null');
+            $table->foreign('coa_id')->references('id')->on('accounts')->onDelete('set null');
 
             $table->decimal('harga_perolehan', 15, 2)->default(0);
             $table->decimal('biaya_perolehan', 15, 2)->default(0);

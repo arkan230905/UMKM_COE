@@ -43,12 +43,12 @@ class CompleteBalancedDataSeeder extends Seeder
         echo "💰 Setting saldo awal COA...\n";
         
         // Set saldo awal yang balance
-        DB::table('coas')->where('kode_akun', '1101')->update(['saldo_awal' => 50000000]); // Kas
-        DB::table('coas')->where('kode_akun', '1102')->update(['saldo_awal' => 30000000]); // Bank
-        DB::table('coas')->where('kode_akun', '1104')->update(['saldo_awal' => 20000000]); // Persediaan Bahan Baku
-        DB::table('coas')->where('kode_akun', '1107')->update(['saldo_awal' => 15000000]); // Persediaan Barang Jadi
-        DB::table('coas')->where('kode_akun', '1201')->update(['saldo_awal' => 50000000]); // Peralatan
-        DB::table('coas')->where('kode_akun', '3101')->update(['saldo_awal' => 165000000]); // Modal
+        DB::table('accounts')->where('kode_akun', '1101')->update(['saldo_awal' => 50000000]); // Kas
+        DB::table('accounts')->where('kode_akun', '1102')->update(['saldo_awal' => 30000000]); // Bank
+        DB::table('accounts')->where('kode_akun', '1104')->update(['saldo_awal' => 20000000]); // Persediaan Bahan Baku
+        DB::table('accounts')->where('kode_akun', '1107')->update(['saldo_awal' => 15000000]); // Persediaan Barang Jadi
+        DB::table('accounts')->where('kode_akun', '1201')->update(['saldo_awal' => 50000000]); // Peralatan
+        DB::table('accounts')->where('kode_akun', '3101')->update(['saldo_awal' => 165000000]); // Modal
         
         echo "  ✓ Saldo awal set (Total Debit = Total Kredit = 165,000,000)\n";
     }
@@ -382,7 +382,7 @@ class CompleteBalancedDataSeeder extends Seeder
         // Bayar Listrik: 1,500,000
         $expenseId = DB::table('expense_payments')->insertGetId([
             'tanggal' => $tanggal,
-            'coa_id' => DB::table('coas')->where('kode_akun', '5201')->value('id'), // Beban Listrik
+            'coa_id' => DB::table('accounts')->where('kode_akun', '5201')->value('id'), // Beban Listrik
             'jumlah' => 1500000,
             'keterangan' => 'Pembayaran listrik bulan ini',
             'metode_pembayaran' => 'transfer',
@@ -416,7 +416,7 @@ class CompleteBalancedDataSeeder extends Seeder
             $account = DB::table('accounts')->where('code', $line['code'])->first();
             if (!$account) {
                 // Create account if not exists
-                $coa = DB::table('coas')->where('kode_akun', $line['code'])->first();
+                $coa = DB::table('accounts')->where('kode_akun', $line['code'])->first();
                 if ($coa) {
                     $accountId = DB::table('accounts')->insertGetId([
                         'code' => $line['code'],

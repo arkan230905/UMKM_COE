@@ -43,7 +43,7 @@ class FixCOANamesSeeder extends Seeder
         $updatedCount = 0;
         
         foreach ($coaUpdates as $update) {
-            $affected = DB::table('coas')
+            $affected = DB::table('accounts')
                 ->where('kode_akun', $update['kode_akun'])
                 ->where('user_id', $user_id)
                 ->update([
@@ -58,7 +58,7 @@ class FixCOANamesSeeder extends Seeder
         }
         
         // Verify COA names
-        $coaList = DB::table('coas')
+        $coaList = DB::table('accounts')
             ->where('user_id', $user_id)
             ->whereIn('kode_akun', ['530', '531', '532'])
             ->select('kode_akun', 'nama_akun')
@@ -187,7 +187,7 @@ class FixCOANamesSeeder extends Seeder
     
     private function getCoaIdByKode($kodeAkun, $user_id)
     {
-        $coa = DB::table('coas')
+        $coa = DB::table('accounts')
             ->where('kode_akun', $kodeAkun)
             ->where('user_id', $user_id)
             ->first();

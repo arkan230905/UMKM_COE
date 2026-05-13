@@ -24,7 +24,7 @@ return new class extends Migration
              * Kita gunakan coa_id tapi merujuk ke tabel 'accounts'.
              */
             $table->unsignedBigInteger('coa_id');
-            $table->foreign('coa_id')->references('id')->on('coas')->onDelete('cascade');
+            $table->foreign('coa_id')->references('id')->on('accounts')->onDelete('cascade');
             
             $table->date('tanggal');
             $table->string('bukti_transaksi')->nullable();

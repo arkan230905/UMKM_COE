@@ -20,7 +20,7 @@ class DeleteCOA530Seeder extends Seeder
         $coaKode = '530';
         
         // Hapus COA 530 dari database
-        $deletedCount = DB::table('coas')
+        $deletedCount = DB::table('accounts')
             ->where('kode_akun', $coaKode)
             ->where('user_id', $user_id)
             ->delete();
@@ -28,7 +28,7 @@ class DeleteCOA530Seeder extends Seeder
         Log::info("Deleted {$deletedCount} COA records with kode {$coaKode} for user {$user_id}");
         
         // Verifikasi penghapusan
-        $existsAfter = DB::table('coas')
+        $existsAfter = DB::table('accounts')
             ->where('kode_akun', $coaKode)
             ->where('user_id', $user_id)
             ->exists();
@@ -40,7 +40,7 @@ class DeleteCOA530Seeder extends Seeder
         }
         
         // Tampilkan COA BOP yang tersisa untuk user ini
-        $bopCOAs = DB::table('coas')
+        $bopCOAs = DB::table('accounts')
             ->where('user_id', $user_id)
             ->where('kode_akun', 'like', '53%')
             ->orderBy('kode_akun')

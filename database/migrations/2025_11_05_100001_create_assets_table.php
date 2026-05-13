@@ -26,12 +26,12 @@ return new class extends Migration
             $table->unsignedInteger('umur_ekonomis'); // dalam tahun
 
             // --- PERBAIKAN FOREIGN KEY ---
-            // Mengarahkan referensi ke tabel 'coas' sesuai struktur SIMACOST
+            // Mengarahkan referensi ke tabel 'accounts' sesuai struktur SIMACOST
             $table->unsignedBigInteger('expense_coa_id')->nullable();
-            $table->foreign('expense_coa_id')->references('id')->on('coas')->onDelete('set null');
+            $table->foreign('expense_coa_id')->references('id')->on('accounts')->onDelete('set null');
 
             $table->unsignedBigInteger('accum_depr_coa_id')->nullable();
-            $table->foreign('accum_depr_coa_id')->references('id')->on('coas')->onDelete('set null');
+            $table->foreign('accum_depr_coa_id')->references('id')->on('accounts')->onDelete('set null');
 
             $table->boolean('locked')->default(false); // mencegah hapus jika sudah ada transaksi
             $table->timestamps();

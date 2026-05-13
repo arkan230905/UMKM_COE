@@ -17,7 +17,7 @@ class DefaultCoaSeeder extends Seeder
         ];
 
         foreach ($coas as $coa) {
-            DB::table('coas')->updateOrInsert(
+            DB::table('accounts')->updateOrInsert(
                 [
                     'company_id' => $companyId, 
                     'kode_akun'  => $coa['kode']

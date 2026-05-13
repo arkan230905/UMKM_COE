@@ -17,7 +17,7 @@ return new class extends Migration
             }
             
             if (!Schema::hasColumn('pelunasan_utang', 'akun_kas_id')) {
-                $table->foreignId('akun_kas_id')->after('pembelian_id')->constrained('coas');
+                $table->foreignId('akun_kas_id')->after('pembelian_id')->constrained('accounts');
             }
             
             if (!Schema::hasColumn('pelunasan_utang', 'status')) {

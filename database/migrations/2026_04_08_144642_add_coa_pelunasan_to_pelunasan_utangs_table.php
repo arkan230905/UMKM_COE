@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('coa_pelunasan_id')->nullable()->after('akun_kas_id');
             
             // Add foreign key constraint
-            $table->foreign('coa_pelunasan_id')->references('id')->on('coas')->onDelete('set null');
+            $table->foreign('coa_pelunasan_id')->references('id')->on('accounts')->onDelete('set null');
             
             // Add index for better performance
             $table->index('coa_pelunasan_id');

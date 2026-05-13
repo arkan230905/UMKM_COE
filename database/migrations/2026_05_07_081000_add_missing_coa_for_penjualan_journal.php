@@ -13,12 +13,12 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Akun Penjualan (Revenue) - Kode 411
-        $existingPenjualan = DB::table('coas')
+        $existingPenjualan = DB::table('accounts')
             ->where('kode_akun', '411')
             ->first();
         
         if (!$existingPenjualan) {
-            DB::table('coas')->insert([
+            DB::table('accounts')->insert([
                 'kode_akun' => '411',
                 'nama_akun' => 'Penjualan',
                 'tipe_akun' => 'Revenue',
@@ -32,12 +32,12 @@ return new class extends Migration
         }
         
         // 2. Akun PPN Keluaran (Liability) - Kode 211
-        $existingPPN = DB::table('coas')
+        $existingPPN = DB::table('accounts')
             ->where('kode_akun', '211')
             ->first();
         
         if (!$existingPPN) {
-            DB::table('coas')->insert([
+            DB::table('accounts')->insert([
                 'kode_akun' => '211',
                 'nama_akun' => 'PPN Keluaran',
                 'tipe_akun' => 'Liability',
@@ -51,12 +51,12 @@ return new class extends Migration
         }
         
         // 3. Akun Harga Pokok Penjualan (Expense) - Kode 554
-        $existingHPP = DB::table('coas')
+        $existingHPP = DB::table('accounts')
             ->where('kode_akun', '554')
             ->first();
         
         if (!$existingHPP) {
-            DB::table('coas')->insert([
+            DB::table('accounts')->insert([
                 'kode_akun' => '554',
                 'nama_akun' => 'Harga Pokok Penjualan',
                 'tipe_akun' => 'Expense',
@@ -70,12 +70,12 @@ return new class extends Migration
         }
         
         // 4. Akun Persediaan Barang Jadi (Asset) - Kode 115
-        $existingPersediaan = DB::table('coas')
+        $existingPersediaan = DB::table('accounts')
             ->where('kode_akun', '115')
             ->first();
         
         if (!$existingPersediaan) {
-            DB::table('coas')->insert([
+            DB::table('accounts')->insert([
                 'kode_akun' => '115',
                 'nama_akun' => 'Persediaan Barang Jadi',
                 'tipe_akun' => 'Asset',
@@ -95,7 +95,7 @@ return new class extends Migration
     public function down(): void
     {
         // Delete the COA entries created by this migration
-        DB::table('coas')
+        DB::table('accounts')
             ->whereIn('kode_akun', ['411', '211', '554', '115'])
             ->delete();
     }

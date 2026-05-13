@@ -20,14 +20,14 @@ return new class extends Migration
         try {
             // Works on MySQL/MariaDB
             DB::statement(
-                "UPDATE bops b JOIN coas c ON b.kode_akun = c.kode_akun SET b.coa_id = c.id WHERE b.coa_id IS NULL"
+                "UPDATE bops b JOIN accounts c ON b.kode_akun = c.kode_akun SET b.coa_id = c.id WHERE b.coa_id IS NULL"
             );
         } catch (\Throwable $e) {
             // Fallback: iterate if JOIN update not supported (e.g., sqlite)
             try {
                 $rows = DB::table('bops')->whereNull('coa_id')->get(['id','kode_akun']);
                 foreach ($rows as $row) {
-                    $coa = DB::table('coas')->where('kode_akun', $row->kode_akun)->value('id');
+                    $coa = DB::table('accounts')->where('kode_akun', $row->kode_akun)->value('id');
                     if ($coa) {
                         DB::table('bops')->where('id', $row->id)->update(['coa_id' => $coa]);
                     }
@@ -37,9 +37,9 @@ return new class extends Migration
 
         // Optional: add FK if columns exist
         Schema::table('bops', function (Blueprint $table) {
-            if (Schema::hasColumn('bops', 'coa_id') && Schema::hasColumn('coas', 'id')) {
+            if (Schema::hasColumn('bops', 'coa_id') && Schema::hasColumn('accounts', 'id')) {
                 try {
-                    $table->foreign('coa_id')->references('id')->on('coas')->onDelete('cascade');
+                    $table->foreign('coa_id')->references('id')->on('accounts')->onDelete('cascade');
                 } catch (\Throwable $e) {
                     // ignore if FK already exists or cannot be added
                 }

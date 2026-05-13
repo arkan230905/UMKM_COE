@@ -8,10 +8,10 @@ return new class extends Migration
     public function up(): void
     {
         // Cek apakah COA 1105 sudah ada
-        $exists = DB::table('coas')->where('kode_akun', '1105')->exists();
+        $exists = DB::table('accounts')->where('kode_akun', '1105')->exists();
         
         if (!$exists) {
-            DB::table('coas')->insert([
+            DB::table('accounts')->insert([
                 'kode_akun' => '1105',
                 'nama_akun' => 'Persediaan Bahan Pendukung',
                 'tipe_akun' => 'Asset',
@@ -27,6 +27,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('coas')->where('kode_akun', '1105')->delete();
+        DB::table('accounts')->where('kode_akun', '1105')->delete();
     }
 };

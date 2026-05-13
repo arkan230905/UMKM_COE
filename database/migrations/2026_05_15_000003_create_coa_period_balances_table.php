@@ -24,7 +24,7 @@ return new class extends Migration
                 
                 /**
                  * 3. Data Akun
-                 * PENTING: Panjang karakter (default 255) harus sama dengan di tabel 'coas'.
+                 * PENTING: Panjang karakter (default 255) harus sama dengan di tabel 'accounts'.
                  * Jika di coas tidak ditentukan panjangnya, hapus angka 191 atau 50 di bawah ini.
                  */
                 $table->string('kode_akun'); 
@@ -39,8 +39,8 @@ return new class extends Migration
                 $table->boolean('is_posted')->default(false); 
                 $table->timestamps();
                 
-                // Foreign Key ke tabel coas (merujuk ke kolom kode_akun)
-                $table->foreign('kode_akun')->references('kode_akun')->on('coas')->onDelete('cascade');
+                // Foreign Key ke tabel accounts (merujuk ke kolom kode_akun)
+                $table->foreign('kode_akun')->references('kode_akun')->on('accounts')->onDelete('cascade');
                 
                 // Indexes untuk performa laporan
                 $table->index('user_id');

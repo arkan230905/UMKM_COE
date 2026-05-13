@@ -26,7 +26,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('coa_id');
                 $table->foreign('coa_id')
                       ->references('id')
-                      ->on('coas')
+                      ->on('accounts')
                       ->onDelete('cascade');
                 
                 // Nominal & Keterangan

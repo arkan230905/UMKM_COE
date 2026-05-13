@@ -8,8 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // CEK DULU apakah tabel coas ada
-        if (Schema::hasTable('coas')) {
+        // CEK DULU apakah tabel accounts ada
+        if (Schema::hasTable('accounts')) {
 
             Schema::table('coas', function (Blueprint $table) {
 
@@ -21,11 +21,11 @@ return new class extends Migration
                 }
 
                 // Drop kolom kalau ada
-                if (Schema::hasColumn('coas', 'kode_induk')) {
+                if (Schema::hasColumn('accounts', 'kode_induk')) {
                     $table->dropColumn('kode_induk');
                 }
 
-                if (Schema::hasColumn('coas', 'is_akun_header')) {
+                if (Schema::hasColumn('accounts', 'is_akun_header')) {
                     $table->dropColumn('is_akun_header');
                 }
             });
@@ -35,15 +35,15 @@ return new class extends Migration
     public function down(): void
     {
         // CEK DULU juga saat rollback
-        if (Schema::hasTable('coas')) {
+        if (Schema::hasTable('accounts')) {
 
             Schema::table('coas', function (Blueprint $table) {
 
-                if (!Schema::hasColumn('coas', 'kode_induk')) {
+                if (!Schema::hasColumn('accounts', 'kode_induk')) {
                     $table->string('kode_induk')->nullable();
                 }
 
-                if (!Schema::hasColumn('coas', 'is_akun_header')) {
+                if (!Schema::hasColumn('accounts', 'is_akun_header')) {
                     $table->boolean('is_akun_header')->default(false);
                 }
             });

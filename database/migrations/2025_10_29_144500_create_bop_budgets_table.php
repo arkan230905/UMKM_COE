@@ -23,7 +23,7 @@ return new class extends Migration
              * Kita gunakan coa_id sebagai nama kolom, tapi merujuk ke tabel 'accounts'.
              */
             $table->unsignedBigInteger('coa_id');
-            $table->foreign('coa_id')->references('id')->on('coas')->onDelete('cascade');
+            $table->foreign('coa_id')->references('id')->on('accounts')->onDelete('cascade');
 
             $table->decimal('jumlah_budget', 15, 2);
             $table->string('periode', 7); // Format: YYYY-MM
