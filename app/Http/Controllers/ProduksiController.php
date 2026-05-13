@@ -1126,25 +1126,8 @@ return response()->json([
                 'created_by' => $user_id,
             ]);
 
-            // KREDIT: Per komponen BOP
-            foreach ($hppData['bop_komponen'] as $komponen) {
-                $totalKomponen = $komponen['subtotal'] * $qtyProd;
-                if ($totalKomponen > 0) {
-                    $coaId = $this->getCoaIdByKode($komponen['coa_kode']);
-
-                    \App\Models\JurnalUmum::create([
-                        'user_id' => $user_id,
-                        'coa_id' => $coaId,
-                        'tanggal' => $tanggal,
-                        'keterangan' => 'BOP - ' . $komponen['nama_komponen'],
-                        'debit' => 0,
-                        'kredit' => $totalKomponen,
-                        'referensi' => $produksi->id,
-                        'tipe_referensi' => 'produksi_bop',
-                        'created_by' => $user_id,
-                    ]);
-                }
-            }
+            // KREDIT: Individual BOP components with specific COA codes
+            $this->createBOPJournalEntries($produksi, $tanggal, $user_id);
         }
 
         // JURNAL 4: Transfer ke Barang Jadi
@@ -1194,79 +1177,73 @@ return response()->json([
             }
 
             if ($totalBOP > 0) {
-                // Create individual journal entries for each BOP component with specific COA
-                $this->createBOPJournalEntries($produksi, $tanggal, $user_id);
+                \App\Models\JurnalUmum::create([
+                    'user_id' => $user_id,
+                    'coa_id' => $this->getCoaIdByKode('1173'),
+                    'tanggal' => $tanggal,
+                    'keterangan' => 'Transfer WIP BOP ke Barang Jadi',
+                    'debit' => 0,
+                    'kredit' => $totalBOP,
+                    'referensi' => $produksi->id,
+                    'tipe_referensi' => 'produksi_transfer',
+                    'created_by' => $user_id,
+                ]);
             }
         }
     }
 
     /**
-     * Create BOP journal entries using specific COA from BOP proses setup
-     * Multi-tenant support: Uses COA from bop_proses table for each user
+     * Create BOP journal entries using specific COA codes as per user's sketsa
      */
     private function createBOPJournalEntries($produksi, $tanggal, $user_id)
     {
-        // Get all BOP proses for this user (multi-tenant support)
-        $bopProsesList = \App\Models\BopProses::where('user_id', $user_id)
-            ->where('is_active', true)
-            ->get();
+        // BOP COA mappings according to user's sketsa
+        $bopCoaMappings = [
+            'Gas / BBM' => '552',
+            'Air & Kebersihan' => '551', 
+            'Listrik' => '550',
+            'Susu' => '1151',    // Use 1151 for Susu, Keju, Kemasan
+            'Keju' => '1151',     // Use 1151 for Susu, Keju, Kemasan  
+            'Cup' => '1151'       // Use 1151 for Susu, Keju, Kemasan
+        ];
+        
+        // Component name mappings to match user's sketsa exactly
+        $componentNameMappings = [
+            'Gas / BBM' => 'Gas',
+            'Air & Kebersihan' => 'Air', 
+            'Listrik' => 'Listrik',
+            'Susu' => 'Susu',
+            'Keju' => 'Keju',
+            'Cup' => 'Kemasan'
+        ];
 
-        foreach ($bopProsesList as $bopProses) {
-            // Get komponen_bop data from database
-            $komponenBop = $bopProses->komponen_bop;
-            if (is_string($komponenBop)) {
-                $komponenBop = json_decode($komponenBop, true) ?? [];
-            } elseif (!is_array($komponenBop)) {
-                $komponenBop = [];
-            }
-
-            // Calculate total BOP for this proses
-            $totalBopPerProduk = $bopProses->total_bop_per_produk ?? 0;
-            $totalBopAmount = $totalBopPerProduk * $produksi->qty_produksi;
-
-            if ($totalBopAmount > 0) {
-                // Create journal entry for each component with its specific COA from database
-                foreach ($komponenBop as $komp) {
-                    $componentName = $komp['component'] ?? 'BOP';
-                    $ratePerHour = $komp['rate_per_hour'] ?? 0;
-                    // Use COA from bop_proses table (multi-tenant aware)
-                    $coaDebit = $komp['coa_debit'] ?? '1173';
-                    $coaKredit = $komp['coa_kredit'] ?? '510';
-                    $description = $komp['description'] ?? '';
-
-                    // Calculate proportional amount for this component
-                    $totalRate = array_sum(array_column($komponenBop, 'rate_per_hour'));
-                    $componentAmount = $totalRate > 0 ? ($ratePerHour / $totalRate) * $totalBopAmount : 0;
-
-                    if ($componentAmount > 0) {
-                        // Create debit entry (WIP BOP account) with user-specific COA
-                        $coaDebitId = $this->getCoaIdByKode($coaDebit, $user_id);
-                        \App\Models\JurnalUmum::create([
-                            'user_id' => $user_id,
-                            'coa_id' => $coaDebitId,
-                            'tanggal' => $tanggal,
-                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
-                            'debit' => $componentAmount,
-                            'kredit' => 0,
-                            'referensi' => $produksi->id,
-                            'tipe_referensi' => 'produksi_bop',
-                            'created_by' => $user_id,
-                        ]);
-
-                        // Create credit entry (expense account) with user-specific COA
-                        $coaKreditId = $this->getCoaIdByKode($coaKredit, $user_id);
-                        \App\Models\JurnalUmum::create([
-                            'user_id' => $user_id,
-                            'coa_id' => $coaKreditId,
-                            'tanggal' => $tanggal,
-                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
-                            'debit' => 0,
-                            'kredit' => $componentAmount,
-                            'referensi' => $produksi->id,
-                            'tipe_referensi' => 'produksi_bop',
-                            'created_by' => $user_id,
-                        ]);
-                    }
+        // Get BOP components from HPP data
+        $hppData = $this->getHppBreakdownForProduction($produksi->produk_id, $user_id);
+        
+        if (!empty($hppData['bop_komponen'])) {
+            foreach ($hppData['bop_komponen'] as $komponen) {
+                $componentName = $komponen['nama_komponen'] ?? '';
+                $totalKomponen = $komponen['subtotal'] * $produksi->qty_produksi;
+                
+                if ($totalKomponen > 0 && isset($bopCoaMappings[$componentName])) {
+                    $coaKode = $bopCoaMappings[$componentName];
+                    $coaId = $this->getCoaIdByKode($coaKode, $user_id);
+                    
+                    // Use correct component name from mapping
+                    $correctComponentName = $componentNameMappings[$componentName] ?? $componentName;
+                    
+                    // Create credit entry for BOP component
+                    \App\Models\JurnalUmum::create([
+                        'user_id' => $user_id,
+                        'coa_id' => $coaId,
+                        'tanggal' => $tanggal,
+                        'keterangan' => "BOP - {$correctComponentName}",
+                        'debit' => 0,
+                        'kredit' => $totalKomponen,
+                        'referensi' => $produksi->id,
+                        'tipe_referensi' => 'produksi_bop',
+                        'created_by' => $user_id,
+                    ]);
                 }
             }
         }

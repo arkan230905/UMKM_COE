@@ -107,39 +107,34 @@
                                     <div class="col-12 mb-3">
                                         <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #fef9e7 100%); border-left: 5px solid #ffc107 !important;">
                                             <div class="card-body p-3">
-                                                <div class="form-check mb-0">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-8">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="bg-warning rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center;">
+                                                                <i class="fas fa-users text-white"></i>
+                                                            </div>
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="mb-0 text-warning fw-bold">{{ $item->nama_proses }}</h6>
+                                                                <small class="text-muted">{{ $item->kode_proses ?? '-' }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4 text-end">
+                                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #fef9e7 100%); border-left: 5px solid #ffc107 !important;">
+                                                            <div class="card-body p-2 text-center">
+                                                                <small class="text-muted d-block">Biaya/Produk</small>
+                                                                <h5 class="mb-0 fw-bold text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-check mt-2">
                                                     <input class="form-check-input btkl-checkbox" type="checkbox" 
                                                            name="selected_btkl[]" value="{{ $item->id }}" id="btkl_{{ $item->id }}"
                                                            data-tarif="{{ $biayaPerProduk }}"
-                                                           style="transform: scale(1.2); margin-top: 8px;">
-                                                    <label class="form-check-label w-100" for="btkl_{{ $item->id }}">
-                                                        <div class="row align-items-center">
-                                                            <div class="col-md-4">
-                                                                <div class="d-flex align-items-center">
-                                                                    <div class="bg-warning rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center;">
-                                                                        <i class="fas fa-users text-white"></i>
-                                                                    </div>
-                                                                    <div>
-                                                                        <h6 class="mb-0 text-warning fw-bold">{{ $item->nama_proses }}</h6>
-                                                                        <small class="text-muted">{{ $item->kode_proses ?? '-' }}</small>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-3 text-center">
-                                                                <small class="text-muted d-block">Tarif/Jam</small>
-                                                                <strong class="text-dark">Rp {{ number_format($tarif, 0, ',', '.') }}</strong>
-                                                            </div>
-                                                            <div class="col-md-2 text-center">
-                                                                <small class="text-muted d-block">Kapasitas</small>
-                                                                <strong class="text-dark">{{ $kapasitas }} {{ $item->satuan_btkl ?? 'Unit' }}/jam</strong>
-                                                            </div>
-                                                            <div class="col-md-3 text-center">
-                                                                <div class="bg-warning bg-opacity-10 rounded p-2">
-                                                                    <small class="text-muted d-block">Biaya/Produk</small>
-                                                                    <h5 class="mb-0 fw-bold text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</h5>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                           style="transform: scale(1.2);">
+                                                    <label class="form-check-label d-flex align-items-center" for="btkl_{{ $item->id }}">
+                                                        <span class="ms-2">Pilih untuk HPP</span>
                                                     </label>
                                                 </div>
                                             </div>

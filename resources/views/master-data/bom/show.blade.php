@@ -170,8 +170,6 @@
                                         <th>No</th>
                                         <th>Nama Proses</th>
                                         <th>Kode Proses</th>
-                                        <th>Tarif per Jam</th>
-                                        <th>Kapasitas per Jam</th>
                                         <th>Biaya per Produk</th>
                                         <th>Deskripsi</th>
                                     </tr>
@@ -179,16 +177,12 @@
                                 <tbody>
                                     @foreach($selectedBtkl as $index => $btkl)
                                         @php
-                                            $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
-                                            $kapasitas = $btkl->prosesProduksi->kapasitas_per_jam ?? 1;
-                                            $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
+                                            $biayaPerProduk = $btkl->prosesProduksi->biaya_btkl_per_produk ?? 0;
                                         @endphp
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
                                             <td><strong>{{ $btkl->prosesProduksi->nama_proses ?? 'N/A' }}</strong></td>
                                             <td>{{ $btkl->prosesProduksi->kode_proses ?? '-' }}</td>
-                                            <td>Rp {{ number_format($tarif, 0, ',', '.') }}</td>
-                                            <td>{{ $kapasitas }} unit/jam</td>
                                             <td><strong class="text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</strong></td>
                                             <td>{{ $btkl->prosesProduksi->deskripsi ?? '-' }}</td>
                                         </tr>
@@ -196,9 +190,8 @@
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <th colspan="5" class="text-end">Total BTKL:</th>
+                                        <th colspan="4" class="text-end">Total BTKL:</th>
                                         <th class="text-warning">Rp {{ number_format($totalBtkl, 0, ',', '.') }}</th>
-                                        <th></th>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -268,13 +261,7 @@
                                                         <th colspan="2" class="text-end">Total BOP {{ $bopName }}:</th>
                                                         <th class="text-end text-danger">Rp {{ number_format($totalBopItem, 0, ',', '.') }}</th>
                                                     </tr>
-                                                    <tr>
-                                                        <td colspan="3" class="text-muted small">
-                                                            <i class="fas fa-info-circle me-1"></i>
-                                                            Kapasitas: {{ $kapasitas }} unit/jam
-                                                        </td>
-                                                    </tr>
-                                                </tfoot>
+                                                                                                    </tfoot>
                                             </table>
                                         </div>
                                     @else
