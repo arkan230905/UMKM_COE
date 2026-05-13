@@ -9,35 +9,41 @@ class JasukeCoaSeeder extends Seeder
 {
     public function run(): void
     {
-        $companyId = 1; // Sesuaikan dengan ID dari CompanySeeder
+        $companyId = 1; // Pastikan ID ini ada di tabel perusahaan
+        $now = now();
+
+        // Pastikan perusahaan dengan ID 1 ada
+        $companyExists = DB::table('perusahaan')->where('id', $companyId)->exists();
+        if (!$companyExists) {
+            $this->command->warn('⚠️  Perusahaan dengan ID 1 tidak ditemukan. Seeder dilewati.');
+            return;
+        }
 
         $coas = [
-            ['kode_akun' => '11',   'nama_akun' => 'Aset', 'tipe' => 'Aset', 'normal' => 'debit'],
-            ['kode_akun' => '114',  'nama_akun' => 'Pers. Bahan Baku', 'tipe' => 'Aset', 'normal' => 'debit'],
-            ['kode_akun' => '115',  'nama_akun' => 'Pers. Bahan Pendukung', 'tipe' => 'Aset', 'normal' => 'debit'],
-            ['kode_akun' => '116',  'nama_akun' => 'Pers. Barang Jadi', 'tipe' => 'Aset', 'normal' => 'debit'],
-            ['kode_akun' => '51',   'nama_akun' => 'BBB - Biaya Bahan Baku', 'tipe' => 'Biaya', 'normal' => 'debit'],
-            ['kode_akun' => '52',   'nama_akun' => 'BTKL', 'tipe' => 'Biaya', 'normal' => 'debit'],
-            ['kode_akun' => '53',   'nama_akun' => 'BOP', 'tipe' => 'Biaya', 'normal' => 'debit'],
-            // Tambahkan akun lainnya di sini...
+            ['kode' => '11',   'nama' => 'Aset', 'tipe' => 'Aset'],
+            ['kode' => '114',  'nama' => 'Pers. Bahan Baku', 'tipe' => 'Aset'],
+            ['kode' => '115',  'nama' => 'Pers. Bahan Pendukung', 'tipe' => 'Aset'],
+            ['kode' => '116',  'nama' => 'Pers. Barang Jadi', 'tipe' => 'Aset'],
+            ['kode' => '51',   'nama' => 'BBB - Biaya Bahan Baku', 'tipe' => 'Biaya'],
+            ['kode' => '52',   'nama' => 'BTKL', 'tipe' => 'Biaya'],
+            ['kode' => '53',   'nama' => 'BOP', 'tipe' => 'Biaya'],
+            // Tambahkan akun spesifik SIMACOST lainnya di sini
         ];
 
         foreach ($coas as $coa) {
             DB::table('coas')->updateOrInsert(
-                // Kunci pengecekan: Kode Akun unik per Perusahaan
-                ['kode_akun' => $coa['kode_akun'], 'company_id' => $companyId],
-                // Data yang diupdate/diinput
+                ['kode_akun' => $coa['kode'], 'company_id' => $companyId],
                 [
-                    'nama_akun'     => $coa['nama_akun'],
+                    'nama_akun'     => $coa['nama'],
                     'tipe_akun'     => $coa['tipe'],
                     'kategori_akun' => $coa['tipe'],
-                    'saldo_normal'  => $coa['normal'],
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
+                    'saldo_normal'  => 'debit',
+                    'user_id'       => null, // Multi-tenant: bisa diisi dengan user_id jika perlu
+                    'updated_at'    => $now,
+                    'created_at'    => $now,
                 ]
             );
         }
-
-        $this->command->info('✅ JasukeCoaSeeder berhasil diproses tanpa duplikat.');
+        $this->command->info('✅ JasukeCoaSeeder: Data berhasil disinkronkan.');
     }
 }

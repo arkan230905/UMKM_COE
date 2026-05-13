@@ -23,24 +23,10 @@ return new class extends Migration
                 'updated_at' => now(),
             ]);
         }
-        
-        // Cek apakah Account 1105 sudah ada
-        $accExists = DB::table('accounts')->where('code', '1105')->exists();
-        
-        if (!$accExists) {
-            DB::table('accounts')->insert([
-                'code' => '1105',
-                'name' => 'Persediaan Bahan Pendukung',
-                'type' => 'asset',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
     }
 
     public function down(): void
     {
         DB::table('coas')->where('kode_akun', '1105')->delete();
-        DB::table('accounts')->where('code', '1105')->delete();
     }
 };

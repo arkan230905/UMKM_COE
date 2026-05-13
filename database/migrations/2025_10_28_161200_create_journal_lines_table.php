@@ -22,11 +22,11 @@ return new class extends Migration
                       ->on('journal_entries')
                       ->onDelete('cascade');
                 
-                // Relasi ke Akun (merujuk ke accounts)
-                $table->unsignedBigInteger('account_id');
-                $table->foreign('account_id')
+                // Relasi ke Akun (merujuk ke coas)
+                $table->unsignedBigInteger('coa_id');
+                $table->foreign('coa_id')
                       ->references('id')
-                      ->on('accounts')
+                      ->on('coas')
                       ->onDelete('cascade');
                 
                 // Nominal & Keterangan
@@ -38,7 +38,7 @@ return new class extends Migration
 
                 // Index untuk performa laporan keuangan
                 $table->index('journal_entry_id');
-                $table->index('account_id');
+                $table->index('coa_id');
             });
         }
     }
