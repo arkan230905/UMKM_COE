@@ -66,7 +66,6 @@ class JabatanController extends Controller
         $data['tarif'] = $data['tarif'] ?? 0;
 
         $data['gaji_pokok'] = $data['gaji'] ?? 0;
-        $data['tarif_per_jam'] = $data['tarif'];
         unset($data['gaji']);
         
         $prefix = strtoupper(substr($data['kategori'], 0, 2));
@@ -135,7 +134,6 @@ class JabatanController extends Controller
         $data['tarif'] = $data['tarif'] ?? 0;
 
         $data['gaji_pokok'] = $data['gaji'] ?? 0;
-        $data['tarif_per_jam'] = $data['tarif'];
         unset($data['gaji']);
 
         if ($jabatan->kategori !== $data['kategori']) {
@@ -234,7 +232,7 @@ class JabatanController extends Controller
 
         $jabatans = $query->select(
             'id','nama','kategori','kategori_id',
-            'gaji_pokok','tarif_per_jam as tarif',
+            'gaji_pokok','tarif',
             'tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi'
         )->orderBy('nama')->get();
 

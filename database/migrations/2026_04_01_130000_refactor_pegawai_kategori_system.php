@@ -58,11 +58,11 @@ return new class extends Migration
 
         // Update jabatans table to use proper field names
         Schema::table('jabatans', function (Blueprint $table) {
-            if (!Schema::hasColumn('jabatans', 'tarif_per_jam')) {
-                $table->renameColumn('tarif', 'tarif_per_jam');
-            }
+            // Keep 'tarif' as is - we use tarif per product, not per hour
             if (!Schema::hasColumn('jabatans', 'gaji_pokok')) {
-                $table->renameColumn('gaji', 'gaji_pokok');
+                if (Schema::hasColumn('jabatans', 'gaji')) {
+                    $table->renameColumn('gaji', 'gaji_pokok');
+                }
             }
         });
     }
