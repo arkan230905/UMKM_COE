@@ -12,13 +12,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('btkls', function (Blueprint $table) {
-            // Add check constraint (MySQL 8.0+)
-            if (DB::getDriverName() === 'mysql') {
-                DB::statement('ALTER TABLE btkls ADD CONSTRAINT chk_tarif_btkl_positive CHECK (tarif_btkl >= 0)');
-                DB::statement('ALTER TABLE btkls ADD CONSTRAINT chk_kapasitas_per_jam_positive CHECK (kapasitas_per_jam > 0)');
+        // Gunakan pengecekan di luar Schema::table untuk keamanan DB::statement
+        if (DB::getDriverName() === 'mysql') {
+            
+            // Cek kolom tarif_btkl
+            if (Schema::hasColumn('btkls', 'tarif_btkl')) {
+                // Gunakan TRY-CATCH agar jika constraint sudah ada tidak menyebabkan FAIL
+                try {
+                    DB::statement('ALTER TABLE btkls ADD CONSTRAINT chk_tarif_btkl_positive CHECK (tarif_btkl >= 0)');
+                } catch (\Exception $e) {
+                    // Abaikan jika constraint sudah ada
+                }
             }
-        });
+
+            // Cek kolom kapasitas_per_jam (Penyebab eror sebelumnya)
+            if (Schema::hasColumn('btkls', 'kapasitas_per_jam')) {
+                try {
+                    DB::statement('ALTER TABLE btkls ADD CONSTRAINT chk_kapasitas_per_jam_positive CHECK (kapasitas_per_jam > 0)');
+                } catch (\Exception $e) {
+                    // Abaikan jika constraint sudah ada
+                }
+            }
+        }
     }
 
     /**
@@ -26,12 +41,14 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('btkls', function (Blueprint $table) {
-            // Remove check constraints
-            if (DB::getDriverName() === 'mysql') {
+        if (DB::getDriverName() === 'mysql') {
+            try {
                 DB::statement('ALTER TABLE btkls DROP CONSTRAINT chk_tarif_btkl_positive');
+            } catch (\Exception $e) { }
+
+            try {
                 DB::statement('ALTER TABLE btkls DROP CONSTRAINT chk_kapasitas_per_jam_positive');
-            }
-        });
+            } catch (\Exception $e) { }
+        }
     }
 };
