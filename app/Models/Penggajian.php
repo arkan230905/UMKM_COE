@@ -149,6 +149,16 @@ class Penggajian extends Model
         'status_pembayaran',
         'tanggal_dibayar',
         'metode_pembayaran',
+        'keterangan',
+        // NEW: Produk-based fields
+        'produk_hari_1_5',
+        'produk_hari_6_10',
+        'produk_hari_11_20',
+        'produk_hari_21_30',
+        'total_produk_bulan',
+        'tarif_produk',
+        'produk_per_hari',
+        'hari_kerja',
     ];
 
     protected $casts = [
@@ -172,6 +182,15 @@ class Penggajian extends Model
         'total_gaji' => 'decimal:2',
         'coa_kasbank' => 'string',
         'tanggal_dibayar' => 'date',
+        // NEW: Produk-based casts
+        'produk_hari_1_5' => 'integer',
+        'produk_hari_6_10' => 'integer',
+        'produk_hari_11_20' => 'integer',
+        'produk_hari_21_30' => 'integer',
+        'total_produk_bulan' => 'integer',
+        'tarif_produk' => 'decimal:2',
+        'produk_per_hari' => 'integer',
+        'hari_kerja' => 'integer',
     ];
 
     public function pegawai()
@@ -185,6 +204,27 @@ class Penggajian extends Model
     public function isPaid()
     {
         return $this->status_pembayaran === 'lunas';
+    }
+
+    /**
+     * Calculate total produk from 4 periode
+     */
+    public function getTotalProdukBulanAttribute()
+    {
+        return ($this->produk_hari_1_5 ?? 0) + 
+               ($this->produk_hari_6_10 ?? 0) + 
+               ($this->produk_hari_11_20 ?? 0) + 
+               ($this->produk_hari_21_30 ?? 0);
+    }
+
+    /**
+     * Calculate gaji bruto based on produk (total_produk × tarif_produk)
+     */
+    public function getGajiBrutoAttribute()
+    {
+        $totalProduk = $this->getTotalProdukBulanAttribute();
+        $tarifProduk = $this->tarif_produk ?? 0;
+        return $totalProduk * $tarifProduk;
     }
 
     /**

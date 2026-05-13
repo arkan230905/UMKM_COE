@@ -31,7 +31,8 @@ class Jabatan extends Model
         'tunjangan_konsumsi',
         'asuransi', 
         'tarif',
-        'tarif_produk', 
+        'tarif_produk',
+        'target_produk_per_bulan',
         'deskripsi',
         'user_id'
     ];
@@ -45,6 +46,7 @@ class Jabatan extends Model
         'asuransi' => 'decimal:2',
         'tarif' => 'decimal:2',
         'tarif_produk' => 'decimal:2',
+        'target_produk_per_bulan' => 'integer',
     ];
 
     /**

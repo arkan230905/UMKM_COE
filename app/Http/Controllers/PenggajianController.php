@@ -72,6 +72,22 @@ class PenggajianController extends Controller
     }
 
     /**
+     * Tampilkan form tambah penggajian berbasis produk (BTKL).
+     */
+    public function createProduk()
+    {
+        // Clear any old validation errors from session
+        session()->forget('errors');
+
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::with('jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->get();
+        $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
+        return view('transaksi.penggajian.create-produk', compact('pegawais', 'kasbank'));
+    }
+
+    /**
      * API endpoint to get real-time employee salary data
      */
     public function getEmployeeData($pegawaiId)
@@ -147,7 +163,7 @@ class PenggajianController extends Controller
     }
 
     /**
-     * Simpan data penggajian baru.
+     * Simpan data penggajian baru (JAM-BASED atau PRODUK-BASED).
      */
     public function store(Request $request)
     {
@@ -168,138 +184,225 @@ class PenggajianController extends Controller
 
             $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($request->pegawai_id);
 
-            // STEP 1: Get data from KUALIFIKASI (JABATAN) - NOT from form
-            $jenisPegawai = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
-            
-            // Ambil data dari KUALIFIKASI (JABATAN) atau fallback ke pegawai
-            if ($pegawai->jabatanRelasi) {
-                $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
-                $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_produk ?? 0);
-                $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
-                $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
-                $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
-                $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
-            } else {
-                // Fallback ke data pegawai jika tidak ada jabatan
-                $gajiPokok = (float) ($pegawai->gaji_pokok ?? 0);
-                $tarifPerJam = (float) ($pegawai->tarif_per_jam ?? 0);
-                $tunjanganJabatan = (float) ($pegawai->tunjangan ?? 0);
-                $tunjanganTransport = 0;
-                $tunjanganKonsumsi = 0;
-                $asuransi = (float) ($pegawai->asuransi ?? 0);
-            }
-            
-            // Validasi data kualifikasi berdasarkan jenis pegawai
-            if ($jenisPegawai === 'btkl') {
-                if ($tarifPerJam <= 0) {
-                    throw new \Exception("Tarif per jam untuk pegawai BTKL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
-                }
-            } else { // BTKTL
-                if ($gajiPokok <= 0) {
-                    throw new \Exception("Gaji pokok untuk pegawai BTKTL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
-                }
-            }
-            
-            // Warning jika asuransi 0 (opsional tapi sebaiknya ada)
-            if ($asuransi <= 0) {
-                \Log::warning("Asuransi untuk pegawai '{$pegawai->nama}' adalah 0. Pastikan ini sudah benar.");
-            }
-            
-            // STEP 2: Get jam kerja from PRESENSI - NOT from form
-            $tanggalPenggajian = \Carbon\Carbon::parse($request->tanggal_penggajian);
-            $month = $tanggalPenggajian->month;
-            $year = $tanggalPenggajian->year;
-            
-            // Get total jam kerja from presensi
-            $presensiData = \App\Models\Presensi::where('pegawai_id', $pegawai->id)
-                ->whereMonth('tgl_presensi', $month)
-                ->whereYear('tgl_presensi', $year)
-                ->where('status', 'hadir')
-                ->get();
-            
-            $totalJamKerja = 0;
-            foreach ($presensiData as $presensi) {
-                $totalJamKerja += $presensi->jumlah_jam;
-            }
-            
-            // Validasi jam kerja untuk BTKL
-            if ($jenisPegawai === 'btkl' && $totalJamKerja <= 0) {
-                throw new \Exception("Tidak ada data presensi untuk pegawai BTKL '{$pegawai->nama}' pada periode {$month}/{$year}. Pastikan data presensi sudah diinput.");
-            }
-            
-            // Log informasi presensi
-            \Log::info("Data presensi pegawai {$pegawai->nama} periode {$month}/{$year}: {$presensiData->count()} hari hadir, total {$totalJamKerja} jam");
-            
-            // STEP 3: Get manual input from form (bonus, potongan)
-            $bonus = (float) ($request->bonus ?? 0);
-            $potongan = (float) ($request->potongan ?? 0);
-            
-            // STEP 4: Calculate totals
-            $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
-            
-            // Hitung gaji dasar berdasarkan jenis pegawai
-            if ($jenisPegawai === 'btkl') {
-                $gajiDasar = $tarifPerJam * $totalJamKerja;
-            } else {
-                $gajiDasar = $gajiPokok;
-            }
+            // STEP 1: Determine if this is PRODUK-BASED or JAM-BASED
+            $isProdukBased = $request->has('produk_per_hari') && $request->produk_per_hari > 0;
 
-            // Hitung total gaji
-            $totalGaji = $gajiDasar + $totalTunjangan + $asuransi + $bonus - $potongan;
+            if ($isProdukBased) {
+                // ============================================================
+                // PRODUK-BASED PENGGAJIAN (NEW SYSTEM)
+                // ============================================================
+                \Log::info('Creating PRODUK-BASED penggajian for pegawai: ' . $pegawai->nama);
 
-            // Log data sebelum menyimpan
-            \Log::info('Data dari KUALIFIKASI dan PRESENSI:', [
-                'pegawai_id' => $pegawai->id,
-                'pegawai_nama' => $pegawai->nama,
-                'jabatan_nama' => $pegawai->jabatanRelasi?->nama_jabatan ?? 'N/A',
-                'jenis_pegawai' => $jenisPegawai,
-                'FROM_KUALIFIKASI' => [
-                    'gaji_pokok' => $gajiPokok,
-                    'tarif_per_jam' => $tarifPerJam,
+                // Get input values
+                $produkPerHari = (int)$request->produk_per_hari;
+                $hariKerja = (int)($request->hari_kerja ?? 26);
+
+                // STEP 1: Calculate total produk
+                $totalProduk = $produkPerHari * $hariKerja;
+
+                // STEP 2: Round down to nearest 100
+                $totalProdukRounded = floor($totalProduk / 100) * 100;
+
+                // STEP 3: Get tarif from jabatan
+                $jabatan = $pegawai->jabatanRelasi;
+                $tarifProduk = $jabatan ? ($jabatan->tarif_produk ?? 0) : 0;
+
+                // STEP 4: Calculate gaji produksi
+                $gajiProduksi = $totalProdukRounded * $tarifProduk;
+
+                // STEP 5: Round to nearest 500,000 (normal rounding)
+                $gajiProduksiRounded = round($gajiProduksi / 500000) * 500000;
+
+                // STEP 6: Get tunjangan & asuransi
+                $tunjanganJabatan = $jabatan ? ($jabatan->tunjangan ?? 0) : 0;
+                $tunjanganTransport = $jabatan ? ($jabatan->tunjangan_transport ?? 0) : 0;
+                $tunjanganKonsumsi = $jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : 0;
+                $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
+                $asuransi = $jabatan ? ($jabatan->asuransi ?? 0) : 0;
+
+                // STEP 7: Calculate total gaji
+                $totalGaji = $gajiProduksiRounded + $totalTunjangan - $asuransi;
+
+                // STEP 8: Round to nearest 500,000 (normal rounding)
+                $totalGajiRounded = round($totalGaji / 500000) * 500000;
+
+                // Create penggajian record
+                $penggajian = Penggajian::create([
+                    'pegawai_id' => $pegawai->id,
+                    'periode_bulan' => \Carbon\Carbon::parse($request->tanggal_penggajian)->month,
+                    'periode_tahun' => \Carbon\Carbon::parse($request->tanggal_penggajian)->year,
+                    'tanggal_penggajian' => $request->tanggal_penggajian,
+                    'coa_kasbank' => $request->coa_kasbank,
+                    'gaji_pokok' => $gajiProduksiRounded,
+                    'tarif_per_jam' => 0,
+                    'tunjangan' => $totalTunjangan,
                     'tunjangan_jabatan' => $tunjanganJabatan,
                     'tunjangan_transport' => $tunjanganTransport,
                     'tunjangan_konsumsi' => $tunjanganKonsumsi,
-                    'asuransi' => $asuransi,
-                ],
-                'FROM_PRESENSI' => [
-                    'total_jam_kerja' => $totalJamKerja,
-                    'periode' => "{$year}-{$month}",
-                ],
-                'CALCULATED' => [
-                    'gaji_dasar' => $gajiDasar,
                     'total_tunjangan' => $totalTunjangan,
+                    'asuransi' => $asuransi,
+                    'bonus' => 0,
+                    'potongan' => 0,
+                    'total_jam_kerja' => 0,
+                    'total_gaji' => $totalGajiRounded,
+                    'status_pembayaran' => 'belum_lunas',
+                    'metode_pembayaran' => $request->metode_pembayaran ?? 'transfer_bank',
+                    'produk_per_hari' => $produkPerHari,
+                    'hari_kerja' => $hariKerja,
+                    'total_produk_bulan' => $totalProdukRounded,
+                    'tarif_produk' => $tarifProduk,
+                    'keterangan' => $request->keterangan ?? null,
+                    'user_id' => auth()->id(),
+                ]);
+
+                \Log::info('PRODUK-BASED penggajian created successfully', [
+                    'penggajian_id' => $penggajian->id,
+                    'produk_per_hari' => $produkPerHari,
+                    'hari_kerja' => $hariKerja,
+                    'total_produk' => $totalProdukRounded,
+                    'gaji_produksi' => $gajiProduksiRounded,
+                    'total_gaji' => $totalGajiRounded,
+                ]);
+
+            } else {
+                // ============================================================
+                // JAM-BASED PENGGAJIAN (OLD SYSTEM)
+                // ============================================================
+                \Log::info('Creating JAM-BASED penggajian for pegawai: ' . $pegawai->nama);
+
+                // Get data from KUALIFIKASI (JABATAN) - NOT from form
+                $jenisPegawai = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
+                
+                // Ambil data dari KUALIFIKASI (JABATAN) atau fallback ke pegawai
+                if ($pegawai->jabatanRelasi) {
+                    $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
+                    $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_produk ?? 0);
+                    $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
+                    $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
+                    $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
+                    $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
+                } else {
+                    // Fallback ke data pegawai jika tidak ada jabatan
+                    $gajiPokok = (float) ($pegawai->gaji_pokok ?? 0);
+                    $tarifPerJam = (float) ($pegawai->tarif_per_jam ?? 0);
+                    $tunjanganJabatan = (float) ($pegawai->tunjangan ?? 0);
+                    $tunjanganTransport = 0;
+                    $tunjanganKonsumsi = 0;
+                    $asuransi = (float) ($pegawai->asuransi ?? 0);
+                }
+                
+                // Validasi data kualifikasi berdasarkan jenis pegawai
+                if ($jenisPegawai === 'btkl') {
+                    if ($tarifPerJam <= 0) {
+                        throw new \Exception("Tarif per jam untuk pegawai BTKL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
+                    }
+                } else { // BTKTL
+                    if ($gajiPokok <= 0) {
+                        throw new \Exception("Gaji pokok untuk pegawai BTKTL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
+                    }
+                }
+                
+                // Warning jika asuransi 0 (opsional tapi sebaiknya ada)
+                if ($asuransi <= 0) {
+                    \Log::warning("Asuransi untuk pegawai '{$pegawai->nama}' adalah 0. Pastikan ini sudah benar.");
+                }
+                
+                // STEP 2: Get jam kerja from PRESENSI - NOT from form
+                $tanggalPenggajian = \Carbon\Carbon::parse($request->tanggal_penggajian);
+                $month = $tanggalPenggajian->month;
+                $year = $tanggalPenggajian->year;
+                
+                // Get total jam kerja from presensi
+                $presensiData = \App\Models\Presensi::where('pegawai_id', $pegawai->id)
+                    ->whereMonth('tgl_presensi', $month)
+                    ->whereYear('tgl_presensi', $year)
+                    ->where('status', 'hadir')
+                    ->get();
+                
+                $totalJamKerja = 0;
+                foreach ($presensiData as $presensi) {
+                    $totalJamKerja += $presensi->jumlah_jam;
+                }
+                
+                // Validasi jam kerja untuk BTKL
+                if ($jenisPegawai === 'btkl' && $totalJamKerja <= 0) {
+                    throw new \Exception("Tidak ada data presensi untuk pegawai BTKL '{$pegawai->nama}' pada periode {$month}/{$year}. Pastikan data presensi sudah diinput.");
+                }
+                
+                // Log informasi presensi
+                \Log::info("Data presensi pegawai {$pegawai->nama} periode {$month}/{$year}: {$presensiData->count()} hari hadir, total {$totalJamKerja} jam");
+                
+                // STEP 3: Get manual input from form (bonus, potongan)
+                $bonus = (float) ($request->bonus ?? 0);
+                $potongan = (float) ($request->potongan ?? 0);
+                
+                // STEP 4: Calculate totals
+                $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
+                
+                // Hitung gaji dasar berdasarkan jenis pegawai
+                if ($jenisPegawai === 'btkl') {
+                    $gajiDasar = $tarifPerJam * $totalJamKerja;
+                } else {
+                    $gajiDasar = $gajiPokok;
+                }
+
+                // Hitung total gaji
+                $totalGaji = $gajiDasar + $totalTunjangan + $asuransi + $bonus - $potongan;
+
+                // Log data sebelum menyimpan
+                \Log::info('Data dari KUALIFIKASI dan PRESENSI:', [
+                    'pegawai_id' => $pegawai->id,
+                    'pegawai_nama' => $pegawai->nama,
+                    'jabatan_nama' => $pegawai->jabatanRelasi?->nama_jabatan ?? 'N/A',
+                    'jenis_pegawai' => $jenisPegawai,
+                    'FROM_KUALIFIKASI' => [
+                        'gaji_pokok' => $gajiPokok,
+                        'tarif_per_jam' => $tarifPerJam,
+                        'tunjangan_jabatan' => $tunjanganJabatan,
+                        'tunjangan_transport' => $tunjanganTransport,
+                        'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                        'asuransi' => $asuransi,
+                    ],
+                    'FROM_PRESENSI' => [
+                        'total_jam_kerja' => $totalJamKerja,
+                        'periode' => "{$year}-{$month}",
+                    ],
+                    'CALCULATED' => [
+                        'gaji_dasar' => $gajiDasar,
+                        'total_tunjangan' => $totalTunjangan,
+                        'total_gaji' => $totalGaji,
+                    ],
+                ]);
+
+                // Simpan ke tabel penggajian
+                $penggajian = new Penggajian([
+                    'pegawai_id' => $pegawai->id,
+                    'tanggal_penggajian' => $request->tanggal_penggajian,
+                    'coa_kasbank' => $request->coa_kasbank,
+                    'gaji_pokok' => $gajiPokok,
+                    'tarif_per_jam' => $tarifPerJam,
+                    'tunjangan' => $totalTunjangan, // For backward compatibility
+                    'tunjangan_jabatan' => $tunjanganJabatan,
+                    'tunjangan_transport' => $tunjanganTransport,
+                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                    'total_tunjangan' => $totalTunjangan,
+                    'asuransi' => $asuransi,
+                    'bonus' => $bonus,
+                    'potongan' => $potongan,
+                    'total_jam_kerja' => $totalJamKerja,
                     'total_gaji' => $totalGaji,
-                ],
-            ]);
+                    'status_pembayaran' => 'belum_lunas',
+                ]);
 
-            // Simpan ke tabel penggajian
-            $penggajian = new Penggajian([
-                'pegawai_id' => $pegawai->id,
-                'tanggal_penggajian' => $request->tanggal_penggajian,
-                'coa_kasbank' => $request->coa_kasbank,
-                'gaji_pokok' => $gajiPokok,
-                'tarif_per_jam' => $tarifPerJam,
-                'tunjangan' => $totalTunjangan, // For backward compatibility
-                'tunjangan_jabatan' => $tunjanganJabatan,
-                'tunjangan_transport' => $tunjanganTransport,
-                'tunjangan_konsumsi' => $tunjanganKonsumsi,
-                'total_tunjangan' => $totalTunjangan,
-                'asuransi' => $asuransi,
-                'bonus' => $bonus,
-                'potongan' => $potongan,
-                'total_jam_kerja' => $totalJamKerja,
-                'total_gaji' => $totalGaji,
-                'status_pembayaran' => 'belum_lunas',
-            ]);
+                if (!$penggajian->save()) {
+                    throw new \Exception('Gagal menyimpan data penggajian ke database');
+                }
 
-            if (!$penggajian->save()) {
-                throw new \Exception('Gagal menyimpan data penggajian ke database');
+                \Log::info('Data penggajian berhasil disimpan', [
+                    'penggajian_id' => $penggajian->id,
+                    'total_gaji' => $totalGaji,
+                ]);
             }
-
-            \Log::info('Data penggajian berhasil disimpan', [
-                'penggajian_id' => $penggajian->id,
-                'total_gaji' => $totalGaji,
-            ]);
 
             // STEP 5: Buat journal entry ke sistem jurnal_umum
             $this->createJournalEntry($penggajian, $pegawai);
@@ -668,6 +771,97 @@ class PenggajianController extends Controller
         // Saldo aktual selalu dihitung on-the-fly dari jurnal.
         \Log::info('Saldo COA ' . $kodeAkun . ' akan dihitung dari jurnal saat dibutuhkan.');
         return true;
+    }
+
+    /**
+     * API endpoint: Hitung gaji BTKL berbasis produk (PREVIEW)
+     * POST /api/penggajian/hitung-produk
+     */
+    public function hitungGajiProduk(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'pegawai_id' => 'required|integer',
+                'produk_hari_1_5' => 'required|integer|min:0',
+                'produk_hari_6_10' => 'required|integer|min:0',
+                'produk_hari_11_20' => 'required|integer|min:0',
+                'produk_hari_21_30' => 'required|integer|min:0',
+            ]);
+
+            $service = new \App\Services\PenggajianService();
+            $detail = $service->hitungGajiProduk(
+                $validated['pegawai_id'],
+                $validated['produk_hari_1_5'],
+                $validated['produk_hari_6_10'],
+                $validated['produk_hari_11_20'],
+                $validated['produk_hari_21_30']
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $detail
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in hitungGajiProduk: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * API endpoint: Create penggajian BTKL berbasis produk
+     * POST /api/penggajian/create-produk
+     */
+    public function createPenggajianProduk(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $validated = $request->validate([
+                'pegawai_id' => 'required|integer|exists:pegawais,id',
+                'tanggal_penggajian' => 'required|date',
+                'produk_hari_1_5' => 'required|integer|min:0',
+                'produk_hari_6_10' => 'required|integer|min:0',
+                'produk_hari_11_20' => 'required|integer|min:0',
+                'produk_hari_21_30' => 'required|integer|min:0',
+                'coa_kasbank' => 'required|string',
+                'metode_pembayaran' => 'nullable|string',
+            ]);
+
+            $service = new \App\Services\PenggajianService();
+            $penggajian = $service->savePenggajianProduk(
+                $validated['pegawai_id'],
+                $validated['tanggal_penggajian'],
+                $validated['produk_hari_1_5'],
+                $validated['produk_hari_6_10'],
+                $validated['produk_hari_11_20'],
+                $validated['produk_hari_21_30'],
+                $validated['metode_pembayaran'] ?? 'transfer_bank'
+            );
+
+            // Set additional fields
+            $penggajian->coa_kasbank = $validated['coa_kasbank'];
+            $penggajian->status_pembayaran = 'belum_lunas';
+            $penggajian->periode_bulan = Carbon::parse($validated['tanggal_penggajian'])->month;
+            $penggajian->periode_tahun = Carbon::parse($validated['tanggal_penggajian'])->year;
+            $penggajian->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Penggajian berhasil dibuat',
+                'data' => $penggajian
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error in createPenggajianProduk: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     /**
