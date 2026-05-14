@@ -20,7 +20,7 @@ class FixCOA530FinalSeeder extends Seeder
         $coaKode = '530';
         
         // Get COA ID for kode 530
-        $coa = DB::table('accounts')
+        $coa = DB::table('coas')
             ->where('kode_akun', $coaKode)
             ->where('user_id', $user_id)
             ->first();
@@ -132,7 +132,7 @@ class FixCOA530FinalSeeder extends Seeder
                 Log::info("SUCCESS: COA {$coaKode} can now be deleted from bahan_pendukungs check");
                 
                 // Now try to delete the COA
-                $childCount = DB::table('accounts')
+                $childCount = DB::table('coas')
                     ->where('kode_induk', $coaKode)
                     ->where('user_id', $user_id)
                     ->count();
@@ -149,7 +149,7 @@ class FixCOA530FinalSeeder extends Seeder
                 
                 if ($childCount == 0 && $jurnalCount == 0 && $bahanBakuCount == 0) {
                     // Delete the COA
-                    DB::table('accounts')
+                    DB::table('coas')
                         ->where('kode_akun', $coaKode)
                         ->where('user_id', $user_id)
                         ->delete();
@@ -157,7 +157,7 @@ class FixCOA530FinalSeeder extends Seeder
                     Log::info("COA {$coaKode} deleted successfully!");
                     
                     // Verify deletion
-                    $existsAfter = DB::table('accounts')
+                    $existsAfter = DB::table('coas')
                         ->where('kode_akun', $coaKode)
                         ->where('user_id', $user_id)
                         ->exists();

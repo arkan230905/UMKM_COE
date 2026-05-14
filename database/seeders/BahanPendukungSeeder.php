@@ -287,7 +287,7 @@ class BahanPendukungSeeder extends Seeder
         }
 
         // Check if COA exists
-        $existingCoa = DB::table('accounts')->where('kode_akun', $kodeAkun)->first();
+        $existingCoa = DB::table('coas')->where('kode_akun', $kodeAkun)->first();
         
         if ($existingCoa) {
             return $kodeAkun;
@@ -302,7 +302,7 @@ class BahanPendukungSeeder extends Seeder
             $tipeAkun = 'aset';
         }
         
-        DB::table('accounts')->insert([
+        DB::table('coas')->insert([
             'kode_akun' => $kodeAkun,
             'nama_akun' => $namaAkun,
             'tipe_akun' => $tipeAkun,

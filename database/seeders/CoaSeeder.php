@@ -65,7 +65,7 @@ class CoaSeeder extends Seeder
         ];
 
         foreach ($data as $item) {
-            DB::table('accounts')->updateOrInsert(
+            DB::table('coas')->updateOrInsert(
                 ['kode_akun' => $item[1]], // Unik berdasarkan kode
                 [
                     'nama_akun' => $item[0],
