@@ -14,21 +14,16 @@ class LoginController extends Controller
      */
     public function showLoginForm(Request $request)
     {
-        // Hanya redirect ke dashboard jika sudah login sebagai pelanggan (role pelanggan)
-        if (Auth::check()) {
-            if (Auth::user()->role === 'pelanggan') {
-                return redirect()->route('pelanggan.dashboard');
-            } else {
-                // Jika sudah login tapi bukan pelanggan, redirect ke dashboard admin
-                return redirect('/dashboard');
-            }
+        // Hanya redirect ke dashboard jika sudah login sebagai pelanggan
+        if (Auth::guard('pelanggan')->check()) {
+            return redirect()->route('pelanggan.dashboard');
         }
 
         // Get redirect URL and product info from query parameters
         $redirect = $request->get('redirect', 'pelanggan.dashboard');
         $productId = $request->get('product');
 
-        return view('pelanggan.auth.login', compact('redirect', 'productId'));
+        return view('pelanggan.auth.login-register', compact('redirect', 'productId'));
     }
 
     /**
@@ -41,16 +36,9 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // Attempt login dengan guard 'pelanggan'
+        if (Auth::guard('pelanggan')->attempt($credentials)) {
             $request->session()->regenerate();
-
-            // Pastikan hanya role pelanggan yang bisa login di sini
-            if (Auth::user()->role !== 'pelanggan') {
-                Auth::logout();
-                return back()->withErrors([
-                    'email' => 'Akun ini bukan akun pelanggan.',
-                ])->withInput($request->only('email'));
-            }
 
             // Get redirect URL from request or default to dashboard
             $redirect = $request->input('redirect', 'pelanggan.dashboard');
@@ -83,7 +71,7 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('pelanggan')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -15,11 +15,9 @@ class DashboardController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->check()) {
-                $role = auth()->user()->role;
-                if (!in_array($role, ['pelanggan', 'admin', 'owner'])) {
-                    abort(403, 'Unauthorized. Halaman ini hanya untuk pelanggan.');
-                }
+            // Allow public access, tapi jika sudah login sebagai owner/admin, redirect ke dashboard admin
+            if (auth()->check() && auth()->user()->role !== 'pelanggan') {
+                return redirect('/dashboard');
             }
             return $next($request);
         });
@@ -28,15 +26,21 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $search = trim($request->input('q', ''));
+        $kategoriFilter = $request->input('kategori', '');
 
         // Ambil SEMUA produk dari master data (tanpa filter stok)
-        $produksQuery = Produk::with('satuan');
+        $produksQuery = Produk::withoutGlobalScopes()->with('satuan', 'kategori');
         
         if ($search !== '') {
             $produksQuery->where(function($q) use ($search) {
                 $q->where('nama_produk', 'like', "%{$search}%")
                   ->orWhere('deskripsi', 'like', "%{$search}%");
             });
+        }
+
+        // Filter by kategori if selected
+        if ($kategoriFilter !== '') {
+            $produksQuery->where('kategori_id', $kategoriFilter);
         }
 
         $produks = $produksQuery
@@ -62,7 +66,21 @@ class DashboardController extends Controller
             return $p;
         });
 
-        $cartCount = Cart::where('user_id', auth()->id())->sum('qty');
+        $cartCount = 0;
+        $userId = auth()->id();
+        
+        if ($userId) {
+            $cartCount = Cart::where('user_id', $userId)->sum('qty');
+        }
+
+        // Get all categories from KategoriProduk
+        // For public access, we need to get all categories (both shared and user-specific)
+        // The UserScope will automatically filter by user_id if authenticated
+        $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
+            ->whereHas('produks')
+            ->withCount('produks')
+            ->orderBy('nama')
+            ->get();
 
         $bestSellers = Cache::remember('pelanggan_best_sellers_v2', 60, function () {
             $topAgg = PenjualanDetail::selectRaw('produk_id, SUM(jumlah) as total_terjual')
@@ -73,7 +91,7 @@ class DashboardController extends Controller
 
             $result = collect();
             if ($topAgg->isNotEmpty()) {
-                $produkMap = Produk::whereIn('id', $topAgg->pluck('produk_id'))
+                $produkMap = Produk::withoutGlobalScopes()->whereIn('id', $topAgg->pluck('produk_id'))
                     ->get()
                     ->keyBy('id');
 
@@ -87,7 +105,7 @@ class DashboardController extends Controller
             }
             // Fallback jika belum ada penjualan, tampilkan produk terbaru
             if ($result->isEmpty()) {
-                $allProducts = Produk::orderByDesc('created_at')->limit(6)->get();
+                $allProducts = Produk::withoutGlobalScopes()->orderByDesc('created_at')->limit(6)->get();
                 
                 // Hitung stok tersedia dari stock_movements
                 $result = $allProducts->filter(function($p) {
@@ -115,12 +133,12 @@ class DashboardController extends Controller
         if (auth()->check()) {
             $favoriteIds = Favorite::where('user_id', auth()->id())->pluck('produk_id')->all();
             if (!empty($favoriteIds)) {
-                $favoriteProduks = Produk::whereIn('id', $favoriteIds)->get();
+                $favoriteProduks = Produk::withoutGlobalScopes()->whereIn('id', $favoriteIds)->get();
             }
         }
 
         $whatsappNumber = config('services.whatsapp.number') ?? env('WHATSAPP_NUMBER');
 
-        return view('pelanggan.dashboard', compact('produks', 'cartCount', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber'));
+        return view('pelanggan.dashboard', compact('produks', 'cartCount', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber', 'kategoris', 'kategoriFilter'));
     }
 }

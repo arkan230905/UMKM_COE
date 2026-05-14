@@ -18,27 +18,13 @@
                 @csrf
                 @method('PUT')
                 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="kode_kategori" class="form-label">Kode Kategori</label>
-                            <input type="text" name="kode_kategori" id="kode_kategori" class="form-control" 
-                                   value="{{ old('kode_kategori', $kategori->kode_kategori) }}" placeholder="Opsional, misal: KAT-001">
-                            @error('kode_kategori')
-                                <div class="text-danger small">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="nama" class="form-label">Nama Kategori <span class="text-danger">*</span></label>
-                            <input type="text" name="nama" id="nama" class="form-control" 
-                                   value="{{ old('nama', $kategori->nama) }}" required autofocus>
-                            @error('nama')
-                                <div class="text-danger small">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label for="nama" class="form-label">Nama Kategori <span class="text-danger">*</span></label>
+                    <input type="text" name="nama" id="nama" class="form-control" 
+                           value="{{ old('nama', $kategori->nama) }}" required autofocus>
+                    @error('nama')
+                        <div class="text-danger small">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="mb-3">

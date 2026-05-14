@@ -10,6 +10,7 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         body {
@@ -79,6 +80,7 @@
             min-height: calc(100vh - 120px);
             padding-top: 0;
             padding-bottom: 40px;
+            background-color: #faf8f5;
         }
         
         .footer {
@@ -136,6 +138,7 @@
                         </a>
                     </li>
                     
+                    @if(Auth::check())
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
@@ -157,6 +160,13 @@
                             </li>
                         </ul>
                     </li>
+                    @else
+                    <li class="nav-item">
+                        <a href="{{ route('pelanggan.login') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
         </div>

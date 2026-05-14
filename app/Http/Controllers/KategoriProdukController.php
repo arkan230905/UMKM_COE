@@ -29,14 +29,12 @@ class KategoriProdukController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori,NULL,id,user_id,' . auth()->id(),
             'nama'          => 'required|string|max:100',
             'deskripsi'     => 'nullable|string',
         ]);
 
         $kategori = KategoriProduk::create([
             'user_id'       => auth()->id(),
-            'kode_kategori' => strtoupper($request->kode_kategori),
             'nama'          => $request->nama,
             'deskripsi'     => $request->deskripsi,
         ]);
@@ -77,13 +75,11 @@ class KategoriProdukController extends Controller
         }
 
         $request->validate([
-            'kode_kategori' => 'required|string|max:20|unique:kategori_produks,kode_kategori,' . $kategoriProduk->id . ',id,user_id,' . auth()->id(),
             'nama'          => 'required|string|max:100',
             'deskripsi'     => 'nullable|string',
         ]);
 
         $kategoriProduk->update([
-            'kode_kategori' => strtoupper($request->kode_kategori),
             'nama'          => $request->nama,
             'deskripsi'     => $request->deskripsi,
         ]);
