@@ -95,6 +95,7 @@ class Produk extends Model
     public function kategori()
     {
         return $this->belongsTo(KategoriProduk::class, 'kategori_id')
+            ->withoutGlobalScopes()
             ->withDefault([
                 'nama' => 'Tidak Diketahui',
                 'kode_kategori' => 'N/A'
@@ -221,23 +222,7 @@ class Produk extends Model
             }
         }
         
-        // PRIORITY 3: Fallback priorities
-        // 1. Use harga_bom if available
-        if (!empty($this->harga_bom) && $this->harga_bom > 0) {
-            return $this->harga_bom;
-        }
-        
-        // 2. Use hpp field if available
-        if (!empty($this->hpp) && $this->hpp > 0) {
-            return $this->hpp;
-        }
-        
-        // 3. Use harga_beli as last resort
-        if (!empty($this->harga_beli) && $this->harga_beli > 0) {
-            return $this->harga_beli;
-        }
-        
-        // 4. Default to 0 if no cost data available
+        // PRIORITY 3: Fallback - return 0 if no cost data available
         return 0;
     }
     
@@ -255,10 +240,19 @@ class Produk extends Model
             ->get();
         
         $totalBbb = 0;
+        $hasBbbForThisProduct = false;
+        
         foreach ($selectedBbb as $bbb) {
             if ($bbb->biayaBahanBaku && $bbb->biayaBahanBaku->produk_id == $this->id) {
                 $totalBbb += $bbb->biayaBahanBaku->subtotal ?? 0;
+                $hasBbbForThisProduct = true;
             }
+        }
+        
+        // IMPORTANT: Jika produk tidak punya BBB, return 0 langsung
+        // Jangan hitung BTKL dan BOP untuk produk yang belum punya HPP
+        if (!$hasBbbForThisProduct) {
+            return 0;
         }
         
         // Get BTKL (Biaya Tenaga Kerja Langsung)

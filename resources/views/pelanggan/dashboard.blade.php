@@ -1,383 +1,124 @@
-@extends('layouts.pelanggan')
-
+﻿@extends('layouts.pelanggan')
 @section('content')
-<style>
-.hero-section {
-    border-radius: 0;
-    padding: 3rem 2rem;
-    margin-bottom: 3rem;
-    margin-top: 0;
-    position: relative;
-    overflow: hidden;
-}
-
-.search-container {
-    position: relative;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.search-input {
-    background: rgba(255, 255, 255, 0.95);
-    border: none;
-    border-radius: 50px;
-    padding: 1rem 3rem 1rem 1.5rem;
-    font-size: 1.1rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.search-input:focus {
-    outline: none;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-}
-
-.search-icon {
-    position: absolute;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #d4a574;
-    font-size: 1.2rem;
-}
-
-.section-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #2d3748;
-    margin-bottom: 2rem;
-    position: relative;
-    text-align: center;
-}
-
-.section-title::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 4px;
-    background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
-    border-radius: 2px;
-}
-
-.product-card {
-    border: none;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    height: 100%;
-    background: white;
-}
-
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-}
-
-.product-image-container {
-    position: relative;
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-}
-
-.product-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.product-card:hover .product-image {
-    transform: scale(1.05);
-}
-
-.product-image-placeholder {
-    height: 200px;
-    width: 100%;
-    background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 3rem;
-}
-
-.favorite-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    z-index: 10;
-}
-
-.favorite-btn:hover {
-    background: white;
-    transform: scale(1.1);
-}
-
-.favorite-btn.active {
-    background: #ff4757;
-    color: white;
-}
-
-.product-body {
-    padding: 1.5rem;
-}
-
-.product-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
-
-.product-price {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #d4a574;
-    margin-bottom: 1rem;
-}
-
-.add-to-cart-btn {
-    background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
-    border: none;
-    border-radius: 10px;
-    padding: 0.75rem 1.5rem;
-    color: white;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.add-to-cart-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(212, 165, 116, 0.3);
-}
-
-.contact-section {
-    background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc0 100%);
-    border-radius: 20px;
-    padding: 3rem;
-    margin-top: 4rem;
-    text-align: center;
-    color: #2d3748;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-}
-
-.whatsapp-btn {
-    background: #25d366;
-    border: none;
-    border-radius: 50px;
-    padding: 1rem 2.5rem;
-    color: white;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    display: block;
-    width: fit-content;
-    margin: 0 auto;
-    text-align: center;
-    cursor: pointer;
-}
-
-.whatsapp-btn:hover {
-    background: #128c7e;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3);
-}
-</style>
-
-<!-- Hero Section -->
-<div class="hero-section" style="background: url('{{ asset('images/backround halaman pelanggan.jpg') }}') center center / cover no-repeat;">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="display-4 fw-bold text-dark mb-4">
-                    Selamat Datang di {{ \App\Models\Perusahaan::first()->nama ?? 'Toko Kami' }}
+<div style="background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%); padding: 4rem 2rem; min-height: 100vh;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <!-- Hero Section -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; margin-bottom: 3rem;">
+            <div>
+                <div style="color: #a0826d; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">Selamat Datang!</div>
+                <h1 style="font-size: 2.8rem; font-weight: 700; color: #2d3748; margin-bottom: 1rem; line-height: 1.1;">
+                    Selamat Datang di<br><span style="color: #a0826d;">UMKM COE</span>
                 </h1>
-                <p class="lead text-muted mb-4">
-                    Temukan produk berkualitas terbaik dengan harga terjangkau. 
-                    Belanja sekarang dan nikmati pengalaman berbelanja yang menyenangkan!
+                <p style="font-size: 0.95rem; color: #666; margin-bottom: 2rem; line-height: 1.6;">
+                    Temukan produk berkualitas terbaik dengan harga terjangkau. Belanja sekarang dan nikmati pengalaman berbelanja yang menyenangkan!
                 </p>
-                <div class="d-flex gap-3">
-                    <a href="#products" class="btn btn-dark btn-lg rounded-pill" style="min-width:180px;text-align:center;">
+                <div style="display: flex; gap: 1rem;">
+                    <a href="#products" style="padding: 0.75rem 1.8rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
                         Mulai Belanja
                     </a>
-                    <a href="{{ route('pelanggan.cart') }}" class="btn btn-outline-dark btn-lg rounded-pill" style="min-width:150px;text-align:center;">
-                        Keranjang
+                    <a href="{{ route('pelanggan.cart') }}" style="padding: 0.75rem 1.8rem; background: white; color: #8b6f47; border: 2px solid #8b6f47; border-radius: 50px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        Keranjang Saya
                     </a>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="search-container">
-                    <form action="{{ route('pelanggan.dashboard') }}" method="GET">
-                        <input type="text" 
-                               name="q" 
-                               value="{{ $search ?? request('q') }}" 
-                               class="form-control search-input" 
-                               placeholder="Cari produk favoritmu...">
-                        <i class="fas fa-search search-icon"></i>
-                    </form>
-                </div>
+            <div style="text-align: center;">
+                <img src="https://via.placeholder.com/400x350?text=Produk+Berkualitas" alt="Produk" style="max-width: 100%; height: auto;">
             </div>
         </div>
-    </div>
-</div>
 
-<div class="container">
-    <!-- Favorites Section -->
-    @if(($favoriteProduks ?? collect())->count())
-    <section class="mb-5">
-        <h2 class="section-title">❤️ Favorit Saya</h2>
-        <div class="row g-4">
-            @foreach($favoriteProduks as $favP)
-            <div class="col-md-4 col-lg-3">
-                <div class="product-card">
-                    <div class="product-image-container">
-                        @if($favP->foto)
-                        <img src="{{ storage_url($favP->foto) }}" class="product-image" alt="{{ $favP->nama_produk }}">
-                        @else
-                        <div class="product-image-placeholder">
-                            <i class="fas fa-image"></i>
-                        </div>
-                        @endif
-                        <form action="{{ route('pelanggan.favorites.toggle') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="produk_id" value="{{ $favP->id }}">
-                            <button type="submit" class="favorite-btn active">
-                                <i class="fas fa-heart"></i>
-                            </button>
-                        </form>
+        <!-- Category Menu -->
+        <div style="background: white; padding: 2.5rem 2rem; border-radius: 12px; margin-bottom: 3rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+            <div style="display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap;">
+                <a href="{{ route('pelanggan.dashboard') }}" style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem; text-decoration: none; color: #666; transition: all 0.3s ease; cursor: pointer;">
+                    <div style="width: 70px; height: 70px; background: #f5e6d3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                        📦
                     </div>
-                    <div class="product-body">
-                        <h3 class="product-title">{{ $favP->nama_produk }}</h3>
-                        <div class="product-price">Rp {{ number_format($favP->harga_jual, 0, ',', '.') }}</div>
-                    </div>
-                </div>
-            </div>
-            @endforeach
-        </div>
-    </section>
-    @endif
-
-    <!-- All Products Section -->
-    <section class="mb-5" id="products">
-        <h2 class="section-title">🛍️ Semua Produk</h2>
-        
-        @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        @endif
-
-        <div class="row g-4">
-            @forelse($produks as $produk)
-            <div class="col-md-4 col-lg-3">
-                <div class="product-card">
-                    <div class="product-image-container">
-                        @if($produk->foto)
-                        <img src="{{ storage_url($produk->foto) }}" class="product-image" alt="{{ $produk->nama_produk }}">
-                        @else
-                        <div class="product-image-placeholder">
-                            <i class="fas fa-image"></i>
-                        </div>
-                        @endif
-                        <form action="{{ route('pelanggan.favorites.toggle') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                    <div style="font-size: 0.85rem; font-weight: 600; text-align: center; max-width: 80px;">Semua Kategori</div>
+                </a>
+                @if($kategoris && $kategoris->count() > 0)
+                    @foreach($kategoris as $kat)
+                    <a href="{{ route('pelanggan.dashboard', ['kategori' => $kat->id]) }}" style="display: flex; flex-direction: column; align-items: center; gap: 0.8rem; text-decoration: none; color: #666; transition: all 0.3s ease; cursor: pointer;">
+                        <div style="width: 70px; height: 70px; background: #f5e6d3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
                             @php
-                                $isFav = in_array($produk->id, $favoriteIds ?? []);
+                                $icons = ['MKN' => '🍔', 'MNM' => '🥤', 'SNK' => '🍪', 'FSH' => '👕', 'KRJ' => '🎁', 'KCT' => '💄', 'LNY' => '📦'];
+                                echo $icons[$kat->kode_kategori] ?? '📦';
                             @endphp
-                            <button type="submit" class="favorite-btn {{ $isFav ? 'active' : '' }}">
-                                <i class="fas fa-heart"></i>
-                            </button>
-                        </form>
-                    </div>
-                    <div class="product-body">
-                        <h3 class="product-title">{{ $produk->nama_produk }}</h3>
-                        <div class="product-price">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</div>
-                        @if($produk->stok_tersedia > 0)
-                        <form action="{{ route('pelanggan.cart.store') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="produk_id" value="{{ $produk->id }}">
-                            <input type="hidden" name="qty" value="1">
-                            <button type="submit" class="add-to-cart-btn">
-                                <i class="fas fa-shopping-cart me-2"></i> Tambah ke Keranjang
-                            </button>
-                        </form>
+                        </div>
+                        <div style="font-size: 0.85rem; font-weight: 600; text-align: center; max-width: 80px;">{{ $kat->nama }}</div>
+                    </a>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+
+        <!-- Products Section -->
+        <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+            <h2 style="font-size: 1.4rem; font-weight: 700; color: #2d3748; margin-bottom: 2rem; text-align: center;">
+                @if($kategoriFilter)
+                    {{ $kategoris->where('id', $kategoriFilter)->first()->nama ?? 'Produk' }}
+                @else
+                    Semua Produk
+                @endif
+            </h2>
+            
+            @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" style="margin-bottom: 2rem;">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            @endif
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
+                @if($produks && $produks->count() > 0)
+                    @foreach($produks as $produk)
+                    <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); transition: all 0.3s ease; border: 1px solid #f0f0f0;">
+                        @if($produk->foto)
+                        <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}" style="width: 100%; height: 160px; object-fit: cover; background: #f5f5f5;">
                         @else
-                        <button class="add-to-cart-btn" disabled>
-                            <i class="fas fa-times me-2"></i> Stok Habis
-                        </button>
+                        <div style="width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; font-size: 2rem; background: #f5f5f5;">📦</div>
                         @endif
+                        <div style="padding: 1rem;">
+                            <h3 style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; font-size: 0.9rem; line-height: 1.3; min-height: 2.6rem;">{{ $produk->nama_produk }}</h3>
+                            <div style="font-size: 1rem; font-weight: 700; color: #a0826d; margin-bottom: 1rem;">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                @if($produk->stok_tersedia > 0)
+                                <form action="{{ route('pelanggan.cart.store') }}" method="POST" style="flex: 1;">
+                                    @csrf
+                                    <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                                    <input type="hidden" name="qty" value="1">
+                                    <button type="submit" style="flex: 1; background: #8b6f47; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-size: 0.85rem;">
+                                        Tambah
+                                    </button>
+                                </form>
+                                @else
+                                <button style="flex: 1; background: #8b6f47; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 600; cursor: not-allowed; font-size: 0.85rem; opacity: 0.5;" disabled>
+                                    Habis
+                                </button>
+                                @endif
+                                <form action="{{ route('pelanggan.favorites.toggle') }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                                    <button type="submit" style="width: 40px; background: #f5f5f5; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; color: #a0826d; font-size: 1rem;" title="Tambah ke favorit">
+                                        ♥
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
+                    @endforeach
+                @else
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                    <h4 style="color: #999;">Belum ada produk tersedia</h4>
                 </div>
+                @endif
             </div>
-            @empty
-            <div class="col-12 text-center py-5">
-                <i class="fas fa-shopping-bag fa-4x text-muted mb-3"></i>
-                <h4 class="text-muted">Belum ada produk tersedia</h4>
+
+            @if($produks && $produks->hasPages())
+            <div style="display: flex; justify-content: center; margin-top: 2rem;">
+                {{ $produks->links() }}
             </div>
-            @endforelse
+            @endif
         </div>
-
-        <div class="d-flex justify-content-center mt-5">
-            {{ $produks->links() }}
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="contact-section">
-        <div class="container">
-            <h2 class="display-5 fw-bold mb-3">Butuh Bantuan?</h2>
-            <p class="lead mb-4">Ada pertanyaan tentang produk atau pesanan?</p>
-            <button class="whatsapp-btn" onclick="document.getElementById('waModal').style.display='flex'">
-                Hubungi kami melalui WhatsApp
-            </button>
-        </div>
-    </section>
-</div>
-
-<!-- WA Modal -->
-<div id="waModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:16px;padding:2rem;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <div style="font-size:3rem;margin-bottom:0.5rem;">💬</div>
-        <h5 style="font-weight:700;margin-bottom:0.3rem;">Pilih Nomor WhatsApp</h5>
-        <p style="color:#888;font-size:0.85rem;margin-bottom:1.5rem;">Pilih salah satu nomor untuk menghubungi kami</p>
-        <div style="display:flex;flex-direction:column;gap:0.75rem;">
-            <a href="https://wa.me/6289561985919" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                <i class="fab fa-whatsapp"></i> 0895619859193
-            </a>
-            <a href="https://wa.me/6282118959085" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                <i class="fab fa-whatsapp"></i> 082118959085
-            </a>
-            <a href="https://wa.me/6285659739659" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                <i class="fab fa-whatsapp"></i> 085659739659
-            </a>
-            <a href="https://wa.me/6281298226841" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                <i class="fab fa-whatsapp"></i> 081298226841
-            </a>
-        </div>
-        <button onclick="document.getElementById('waModal').style.display='none'" style="margin-top:1.25rem;background:none;border:1px solid #ddd;padding:0.5rem 2rem;border-radius:50px;cursor:pointer;color:#666;">Tutup</button>
     </div>
 </div>
 

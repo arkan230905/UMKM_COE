@@ -10,6 +10,59 @@ Route::get('/test-blade', function() {
     return view('test-blade');
 });
 
+Route::get('/test-pelanggan-dashboard', function() {
+    $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
+        ->whereHas('produks')
+        ->withCount('produks')
+        ->orderBy('nama')
+        ->get();
+    
+    $produks = \App\Models\Produk::withoutGlobalScopes()
+        ->with('satuan', 'kategori')
+        ->orderBy('nama_produk')
+        ->paginate(12);
+    
+    $cartCount = 0;
+    $kategoriFilter = '';
+    $search = '';
+    $favoriteIds = [];
+    $favoriteProduks = collect();
+    $whatsappNumber = '';
+    $bestSellers = collect();
+    
+    return view('pelanggan.test-dashboard', compact('produks', 'cartCount', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber', 'kategoris', 'kategoriFilter'));
+});
+
+Route::get('/test-simple', function() {
+    $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
+        ->whereHas('produks')
+        ->withCount('produks')
+        ->orderBy('nama')
+        ->get();
+    
+    $produks = \App\Models\Produk::withoutGlobalScopes()
+        ->with('satuan', 'kategori')
+        ->orderBy('nama_produk')
+        ->paginate(12);
+    
+    return view('pelanggan.minimal', compact('produks', 'kategoris'));
+});
+
+Route::get('/test-minimal', function() {
+    $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
+        ->whereHas('produks')
+        ->withCount('produks')
+        ->orderBy('nama')
+        ->get();
+    
+    $produks = \App\Models\Produk::withoutGlobalScopes()
+        ->with('satuan', 'kategori')
+        ->orderBy('nama_produk')
+        ->paginate(12);
+    
+    return view('pelanggan.minimal', compact('produks', 'kategoris'));
+});
+
 // HPP Routes
 Route::middleware('auth')->prefix('hpp')->name('hpp.')->group(function() {
     Route::get('/', [App\Http\Controllers\HppController::class, 'index'])->name('index');
@@ -1838,15 +1891,48 @@ Route::get('/update-catalog-desc-now', function () {
     return redirect('/kelola-catalog');
 });
 
-// Pelanggan Login Routes - Public
+// Pelanggan E-Commerce Routes - PUBLIC (No Auth Required)
 Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
-    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login')->middleware('guest');
+    // Public routes (no login required)
+    Route::get('/dashboard', [PelangganDashboardController::class, 'index'])->name('dashboard');
+    
+    // Combined login & register page
+    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login')->middleware('guest:pelanggan');
     Route::post('/login', [PelangganLoginController::class, 'login'])->name('login.post');
     Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
     
     // Register
-    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register')->middleware('guest');
     Route::post('/register', [RegisterController::class, 'registerPelanggan'])->name('register.post');
+    
+    // Protected routes (login required for pelanggan)
+    Route::middleware('auth:pelanggan')->group(function () {
+        // Cart
+        Route::get('/cart', [CartController::class, 'index'])->name('cart');
+        Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
+        Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
+        Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
+        Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
+        
+        // Checkout
+        Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+        Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
+        
+        // Orders
+        Route::get('/orders', [PelangganOrderController::class, 'index'])->name('orders');
+        Route::get('/orders/{order}', [PelangganOrderController::class, 'show'])->name('orders.show');
+
+        // Favorites
+        Route::get('/favorites', [PelangganFavoriteController::class, 'index'])->name('favorites');
+        Route::post('/favorites/toggle', [PelangganFavoriteController::class, 'toggle'])->name('favorites.toggle');
+
+        // Returns (Retur Penjualan)
+        Route::get('/returns', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'index'])->name('returns.index');
+        Route::get('/returns/create', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'create'])->name('returns.create');
+        Route::post('/returns', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'store'])->name('returns.store');
+
+        // Reviews
+        Route::post('/reviews', [\App\Http\Controllers\Pelanggan\ReviewController::class, 'store'])->name('reviews.store');
+    });
 });
 
 
@@ -1934,41 +2020,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/update-bank-info', [PerusahaanController::class, 'updateBankInfo'])->name('update-bank-info')->middleware('role:owner');
         Route::post('/update-bank-field', [PerusahaanController::class, 'updateBankField'])->name('update-bank-field')->middleware('role:owner');
         Route::post('/update-company-field', [PerusahaanController::class, 'updateCompanyField'])->name('update-company-field')->middleware('role:owner');
-    });
-
-    // ================================================================
-    // PELANGGAN E-COMMERCE ROUTES
-    // ================================================================
-    Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
-        // Dashboard - Katalog Produk
-        Route::get('/dashboard', [PelangganDashboardController::class, 'index'])->name('dashboard');
-        
-        // Cart
-        Route::get('/cart', [CartController::class, 'index'])->name('cart');
-        Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
-        Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
-        Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
-        Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
-        
-        // Checkout
-        Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
-        Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
-        
-        // Orders
-        Route::get('/orders', [PelangganOrderController::class, 'index'])->name('orders');
-        Route::get('/orders/{order}', [PelangganOrderController::class, 'show'])->name('orders.show');
-
-        // Favorites
-        Route::get('/favorites', [PelangganFavoriteController::class, 'index'])->name('favorites');
-        Route::post('/favorites/toggle', [PelangganFavoriteController::class, 'toggle'])->name('favorites.toggle');
-
-        // Returns (Retur Penjualan)
-        Route::get('/returns', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'index'])->name('returns.index');
-        Route::get('/returns/create', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'create'])->name('returns.create');
-        Route::post('/returns', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'store'])->name('returns.store');
-
-        // Reviews
-        Route::post('/reviews', [\App\Http\Controllers\Pelanggan\ReviewController::class, 'store'])->name('reviews.store');
     });
 
     // Midtrans Callback (tidak perlu auth karena dari server Midtrans)
@@ -2587,16 +2638,9 @@ Route::middleware('auth')->group(function () {
             Route::put('/{produk}', [ProdukController::class, 'update'])->name('update');
             Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
         });
-
+        
         // Kategori Produk routes
-        Route::prefix('kategori-produk')->name('kategori-produk.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\KategoriProdukController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\KategoriProdukController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\KategoriProdukController::class, 'store'])->name('store');
-            Route::get('/{kategoriProduk}/edit', [\App\Http\Controllers\KategoriProdukController::class, 'edit'])->name('edit');
-            Route::put('/{kategoriProduk}', [\App\Http\Controllers\KategoriProdukController::class, 'update'])->name('update');
-            Route::delete('/{kategoriProduk}', [\App\Http\Controllers\KategoriProdukController::class, 'destroy'])->name('destroy');
-        });
+        Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
         
         // Kategori Produk routes
         Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
@@ -3032,18 +3076,6 @@ Route::middleware('auth')->group(function () {
             Route::put('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updatePaket'])->name('paket.update');
             Route::delete('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyPaket'])->name('paket.destroy');
             // Ongkir
-            Route::post('/ongkir', [\App\Http\Controllers\PenjualanSettingController::class, 'storeOngkir'])->name('ongkir.store');
-            Route::put('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updateOngkir'])->name('ongkir.update');
-            Route::delete('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyOngkir'])->name('ongkir.destroy');
-        });
-
-        // Penjualan Setting (Paket Menu & Ongkir)
-        Route::prefix('penjualan-setting')->name('penjualan-setting.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\PenjualanSettingController::class, 'index'])->name('index');
-            Route::get('/paket-menu', [\App\Http\Controllers\PenjualanSettingController::class, 'paketMenuPage'])->name('paket-menu');
-            Route::post('/paket', [\App\Http\Controllers\PenjualanSettingController::class, 'storePaket'])->name('paket.store');
-            Route::put('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updatePaket'])->name('paket.update');
-            Route::delete('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyPaket'])->name('paket.destroy');
             Route::post('/ongkir', [\App\Http\Controllers\PenjualanSettingController::class, 'storeOngkir'])->name('ongkir.store');
             Route::put('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updateOngkir'])->name('ongkir.update');
             Route::delete('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyOngkir'])->name('ongkir.destroy');
