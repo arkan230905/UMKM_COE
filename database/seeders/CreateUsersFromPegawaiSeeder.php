@@ -37,18 +37,37 @@ class CreateUsersFromPegawaiSeeder extends Seeder
             $role = $this->determineRole($pegawai->jabatan);
             
             // Buat user account untuk pegawai
-            User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $pegawai->email],
                 [
                     'name' => $pegawai->nama,
                     'password' => Hash::make('password123'), // Default password
                     'role' => $role,
-                    'perusahaan_id' => $perusahaan->id,
+                    'pegawai_id' => $pegawai->id, // CRITICAL: Link user ke pegawai
+                    'perusahaan_id' => $perusahaan->id, // CRITICAL: Link user ke perusahaan
                     'email_verified_at' => now(),
                 ]
             );
             
-            $this->command->info("User created for: {$pegawai->nama} ({$pegawai->email}) - Role: {$role}");
+            // Jika user sudah ada tapi pegawai_id kosong, update
+            if (empty($user->pegawai_id)) {
+                $user->update(['pegawai_id' => $pegawai->id]);
+            }
+            
+            // Jika user sudah ada tapi perusahaan_id kosong, update
+            if (empty($user->perusahaan_id)) {
+                $user->update(['perusahaan_id' => $perusahaan->id]);
+            }
+            
+            // Update pegawai dengan user_id dan perusahaan_id jika belum ada
+            if (empty($pegawai->user_id) || empty($pegawai->perusahaan_id)) {
+                $pegawai->update([
+                    'user_id' => $user->id,
+                    'perusahaan_id' => $perusahaan->id
+                ]);
+            }
+            
+            $this->command->info("User created for: {$pegawai->nama} ({$pegawai->email}) - Role: {$role} - Pegawai ID: {$pegawai->id} - Perusahaan ID: {$perusahaan->id}");
         }
         
         $this->command->info('User accounts created for all existing employees!');

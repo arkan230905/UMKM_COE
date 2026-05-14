@@ -28,5 +28,11 @@ class CreateDefaultUserData
         // Create default Satuan for new user
         $satuanSeeder = new DefaultSatuanSeeder();
         $satuanSeeder->run($event->user->id);
+        
+        // NOTE: Jabatan TIDAK di-seed otomatis
+        // User harus membuat Jabatan sendiri sesuai kebutuhan bisnis mereka
+        // Uncomment baris di bawah jika ingin auto-seed Jabatan:
+        // $jabatanSeeder = new \Database\Seeders\DefaultJabatanSeeder();
+        // $jabatanSeeder->run($event->user->id);
     }
 }

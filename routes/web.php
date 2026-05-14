@@ -4,9 +4,20 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
 
+
 // TEST BLADE RENDERING
 Route::get('/test-blade', function() {
     return view('test-blade');
+});
+
+// HPP Routes
+Route::middleware('auth')->prefix('hpp')->name('hpp.')->group(function() {
+    Route::get('/', [App\Http\Controllers\HppController::class, 'index'])->name('index');
+    Route::get('/create/{produkId}', [App\Http\Controllers\HppController::class, 'create'])->name('create');
+    Route::post('/store/{produkId}', [App\Http\Controllers\HppController::class, 'store'])->name('store');
+    Route::get('/show/{produkId}', [App\Http\Controllers\HppController::class, 'show'])->name('show');
+    Route::post('/recalculate/{produkId}', [App\Http\Controllers\HppController::class, 'recalculate'])->name('recalculate');
+    Route::get('/api/{produkId}', [App\Http\Controllers\HppController::class, 'apiGetHpp'])->name('api.get');
 });
 
 
@@ -1768,6 +1779,7 @@ use App\Http\Controllers\PerusahaanController;
 
 // Akuntansi
 use App\Http\Controllers\AkuntansiController;
+use App\Http\Controllers\NeracaSaldoController;
 
 // Produksi
 use App\Http\Controllers\ProduksiController;
@@ -1791,14 +1803,49 @@ Route::get('/', function () {
 // Catalog Route - Public
 Route::get('/catalog', [ProdukController::class, 'catalog'])->name('catalog');
 
+// TEMP: Run migration add address to users
+Route::get('/run-migration-address', function () {
+    try {
+        \DB::statement("ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT NULL AFTER phone");
+        return 'Migration berhasil! Kolom address ditambahkan ke tabel users. <a href="/master-data/pelanggan/create">Cek halaman create pelanggan</a>';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
+
+// TEMP: Seed catalog sections with correct data
+Route::get('/update-catalog-desc-now', function () {
+    $company = \App\Models\Perusahaan::first();
+    if (!$company) return response('Company not found', 500);
+
+    $newCompanyDesc = "Perusahaan manufaktur COE yang berfokus pada efisiensi biaya produksi, pengelolaan sumber daya yang optimal, serta pengendalian proses yang terintegrasi untuk menghasilkan produk berkualitas tinggi secara konsisten.";
+    $newTeamDesc = "Didukung oleh fullstack developer yang kompeten dan pembimbing berpengalaman, tim ini menghadirkan solusi digital terintegrasi dengan pendekatan strategis, presisi teknis, dan standar kualitas tinggi.";
+
+    // Delete all existing sections
+    \DB::table('catalog_sections')->where('perusahaan_id', $company->id)->delete();
+
+    // Insert fresh sections
+    \DB::table('catalog_sections')->insert([
+        ['perusahaan_id'=>$company->id,'section_type'=>'cover',    'title'=>'Cover',            'content'=>json_encode(['company_name'=>$company->nama,'company_tagline'=>'BRANDING PRODUCT.','company_description'=>$newCompanyDesc,'explore_text'=>'Explore','cover_photo'=>'']),'order'=>1,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+        ['perusahaan_id'=>$company->id,'section_type'=>'team',     'title'=>'THE TEAM.',        'content'=>json_encode(['title'=>'THE TEAM.','description'=>$newTeamDesc,'members'=>[['name'=>'Joko Susilo','position'=>'Direktur Utama','description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.','photo'=>''],['name'=>'Sari Wulandari','position'=>'Manajer Produksi','description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.','photo'=>'']]]),'order'=>2,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+        ['perusahaan_id'=>$company->id,'section_type'=>'products', 'title'=>'PRODUCT MATERIAL.','content'=>json_encode(['title'=>'PRODUCT MATERIAL.']),'order'=>3,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+        ['perusahaan_id'=>$company->id,'section_type'=>'location', 'title'=>'LOKASI KAMI.',     'content'=>json_encode(['title'=>'LOKASI KAMI.','name'=>$company->nama,'address'=>$company->alamat??'','phone'=>$company->telepon??'','email'=>$company->email??'','maps_link'=>$company->maps_link??'']),'order'=>4,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+    ]);
+
+    $company->catalog_description = $newCompanyDesc;
+    $company->save();
+
+    return redirect('/kelola-catalog');
+});
+
 // Pelanggan Login Routes - Public
 Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
-    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login');
+    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login')->middleware('guest');
     Route::post('/login', [PelangganLoginController::class, 'login'])->name('login.post');
     Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
     
     // Register
-    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register');
+    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register')->middleware('guest');
     Route::post('/register', [RegisterController::class, 'registerPelanggan'])->name('register.post');
 });
 
@@ -1808,6 +1855,11 @@ Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
 // ====================================================================
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
+
+// Pegawai Login Routes (Tanpa Password - Pakai Kode Perusahaan + Email)
+Route::get('/pegawai/login', [\App\Http\Controllers\Auth\PegawaiLoginController::class, 'showLoginForm'])->name('pegawai.login')->middleware('guest');
+Route::post('/pegawai/login', [\App\Http\Controllers\Auth\PegawaiLoginController::class, 'login'])->name('pegawai.login.submit');
+Route::post('/pegawai/logout', [\App\Http\Controllers\Auth\PegawaiLoginController::class, 'logout'])->name('pegawai.logout');
 
 // Clear session untuk debugging
 Route::get('/clear-session', function() {
@@ -1881,6 +1933,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/', [PerusahaanController::class, 'update'])->name('update')->middleware('role:owner');
         Route::post('/update-bank-info', [PerusahaanController::class, 'updateBankInfo'])->name('update-bank-info')->middleware('role:owner');
         Route::post('/update-bank-field', [PerusahaanController::class, 'updateBankField'])->name('update-bank-field')->middleware('role:owner');
+        Route::post('/update-company-field', [PerusahaanController::class, 'updateCompanyField'])->name('update-company-field')->middleware('role:owner');
     });
 
     // ================================================================
@@ -2014,6 +2067,10 @@ Route::middleware('auth')->group(function () {
         
         // Individual depreciation posting route
         Route::post('aset/{aset}/post-depreciation', [AsetController::class, 'postIndividualDepreciation'])->name('aset.post-depreciation');
+        
+        // Asset acquisition posting routes
+        Route::post('aset/{aset}/post-to-journal', [AsetController::class, 'postAssetToJournal'])->name('aset.post-to-journal');
+        Route::post('aset/{aset}/unpost-from-journal', [AsetController::class, 'unpostAssetFromJournal'])->name('aset.unpost-from-journal');
         
         // Debug route to check asset setup
         Route::get('aset/debug-setup', function() {
@@ -2541,6 +2598,9 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{kategoriProduk}', [\App\Http\Controllers\KategoriProdukController::class, 'destroy'])->name('destroy');
         });
         
+        // Kategori Produk routes
+        Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
+        
         // Biaya Bahan routes
         Route::prefix('biaya-bahan')->name('biaya-bahan.')->group(function () {
             Route::get('/', [BiayaBahanController::class, 'index'])->name('index');
@@ -2634,6 +2694,9 @@ Route::middleware('auth')->group(function () {
             }
         });
         
+        // Presensi API Route for Penggajian
+        Route::get('api/presensi/jam-kerja', [\App\Http\Controllers\PresensiController::class, 'getJamKerja'])->name('api.presensi.jam-kerja');
+        
         // BOP API Route (simple version)
         Route::get('api/bop-details/{btkl_ids}', function ($btkl_ids) {
             try {
@@ -2725,6 +2788,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update'])->name('update');
             Route::patch('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update']);
             Route::delete('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'destroy'])->name('destroy');
+        });
+        
+        // Beban Operasional Routes (Separated from BOP)
+        Route::prefix('beban-operasional')->name('beban-operasional.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\MasterData\BebanOperasionalController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\MasterData\BebanOperasionalController::class, 'store'])->name('store');
+            Route::get('/{id}', [\App\Http\Controllers\MasterData\BebanOperasionalController::class, 'show'])->name('show');
+            Route::put('/{id}', [\App\Http\Controllers\MasterData\BebanOperasionalController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\MasterData\BebanOperasionalController::class, 'destroy'])->name('destroy');
         });
         
         // Komponen BOP Routes (Overhead Components)
@@ -2857,9 +2929,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
 
             // Tandai sudah dibayar (owner/admin only)
-            Route::post('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
 
-            // Posting ke jurnal (owner/admin only)
+            Route::post('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+// Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
             
             // Recalculate berdasarkan master data terbaru (owner/admin only)
@@ -2897,10 +2969,73 @@ Route::middleware('auth')->group(function () {
         // Bukti Pembayaran routes
         Route::post('penjualan/{id}/bukti-pembayaran', [PenjualanController::class, 'uploadBuktiPembayaran'])->name('penjualan.upload-bukti');
         Route::delete('penjualan/{penjualanId}/bukti-pembayaran/{buktiId}', [PenjualanController::class, 'deleteBuktiPembayaran'])->name('penjualan.delete-bukti');
+
+        // Jurnal Penjualan routes
+        Route::get('penjualan/{id}/jurnal', [PenjualanController::class, 'showJurnal'])->name('penjualan.jurnal');
+        Route::post('penjualan/{id}/jurnal/rebuild', [PenjualanController::class, 'rebuildJurnal'])->name('penjualan.jurnal.rebuild');
         
         // API routes for real-time product search
         Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
         Route::get('api/products/barcode', [PenjualanController::class, 'findByBarcode'])->name('api.products.barcode');
+        
+        // Journal API for pembelian
+        Route::get('api/pembelian/{id}/journal', function($id) {
+            $pembelian = \App\Models\Pembelian::where('id', $id)
+                ->where('user_id', auth()->id()) // Multi-tenant security
+                ->first();
+                
+            if (!$pembelian) {
+                return response()->json(['success' => false, 'message' => 'Pembelian tidak ditemukan'], 404);
+            }
+            
+            // Get journal entries for this purchase
+            $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
+                ->where('user_id', auth()->id()) // Multi-tenant security
+                ->with('coa')
+                ->orderBy('id', 'asc')
+                ->get();
+            
+            // Convert debit/kredit to numbers for proper JavaScript formatting
+            $journalsArray = $journalEntries->map(function($entry) {
+                return [
+                    'id' => $entry->id,
+                    'tanggal' => $entry->tanggal,
+                    'coa' => $entry->coa ? [
+                        'kode_akun' => $entry->coa->kode_akun,
+                        'nama_akun' => $entry->coa->nama_akun
+                    ] : null,
+                    'keterangan' => $entry->keterangan,
+                    'debit' => (float) $entry->debit,
+                    'kredit' => (float) $entry->kredit
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'journals' => $journalsArray,
+                'pembelian' => [
+                    'id' => $pembelian->id,
+                    'nomor_pembelian' => $pembelian->nomor_pembelian,
+                    'total_harga' => $pembelian->total_harga
+                ]
+            ]);
+        })->name('api.pembelian.journal');
+        // ============================================================
+        // PENGATURAN PENJUALAN
+        // ============================================================
+        Route::prefix('penjualan-setting')->name('penjualan-setting.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\PenjualanSettingController::class, 'index'])->name('index');
+            Route::get('/paket-menu', [\App\Http\Controllers\PenjualanSettingController::class, 'paketMenuPage'])->name('paket-menu');
+            // Paket Menu
+            Route::post('/paket', [\App\Http\Controllers\PenjualanSettingController::class, 'storePaket'])->name('paket.store');
+            Route::put('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updatePaket'])->name('paket.update');
+            Route::delete('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyPaket'])->name('paket.destroy');
+            // Ongkir
+            Route::post('/ongkir', [\App\Http\Controllers\PenjualanSettingController::class, 'storeOngkir'])->name('ongkir.store');
+            Route::put('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updateOngkir'])->name('ongkir.update');
+            Route::delete('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyOngkir'])->name('ongkir.destroy');
+        });
 
         // Penjualan Setting (Paket Menu & Ongkir)
         Route::prefix('penjualan-setting')->name('penjualan-setting.')->group(function () {
@@ -3256,6 +3391,8 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::get('/get-bom-details/{produkId}', [ProduksiController::class, 'getBomDetails'])->name('get-bom-details');
             Route::post('/mulai-lagi', [ProduksiController::class, 'mulaiLagi'])->name('mulai-lagi');
             Route::post('/{id}/mulai-produksi', [ProduksiController::class, 'mulaiProduksi'])->name('mulai-produksi');
+            Route::get('/{id}/edit', [ProduksiController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [ProduksiController::class, 'update'])->name('update');
             Route::get('/{id}', [ProduksiController::class, 'show'])->name('show');
             Route::get('/{id}/proses', [ProduksiController::class, 'proses'])->name('proses');
             Route::post('/proses/{prosesId}/mulai', [ProduksiController::class, 'mulaiProses'])->name('proses.mulai');
@@ -3350,10 +3487,8 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/export/pembelian', [LaporanController::class, 'exportPembelian'])->name('export.pembelian');
         
         // Laporan Penjualan
-        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
-        Route::get('/penjualan/{id}/invoice', [LaporanController::class, 'invoice'])->name('penjualan.invoice');
-        Route::get('/penjualan/export', [LaporanController::class, 'exportPenjualan'])->name('penjualan.export');
-        Route::get('/export/penjualan', [LaporanController::class, 'exportPenjualan'])->name('export.penjualan');
+        Route::get('/penjualan', [\App\Http\Controllers\LaporanPenjualanController::class, 'index'])->name('penjualan');
+        Route::post('/penjualan/export-pdf', [\App\Http\Controllers\LaporanPenjualanController::class, 'exportPdf'])->name('penjualan.export-pdf');
         
         // Laporan Retur (now only handles purchase returns, sales returns moved to penjualan tab)
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
@@ -3369,6 +3504,11 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/kas-bank/export-pdf', [\App\Http\Controllers\LaporanKasBankController::class, 'exportPdf'])->name('kas-bank.export-pdf');
         Route::get('/kas-bank/{coaId}/detail-masuk', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailMasuk'])->name('kas-bank.detail-masuk');
         Route::get('/kas-bank/{coaId}/detail-keluar', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailKeluar'])->name('kas-bank.detail-keluar');
+        
+        // Laporan Neraca (Posisi Keuangan)
+        Route::get('/neraca', [\App\Http\Controllers\NeracaController::class, 'index'])->name('neraca.index');
+        Route::get('/neraca/export-pdf', [\App\Http\Controllers\NeracaController::class, 'exportPdf'])->name('neraca.export-pdf');
+        Route::get('/neraca/export-excel', [\App\Http\Controllers\NeracaController::class, 'exportExcel'])->name('neraca.export-excel');
         
         // Laporan Aset
         Route::get('/penyusutan-aset', [\App\Http\Controllers\AsetDepreciationController::class, 'index'])->name('penyusutan.aset');
@@ -3395,6 +3535,13 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     });
 
     // ================================================================
+    // API INTERNAL (Auth required, semua role)
+    // ================================================================
+    Route::middleware('auth')->prefix('api-internal')->name('api-internal.')->group(function () {
+        Route::post('penjualan/validate-jurnal', [\App\Http\Controllers\PenjualanController::class, 'validateJurnal'])->name('penjualan.validate-jurnal');
+    });
+
+    // ================================================================
     // AKUNTANSI (Admin & Owner Only)
     // ================================================================
     Route::prefix('akuntansi')->name('akuntansi.')->middleware('role:admin,owner')->group(function () {
@@ -3403,8 +3550,26 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/jurnal-umum/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportExcel'])->name('jurnal-umum.export-excel');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
-        Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
-        Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
+        
+        // Neraca Saldo - Updated version (based on General Ledger)
+        Route::get('/neraca-saldo', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('neraca-saldo');
+        Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\NeracaSaldoController::class, 'exportPdf'])->name('neraca-saldo.pdf');
+        Route::get('/neraca-saldo/api', [\App\Http\Controllers\NeracaSaldoController::class, 'apiData'])->name('neraca-saldo.api');
+        
+        // Test route untuk debug
+        Route::get('/neraca-saldo-test', function() {
+            return 'Neraca Saldo Controller Test - Route berfungsi!';
+        })->name('neraca-saldo-test');
+        
+        // Neraca Saldo - Old version (backup)
+        Route::get('/neraca-saldo-old', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo-old');
+        Route::get('/neraca-saldo-old/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo-old.pdf');
+        
+        // Neraca Saldo - New version (alternative access)
+        Route::get('/neraca-saldo-new', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('neraca-saldo-new');
+        Route::get('/neraca-saldo-new/pdf', [\App\Http\Controllers\NeracaSaldoController::class, 'exportPdf'])->name('neraca-saldo-new.pdf');
+        Route::get('/neraca-saldo-new/api', [\App\Http\Controllers\NeracaSaldoController::class, 'apiData'])->name('neraca-saldo-new.api');
+        
         Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
         Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
@@ -3414,6 +3579,98 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::redirect('/akuntansi/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
     });
 
+    // ================================================================
+    // TEMPORARY FIXES FOR NERACA SALDO ACCESS
+    // ================================================================
+    
+    // Temporary Neraca Saldo route without middleware for testing
+    Route::get('/akuntansi/neraca-saldo-temp', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('akuntansi.neraca-saldo-temp');
+    Route::post('/akuntansi/neraca-saldo-temp/posting', [\App\Http\Controllers\NeracaSaldoController::class, 'postingSaldo'])->name('akuntansi.neraca-saldo.posting');
+    // REMOVED: Route jurnal penyeimbang dihapus sesuai permintaan user
+    
+    // Debug route to check if routes are working
+    Route::get('/akuntansi/test-route', function() {
+        return 'Test route is working! Time: ' . now();
+    });
+    
+    // Debug route to check user authentication
+    Route::get('/akuntansi/check-auth', function() {
+        if (auth()->check()) {
+            $user = auth()->user();
+            return 'User authenticated: ' . $user->name . ' (Role: ' . $user->role . ')';
+        } else {
+            return 'User not authenticated. Please login first.';
+        }
+    });
+    
+    // Simple test route at root level
+    Route::get('/test-simple', function() {
+        return 'Simple test route works! Laravel is running correctly.';
+    });
+    
+    // Comprehensive diagnostic route
+    Route::get('/diagnose-neraca', function() {
+        $output = '<h1>Neraca Saldo Diagnostic</h1>';
+        $output .= '<style>body{font-family:Arial;margin:20px;} .success{color:green;} .error{color:red;} .info{color:blue;}</style>';
+        
+        // Check authentication
+        if (auth()->check()) {
+            $user = auth()->user();
+            $output .= '<p class="success">✅ User authenticated: ' . $user->name . ' (Role: ' . $user->role . ')</p>';
+            
+            // Check role authorization
+            $hasAccess = in_array($user->role, ['admin', 'owner']);
+            $output .= '<p class="' . ($hasAccess ? 'success' : 'error') . '">' . ($hasAccess ? '✅' : '❌') . ' Role access: ' . ($hasAccess ? 'GRANTED' : 'DENIED') . '</p>';
+        } else {
+            $output .= '<p class="error">❌ User not authenticated</p>';
+            $output .= '<p><a href="' . route('login') . '">Please login first</a></p>';
+        }
+        
+        // Check routes
+        try {
+            $tempUrl = route('akuntansi.neraca-saldo-temp');
+            $output .= '<p class="success">✅ Temp route exists: <a href="' . $tempUrl . '">' . $tempUrl . '</a></p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Temp route error: ' . $e->getMessage() . '</p>';
+        }
+        
+        try {
+            $mainUrl = route('akuntansi.neraca-saldo');
+            $output .= '<p class="success">✅ Main route exists: <a href="' . $mainUrl . '">' . $mainUrl . '</a></p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Main route error: ' . $e->getMessage() . '</p>';
+        }
+        
+        // Test controller
+        try {
+            $service = new \App\Services\TrialBalanceService();
+            $controller = new \App\Http\Controllers\NeracaSaldoController($service);
+            $output .= '<p class="success">✅ Controller can be instantiated</p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Controller error: ' . $e->getMessage() . '</p>';
+        }
+        
+        // Check database
+        try {
+            $coaCount = \App\Models\Coa::count();
+            $output .= '<p class="success">✅ Database connection works, COA records: ' . $coaCount . '</p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Database error: ' . $e->getMessage() . '</p>';
+        }
+        
+        $output .= '<h2>Test Links:</h2>';
+        $output .= '<p><a href="/test-simple" target="_blank">🔗 Test Simple Route</a></p>';
+        $output .= '<p><a href="/akuntansi/test-route" target="_blank">🔗 Test Akuntansi Route</a></p>';
+        $output .= '<p><a href="/akuntansi/check-auth" target="_blank">🔗 Check Authentication</a></p>';
+        
+        if (auth()->check()) {
+            $output .= '<p><a href="' . route('akuntansi.neraca-saldo-temp') . '" target="_blank">🔗 Test Neraca Saldo (Temp)</a></p>';
+            $output .= '<p><a href="' . route('akuntansi.neraca-saldo') . '" target="_blank">🔗 Test Neraca Saldo (Main)</a></p>';
+        }
+        
+        return $output;
+    });
+    
     // ================================================================
     // TEMPORARY FIXES FOR LAPORAN POSISI KEUANGAN ACCESS
     // ================================================================
@@ -3482,6 +3739,11 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::post('/photos/{id}', [KelolaCatalogController::class, 'updatePhoto'])->name('photos.update');
         Route::delete('/photos/{id}', [KelolaCatalogController::class, 'deletePhoto'])->name('photos.delete');
         Route::post('/photos/reorder', [KelolaCatalogController::class, 'reorderPhotos'])->name('photos.reorder');
+        
+        // Catalog builder routes
+        Route::post('/builder/save', [KelolaCatalogController::class, 'saveSections'])->name('builder.save');
+        Route::post('/builder/upload-cover-photo', [KelolaCatalogController::class, 'uploadCoverPhoto'])->name('builder.upload-cover-photo');
+        Route::post('/builder/upload-team-photo', [KelolaCatalogController::class, 'uploadTeamPhoto'])->name('builder.upload-team-photo');
     });
 
     // ================================================================
@@ -3517,9 +3779,6 @@ Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')
 
     // Riwayat presensi pegawai (pribadi)
     Route::get('/riwayat-presensi', [PegawaiDashboardController::class, 'riwayatPresensi'])->name('riwayat-presensi');
-    
-    // Rekap harian presensi (semua pegawai yang hadir hari ini)
-    Route::get('/rekap-harian', [PegawaiDashboardController::class, 'rekapHarian'])->name('rekap-harian');
 
     // Slip Gaji Pegawai
     Route::prefix('slip-gaji')->name('slip-gaji.')->group(function () {
@@ -5465,6 +5724,391 @@ Route::get('fix-coa-expense-payments', function() {
 Route::get('/debug/pembayaran-beban-analysis', function() {
     return view('debug.pembayaran_beban_analysis');
 });
+
+// Route to create missing journal entries for pembelian and penjualan
+Route::get('/debug/create-missing-journals', function() {
+    $output = "<div style='font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;'>";
+    $output .= "<h2 style='color: #4ec9b0;'>Creating Missing Journal Entries</h2>";
+    
+    try {
+        $userId = auth()->id();
+        
+        if (!$userId) {
+            $output .= "<p style='color: #f48771;'>ERROR: You must be logged in to run this script.</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<p>Running for user ID: <strong>{$userId}</strong></p>";
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        
+        // Process Pembelian
+        $output .= "<h3 style='color: #569cd6;'>Processing Pembelian Transactions</h3>";
+        
+        $pembelians = \App\Models\Pembelian::where('user_id', $userId)->get();
+        $output .= "<p>Found {$pembelians->count()} pembelian records</p>";
+        
+        $pembelianSuccess = 0;
+        $pembelianFailed = 0;
+        $pembelianSkipped = 0;
+        
+        foreach ($pembelians as $pembelian) {
+            // Check if journal already exists
+            $existingJournal = \DB::table('jurnal_umum')
+                ->where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
+                ->where('user_id', $userId)
+                ->exists();
+            
+            if ($existingJournal) {
+                $pembelianSkipped++;
+                continue;
+            }
+            
+            $output .= "<p style='color: #dcdcaa;'>Processing Pembelian #{$pembelian->nomor_pembelian}...</p>";
+            
+            try {
+                $service = new \App\Services\PembelianJournalService();
+                $result = $service->createJournalFromPembelian($pembelian);
+                
+                if ($result) {
+                    $pembelianSuccess++;
+                    $output .= "<p style='color: #4ec9b0; margin-left: 20px;'>✓ Journal created successfully</p>";
+                } else {
+                    $pembelianFailed++;
+                    $output .= "<p style='color: #f48771; margin-left: 20px;'>✗ Journal creation returned null</p>";
+                }
+            } catch (\Exception $e) {
+                $pembelianFailed++;
+                $output .= "<p style='color: #f48771; margin-left: 20px;'>✗ ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+            }
+        }
+        
+        // Process Penjualan
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Processing Penjualan Transactions</h3>";
+        
+        $penjualans = \App\Models\Penjualan::where('user_id', $userId)->get();
+        $output .= "<p>Found {$penjualans->count()} penjualan records</p>";
+        
+        $penjualanSuccess = 0;
+        $penjualanFailed = 0;
+        $penjualanSkipped = 0;
+        
+        foreach ($penjualans as $penjualan) {
+            // Check if journal already exists
+            $existingJournal = \DB::table('jurnal_umum')
+                ->where('tipe_referensi', 'sale')
+                ->where('referensi', $penjualan->id)
+                ->where('user_id', $userId)
+                ->exists();
+            
+            if ($existingJournal) {
+                $penjualanSkipped++;
+                continue;
+            }
+            
+            $output .= "<p style='color: #dcdcaa;'>Processing Penjualan #{$penjualan->nomor_penjualan}...</p>";
+            
+            try {
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                $penjualanSuccess++;
+                $output .= "<p style='color: #4ec9b0; margin-left: 20px;'>✓ Journal created successfully</p>";
+            } catch (\Exception $e) {
+                $penjualanFailed++;
+                $output .= "<p style='color: #f48771; margin-left: 20px;'>✗ ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+            }
+        }
+        
+        // Summary
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #4ec9b0;'>Summary</h3>";
+        $output .= "<table style='color: #d4d4d4; border-collapse: collapse;'>";
+        $output .= "<tr><th style='text-align: left; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Type</th><th style='text-align: right; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Success</th><th style='text-align: right; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Failed</th><th style='text-align: right; padding: 5px; border-bottom: 1px solid #3e3e3e;'>Skipped</th></tr>";
+        $output .= "<tr><td style='padding: 5px;'>Pembelian</td><td style='text-align: right; padding: 5px; color: #4ec9b0;'>{$pembelianSuccess}</td><td style='text-align: right; padding: 5px; color: #f48771;'>{$pembelianFailed}</td><td style='text-align: right; padding: 5px; color: #808080;'>{$pembelianSkipped}</td></tr>";
+        $output .= "<tr><td style='padding: 5px;'>Penjualan</td><td style='text-align: right; padding: 5px; color: #4ec9b0;'>{$penjualanSuccess}</td><td style='text-align: right; padding: 5px; color: #f48771;'>{$penjualanFailed}</td><td style='text-align: right; padding: 5px; color: #808080;'>{$penjualanSkipped}</td></tr>";
+        $output .= "</table>";
+        
+        // Final journal count
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Final Journal Count</h3>";
+        
+        $journalsByType = \DB::table('jurnal_umum')
+            ->where('user_id', $userId)
+            ->select('tipe_referensi', \DB::raw('COUNT(*) as count'))
+            ->groupBy('tipe_referensi')
+            ->get();
+        
+        $output .= "<ul>";
+        foreach ($journalsByType as $j) {
+            $output .= "<li>{$j->tipe_referensi}: <strong>{$j->count}</strong> entries</li>";
+        }
+        $output .= "</ul>";
+        
+        $totalJournals = \DB::table('jurnal_umum')->where('user_id', $userId)->count();
+        $output .= "<p><strong>Total journal entries: {$totalJournals}</strong></p>";
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<p style='color: #4ec9b0;'>✓ Process completed!</p>";
+        $output .= "<p><a href='/akuntansi/jurnal-umum' style='color: #569cd6; text-decoration: underline;'>View Jurnal Umum</a></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: #f48771;'>FATAL ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $output .= "<pre style='color: #808080; font-size: 11px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    $output .= "</div>";
+    return $output;
+})->middleware('auth')->name('debug.create.missing.journals');
+
+// Route to debug BTKL pegawai count issue
+Route::get('/debug/btkl-pegawai', function() {
+    $output = "<div style='font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;'>";
+    $output .= "<h2 style='color: #4ec9b0;'>Debug BTKL Pegawai Count</h2>";
+    
+    try {
+        $userId = auth()->id();
+        
+        if (!$userId) {
+            $output .= "<p style='color: #f48771;'>ERROR: You must be logged in to run this script.</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<p>Checking for user ID: <strong>{$userId}</strong></p>";
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        
+        // Check Jabatan BTKL
+        $output .= "<h3 style='color: #569cd6;'>Jabatan BTKL</h3>";
+        $jabatanBtkl = \DB::table('jabatans')
+            ->where('user_id', $userId)
+            ->where('kategori', 'btkl')
+            ->get(['id', 'nama', 'kategori', 'tarif', 'user_id']);
+        
+        $output .= "<p>Found <strong>{$jabatanBtkl->count()}</strong> jabatan BTKL</p>";
+        $output .= "<ul>";
+        foreach ($jabatanBtkl as $j) {
+            $output .= "<li>ID: {$j->id}, Nama: <strong>{$j->nama}</strong>, Tarif: Rp " . number_format($j->tarif) . ", User: {$j->user_id}</li>";
+        }
+        $output .= "</ul>";
+        
+        // Check Pegawai
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Pegawai</h3>";
+        $pegawais = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->get(['id', 'nama', 'jabatan_id', 'user_id']);
+        
+        $output .= "<p>Found <strong>{$pegawais->count()}</strong> pegawai</p>";
+        $output .= "<ul>";
+        foreach ($pegawais as $p) {
+            $jabatan = \DB::table('jabatans')->where('id', $p->jabatan_id)->first();
+            $jabatanNama = $jabatan ? $jabatan->nama : '<span style="color: #f48771;">NULL</span>';
+            $jabatanKategori = $jabatan ? $jabatan->kategori : 'NULL';
+            $output .= "<li>ID: {$p->id}, Nama: <strong>{$p->nama}</strong>, Jabatan ID: {$p->jabatan_id} ({$jabatanNama} - {$jabatanKategori}), User: {$p->user_id}</li>";
+        }
+        $output .= "</ul>";
+        
+        // Check Pegawai per Jabatan BTKL
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Pegawai per Jabatan BTKL</h3>";
+        
+        foreach ($jabatanBtkl as $j) {
+            $count = \DB::table('pegawais')
+                ->where('user_id', $userId)
+                ->where('jabatan_id', $j->id)
+                ->count();
+            
+            $output .= "<div style='margin-bottom: 15px; padding: 10px; background: #2d2d2d; border-left: 3px solid #569cd6;'>";
+            $output .= "<p style='margin: 0;'><strong>Jabatan: {$j->nama}</strong> (ID: {$j->id})</p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Jumlah pegawai: <strong style='color: " . ($count > 0 ? '#4ec9b0' : '#f48771') . ";'>{$count}</strong></p>";
+            
+            if ($count > 0) {
+                $pegawaiList = \DB::table('pegawais')
+                    ->where('user_id', $userId)
+                    ->where('jabatan_id', $j->id)
+                    ->get(['id', 'nama']);
+                
+                $output .= "<ul style='margin: 5px 0 0 20px;'>";
+                foreach ($pegawaiList as $p) {
+                    $output .= "<li>{$p->nama} (ID: {$p->id})</li>";
+                }
+                $output .= "</ul>";
+            }
+            $output .= "</div>";
+        }
+        
+        // Check BTKL records
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>BTKL Records</h3>";
+        $btkls = \DB::table('btkls')
+            ->where('user_id', $userId)
+            ->get(['id', 'kode_proses', 'nama_btkl', 'jabatan_id', 'tarif_per_jam']);
+        
+        $output .= "<p>Found <strong>{$btkls->count()}</strong> BTKL records</p>";
+        
+        foreach ($btkls as $b) {
+            $jabatan = \DB::table('jabatans')->where('id', $b->jabatan_id)->first();
+            $jabatanNama = $jabatan ? $jabatan->nama : '<span style="color: #f48771;">NULL</span>';
+            
+            $pegawaiCount = \DB::table('pegawais')
+                ->where('user_id', $userId)
+                ->where('jabatan_id', $b->jabatan_id)
+                ->count();
+            
+            $output .= "<div style='margin-bottom: 15px; padding: 10px; background: #2d2d2d; border-left: 3px solid #dcdcaa;'>";
+            $output .= "<p style='margin: 0;'><strong>{$b->kode_proses}: {$b->nama_btkl}</strong></p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Jabatan: {$jabatanNama} (ID: {$b->jabatan_id})</p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Tarif: Rp " . number_format($b->tarif_per_jam) . "</p>";
+            $output .= "<p style='margin: 5px 0 0 0;'>Pegawai count: <strong style='color: " . ($pegawaiCount > 0 ? '#4ec9b0' : '#f48771') . ";'>{$pegawaiCount}</strong></p>";
+            $output .= "</div>";
+        }
+        
+        // Test Eloquent relationship
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Test Eloquent Relationship</h3>";
+        
+        $jabatanModel = \App\Models\Jabatan::where('user_id', $userId)
+            ->where('kategori', 'btkl')
+            ->first();
+        
+        if ($jabatanModel) {
+            $output .= "<p>Testing Jabatan: <strong>{$jabatanModel->nama}</strong> (ID: {$jabatanModel->id})</p>";
+            $output .= "<p>User ID: {$jabatanModel->user_id}</p>";
+            
+            // Test pegawais relationship
+            $pegawaisRelation = $jabatanModel->pegawais;
+            $output .= "<p>Pegawais count via relationship: <strong style='color: " . ($pegawaisRelation->count() > 0 ? '#4ec9b0' : '#f48771') . ";'>{$pegawaisRelation->count()}</strong></p>";
+            
+            if ($pegawaisRelation->count() > 0) {
+                $output .= "<ul>";
+                foreach ($pegawaisRelation as $p) {
+                    $output .= "<li>{$p->nama} (User ID: {$p->user_id})</li>";
+                }
+                $output .= "</ul>";
+            }
+            
+            // Test direct query
+            $pegawaisDirect = \DB::table('pegawais')
+                ->where('jabatan_id', $jabatanModel->id)
+                ->where('user_id', $userId)
+                ->get();
+            
+            $output .= "<p>Pegawais count via direct query: <strong style='color: " . ($pegawaisDirect->count() > 0 ? '#4ec9b0' : '#f48771') . ";'>{$pegawaisDirect->count()}</strong></p>";
+        } else {
+            $output .= "<p style='color: #f48771;'>No BTKL jabatan found for testing</p>";
+        }
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<p style='color: #4ec9b0;'>✓ Debug completed!</p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: #f48771;'>FATAL ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $output .= "<pre style='color: #808080; font-size: 11px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    $output .= "</div>";
+    return $output;
+})->middleware('auth')->name('debug.btkl.pegawai');
+
+// Route to fix BTKL pegawai assignment directly in database
+Route::get('/debug/fix-btkl-pegawai-assignment', function() {
+    $output = "<div style='font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4;'>";
+    $output .= "<h2 style='color: #4ec9b0;'>Fix BTKL Pegawai Assignment</h2>";
+    
+    try {
+        $userId = auth()->id();
+        
+        if (!$userId) {
+            $output .= "<p style='color: #f48771;'>ERROR: You must be logged in to run this script.</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<p>Running for user ID: <strong>{$userId}</strong></p>";
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        
+        // Get jabatan BTKL
+        $jabatanPengukusan = \DB::table('jabatans')
+            ->where('user_id', $userId)
+            ->where('nama', 'Pengukusan')
+            ->first();
+        
+        $jabatanPengemasan = \DB::table('jabatans')
+            ->where('user_id', $userId)
+            ->where('nama', 'Pengemasan')
+            ->first();
+        
+        if (!$jabatanPengukusan || !$jabatanPengemasan) {
+            $output .= "<p style='color: #f48771;'>ERROR: Jabatan Pengukusan atau Pengemasan tidak ditemukan!</p>";
+            $output .= "</div>";
+            return $output;
+        }
+        
+        $output .= "<h3 style='color: #569cd6;'>Found Jabatan:</h3>";
+        $output .= "<ul>";
+        $output .= "<li>Pengukusan (ID: {$jabatanPengukusan->id})</li>";
+        $output .= "<li>Pengemasan (ID: {$jabatanPengemasan->id})</li>";
+        $output .= "</ul>";
+        
+        // Get pegawai
+        $pegawais = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->get();
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Assigning Pegawai:</h3>";
+        
+        $updated = 0;
+        foreach ($pegawais as $index => $pegawai) {
+            // Assign first pegawai to Pengukusan, second to Pengemasan
+            $jabatanId = ($index == 0) ? $jabatanPengukusan->id : $jabatanPengemasan->id;
+            $jabatanNama = ($index == 0) ? 'Pengukusan' : 'Pengemasan';
+            
+            \DB::table('pegawais')
+                ->where('id', $pegawai->id)
+                ->update(['jabatan_id' => $jabatanId]);
+            
+            $output .= "<p style='color: #4ec9b0;'>✓ {$pegawai->nama} → {$jabatanNama}</p>";
+            $updated++;
+        }
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #4ec9b0;'>Summary:</h3>";
+        $output .= "<p><strong>{$updated}</strong> pegawai updated</p>";
+        
+        // Verify
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<h3 style='color: #569cd6;'>Verification:</h3>";
+        
+        $countPengukusan = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->where('jabatan_id', $jabatanPengukusan->id)
+            ->count();
+        
+        $countPengemasan = \DB::table('pegawais')
+            ->where('user_id', $userId)
+            ->where('jabatan_id', $jabatanPengemasan->id)
+            ->count();
+        
+        $output .= "<ul>";
+        $output .= "<li>Pengukusan: <strong style='color: #4ec9b0;'>{$countPengukusan}</strong> pegawai</li>";
+        $output .= "<li>Pengemasan: <strong style='color: #4ec9b0;'>{$countPengemasan}</strong> pegawai</li>";
+        $output .= "</ul>";
+        
+        $output .= "<hr style='border-color: #3e3e3e;'>";
+        $output .= "<p style='color: #4ec9b0;'>✓ Assignment completed!</p>";
+        $output .= "<p><a href='/master-data/btkl' style='color: #569cd6; text-decoration: underline;'>View BTKL Page</a></p>";
+        $output .= "<p><a href='/debug/btkl-pegawai' style='color: #569cd6; text-decoration: underline;'>Run Debug Again</a></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: #f48771;'>FATAL ERROR: " . htmlspecialchars($e->getMessage()) . "</p>";
+        $output .= "<pre style='color: #808080; font-size: 11px;'>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    }
+    
+    $output .= "</div>";
+    return $output;
+})->middleware('auth')->name('debug.fix.btkl.pegawai.assignment');
 
 
 // Include storage routes

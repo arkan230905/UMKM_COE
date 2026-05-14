@@ -1,0 +1,345 @@
+<mxfile host="app.diagrams.net" modified="2024-05-11T06:33:00.000Z" agent="5.0 (Windows NT 10.0; Win64; x64) rv:109.0" etag="xxxx" version="21.6.5" type="device">
+  <diagram name="BPMN SIMCOST SIMPLE" id="bpmn-simcost-simple">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Header -->
+        <mxCell id="2" value="SISTEM PENGELOLAAN PRODUKSI SIMCOST" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#b0c4de;strokeColor=#000000;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry height="40" width="2260" x="-10" y="-300" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin/Owner Lane -->
+        <mxCell id="82" value="ADMIN/OWNER" style="rounded=0;whiteSpace=wrap;html=1;direction=west;gradientColor=none;" vertex="1" parent="1">
+          <mxGeometry height="750" width="60" x="-10" y="-260" as="geometry" />
+        </mxCell>
+        
+        <!-- Biaya Bahan Baku Lane -->
+        <mxCell id="45" value="Biaya Bahan Baku" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=20;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry height="140" width="2200" x="50" y="-260" as="geometry" />
+        </mxCell>
+        
+        <!-- Biaya Bahan Baku Process -->
+        <mxCell id="47" value="Start" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="45">
+          <mxGeometry height="40" width="40" x="60" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="49" value="Pilih Produk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#8e24aa;" vertex="1" parent="45">
+          <mxGeometry height="60" width="120" x="140" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="51" value="Input Data Bahan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#2196f3;" vertex="1" parent="45">
+          <mxGeometry height="60" width="150" x="290" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="52" value="End" style="ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;" vertex="1" parent="45">
+          <mxGeometry height="45" width="45" x="470" y="47.5" as="geometry" />
+        </mxCell>
+        
+        <!-- BTKL Lane -->
+        <mxCell id="3" value="BTKL" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=20;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry height="140" width="2200" x="50" y="-120" as="geometry" />
+        </mxCell>
+        
+        <!-- BTKL Process -->
+        <mxCell id="5" value="Start" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="3">
+          <mxGeometry height="40" width="40" x="60" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="6" value="Input Tarif" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="3">
+          <mxGeometry height="60" width="120" x="140" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="8" value="Input Jam Kerja" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="3">
+          <mxGeometry height="60" width="120" x="290" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="10" value="End" style="ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;" vertex="1" parent="3">
+          <mxGeometry height="45" width="45" x="440" y="47.5" as="geometry" />
+        </mxCell>
+        
+        <!-- BOP Lane -->
+        <mxCell id="53" value="BOP" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=20;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry height="130" width="2200" x="50" y="20" as="geometry" />
+        </mxCell>
+        
+        <!-- BOP Process -->
+        <mxCell id="55" value="Start" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0050ef;strokeColor=#001DBC;fontColor=#ffffff;" vertex="1" parent="53">
+          <mxGeometry height="40" width="40" x="60" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="57" value="Input Budget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;" vertex="1" parent="53">
+          <mxGeometry height="60" width="120" x="140" y="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="59" value="Input Aktual" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;" vertex="1" parent="53">
+          <mxGeometry height="60" width="120" x="290" y="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="60" value="End" style="ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;" vertex="1" parent="53">
+          <mxGeometry height="45" width="45" x="440" y="37.5" as="geometry" />
+        </mxCell>
+        
+        <!-- HPP Lane -->
+        <mxCell id="62" value="Harga Pokok Produksi" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=20;fillColor=#ffcc99;strokeColor=#36393d;" vertex="1" parent="1">
+          <mxGeometry height="160" width="2200" x="50" y="150" as="geometry" />
+        </mxCell>
+        
+        <!-- HPP Process -->
+        <mxCell id="64" value="Start" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#bac8d3;strokeColor=#23445d;" vertex="1" parent="62">
+          <mxGeometry height="40" width="40" x="60" y="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="65" value="Pilih Produk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;" vertex="1" parent="62">
+          <mxGeometry height="60" width="120" x="140" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="66" value="Get Data BBB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="62">
+          <mxGeometry height="60" width="120" x="290" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="67" value="Get Data BTKL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="62">
+          <mxGeometry height="60" width="120" x="440" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="68" value="Get Data BOP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="62">
+          <mxGeometry height="60" width="120" x="590" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="69" value="Calculate HPP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;fontStyle=1;" vertex="1" parent="62">
+          <mxGeometry height="60" width="150" x="740" y="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="70" value="End" style="ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;" vertex="1" parent="62">
+          <mxGeometry height="45" width="45" x="920" y="57.5" as="geometry" />
+        </mxCell>
+        
+        <!-- Produksi Lane -->
+        <mxCell id="11" value="Produksi" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=20;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry height="200" width="2200" x="50" y="310" as="geometry" />
+        </mxCell>
+        
+        <!-- Produksi Process -->
+        <mxCell id="13" value="Start" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#a20025;strokeColor=#6F0000;fontColor=#ffffff;" vertex="1" parent="11">
+          <mxGeometry height="40" width="40" x="70" y="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="15" value="Pilih Produk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="140" y="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="17" value="Input Qty" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#008a00;strokeColor=#005700;fontColor=#ffffff;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="290" y="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="20" value="Get HPP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="440" y="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="24" value="Validasi Stok" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="590" y="90" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="29" value="Stok Cukup?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="11">
+          <mxGeometry height="80" width="80" x="740" y="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="35" value="Produksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6a00ff;strokeColor=#3700CC;fontColor=#ffffff;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="860" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="38" value="Selesai" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d80073;strokeColor=#A50040;fontColor=#ffffff;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="1020" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="39" value="Update Stok" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#60a917;strokeColor=#2D7600;fontColor=#ffffff;" vertex="1" parent="11">
+          <mxGeometry height="60" width="120" x="1180" y="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="40" value="End" style="ellipse;shape=doubleEllipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;" vertex="1" parent="11">
+          <mxGeometry height="45" width="45" x="1340" y="47.5" as="geometry" />
+        </mxCell>
+        
+        <!-- Laporan Stok Lane -->
+        <mxCell id="86" value="Laporan Stok" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=80;fillColor=#60a917;strokeColor=#2D7600;fontSize=10;fontStyle=1;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry height="170" width="2260" x="-10" y="510" as="geometry" />
+        </mxCell>
+        
+        <!-- Laporan Stok Process -->
+        <mxCell id="87" value="Status Stok" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#0277bd;" vertex="1" parent="86">
+          <mxGeometry height="60" width="120" x="340" y="70" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="88" value="Movement" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e8;strokeColor=#4caf50;" vertex="1" parent="86">
+          <mxGeometry height="60" width="120" x="500" y="70" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="89" value="Reports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ff9800;" vertex="1" parent="86">
+          <mxGeometry height="60" width="120" x="660" y="70" as="geometry" />
+        </mxCell>
+        
+        <!-- System Lane -->
+        <mxCell id="42" value="Sistem" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=20;fillColor=#6a00ff;strokeColor=#3700CC;fontSize=10;fontStyle=1;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry height="170" width="2260" x="-10" y="680" as="geometry" />
+        </mxCell>
+        
+        <!-- Database -->
+        <mxCell id="43" value="Database" style="shape=datastore;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="42">
+          <mxGeometry height="60" width="60" x="830" y="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin/Staff Produksi Lane -->
+        <mxCell id="84" value="ADMIN/Staff" style="rounded=0;whiteSpace=wrap;html=1;direction=west;gradientColor=none;" vertex="1" parent="1">
+          <mxGeometry height="200" width="60" x="-10" y="310" as="geometry" />
+        </mxCell>
+        
+        <!-- Key Connections -->
+        <!-- Biaya Bahan Baku -->
+        <mxCell id="46" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="45" source="47" target="49">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="48" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="45" source="49" target="51">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="50" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="45" source="51" target="52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- BTKL -->
+        <mxCell id="4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="3" source="5" target="6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="3" source="6" target="8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="3" source="8" target="10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- BOP -->
+        <mxCell id="54" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="53" source="55" target="57">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="56" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="53" source="57" target="59">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="58" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="53" source="59" target="60">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- HPP -->
+        <mxCell id="63" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="62" source="64" target="65">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="63b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="62" source="65" target="66">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="63c" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="62" source="66" target="67">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="63d" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="62" source="67" target="68">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="63e" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="62" source="68" target="69">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="63f" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="62" source="69" target="70">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Produksi -->
+        <mxCell id="12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="13" target="15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="15" target="17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="17" target="20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="16b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="20" target="24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="24" target="29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="29" target="35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="35" target="38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="38" target="39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="41" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="11" source="39" target="40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Laporan Stok -->
+        <mxCell id="87b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="86" source="87" target="88">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="88b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="86" source="88" target="89">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Database Connections -->
+        <mxCell id="44" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="52" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="44b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="10" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="44c" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="60" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="44d" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="70" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="44e" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="40" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="44f" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="89" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Decision Labels -->
+        <mxCell id="36" value="Ya" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="11">
+          <mxGeometry height="30" width="60" x="780" y="52" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="32" value="Tidak" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="11">
+          <mxGeometry height="30" width="60" x="780" y="140" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
