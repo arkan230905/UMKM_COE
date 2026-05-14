@@ -70,6 +70,7 @@ class JasukeCoaSeeder extends Seeder
                 ['kode_akun' => $coa[1]],
                 [
                     'company_id' => 1,
+                    'user_id' => 1, // TAMBAHKAN INI: Sesuai ID Muhammad Arkan Abiyyu
                     'nama_akun' => $coa[0],
                     'tipe_akun' => $coa[2],
                     'kategori_akun' => $coa[3],
