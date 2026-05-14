@@ -32,37 +32,9 @@ function recalcRow(tr) {
 }
 
 function recalcTotal() {
-    const table = document.getElementById('detailTableJual');
-    if (!table) return;
-    
-    let sum = 0;
-    table.querySelectorAll('tbody tr').forEach(tr => {
-        const val = (tr.querySelector('.subtotal').value || 'Rp 0').replace(/[^\d]/g,'');
-        sum += parseFloat(val) || 0;
-    });
-    
-    const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
-    if (subtotalProdukInput) {
-        subtotalProdukInput.value = formatCurrency(sum);
-    }
-    
-    const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir')?.value || 0);
-    const biayaService = parseFloat(document.getElementById('biaya_service')?.value || 0);
-    const ppnPersen = parseFloat(document.getElementById('ppn_persen')?.value || 0);
-    
-    const ppnBase = sum + biayaOngkir + biayaService;
-    const totalPPN = ppnBase * (ppnPersen / 100);
-    
-    const totalPPNInput = document.getElementById('total_ppn');
-    if (totalPPNInput) {
-        totalPPNInput.value = formatCurrency(totalPPN);
-    }
-    
-    const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
-    
-    const totalInput = document.getElementById('total_final');
-    if (totalInput) {
-        totalInput.value = formatCurrency(finalTotal);
+    // Delegasikan ke hitungTotal() yang ada di view (sudah handle semua kalkulasi dengan benar)
+    if (typeof hitungTotal === 'function') {
+        hitungTotal();
     }
 }
 

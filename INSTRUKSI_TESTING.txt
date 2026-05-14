@@ -1,0 +1,109 @@
+=====================================
+INSTRUKSI TESTING TOMBOL TEAM MEMBER
+=====================================
+
+LANGKAH 1: CLEAR CACHE
+-----------------------
+Jalankan command ini di terminal:
+
+    php artisan view:clear
+
+LANGKAH 2: BUKA HALAMAN
+------------------------
+Buka di browser:
+
+    http://localhost/kelola-catalog
+
+LANGKAH 3: BUKA CONSOLE
+------------------------
+Tekan F12 untuk membuka Developer Tools
+Pilih tab "Console"
+
+LANGKAH 4: PERIKSA CONSOLE OUTPUT
+----------------------------------
+Anda harus melihat:
+
+    === PAGE LOADED ===
+    addTeamMemberRow: function
+    removeTeamMemberRow: function
+    Initial team count: 2
+    Remove buttons updated. Total members: 2
+
+Jika melihat output di atas, berarti fungsi sudah terdefinisi! ✅
+
+LANGKAH 5: TEST TOMBOL TAMBAH
+------------------------------
+1. Scroll ke section "Team Section"
+2. Klik tombol hijau "Tambah Anggota"
+3. Harus muncul baris baru dengan kolom:
+   - Foto
+   - Nama Lengkap
+   - Jabatan
+   - Deskripsi Singkat
+   - Tombol Hapus (trash merah)
+
+Console harus menampilkan:
+    addTeamMemberRow called
+    Team member added. New count: 3
+
+LANGKAH 6: TEST TOMBOL HAPUS
+-----------------------------
+1. Klik tombol trash merah pada salah satu baris
+2. Baris harus terhapus
+
+Console harus menampilkan:
+    removeTeamMemberRow called
+    Team member removed. New count: 2
+
+LANGKAH 7: TEST MINIMAL 1 ANGGOTA
+----------------------------------
+1. Hapus anggota sampai hanya tersisa 1
+2. Tombol trash pada anggota terakhir harus HILANG
+
+Console harus menampilkan:
+    Remove buttons updated. Total members: 1
+
+=====================================
+TROUBLESHOOTING
+=====================================
+
+JIKA TOMBOL TIDAK BERFUNGSI:
+
+1. Clear cache browser:
+   - Tekan Ctrl+Shift+Delete
+   - Clear cache
+   - Reload halaman dengan Ctrl+F5
+
+2. Periksa di console:
+   Ketik: typeof addTeamMemberRow
+   Harus return: "function"
+
+3. Periksa jQuery:
+   Ketik: jQuery.fn.jquery
+   Harus return: "3.7.1"
+
+4. Jika masih error, periksa console untuk error message
+
+=====================================
+TEST STANDALONE
+=====================================
+
+Untuk test tanpa Laravel, buka file:
+    test_fix_final.html
+
+Di browser langsung (double click file).
+
+=====================================
+STATUS: SELESAI ✅
+=====================================
+
+Perbaikan yang dilakukan:
+1. Mengubah @section('scripts') menjadi @push('scripts')
+2. Menghapus jQuery duplicate
+3. Memastikan fungsi di global scope
+
+File yang dimodifikasi:
+- resources/views/kelola-catalog/index.blade.php
+
+Dokumentasi lengkap:
+- PERBAIKAN_FINAL_TOMBOL.md

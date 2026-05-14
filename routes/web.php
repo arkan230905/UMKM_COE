@@ -2642,6 +2642,9 @@ Route::middleware('auth')->group(function () {
         // Kategori Produk routes
         Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
         
+        // Kategori Produk routes
+        Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
+        
         // Biaya Bahan routes
         Route::prefix('biaya-bahan')->name('biaya-bahan.')->group(function () {
             Route::get('/', [BiayaBahanController::class, 'index'])->name('index');

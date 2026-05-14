@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-05-11T07:45:00.000Z" agent="5.0" etag="produksi-cost-seq-fixed" version="21.6.5" type="device">
+  <diagram name="Sistem Manajemen Biaya Produksi" id="sequence-produksi-cost-fixed">
+    <mxGraphModel dx="1426" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Participants dengan spacing yang lebih rapat -->
+        <mxCell id="user" value="User" style="shape=umlLifeline;participant=umlActor;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="80" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="biayaBahanController" value="BiayaBahan&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="160" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="btklController" value="BTKL&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="280" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="bopController" value="BOP&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="400" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hppController" value="HPP&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="520" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="produksiController" value="Produksi&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="640" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="stockReportController" value="StockReport&#xa;Controller" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="760" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="database" value="Database" style="shape=umlLifeline;participant=umlEntity;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="880" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="stockService" value="StockService" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="journalService" value="JournalService" style="shape=umlLifeline;participant=umlBoundaryObject;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="40" width="100" height="800" as="geometry" />
+        </mxCell>
+        
+        <!-- FASE 1: SETUP MASTER DATA BIAYA -->
+        <mxCell id="note1" value="FASE 1: SETUP MASTER DATA BIAYA" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="280" height="25" as="geometry" />
+        </mxCell>
+        
+        <!-- Biaya Bahan Baku Flow -->
+        <mxCell id="msg1" value="create(produk_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="120" as="sourcePoint" />
+            <mxPoint x="210" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg2" value="Get Produk &amp; Bahan Baku" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="biayaBahanController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="140" as="sourcePoint" />
+            <mxPoint x="930" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg3" value="Produk &amp; Bahan Baku data" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="160" as="sourcePoint" />
+            <mxPoint x="210" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg4" value="Form Biaya Bahan Baku" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="biayaBahanController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="180" as="sourcePoint" />
+            <mxPoint x="80" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg5" value="store(bahan_baku_data)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="200" as="sourcePoint" />
+            <mxPoint x="210" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg6" value="Save BiayaBahanBaku" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="biayaBahanController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="220" as="sourcePoint" />
+            <mxPoint x="930" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg7" value="Update HargaPokokProduksi" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="biayaBahanController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="240" as="sourcePoint" />
+            <mxPoint x="930" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg8" value="Confirmation" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="biayaBahanController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="260" as="sourcePoint" />
+            <mxPoint x="210" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg9" value="Success message" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="biayaBahanController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="280" as="sourcePoint" />
+            <mxPoint x="80" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- BTKL Flow -->
+        <mxCell id="msg10" value="create()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="300" as="sourcePoint" />
+            <mxPoint x="330" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg11" value="Get Jabatan &amp; Pegawai" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="320" as="sourcePoint" />
+            <mxPoint x="930" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg12" value="Jabatan &amp; Pegawai data" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="340" as="sourcePoint" />
+            <mxPoint x="330" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg13" value="Form BTKL" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="btklController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="360" as="sourcePoint" />
+            <mxPoint x="80" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg14" value="store(btkl_data)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="380" as="sourcePoint" />
+            <mxPoint x="330" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg15" value="Save BTKL" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="400" as="sourcePoint" />
+            <mxPoint x="930" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg16" value="Create ProsesProduksi" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="420" as="sourcePoint" />
+            <mxPoint x="930" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg17" value="syncBomFromMaterialChange()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="btklController" target="stockService">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="440" as="sourcePoint" />
+            <mxPoint x="1050" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg18" value="Confirmation" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="btklController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="460" as="sourcePoint" />
+            <mxPoint x="330" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg19" value="Success message" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="btklController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="330" y="480" as="sourcePoint" />
+            <mxPoint x="80" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- FASE 2: KALKULASI HPP -->
+        <mxCell id="note2" value="FASE 2: KALKULASI HPP" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="200" height="25" as="geometry" />
+        </mxCell>
+        
+        <!-- HPP Flow -->
+        <mxCell id="msg20" value="create(produk_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="hppController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="540" as="sourcePoint" />
+            <mxPoint x="570" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg21" value="Get Produk, BBB, BTKL, BOP" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="hppController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="560" as="sourcePoint" />
+            <mxPoint x="930" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg22" value="Cost components data" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="hppController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="580" as="sourcePoint" />
+            <mxPoint x="570" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg23" value="Form HPP Calculation" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="hppController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="600" as="sourcePoint" />
+            <mxPoint x="80" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg24" value="store(hpp_data)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="user" target="hppController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="80" y="620" as="sourcePoint" />
+            <mxPoint x="570" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg25" value="Create BomJobCosting" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="hppController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="640" as="sourcePoint" />
+            <mxPoint x="930" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg26" value="Calculate total BBB" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="hppController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="660" as="sourcePoint" />
+            <mxPoint x="930" y="660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg27" value="Calculate total BTKL" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="hppController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="680" as="sourcePoint" />
+            <mxPoint x="930" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg28" value="Calculate total BOP" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="hppController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="700" as="sourcePoint" />
+            <mxPoint x="930" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg29" value="Update Produk.harga_pokok" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;" edge="1" parent="1" source="hppController" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="720" as="sourcePoint" />
+            <mxPoint x="930" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg30" value="HPP calculated" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="database" target="hppController">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="740" as="sourcePoint" />
+            <mxPoint x="570" y="740" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg31" value="HPP Result" style="html=1;verticalAlign=bottom;endArrow=open;curved=0;rounded=0;dashed=1;" edge="1" parent="1" source="hppController" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="760" as="sourcePoint" />
+            <mxPoint x="80" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

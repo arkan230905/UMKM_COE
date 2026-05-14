@@ -81,11 +81,11 @@ class AppServiceProvider extends ServiceProvider
         // Initialize master data untuk user baru
         User::observe(UserObserver::class);
 
-        // View composer global untuk semua tampilan
+        // View composer global untuk semua tampilan (kecuali dashboard)
         View::composer('*', function ($view) {
             try {
                 $view->with([
-                    'totalPegawai'   => 0,
+                    'totalPegawai'   => Pegawai::count(),
                     'totalPresensi'  => Presensi::count(),
                     'totalProduk'    => Produk::count(),
                     'totalVendor'    => Vendor::count(),

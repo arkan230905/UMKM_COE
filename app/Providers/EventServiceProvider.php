@@ -45,7 +45,7 @@ class EventServiceProvider extends ServiceProvider
         BahanPendukung::observe(BahanPendukungObserver::class);
         Pembelian::observe(PembelianObserver::class);
         Pembelian::observe(PembelianJournalObserver::class);
-        Penjualan::observe(PenjualanObserver::class);
+        // Penjualan::observe(PenjualanObserver::class); // DISABLED: Replaced by JournalService::createJournalFromPenjualan
         Produksi::observe(ProduksiObserver::class);
         ProsesProduksi::observe(BtklObserver::class);
         User::observe(UserObserver::class);
