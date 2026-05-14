@@ -12,10 +12,9 @@ class Coa extends Model
     use HasFactory;
 
     /**
-     * Nama tabel di database diarahkan ke 'accounts' 
-     * agar sesuai dengan file migrasi terbaru.
+     * Nama tabel di database adalah 'coas'
      */
-    protected $table = 'accounts'; 
+    protected $table = 'coas'; 
 
     protected $primaryKey = 'id';
     public $incrementing = true;
