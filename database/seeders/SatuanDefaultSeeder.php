@@ -4,25 +4,24 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Perusahaan;
 
 class SatuanDefaultSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Buat 16 Satuan default untuk user baru yang register.
+     * Dipanggil dari CreateDefaultUserData listener.
      */
-    public function run(): void
+    public function run(int $userId): void
     {
-        // Get all companies
-        $companies = Perusahaan::all();
-        
-        if ($companies->isEmpty()) {
-            $this->command->info('No companies found. Please create companies first.');
+        // Jangan buat ulang jika sudah ada
+        if (DB::table('satuans')->where('user_id', $userId)->exists()) {
             return;
         }
 
-        // Default Satuan data provided by user
-        $defaultSatuanData = [
+        $now = now();
+
+        // Default Satuan data
+        $satuans = [
             ['kode' => 'ONS', 'nama' => 'Ons'],
             ['kode' => 'KG', 'nama' => 'Kilogram'],
             ['kode' => 'ML', 'nama' => 'Mililiter'],
@@ -41,29 +40,18 @@ class SatuanDefaultSeeder extends Seeder
             ['kode' => 'KLG', 'nama' => 'Kaleng'],
         ];
 
-        foreach ($companies as $company) {
-            $this->command->info("Creating Satuan for company: {$company->nama} (ID: {$company->id})");
-            
-            foreach ($defaultSatuanData as $satuan) {
-                // Check if Satuan already exists for this company
-                $existingSatuan = DB::table('satuans')
-                    ->where('user_id', $company->id)
-                    ->where('kode', $satuan['kode'])
-                    ->first();
-                
-                if (!$existingSatuan) {
-                    DB::table('satuans')->insert([
-                        'kode' => $satuan['kode'],
-                        'nama' => $satuan['nama'],
-                        'user_id' => $company->id,
-                        'is_active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            }
+        $rows = [];
+        foreach ($satuans as $satuan) {
+            $rows[] = [
+                'user_id'    => $userId,
+                'kode'       => $satuan['kode'],
+                'nama'       => $satuan['nama'],
+                'is_active'  => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
 
-        $this->command->info('Default Satuan seeder completed successfully!');
+        DB::table('satuans')->insert($rows);
     }
 }
