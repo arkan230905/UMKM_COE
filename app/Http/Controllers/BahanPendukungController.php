@@ -172,33 +172,23 @@ class BahanPendukungController extends Controller
         $validated['user_id'] = auth()->id();
 
         // Create bahan pendukung
-        // IMPORTANT: Stock movement akan dibuat otomatis oleh BahanPendukungObserver::created()
-        // JANGAN buat stock movement di sini untuk menghindari duplikasi!
         $bahanPendukung = BahanPendukung::create($validated);
         
-        // Update COA Persediaan saldo_awal (jika ada) - DISABLED
-        // Logika ini dinonaktifkan untuk mencegah bahan pendukung mengupdate saldo awal COA
-        if ($request->coa_persediaan_id && ($request->stok ?? 0) > 0) {
-            \Log::info("Skipping COA saldo awal update for bahan pendukung", [
-                'bahan_pendukung' => $bahanPendukung->nama_bahan,
-                'coa_code' => $request->coa_persediaan_id,
-                'stok' => $request->stok,
-                'harga_satuan' => $request->harga_satuan,
-                'reason' => 'COA saldo awal update disabled for bahan pendukung'
+        // Create initial stock movement if stock > 0
+        if (($request->stok ?? 0) > 0) {
+            \App\Models\StockMovement::create([
+                'item_type' => 'support',
+                'item_id' => $bahanPendukung->id,
+                'tanggal' => now()->format('Y-m-d'),
+                'direction' => 'in',
+                'qty' => $request->stok,
+                'unit' => $bahanPendukung->satuan->nama ?? 'Unit',
+                'unit_cost' => $request->harga_satuan ?? 0,
+                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'keterangan' => 'Stok awal ' . $request->nama_bahan,
             ]);
-            
-            // COMMENTED OUT - Logika lama yang mengupdate saldo awal COA
-            /*
-            $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
-                ->where('user_id', auth()->id())
-                ->first();
-                
-            if ($coa) {
-                $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
-                $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
-                $coa->save();
-            }
-            */
         }
 
         return redirect()->route('master-data.bahan-pendukung.index')

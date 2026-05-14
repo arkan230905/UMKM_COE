@@ -147,31 +147,6 @@ class BahanBakuController extends Controller
                 'keterangan' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
             ]);
         }
-        
-        // Update COA Persediaan saldo_awal (jika ada) - DISABLED
-        // Logika ini dinonaktifkan untuk mencegah bahan baku mengupdate saldo awal COA
-        if ($request->coa_persediaan_id && ($request->stok ?? 0) > 0) {
-            \Log::info("Skipping COA saldo awal update for bahan baku", [
-                'bahan_baku' => $bahanBaku->nama_bahan,
-                'coa_code' => $request->coa_persediaan_id,
-                'stok' => $request->stok,
-                'harga_satuan' => $request->harga_satuan,
-                'reason' => 'COA saldo awal update disabled for bahan baku'
-            ]);
-            
-            // COMMENTED OUT - Logika lama yang mengupdate saldo awal COA
-            /*
-            $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
-                ->where('user_id', auth()->id())
-                ->first();
-                
-            if ($coa) {
-                $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
-                $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
-                $coa->save();
-            }
-            */
-        }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
