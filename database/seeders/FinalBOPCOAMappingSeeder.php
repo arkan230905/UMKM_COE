@@ -175,7 +175,7 @@ class FinalBOPCOAMappingSeeder extends Seeder
     
     private function getCoaIdByKode($kodeAkun, $user_id)
     {
-        $coa = DB::table('coas')
+        $coa = DB::table('accounts')
             ->where('kode_akun', $kodeAkun)
             ->where('user_id', $user_id)
             ->first();

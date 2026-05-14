@@ -13,7 +13,13 @@ return new class extends Migration
     {
         Schema::create('bahan_pendukungs', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_bahan')->unique();
+            
+            // 1. Tambahkan user_id agar data terikat pada Owner
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            
+            // 2. Hapus ->unique() dari sini karena akan dibuat unik per user di bawah
+            $table->string('kode_bahan');
+            
             $table->string('nama_bahan');
             $table->text('deskripsi')->nullable();
             $table->foreignId('satuan_id')->constrained('satuans')->onDelete('restrict');
@@ -24,8 +30,14 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             
+            // 3. Indexing & Multi-tenant Constraints
+            $table->index('user_id');
             $table->index('nama_bahan');
             $table->index('kategori');
+
+            // Agar satu owner tidak boleh punya kode bahan yang sama, 
+            // tapi antar owner boleh punya kode yang sama.
+            $table->unique(['user_id', 'kode_bahan']);
         });
     }
 

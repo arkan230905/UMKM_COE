@@ -6,23 +6,41 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    public function up(): void
     {
         Schema::create('jurnal_umum', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('coa_id')->constrained('coas')->onDelete('cascade');
+            
+            // Relasi ke User
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+
+            // Relasi ke Perusahaan (Sesuai log: create_perusahaan_table)
+            $table->unsignedBigInteger('company_id')->nullable();
+            $table->foreign('company_id')->references('id')->on('perusahaan')->onDelete('cascade');
+
+            /**
+             * PERBAIKAN UTAMA:
+             * Berdasarkan log Anda, tabel yang ada adalah 'accounts'.
+             * Kita gunakan coa_id tapi merujuk ke tabel 'accounts'.
+             */
+            $table->unsignedBigInteger('coa_id');
+            $table->foreign('coa_id')->references('id')->on('accounts')->onDelete('cascade');
+            
             $table->date('tanggal');
+            $table->string('bukti_transaksi')->nullable();
             $table->string('keterangan');
             $table->decimal('debit', 15, 2)->default(0);
             $table->decimal('kredit', 15, 2)->default(0);
-            $table->string('referensi')->nullable();
-            $table->string('tipe_referensi')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users');
+            
             $table->timestamps();
+
+            $table->index('company_id');
+            $table->index('coa_id');
+            $table->index('tanggal');
         });
     }
 
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('jurnal_umum');
     }

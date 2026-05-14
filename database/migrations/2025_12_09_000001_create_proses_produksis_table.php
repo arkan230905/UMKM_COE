@@ -15,6 +15,8 @@ return new class extends Migration
     {
         Schema::create('proses_produksis', function (Blueprint $table) {
             $table->id();
+            // Menambahkan relasi ke tabel users agar data terikat pada owner
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('kode_proses', 20)->unique()->comment('Kode unik proses (PRO-001)');
             $table->string('nama_proses', 100)->comment('Nama proses (Menggoreng, Membumbui, Mengemas)');
             $table->text('deskripsi')->nullable()->comment('Deskripsi proses');

@@ -13,12 +13,12 @@ return new class extends Migration
     public function up(): void
     {
         // Add COA Persediaan Barang Jadi Jasuke (1161)
-        $existingJasuke = DB::table('coas')
+        $existingJasuke = DB::table('accounts')
             ->where('kode_akun', '1161')
             ->first();
         
         if (!$existingJasuke) {
-            DB::table('coas')->insert([
+            DB::table('accounts')->insert([
                 'kode_akun' => '1161',
                 'nama_akun' => 'Pers. Barang Jadi Jasuke',
                 'tipe_akun' => 'Asset',
@@ -47,7 +47,7 @@ return new class extends Migration
     public function down(): void
     {
         // Delete the COA entry created by this migration
-        DB::table('coas')
+        DB::table('accounts')
             ->where('kode_akun', '1161')
             ->delete();
         

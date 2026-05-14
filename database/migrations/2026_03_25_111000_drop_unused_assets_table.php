@@ -35,8 +35,8 @@ return new class extends Migration
             $table->decimal('harga_perolehan', 15, 2);
             $table->decimal('nilai_sisa', 15, 2)->default(0);
             $table->unsignedInteger('umur_ekonomis'); // years
-            $table->foreignId('expense_coa_id')->nullable()->constrained('coas');
-            $table->foreignId('accum_depr_coa_id')->nullable()->constrained('coas');
+            $table->foreignId('expense_coa_id')->nullable()->constrained('accounts');
+            $table->foreignId('accum_depr_coa_id')->nullable()->constrained('accounts');
             $table->boolean('locked')->default(false); // prevent delete when used
             $table->timestamps();
         });

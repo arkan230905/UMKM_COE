@@ -14,7 +14,7 @@ class JabatanSeeder extends Seeder
     public function run(): void
     {
         $jabatans = [
-            // BTKL (Biaya Tenaga Kerja Langsung)
+            // BTKL (Biaya Tenaga Kerja Langsung) - Menggunakan Tarif Per Produk
             [
                 'kode_jabatan' => 'BT001',
                 'nama' => 'Operator Produksi',
@@ -25,7 +25,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 375000,
                 'asuransi' => 80000,
                 'tarif' => 18000,
-                'tarif_per_jam' => 18000,
+                'tarif_per_produk' => 18000, // PERBAIKAN: Disesuaikan dengan struktur tabel
                 'deskripsi' => 'Tenaga kerja yang terlibat langsung dalam proses produksi'
             ],
             [
@@ -38,7 +38,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 375000,
                 'asuransi' => 80000,
                 'tarif' => 18000,
-                'tarif_per_jam' => 18000,
+                'tarif_per_produk' => 18000, // PERBAIKAN: Disesuaikan dengan struktur tabel
                 'deskripsi' => 'Tenaga kerja untuk proses perbumbuan'
             ],
             [
@@ -51,7 +51,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 375000,
                 'asuransi' => 0,
                 'tarif' => 17000,
-                'tarif_per_jam' => 17000,
+                'tarif_per_produk' => 17000, // PERBAIKAN: Disesuaikan dengan struktur tabel
                 'deskripsi' => 'Tenaga kerja untuk proses pengemasan produk'
             ],
             
@@ -66,7 +66,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 300000,
                 'asuransi' => 200000,
                 'tarif' => 0,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'deskripsi' => 'Pengawas dan koordinator produksi'
             ],
             [
@@ -79,7 +79,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 300000,
                 'asuransi' => 200000,
                 'tarif' => 0,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'deskripsi' => 'Staff administrasi dan tata usaha'
             ],
             [
@@ -92,7 +92,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 300000,
                 'asuransi' => 150000,
                 'tarif' => 0,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'deskripsi' => 'Petugas kasir dan transaksi'
             ],
             [
@@ -105,7 +105,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 300000,
                 'asuransi' => 200000,
                 'tarif' => 0,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'deskripsi' => 'Petugas kontrol kualitas produk'
             ],
             [
@@ -118,7 +118,7 @@ class JabatanSeeder extends Seeder
                 'tunjangan_konsumsi' => 300000,
                 'asuransi' => 150000,
                 'tarif' => 0,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'deskripsi' => 'Petugas gudang dan inventory'
             ],
         ];

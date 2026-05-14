@@ -20,7 +20,7 @@ return new class extends Migration
             // Add foreign key constraint to ensure COA exists
             $table->foreign('coa_persediaan_id')
                   ->references('kode_akun')
-                  ->on('coas')
+                  ->on('accounts')
                   ->onDelete('set null');
         });
     }

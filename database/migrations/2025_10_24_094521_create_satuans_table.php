@@ -9,9 +9,13 @@ return new class extends Migration {
     {
         Schema::create('satuans', function (Blueprint $table) {
             $table->id();
-            $table->string('kode')->nullable();   // biarkan nullable jika tidak wajib
-            $table->string('nama');               // nama satuan (wajib)
+            // Tambahkan user_id
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->string('kode')->nullable();
+            $table->string('nama');
             $table->timestamps();
+
+            $table->index('user_id');
         });
     }
 

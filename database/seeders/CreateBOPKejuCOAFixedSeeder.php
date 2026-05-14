@@ -31,13 +31,13 @@ class CreateBOPKejuCOAFixedSeeder extends Seeder
         ];
         
         // Check if COA 533 already exists
-        $existingCOA = DB::table('coas')
+        $existingCOA = DB::table('accounts')
             ->where('kode_akun', '533')
             ->where('user_id', $user_id)
             ->first();
         
         if (!$existingCOA) {
-            DB::table('coas')->insert($kejuCOA);
+            DB::table('accounts')->insert($kejuCOA);
             Log::info("Created COA 533: BOP - Keju");
         } else {
             Log::info("COA 533: BOP - Keju already exists");
@@ -209,7 +209,7 @@ class CreateBOPKejuCOAFixedSeeder extends Seeder
     
     private function getCoaIdByKode($kodeAkun, $user_id)
     {
-        $coa = DB::table('coas')
+        $coa = DB::table('accounts')
             ->where('kode_akun', $kodeAkun)
             ->where('user_id', $user_id)
             ->first();

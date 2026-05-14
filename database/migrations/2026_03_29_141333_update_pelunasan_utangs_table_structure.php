@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('jumlah', 15, 2)->default(0)->after('akun_kas_id');
             
             // Add foreign key constraint
-            $table->foreign('akun_kas_id')->references('id')->on('coas')->onDelete('set null');
+            $table->foreign('akun_kas_id')->references('id')->on('accounts')->onDelete('set null');
             
             // Add index for kode_transaksi
             $table->index('kode_transaksi');

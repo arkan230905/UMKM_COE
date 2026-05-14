@@ -18,7 +18,7 @@ return new class extends Migration
             $table->dropForeign(['updated_by']);
             
             // Add foreign key constraints
-            $table->foreign('coa_id')->references('id')->on('coas')->onDelete('set null');
+            $table->foreign('coa_id')->references('id')->on('accounts')->onDelete('set null');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
             $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
         });

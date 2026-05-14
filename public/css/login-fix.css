@@ -1,0 +1,72 @@
+/* Fix untuk posisi ikon mata (toggle password visibility) */
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper input {
+    padding-right: 40px !important;
+    width: 100%;
+    height: 35px !important;
+    line-height: 35px !important;
+    box-sizing: border-box;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b6f47;
+    transition: all 0.3s;
+    border-radius: 4px;
+    margin: 0;
+    z-index: 10;
+}
+
+.password-toggle-btn:hover {
+    background-color: rgba(139, 111, 71, 0.1);
+    color: #6d5637;
+}
+
+.password-toggle-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.2);
+}
+
+.password-toggle-btn svg {
+    display: block;
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    stroke-width: 2.5;
+}
+
+/* Pastikan input password memiliki tinggi yang konsisten */
+input[type="password"],
+input[type="text"].password-field {
+    height: 35px !important;
+    line-height: 35px !important;
+    box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .password-toggle-btn {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .password-toggle-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+}

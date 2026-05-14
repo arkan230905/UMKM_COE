@@ -17,9 +17,9 @@ return new class extends Migration
             $table->string('coa_hpp_id')->nullable()->after('coa_persediaan_id');
             
             // Add foreign key constraints
-            $table->foreign('coa_pembelian_id')->references('kode_akun')->on('coas')->onDelete('set null');
-            $table->foreign('coa_persediaan_id')->references('kode_akun')->on('coas')->onDelete('set null');
-            $table->foreign('coa_hpp_id')->references('kode_akun')->on('coas')->onDelete('set null');
+            $table->foreign('coa_pembelian_id')->references('kode_akun')->on('accounts')->onDelete('set null');
+            $table->foreign('coa_persediaan_id')->references('kode_akun')->on('accounts')->onDelete('set null');
+            $table->foreign('coa_hpp_id')->references('kode_akun')->on('accounts')->onDelete('set null');
         });
     }
 

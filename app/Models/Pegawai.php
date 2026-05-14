@@ -15,7 +15,7 @@ class Pegawai extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
-        'user_id',  // CRITICAL: multi-tenant isolation
+        'user_id',         // 🔒 Multi-tenant isolation
         'kode_pegawai',
         'nama',
         'email',
@@ -26,16 +26,14 @@ class Pegawai extends Model
         'jabatan_id',
         'kategori_id',
         'kategori',
-        'gaji',
         'gaji_pokok',
-        'tarif_per_jam',
+        'tarif_per_produk', // PERBAIKAN: Mengganti tarif_per_jam
         'tunjangan',
         'asuransi',
         'jenis_pegawai',
         'bank',
         'nomor_rekening',
         'nama_rekening',
-        'perusahaan_id',  // CRITICAL: multi-tenant isolation
     ];
     
     protected static function boot()
@@ -43,37 +41,32 @@ class Pegawai extends Model
         parent::boot();
 
         static::creating(function ($model) {
-
-            // 🔒 SECURITY: Auto-fill user_id only if column exists
-            if (empty($model->user_id) && auth()->check() && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
+            // 🔒 SECURITY: Auto-fill user_id untuk Multi-tenancy
+            if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();
             }
-            // 🔒 SECURITY: Auto-fill kode_pegawai only if column exists
-            if (empty($model->kode_pegawai) && \Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'kode_pegawai')) {
+            
+            // Auto-generate kode_pegawai jika kosong
+            if (empty($model->kode_pegawai)) {
                 $lastId = static::max('id') ?? 0;
-$model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+                $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
             }
         });
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
+
+        // 🔒 SECURITY: Global Scope untuk Multi-tenancy
+        // Memastikan Owner hanya melihat data pegawainya sendiri
+        if (auth()->check()) {
+            static::addGlobalScope('user_id', function ($builder) {
                 $builder->where('user_id', auth()->id());
-            }
-        });
+            });
+        }
     }
     
     protected $casts = [
-        'gaji' => 'decimal:2',
         'gaji_pokok' => 'decimal:2',
-        'tarif_per_jam' => 'decimal:2',
+        'tarif_per_produk' => 'decimal:2', // PERBAIKAN: Cast tarif_per_produk
         'tunjangan' => 'decimal:2',
         'asuransi' => 'decimal:2',
-    ];
-
-    protected $dates = [
-        'created_at',
-        'updated_at'
     ];
 
     /**
@@ -85,34 +78,8 @@ $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Relasi ke user (akun login pegawai)
+     * Relasi ke presensi
      */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    /**
-     * Relasi ke perusahaan (tenant)
-     */
-    public function perusahaan(): BelongsTo
-    {
-        return $this->belongsTo(Perusahaan::class, 'perusahaan_id');
-    }
-
-    /**
-     * Relasi ke kategori pegawai
-     */
-    public function kategori(): BelongsTo
-    {
-        return $this->belongsTo(KategoriPegawai::class, 'kategori_id');
-    }
-
-    public function getNoTeleponAttribute()
-    {
-        return $this->attributes['no_telepon'] ?? $this->attributes['no_telp'] ?? null;
-    }
-
     public function presensis(): HasMany
     {
         return $this->hasMany(Presensi::class, 'pegawai_id');
@@ -122,135 +89,49 @@ $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
     public function scopeSearch($query, $search)
     {
         return $query->where('nama', 'like', "%{$search}%")
-                    ->orWhere('no_telepon', 'like', "%{$search}%")
+                    ->orWhere('kode_pegawai', 'like', "%{$search}%")
                     ->orWhereHas('jabatanRelasi', function($q) use ($search) {
                         $q->where('nama', 'like', "%{$search}%");
                     });
     }
 
     /**
-     * Accessor untuk backward compatibility
+     * Accessor: Ambil Tarif Per Produk dari jabatan jika di model kosong
      */
-    public function getJabatanNamaAttribute()
+    public function getTarifPerProdukAttribute($value)
     {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->nama;
-        }
-        return $this->attributes['jabatan'] ?? null;
+        if ($value > 0) return $value;
+        
+        return $this->jabatanRelasi->tarif_per_produk ?? 0;
     }
 
     /**
-     * Accessor untuk backward compatibility
-     */
-    public function getKategoriNamaAttribute()
-    {
-        if (is_object($this->kategori)) {
-            return $this->kategori->nama;
-        }
-        return $this->attributes['jenis_pegawai'] ?? null;
-    }
-
-    /**
-     * Get tunjangan jabatan from related jabatan (kualifikasi)
-     */
-    public function getTunjanganJabatanAttribute()
-    {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->tunjangan ?? 0;
-        }
-        return $this->attributes['tunjangan'] ?? 0;
-    }
-
-    /**
-     * Get tunjangan transport from related jabatan (kualifikasi)
-     */
-    public function getTunjanganTransportAttribute()
-    {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->tunjangan_transport ?? 0;
-        }
-        return 0;
-    }
-
-    /**
-     * Get tunjangan konsumsi from related jabatan (kualifikasi)
-     */
-    public function getTunjanganKonsumsiAttribute()
-    {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->tunjangan_konsumsi ?? 0;
-        }
-        return 0;
-    }
-
-    /**
-     * Get total tunjangan (sum of all tunjangan types)
+     * Get total tunjangan dari jabatan
      */
     public function getTotalTunjanganAttribute()
     {
-        return $this->tunjangan_jabatan + $this->tunjangan_transport + $this->tunjangan_konsumsi;
-    }
-
-    /**
-     * Get gaji pokok from related jabatan (kualifikasi)
-     */
-    public function getGajiPokokFromJabatanAttribute()
-    {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->gaji_pokok ?? 0;
+        if ($this->jabatanRelasi) {
+            return ($this->jabatanRelasi->tunjangan ?? 0) + 
+                   ($this->jabatanRelasi->tunjangan_transport ?? 0) + 
+                   ($this->jabatanRelasi->tunjangan_konsumsi ?? 0);
         }
-        return $this->attributes['gaji_pokok'] ?? 0;
+        return $this->tunjangan ?? 0;
     }
 
     /**
-     * Get tarif per jam from related jabatan (kualifikasi)
-     */
-    public function getTarifPerJamFromJabatanAttribute()
-    {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->tarif_per_jam ?? 0;
-        }
-        return $this->attributes['tarif_per_jam'] ?? 0;
-    }
-
-    /**
-     * Get asuransi from related jabatan (kualifikasi)
-     */
-    public function getAsuransiFromJabatanAttribute()
-    {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->asuransi ?? 0;
-        }
-        return $this->attributes['asuransi'] ?? 0;
-    }
-
-    /**
-     * Get all komponen gaji from jabatan as array
+     * Komponen Gaji Lengkap (Untuk Slip Gaji/Costing)
      */
     public function getKomponenGajiAttribute()
     {
-        if (!is_object($this->jabatanRelasi)) {
-            return [
-                'gaji_pokok' => $this->gaji_pokok ?? 0,
-                'tarif_per_jam' => $this->tarif_per_jam ?? 0,
-                'tunjangan_jabatan' => $this->tunjangan ?? 0,
-                'tunjangan_transport' => 0,
-                'tunjangan_konsumsi' => 0,
-                'total_tunjangan' => $this->tunjangan ?? 0,
-                'asuransi' => $this->asuransi ?? 0,
-            ];
-        }
+        $jabatan = $this->jabatanRelasi;
 
         return [
-            'gaji_pokok' => $this->jabatanRelasi->gaji_pokok ?? 0,
-            'tarif_per_jam' => $this->jabatanRelasi->tarif_per_jam ?? 0,
-            'tunjangan_jabatan' => $this->jabatanRelasi->tunjangan ?? 0,
-            'tunjangan_transport' => $this->jabatanRelasi->tunjangan_transport ?? 0,
-            'tunjangan_konsumsi' => $this->jabatanRelasi->tunjangan_konsumsi ?? 0,
-            'total_tunjangan' => ($this->jabatanRelasi->tunjangan ?? 0) + ($this->jabatanRelasi->tunjangan_transport ?? 0) + ($this->jabatanRelasi->tunjangan_konsumsi ?? 0),
-            'asuransi' => $this->jabatanRelasi->asuransi ?? 0,
+            'gaji_pokok' => $jabatan->gaji_pokok ?? $this->gaji_pokok,
+            'tarif_per_produk' => $this->tarif_per_produk,
+            'tunjangan_jabatan' => $jabatan->tunjangan ?? $this->tunjangan,
+            'tunjangan_transport' => $jabatan->tunjangan_transport ?? 0,
+            'tunjangan_konsumsi' => $jabatan->tunjangan_konsumsi ?? 0,
+            'asuransi' => $jabatan->asuransi ?? $this->asuransi,
         ];
     }
-
-    // Use default 'id' for route model binding so views can pass numeric IDs
 }

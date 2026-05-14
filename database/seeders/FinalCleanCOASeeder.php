@@ -20,7 +20,7 @@ class FinalCleanCOASeeder extends Seeder
         $coaKode = '530';
         
         // Get COA ID for kode 530
-        $coa = DB::table('coas')
+        $coa = DB::table('accounts')
             ->where('kode_akun', $coaKode)
             ->where('user_id', $user_id)
             ->first();
@@ -75,7 +75,7 @@ class FinalCleanCOASeeder extends Seeder
             Log::info("SUCCESS: COA {$coaKode} can be safely deleted - no references found");
             
             // Check child accounts
-            $childCount = DB::table('coas')
+            $childCount = DB::table('accounts')
                 ->where('kode_induk', $coaKode)
                 ->where('user_id', $user_id)
                 ->count();
@@ -86,7 +86,7 @@ class FinalCleanCOASeeder extends Seeder
                 Log::info("  - No child accounts found");
                 
                 // Actually delete the COA
-                DB::table('coas')
+                DB::table('accounts')
                     ->where('kode_akun', $coaKode)
                     ->where('user_id', $user_id)
                     ->delete();
@@ -94,7 +94,7 @@ class FinalCleanCOASeeder extends Seeder
                 Log::info("  - COA {$coaKode} deleted successfully");
                 
                 // Verify deletion
-                $existsAfter = DB::table('coas')
+                $existsAfter = DB::table('accounts')
                     ->where('kode_akun', $coaKode)
                     ->where('user_id', $user_id)
                     ->exists();

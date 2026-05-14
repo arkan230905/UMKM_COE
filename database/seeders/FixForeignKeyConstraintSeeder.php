@@ -30,7 +30,7 @@ class FixForeignKeyConstraintSeeder extends Seeder
         $coaIdsToDelete = [];
         
         // Get semua COA untuk user ini
-        $userCOAs = DB::table('coas')
+        $userCOAs = DB::table('accounts')
             ->where('user_id', $user_id)
             ->get(['id', 'kode_akun', 'nama_akun']);
         
@@ -89,7 +89,7 @@ class FixForeignKeyConstraintSeeder extends Seeder
         
         // Sekarang coba hapus semua COA user ini
         try {
-            $deletedCount = DB::table('coas')
+            $deletedCount = DB::table('accounts')
                 ->where('user_id', $user_id)
                 ->delete();
             
@@ -98,14 +98,14 @@ class FixForeignKeyConstraintSeeder extends Seeder
             Log::info("Error deleting COAs: " . $e->getMessage());
             
             // Jika masih error, coba hapus satu per satu
-            $coaIds = DB::table('coas')
+            $coaIds = DB::table('accounts')
                 ->where('user_id', $user_id)
                 ->pluck('id')
                 ->toArray();
             
             foreach ($coaIds as $coaId) {
                 try {
-                    DB::table('coas')
+                    DB::table('accounts')
                         ->where('id', $coaId)
                         ->delete();
                     Log::info("Deleted COA ID: {$coaId}");

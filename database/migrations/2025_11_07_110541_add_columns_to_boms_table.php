@@ -8,14 +8,16 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * Menambahkan kolom detail biaya ke tabel boms
      */
     public function up(): void
     {
         Schema::table('boms', function (Blueprint $table) {
-            $table->integer('qty')->after('bahan_baku_id');
-            $table->string('satuan', 20)->after('qty');
-            $table->decimal('harga_satuan', 15, 2)->after('satuan');
-            $table->decimal('total_harga', 15, 2)->after('harga_satuan');
+            // Menghapus 'after' untuk menghindari error "Column not found"
+            $table->integer('qty')->default(0);
+            $table->string('satuan', 20)->nullable();
+            $table->decimal('harga_satuan', 15, 2)->default(0);
+            $table->decimal('total_harga', 15, 2)->default(0);
         });
     }
 
