@@ -5,12 +5,15 @@
 @section('content')
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Neraca Saldo</h3>
-    <div class="d-flex gap-2">
+    <div>
+      <h3 class="mb-1"><i class="bi bi-file-earmark-spreadsheet"></i> Neraca Saldo</h3>
+      <small class="text-muted">Data diambil langsung dari Buku Besar (Journal Lines)</small>
+    </div>
+    <div class="d-flex gap-2 align-items-end">
       <form method="get" class="d-flex gap-2 align-items-end">
         <div>
-          <label class="form-label">Bulan</label>
-          <select name="bulan" class="form-select" style="min-width: 150px;">
+          <label class="form-label small">Bulan</label>
+          <select name="bulan" class="form-select form-select-sm" style="min-width: 120px;">
             <option value="01" {{ request('bulan') == '01' ? 'selected' : '' }}>Januari</option>
             <option value="02" {{ request('bulan') == '02' ? 'selected' : '' }}>Februari</option>
             <option value="03" {{ request('bulan') == '03' ? 'selected' : '' }}>Maret</option>
@@ -26,22 +29,22 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Tahun</label>
-          <input type="number" name="tahun" class="form-control" value="{{ request('tahun', date('Y')) }}" style="min-width: 100px;" min="2020" max="2030">
+          <label class="form-label small">Tahun</label>
+          <input type="number" name="tahun" class="form-control form-control-sm" value="{{ request('tahun', date('Y')) }}" style="min-width: 90px;" min="2020" max="2030">
         </div>
-        <div>
-          <label class="form-label">&nbsp;</label>
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-eye"></i> Tampilkan
-          </button>
-        </div>
+        <button type="submit" class="btn btn-primary btn-sm">
+          Tampilkan
+        </button>
       </form>
-      <div>
-        <label class="form-label">&nbsp;</label>
-        <a href="{{ route('akuntansi.neraca-saldo.pdf', ['bulan' => request('bulan', date('m')), 'tahun' => request('tahun', date('Y'))]) }}" class="btn btn-danger" target="_blank">
-          <i class="bi bi-file-pdf"></i> Cetak PDF
-        </a>
-      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="location.reload()">
+        Refresh
+      </button>
+      <a href="{{ route('akuntansi.neraca-saldo.pdf', ['bulan' => request('bulan', date('m')), 'tahun' => request('tahun', date('Y'))]) }}" class="btn btn-danger btn-sm" target="_blank">
+        <i class="bi bi-file-pdf"></i> Export PDF
+      </a>
+      <button type="button" class="btn btn-success btn-sm" onclick="alert('Fitur Posting Saldo akan segera hadir!')">
+        <i class="bi bi-check-circle"></i> Posting Saldo
+      </button>
     </div>
   </div>
 
@@ -59,25 +62,23 @@
     </div>
   @endif
 
-  <div class="card">
-    <div class="card-header bg-primary text-white">
-      <strong>NERACA SALDO</strong>
-      <div class="float-end">
-        <strong>Periode: {{ \Carbon\Carbon::parse(request('tahun', date('Y')) . '-' . request('bulan', date('m')) . '-01')->isoFormat('MMMM YYYY') }}</strong>
+  <div class="card shadow-sm">
+    <div class="card-header bg-white border-bottom">
+      <div class="text-center">
+        <h4 class="mb-1 fw-bold">PT MANUFAKTUR COE</h4>
+        <p class="mb-1">Laporan Keuangan Mei 2026</p>
+        <h5 class="mb-0 fw-bold">Neraca Saldo</h5>
       </div>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-bordered table-striped table-hover align-middle" style="border: 2px solid #dee2e6;">
-          <thead class="table-dark sticky-top">
+        <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.9rem;">
+          <thead class="table-light sticky-top">
             <tr>
               <th class="text-center" style="width:5%">No</th>
-              <th style="width:10%">Kode Akun</th>
-              <th style="width:25%">Nama Akun</th>
-              <th class="text-end" style="width:15%">Saldo Awal</th>
-              <th class="text-end" style="width:15%">Debit</th>
-              <th class="text-end" style="width:15%">Kredit</th>
-              <th class="text-end" style="width:15%">Saldo Akhir</th>
+              <th style="width:35%">AKUN</th>
+              <th class="text-end" style="width:30%">DEBIT (RP)</th>
+              <th class="text-end" style="width:30%">KREDIT (RP)</th>
             </tr>
           </thead>
           <tbody>
