@@ -1,0 +1,226 @@
+<!-- Add BOP Proses Modal -->
+<div class="modal fade" id="addBopProsesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Setup BOP Proses</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bopProsesForm" action="<?php echo e(route('master-data.bop.store-proses-simple')); ?>" method="POST">
+                <?php echo csrf_field(); ?>
+                <div class="modal-body">
+                    <!-- Nama BOP Proses -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_bop_proses" id="nama_bop_proses" class="form-control" placeholder="Contoh: Pertumbuhan, Panen, Sortir, dll" required>
+                            <small class="text-muted">Masukkan nama proses BOP yang ingin Anda buat</small>
+                        </div>
+                    </div>
+                    
+                    <!-- BOP Components -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="mb-3">Komponen BOP</h6>
+                            <div class="alert alert-info">
+                                <small><i class="fas fa-info-circle me-1"></i>
+                                Masukkan nilai BOP <strong>per produk</strong> untuk setiap komponen. Sistem akan menjumlahkan semua komponen untuk mendapatkan Total BOP per produk.
+                                </small>
+                            </div>
+                            <div id="komponenContainer">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="komponenTable">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 20%;">Komponen</th>
+                                                <th style="width: 15%;">Rp / produk</th>
+                                                <th style="width: 20%;">COA Debit</th>
+                                                <th style="width: 20%;">COA Kredit</th>
+                                                <th style="width: 15%;">Keterangan</th>
+                                                <th style="width: 10%;">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="komponenRows">
+                                            <tr>
+                                                <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" placeholder="Nama komponen" required></td>
+                                                <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" placeholder="0" required></td>
+                                                <td>
+                                                    <select name="komponen_coa_debit[]" class="form-select form-select-sm" required>
+                                                        <option value="">-- Pilih --</option>
+                                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = \App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                            <option value="<?php echo e($coa->kode_akun); ?>" <?php echo e($coa->kode_akun == '1173' ? 'selected' : ''); ?>>
+                                                                <?php echo e($coa->kode_akun); ?> - <?php echo e($coa->nama_akun); ?>
+
+                                                            </option>
+                                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select name="komponen_coa_kredit[]" class="form-select form-select-sm" required>
+                                                        <option value="">-- Pilih --</option>
+                                                        <optgroup label="Hutang">
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = \App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '21%')->orderBy('kode_akun')->get(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                                <option value="<?php echo e($coa->kode_akun); ?>" <?php echo e($coa->kode_akun == '210' ? 'selected' : ''); ?>>
+                                                                    <?php echo e($coa->kode_akun); ?> - <?php echo e($coa->nama_akun); ?>
+
+                                                                </option>
+                                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                        </optgroup>
+                                                        <optgroup label="Persediaan">
+                                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = \App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '115%')->orderBy('kode_akun')->get(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                                <option value="<?php echo e($coa->kode_akun); ?>">
+                                                                    <?php echo e($coa->kode_akun); ?> - <?php echo e($coa->nama_akun); ?>
+
+                                                                </option>
+                                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                                        </optgroup>
+                                                    </select>
+                                                </td>
+                                                <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" placeholder="Keterangan"></td>
+                                                <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Hapus</button></td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-primary fw-bold">
+                                                <td>Total BOP / produk</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text">Rp</span>
+                                                        <input type="text" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control text-end" readonly>
+                                                    </div>
+                                                </td>
+                                                <td colspan="4"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success mt-2" onclick="addKomponenRow()">
+                                    <i class="fas fa-plus"></i> Tambah Komponen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <label class="form-label">Keterangan</label>
+                            <textarea name="keterangan" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="btn-text">Simpan</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit BOP Proses Modal -->
+<div class="modal fade" id="editBopProsesModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit BOP Proses</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editBopProsesForm" action="" method="POST">
+                <?php echo csrf_field(); ?>
+                <?php echo method_field('PUT'); ?>
+                <input type="hidden" name="id" id="editBopProsesId">
+                <div class="modal-body">
+                    <!-- Nama BOP Proses -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_bop_proses" id="editNamaBopProses" class="form-control" placeholder="Contoh: Pertumbuhan, Panen, Sortir, dll" required>
+                            <small class="text-muted">Masukkan nama proses BOP yang ingin Anda edit</small>
+                        </div>
+                    </div>
+                    
+                    <!-- BOP Components -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="mb-3">Komponen BOP</h6>
+                            <div class="alert alert-info">
+                                <small><i class="fas fa-info-circle me-1"></i>
+                                Masukkan nilai BOP <strong>per produk</strong> untuk setiap komponen. Sistem akan menjumlahkan semua komponen untuk mendapatkan Total BOP per produk.
+                                </small>
+                            </div>
+                            <div id="editKomponenContainer">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="editKomponenTable">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 20%;">Komponen</th>
+                                                <th style="width: 15%;">Rp / produk</th>
+                                                <th style="width: 20%;">COA Debit</th>
+                                                <th style="width: 20%;">COA Kredit</th>
+                                                <th style="width: 15%;">Keterangan</th>
+                                                <th style="width: 10%;">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="editKomponenRows">
+                                            <!-- Components will be loaded here -->
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-primary fw-bold">
+                                                <td>Total BOP / produk</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm">
+                                                        <span class="input-group-text">Rp</span>
+                                                        <input type="text" id="editTotalBopPerProduk" name="total_bop_per_produk" class="form-control text-end" readonly>
+                                                    </div>
+                                                </td>
+                                                <td colspan="4"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success mt-2" onclick="addEditKomponenRow()">
+                                    <i class="fas fa-plus"></i> Tambah Komponen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <label class="form-label">Keterangan</label>
+                            <textarea id="editKeterangan" name="keterangan" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+                        <span class="btn-text">Simpan</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Detail BOP Modal -->
+<div class="modal fade" id="detailBopModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light border-bottom">
+                <h5 class="modal-title fw-semibold">Detail BOP Proses</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="detailBopContent">
+                    <!-- Content will be loaded via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php /**PATH C:\xampppp\htdocs\UMKM_COE\resources\views/master-data/bop/modals.blade.php ENDPATH**/ ?>

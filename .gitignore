@@ -16,11 +16,13 @@
 # --- Environment & Konfigurasi ---
 .env
 .env.backup
-.env.production
-.phpactor.json
+.env.backup.*
 .phpunit.result.cache
+docker-compose.override.yml
 Homestead.json
 Homestead.yaml
+npm-debug.log
+yarn-error.log
 auth.json
 
 # --- Editor & Sistem Operasi ---
@@ -46,3 +48,15 @@ Thumbs.db
 *.sql
 *.log
 *.sqlite
+
+# --- Temporary scripts ---
+check_*.php
+fix_*.php
+add_*.php
+reset_*.php
+restore_*.php
+seed_*.php
+skip_*.php
+test_*.php
+update_*.php
+setup_hosting.php
