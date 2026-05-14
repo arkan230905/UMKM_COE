@@ -352,7 +352,7 @@
                     </tbody>
                     <tfoot><tr class="table-warning"><td colspan="4" class="text-end fw-bold">Total BBB</td><td class="text-end fw-bold" id="totalBBB">Rp 0</td><td></td></tr></tfoot>
                 </table>
-                <button type="button" class="btn btn-primary btn-sm" id="btnTambahBBB" style="color: black !important; background-color: #0d6efd !important; border-color: #0d6efd !important;"><i class="bi bi-plus"></i> Tambah Bahan Baku</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnTambahBBB"><i class="bi bi-plus me-1"></i>Tambah Bahan Baku</button>
             </div>
         </div>
 

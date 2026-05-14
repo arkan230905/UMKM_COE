@@ -457,7 +457,7 @@
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn btn-sm" style="background: #8B7355; color: white; border-radius: 6px;">
+                    <button type="submit" class="btn btn-sm" style="background: #5a3a1a; color: white; border-radius: 6px;">
                         <i class="fas fa-search me-1"></i>Filter
                     </button>
                     <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px;">

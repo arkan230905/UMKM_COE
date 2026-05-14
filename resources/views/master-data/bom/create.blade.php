@@ -33,7 +33,7 @@
             <!-- Product Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h6 class="mb-0">
                             <i class="fas fa-box me-2"></i>Pilih Produk
                         </h6>
@@ -60,7 +60,7 @@
             <!-- BBB Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h6 class="mb-0">
                             <i class="fas fa-cube me-2"></i>Biaya Bahan Baku
                         </h6>
@@ -82,7 +82,7 @@
             <!-- BTKL Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h6 class="mb-0">
                             <i class="fas fa-users me-2"></i>BTKL (Biaya Tenaga Kerja Langsung)
                         </h6>
@@ -155,7 +155,7 @@
             <!-- BOP Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h6 class="mb-0">
                             <i class="fas fa-cogs me-2"></i>BOP (Biaya Overhead Pabrik)
                         </h6>
@@ -179,7 +179,7 @@
                                         $totalBop = $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0;
                                     @endphp
                                     <div class="col-12 mb-3">
-                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f5e6d3 0%, #f9f0e6 100%); border-left: 5px solid #a0826d !important;">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f5e6d3 0%, #f9f0e6 100%); border-left: 5px solid #5a3a1a !important;">
                                             <div class="card-body p-3">
                                                 <div class="form-check mb-0">
                                                     <input class="form-check-input bop-checkbox" type="checkbox" 
@@ -194,7 +194,7 @@
                                                                         <i class="fas fa-cogs text-white"></i>
                                                                     </div>
                                                                     <div>
-                                                                        <h6 class="mb-0 fw-bold" style="color: #a0826d;">{{ $item->nama_bop_proses ?? 'BOP Proses' }}</h6>
+                                                                        <h6 class="mb-0 fw-bold" style="color: #5a3a1a;">{{ $item->nama_bop_proses ?? 'BOP Proses' }}</h6>
                                                                         <small class="text-muted">{{ is_array($komponenBop) ? count($komponenBop) : 0 }} komponen</small>
                                                                     </div>
                                                                 </div>
@@ -237,7 +237,7 @@
             <!-- Summary Section -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h6 class="mb-0">
                             <i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan
                         </h6>
@@ -280,7 +280,7 @@
                         <i class="fas fa-times me-2"></i>Batal
                     </a>
 
-                    <button type="submit" class="btn text-white" style="background-color: #a0826d;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-2"></i>Simpan HPP
                     </button>
 </div>

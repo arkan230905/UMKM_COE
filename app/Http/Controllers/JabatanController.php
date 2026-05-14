@@ -65,18 +65,43 @@ class JabatanController extends Controller
         $data['tarif'] = $data['tarif'] ?? 0;
 
         $data['gaji_pokok'] = $data['gaji'] ?? 0;
+        $data['tarif_produk'] = $data['tarif'];
         unset($data['gaji']);
         
         $prefix = strtoupper(substr($data['kategori'], 0, 2));
-        $lastJabatan = Jabatan::where('kode_jabatan', 'like', $prefix . '%')
+        
+        // 🔒 MULTI-TENANT: Generate kode_jabatan per user
+        $lastJabatan = Jabatan::where('user_id', auth()->id())
+            ->where('kode_jabatan', 'like', $prefix . '%')
             ->orderBy('kode_jabatan', 'desc')
             ->first();
-            
-        $nextNumber = $lastJabatan ? ((int) substr($lastJabatan->kode_jabatan, 2) + 1) : 1;
         
-        $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-        $data['user_id'] = auth()->id();
-
+        // Extract number and find next available
+        if ($lastJabatan) {
+            $lastNumber = (int) substr($lastJabatan->kode_jabatan, 2);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        // Ensure unique code by checking if it already exists
+        $maxAttempts = 100;
+        $attempts = 0;
+        while ($attempts < $maxAttempts) {
+            $candidateCode = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+            $exists = Jabatan::where('user_id', auth()->id())
+                ->where('kode_jabatan', $candidateCode)
+                ->exists();
+            
+            if (!$exists) {
+                $data['kode_jabatan'] = $candidateCode;
+                break;
+            }
+            
+            $nextNumber++;
+            $attempts++;
+        }
+        
         // CRITICAL: Always set user_id for multi-tenant isolation
         $data['user_id'] = auth()->id();
 
@@ -135,17 +160,43 @@ class JabatanController extends Controller
         $data['tarif'] = $data['tarif'] ?? 0;
 
         $data['gaji_pokok'] = $data['gaji'] ?? 0;
+        $data['tarif_produk'] = $data['tarif'];
         unset($data['gaji']);
 
         if ($jabatan->kategori !== $data['kategori']) {
             $prefix = strtoupper(substr($data['kategori'], 0, 2));
-            $lastJabatan = Jabatan::where('kode_jabatan', 'like', $prefix . '%')
+            
+            // 🔒 MULTI-TENANT: Generate kode_jabatan per user
+            $lastJabatan = Jabatan::where('user_id', auth()->id())
+                ->where('kode_jabatan', 'like', $prefix . '%')
                 ->orderBy('kode_jabatan', 'desc')
                 ->first();
-                
-            $nextNumber = $lastJabatan ? ((int) substr($lastJabatan->kode_jabatan, 2) + 1) : 1;
             
-            $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+            // Extract number and find next available
+            if ($lastJabatan) {
+                $lastNumber = (int) substr($lastJabatan->kode_jabatan, 2);
+                $nextNumber = $lastNumber + 1;
+            } else {
+                $nextNumber = 1;
+            }
+            
+            // Ensure unique code by checking if it already exists
+            $maxAttempts = 100;
+            $attempts = 0;
+            while ($attempts < $maxAttempts) {
+                $candidateCode = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+                $exists = Jabatan::where('user_id', auth()->id())
+                    ->where('kode_jabatan', $candidateCode)
+                    ->exists();
+                
+                if (!$exists) {
+                    $data['kode_jabatan'] = $candidateCode;
+                    break;
+                }
+                
+                $nextNumber++;
+                $attempts++;
+            }
         }
 
         $jabatan->update($data);
@@ -228,7 +279,7 @@ class JabatanController extends Controller
 
         $jabatans = $query->select(
             'id','nama','kategori','kategori_id',
-            'gaji_pokok','tarif',
+            'gaji_pokok','tarif_produk as tarif',
             'tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi'
         )->orderBy('nama')->get();
 

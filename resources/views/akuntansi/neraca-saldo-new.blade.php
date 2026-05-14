@@ -6,7 +6,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="mb-1">📊 Neraca Saldo</h3>
+            <h3 class="mb-1">Neraca Saldo</h3>
             <p class="text-muted mb-0">
                 <i class="bi bi-info-circle"></i> 
                 Data diambil langsung dari Buku Besar (Journal Lines)

@@ -2958,6 +2958,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('penggajian')->name('penggajian.')->group(function() {
             Route::get('/', [PenggajianController::class, 'index'])->name('index');
             Route::get('/create', [PenggajianController::class, 'create'])->name('create');
+            Route::get('/create-produk', [PenggajianController::class, 'createProduk'])->name('create-produk');
             Route::post('/', [PenggajianController::class, 'store'])->name('store');
             Route::get('/{id}', [PenggajianController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [PenggajianController::class, 'edit'])->name('edit');
@@ -2983,6 +2984,10 @@ Route::middleware('auth')->group(function () {
             
             // API untuk data pegawai real-time
             Route::get('/pegawai/{pegawaiId}/data', [PenggajianController::class, 'getEmployeeData'])->name('pegawai.data');
+            
+            // NEW: API untuk penggajian berbasis produk (BTKL)
+            Route::post('/api/hitung-produk', [PenggajianController::class, 'hitungGajiProduk'])->name('api.hitung-produk');
+            Route::post('/api/create-produk', [PenggajianController::class, 'createPenggajianProduk'])->name('api.create-produk');
         });
 
         // ============================================================

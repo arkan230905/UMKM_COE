@@ -119,19 +119,54 @@ class Pegawai extends Model
     }
 
     /**
+     * Get tarif produk from related jabatan (kualifikasi)
+     */
+    public function getTarifProdukFromJabatanAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->tarif_produk ?? 0;
+        }
+        return $this->attributes['tarif_per_produk'] ?? 0;
+    }
+
+    /**
+     * Get asuransi from related jabatan (kualifikasi)
+     */
+    public function getAsuransiFromJabatanAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->asuransi ?? 0;
+        }
+        return $this->attributes['asuransi'] ?? 0;
+    }
+
+    /**
      * Komponen Gaji Lengkap (Untuk Slip Gaji/Costing)
      */
     public function getKomponenGajiAttribute()
     {
         $jabatan = $this->jabatanRelasi;
 
+        if (!is_object($jabatan)) {
+            return [
+                'gaji_pokok' => $this->gaji_pokok ?? 0,
+                'tarif_per_produk' => $this->tarif_per_produk ?? 0,
+                'tunjangan_jabatan' => $this->tunjangan ?? 0,
+                'tunjangan_transport' => 0,
+                'tunjangan_konsumsi' => 0,
+                'total_tunjangan' => $this->tunjangan ?? 0,
+                'asuransi' => $this->asuransi ?? 0,
+            ];
+        }
+
         return [
-            'gaji_pokok' => $jabatan->gaji_pokok ?? $this->gaji_pokok,
-            'tarif_per_produk' => $this->tarif_per_produk,
-            'tunjangan_jabatan' => $jabatan->tunjangan ?? $this->tunjangan,
+            'gaji_pokok' => $jabatan->gaji_pokok ?? $this->gaji_pokok ?? 0,
+            'tarif_per_produk' => $this->tarif_per_produk ?? 0,
+            'tunjangan_jabatan' => $jabatan->tunjangan ?? $this->tunjangan ?? 0,
             'tunjangan_transport' => $jabatan->tunjangan_transport ?? 0,
             'tunjangan_konsumsi' => $jabatan->tunjangan_konsumsi ?? 0,
-            'asuransi' => $jabatan->asuransi ?? $this->asuransi,
+            'total_tunjangan' => ($jabatan->tunjangan ?? 0) + ($jabatan->tunjangan_transport ?? 0) + ($jabatan->tunjangan_konsumsi ?? 0),
+            'asuransi' => $jabatan->asuransi ?? $this->asuransi ?? 0,
         ];
     }
 }

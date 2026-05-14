@@ -167,6 +167,118 @@ class PenggajianService
     }
 
     /**
+     * Hitung gaji berbasis produk (NEW)
+     * 
+     * @param int $pegawaiId
+     * @param int $produk1_5 Jumlah produk hari 1-5
+     * @param int $produk6_10 Jumlah produk hari 6-10
+     * @param int $produk11_20 Jumlah produk hari 11-20
+     * @param int $produk21_30 Jumlah produk hari 21-30
+     * @return array Detail perhitungan gaji
+     */
+    public function hitungGajiProduk($pegawaiId, $produk1_5, $produk6_10, $produk11_20, $produk21_30)
+    {
+        // 1. Ambil data pegawai + kualifikasi
+        $pegawai = Pegawai::find($pegawaiId);
+        if (!$pegawai) {
+            throw new \Exception('Pegawai tidak ditemukan');
+        }
+
+        $jabatan = $pegawai->jabatanRelasi;
+        if (!$jabatan) {
+            throw new \Exception('Pegawai tidak memiliki kualifikasi/jabatan');
+        }
+
+        // 2. Ambil tarif_produk dari kualifikasi
+        $tarifProduk = $jabatan->tarif_produk ?? 0;
+        if ($tarifProduk <= 0) {
+            throw new \Exception('Kualifikasi tidak memiliki tarif/produk yang valid');
+        }
+
+        // 3. Hitung total produk
+        $totalProduk = $produk1_5 + $produk6_10 + $produk11_20 + $produk21_30;
+
+        // 4. Hitung gaji bruto (total_produk × tarif_produk)
+        $gajiBruto = $totalProduk * $tarifProduk;
+
+        // 5. Ambil komponen tunjangan dari kualifikasi
+        $tunjanganJabatan = $jabatan->tunjangan ?? 0;
+        $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
+        $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
+        $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
+
+        // 6. Ambil asuransi
+        $asuransi = $jabatan->asuransi ?? 0;
+
+        // 7. Hitung total gaji (gaji_bruto + tunjangan - asuransi)
+        $totalGaji = $gajiBruto + $totalTunjangan - $asuransi;
+
+        // 8. Return detail perhitungan
+        return [
+            'pegawai_id' => $pegawaiId,
+            'nama_pegawai' => $pegawai->nama,
+            'nama_kualifikasi' => $jabatan->nama,
+            'tarif_produk' => $tarifProduk,
+            'produk_hari_1_5' => $produk1_5,
+            'produk_hari_6_10' => $produk6_10,
+            'produk_hari_11_20' => $produk11_20,
+            'produk_hari_21_30' => $produk21_30,
+            'total_produk' => $totalProduk,
+            'gaji_bruto' => $gajiBruto,
+            'tunjangan_jabatan' => $tunjanganJabatan,
+            'tunjangan_transport' => $tunjanganTransport,
+            'tunjangan_konsumsi' => $tunjanganKonsumsi,
+            'total_tunjangan' => $totalTunjangan,
+            'asuransi' => $asuransi,
+            'total_gaji' => $totalGaji,
+        ];
+    }
+
+    /**
+     * Simpan penggajian berbasis produk (NEW)
+     */
+    public function savePenggajianProduk($pegawaiId, $tanggalPenggajian, $produk1_5, $produk6_10, $produk11_20, $produk21_30, $metodePayment = 'transfer_bank')
+    {
+        // Hitung gaji terlebih dahulu
+        $detail = $this->hitungGajiProduk($pegawaiId, $produk1_5, $produk6_10, $produk11_20, $produk21_30);
+
+        // Ambil pegawai
+        $pegawai = Pegawai::find($pegawaiId);
+
+        // Buat record penggajian
+        $penggajian = Penggajian::create([
+            'pegawai_id' => $pegawaiId,
+            'periode_bulan' => Carbon::parse($tanggalPenggajian)->month,
+            'periode_tahun' => Carbon::parse($tanggalPenggajian)->year,
+            'tanggal_penggajian' => $tanggalPenggajian,
+            'coa_kasbank' => '101', // Default COA Kas
+            'gaji_pokok' => $detail['gaji_bruto'],
+            'tarif_per_jam' => 0, // Tidak digunakan untuk sistem produk
+            'tunjangan' => $detail['total_tunjangan'],
+            'tunjangan_jabatan' => $detail['tunjangan_jabatan'],
+            'tunjangan_transport' => $detail['tunjangan_transport'],
+            'tunjangan_konsumsi' => $detail['tunjangan_konsumsi'],
+            'total_tunjangan' => $detail['total_tunjangan'],
+            'asuransi' => $detail['asuransi'],
+            'bonus' => 0,
+            'potongan' => 0,
+            'total_jam_kerja' => 0, // Tidak digunakan untuk sistem produk
+            'total_gaji' => $detail['total_gaji'],
+            'status_pembayaran' => 'belum_lunas',
+            'metode_pembayaran' => $metodePayment,
+            // NEW: Produk fields
+            'produk_hari_1_5' => $produk1_5,
+            'produk_hari_6_10' => $produk6_10,
+            'produk_hari_11_20' => $produk11_20,
+            'produk_hari_21_30' => $produk21_30,
+            'total_produk_bulan' => $detail['total_produk'],
+            'tarif_produk' => $detail['tarif_produk'],
+        ]);
+
+        return $penggajian;
+    }
+
+    /**
      * Get rekap presensi untuk dashboard pegawai
      */
     public function getRekapPegawaiCurrentMonth($pegawaiId)

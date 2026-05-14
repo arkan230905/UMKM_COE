@@ -47,7 +47,7 @@ class PegawaiController extends Controller
     public function create()
     {
         // CRITICAL: Filter jabatans by user_id for multi-tenant
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_per_jam as tarif')
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_produk as tarif')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
             ->get();
@@ -149,7 +149,7 @@ class PegawaiController extends Controller
             'jenis_pegawai' => strtolower($validated['kategori']),
 
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
-            'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
+            'tarif_per_jam' => $jabatan->tarif_produk ?? 0,
             'tunjangan' => $jabatan->tunjangan ?? 0,
             'asuransi' => $jabatan->asuransi ?? 0,
 'bank' => $validated['bank'],
@@ -204,7 +204,7 @@ class PegawaiController extends Controller
     public function edit(Pegawai $pegawai)
     {
         // CRITICAL: Filter jabatans by user_id for multi-tenant
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam')
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_produk')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
             ->get();
@@ -270,7 +270,7 @@ class PegawaiController extends Controller
             'jenis_pegawai' => strtolower($validated['kategori']),
 
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
-            'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
+            'tarif_per_jam' => $jabatan->tarif_produk ?? 0,
             'tunjangan' => $jabatan->tunjangan ?? 0,
             'asuransi' => $jabatan->asuransi ?? 0,
 ];

@@ -70,7 +70,7 @@ body {
     z-index: 1000;
     overflow-y: auto;
     overflow-x: hidden;
-    background: #8A6B48;
+    background: #5a3a1a;
     box-shadow: 3px 0 16px rgba(0,0,0,0.10);
     display: flex;
     flex-direction: column;
@@ -975,3 +975,46 @@ body {
 .badge { font-size: 0.65rem; }
 
 
+
+/* ============================================================
+   GLOBAL BUTTON COLOR CONSISTENCY
+   Ensures all primary action buttons use brown color
+   ============================================================ */
+.btn-primary,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active {
+    background-color: #5a3a1a !important;
+    border-color: #5a3a1a !important;
+    color: #fff !important;
+}
+
+.btn-primary:hover {
+    background-color: #3d2611 !important;
+    border-color: #3d2611 !important;
+    color: #fff !important;
+}
+
+.btn-primary:disabled,
+.btn-primary.disabled {
+    background-color: #a0826d !important;
+    border-color: #a0826d !important;
+    color: #fff !important;
+}
+
+/* Ensure btn-primary in different contexts */
+button.btn-primary,
+a.btn-primary,
+input[type="submit"].btn-primary {
+    background-color: #5a3a1a !important;
+    border-color: #5a3a1a !important;
+    color: #fff !important;
+}
+
+button.btn-primary:hover,
+a.btn-primary:hover,
+input[type="submit"].btn-primary:hover {
+    background-color: #3d2611 !important;
+    border-color: #3d2611 !important;
+    color: #fff !important;
+}

@@ -3,30 +3,30 @@
 @section('title', 'Daftar Aset')
 
 @section('content')
-<div class="container-fluid" style="background-color: #f0ebe4; padding: 20px;">
+<div class="container-fluid">
     <!-- HEADER HALAMAN -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0" style="color: #1a1a2e;">
+        <h2 class="mb-0">
             <i class="fas fa-briefcase me-2"></i>Daftar Aset
         </h2>
-        <a href="{{ route('master-data.aset.create') }}" class="btn" style="background-color: #5a3a1a; color: white; border-radius: 6px; padding: 10px 20px; font-weight: 500;">
+        <a href="{{ route('master-data.aset.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Tambah Aset
         </a>
     </div>
 
     <!-- FILTER SECTION -->
-    <div class="card mb-4" style="background-color: #ffffff; border: 1px solid #e0d8ce; border-radius: 8px;">
-        <div style="background-color: #5a3a1a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
-            <h6 class="mb-0" style="font-size: 14px; font-weight: 600;">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
                 <i class="fas fa-filter me-2"></i>Filter Aset
             </h6>
         </div>
-        <div class="card-body" style="padding: 20px;">
+        <div class="card-body">
             <form method="GET" action="{{ route('master-data.aset.index') }}">
-                <div class="row g-3 mb-3">
+                <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label" style="font-size: 13px; font-weight: 600; color: #1a1a2e;">Jenis Aset</label>
-                        <select name="jenis_aset" class="form-select" style="border: 1px solid #e0d8ce; border-radius: 6px;">
+                        <label class="form-label">Jenis Aset</label>
+                        <select name="jenis_aset" class="form-select">
                             <option value="">-- Semua Jenis --</option>
                             @foreach($jenisAsets as $jenis)
                                 <option value="{{ $jenis->id }}" {{ request('jenis_aset') == $jenis->id ? 'selected' : '' }}>
@@ -36,8 +36,8 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" style="font-size: 13px; font-weight: 600; color: #1a1a2e;">Kategori Aset</label>
-                        <select name="kategori_aset_id" class="form-select" style="border: 1px solid #e0d8ce; border-radius: 6px;">
+                        <label class="form-label">Kategori Aset</label>
+                        <select name="kategori_aset_id" class="form-select">
                             <option value="">-- Semua Kategori --</option>
                             @if(request('jenis_aset') && $kategoriAsets->count() > 0)
                                 @foreach($kategoriAsets as $kategori)
@@ -49,8 +49,8 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" style="font-size: 13px; font-weight: 600; color: #1a1a2e;">Status</label>
-                        <select name="status" class="form-select" style="border: 1px solid #e0d8ce; border-radius: 6px;">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
                             <option value="">-- Semua Status --</option>
                             <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
                             <option value="nonaktif" {{ request('status') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
@@ -60,64 +60,68 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" style="font-size: 13px; font-weight: 600; color: #1a1a2e;">Cari Aset</label>
-                        <input type="text" name="search" class="form-control" placeholder="Cari kode atau nama..." value="{{ request('search') }}" style="border: 1px solid #e0d8ce; border-radius: 6px;">
+                        <label class="form-label">Cari Aset</label>
+                        <input type="text" name="search" class="form-control" placeholder="Cari kode atau nama..." value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn" style="background-color: #5a3a1a; color: white; border-radius: 6px; padding: 8px 16px; font-weight: 500; border: none;">
-                        <i class="fas fa-search me-2"></i>Cari
-                    </button>
-                    <a href="{{ route('master-data.aset.index') }}" class="btn btn-outline-secondary" style="border-radius: 6px; padding: 8px 16px;">
-                        <i class="fas fa-redo me-2"></i>Reset
-                    </a>
+                <div class="row g-3 mt-1">
+                    <div class="col-12">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Filter
+                            </button>
+                            <a href="{{ route('master-data.aset.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-2"></i>Reset
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- TABEL DAFTAR ASET -->
-    <div class="card" style="background-color: #ffffff; border: 1px solid #e0d8ce; border-radius: 8px;">
-        <div style="background-color: #5a3a1a; color: white; padding: 12px 20px; border-radius: 8px 8px 0 0;">
-            <h6 class="mb-0" style="font-size: 14px; font-weight: 600;">
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">
                 <i class="fas fa-list me-2"></i>Daftar Aset
             </h6>
         </div>
-        <div class="card-body p-0">
-            <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                <table class="table table-hover mb-0" style="background-color: #ffffff;">
-                    <thead>
-                        <tr style="background-color: #5a3a1a; color: white;">
-                            <th class="text-center" style="width: 50px; padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">No</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Kode Aset</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Nama Aset</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Jenis Aset</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Kategori</th>
-                            <th class="text-end" style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Harga Perolehan (Rp)</th>
-                            <th class="text-center" style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Tanggal Beli</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Metode Penyusutan</th>
-                            <th class="text-end" style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Penyusutan Bulan Ini</th>
-                            <th class="text-center" style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Status Posting</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">COA Aset</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">COA Akumulasi Penyusutan</th>
-                            <th style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">COA Beban Penyusutan</th>
-                            <th class="text-center" style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Status</th>
-                            <th class="text-center" style="padding: 10px; white-space: nowrap; font-size: 11px; font-weight: 600;">Aksi</th>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="min-width: 1400px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px">No</th>
+                            <th class="nowrap">Kode Aset</th>
+                            <th class="nowrap">Nama Aset</th>
+                            <th class="nowrap">Jenis Aset</th>
+                            <th class="nowrap">Kategori</th>
+                            <th class="nowrap text-end">Harga Perolehan</th>
+                            <th class="nowrap text-center">Tanggal Beli</th>
+                            <th class="nowrap">Metode Penyusutan</th>
+                            <th class="nowrap text-end">Penyusutan Bulan Ini</th>
+                            <th class="nowrap text-center">Status Posting</th>
+                            <th class="nowrap">COA Aset</th>
+                            <th class="nowrap">COA Akumulasi Penyusutan</th>
+                            <th class="nowrap">COA Beban Penyusutan</th>
+                            <th class="nowrap text-center">Status</th>
+                            <th class="text-center" style="width: 200px">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($asets as $key => $aset)
-                        <tr style="border-bottom: 1px solid #f0e8e0;">
-                            <td class="text-center" style="padding: 10px; white-space: nowrap;">{{ ($asets->currentPage()-1)*$asets->perPage()+$key+1 }}</td>
-                            <td style="padding: 10px; white-space: nowrap; font-family: inherit; font-size: 12px;">{{ $aset->kode_aset }}</td>
-                            <td style="padding: 10px; white-space: nowrap; font-weight: 500;">{{ $aset->nama_aset }}</td>
-                            <td style="padding: 10px; white-space: nowrap;">{{ $aset->kategori->jenisAset->nama ?? '-' }}</td>
-                            <td style="padding: 10px; white-space: nowrap;">{{ $aset->kategori->nama ?? '-' }}</td>
-                            <td class="text-end" style="padding: 10px; white-space: nowrap;">Rp {{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
-                            <td class="text-center" style="padding: 10px; white-space: nowrap;">
-                                {{ $aset->tanggal_beli ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : '-' }}
+                        <tr>
+                            <td class="text-center">{{ ($asets->currentPage()-1)*$asets->perPage()+$key+1 }}</td>
+                            <td class="nowrap fw-semibold">{{ $aset->kode_aset }}</td>
+                            <td class="nowrap">{{ $aset->nama_aset }}</td>
+                            <td class="nowrap">{{ $aset->kategori->jenisAset->nama ?? '-' }}</td>
+                            <td class="nowrap">{{ $aset->kategori->nama ?? '-' }}</td>
+                            <td class="nowrap text-end">Rp {{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
+                            <td class="nowrap text-center">
+                                {{ $aset->tanggal_beli ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d-m-Y') : '-' }}
                             </td>
-                            <td style="padding: 10px; white-space: nowrap;">
+                            <td class="nowrap">
                                 @php
                                     $metodeLabel = [
                                         'garis_lurus'        => 'Garis Lurus',
@@ -127,127 +131,121 @@
                                 @endphp
                                 {{ $metodeLabel }}
                             </td>
-                            <td class="text-end" style="padding: 10px; white-space: nowrap; color: #1a0e04; font-weight: bold;">
+                            <td class="nowrap text-end fw-semibold">
                                 @if(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0)
                                     Rp {{ number_format($aset->monthly_depreciation, 0, ',', '.') }}
                                 @else
-                                    <span style="color: #999;">-</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="text-center" style="padding: 10px; white-space: nowrap;">
+                            <td class="nowrap text-center">
                                 @if(isset($aset->is_posted_this_month) && $aset->is_posted_this_month)
-                                    <span class="badge" style="background-color: #d4edda; color: #1a5c2a; padding: 6px 10px; border-radius: 4px; font-size: 11px;">Sudah Posting</span>
+                                    <span class="badge bg-success">Sudah Posting</span>
                                 @else
-                                    <span class="badge" style="background-color: #fff3cc; color: #7a5200; padding: 6px 10px; border-radius: 4px; font-size: 11px;">Belum Posting</span>
+                                    <span class="badge bg-warning">Belum Posting</span>
                                 @endif
                             </td>
-                            <td style="padding: 10px; white-space: nowrap; font-size: 12px;">
+                            <td class="nowrap">
                                 @if($aset->assetCoa)
-                                    <div style="line-height: 1.3;">
-                                        <div style="font-weight: 600; font-size: 11px;">{{ $aset->assetCoa->kode_akun }}</div>
-                                        <div style="color: #666; font-size: 11px;">{{ $aset->assetCoa->nama_akun }}</div>
+                                    <div class="small">
+                                        <div class="fw-semibold">{{ $aset->assetCoa->kode_akun }}</div>
+                                        <div class="text-muted">{{ $aset->assetCoa->nama_akun }}</div>
                                     </div>
                                 @else
-                                    <span style="color: #999;">-</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td style="padding: 10px; white-space: nowrap; font-size: 12px;">
+                            <td class="nowrap">
                                 @if($aset->accumDepreciationCoa)
-                                    <div style="line-height: 1.3;">
-                                        <div style="font-weight: 600; font-size: 11px;">{{ $aset->accumDepreciationCoa->kode_akun }}</div>
-                                        <div style="color: #666; font-size: 11px;">{{ $aset->accumDepreciationCoa->nama_akun }}</div>
+                                    <div class="small">
+                                        <div class="fw-semibold">{{ $aset->accumDepreciationCoa->kode_akun }}</div>
+                                        <div class="text-muted">{{ $aset->accumDepreciationCoa->nama_akun }}</div>
                                     </div>
                                 @else
-                                    <span style="color: #999;">-</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td style="padding: 10px; white-space: nowrap; font-size: 12px;">
+                            <td class="nowrap">
                                 @if($aset->expenseCoa)
-                                    <div style="line-height: 1.3;">
-                                        <div style="font-weight: 600; font-size: 11px;">{{ $aset->expenseCoa->kode_akun }}</div>
-                                        <div style="color: #666; font-size: 11px;">{{ $aset->expenseCoa->nama_akun }}</div>
+                                    <div class="small">
+                                        <div class="fw-semibold">{{ $aset->expenseCoa->kode_akun }}</div>
+                                        <div class="text-muted">{{ $aset->expenseCoa->nama_akun }}</div>
                                     </div>
                                 @else
-                                    <span style="color: #999;">-</span>
+                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="text-center" style="padding: 10px; white-space: nowrap;">
+                            <td class="nowrap text-center">
                                 @php
                                     $statusBadgeClass = [
-                                        'aktif' => ['bg' => '#d4edda', 'text' => '#1a5c2a'],
-                                        'nonaktif' => ['bg' => '#fdeaea', 'text' => '#aa2222'],
-                                        'disewakan' => ['bg' => '#d4edda', 'text' => '#1a5c2a'],
-                                        'dioperasikan' => ['bg' => '#d4edda', 'text' => '#1a5c2a'],
-                                        'dihapus' => ['bg' => '#fdeaea', 'text' => '#aa2222']
-                                    ][$aset->status] ?? ['bg' => '#f0f0f0', 'text' => '#666'];
+                                        'aktif' => 'bg-success',
+                                        'nonaktif' => 'bg-danger',
+                                        'disewakan' => 'bg-success',
+                                        'dioperasikan' => 'bg-success',
+                                        'dihapus' => 'bg-danger'
+                                    ][$aset->status] ?? 'bg-secondary';
                                 @endphp
-                                <span class="badge" style="background-color: {{ $statusBadgeClass['bg'] }}; color: {{ $statusBadgeClass['text'] }}; padding: 6px 10px; border-radius: 4px; font-size: 11px;">
+                                <span class="badge {{ $statusBadgeClass }}">
                                     {{ ucfirst($aset->status) }}
                                 </span>
                             </td>
-                            <td class="text-center" style="padding: 10px; white-space: nowrap;">
-                                <div style="display: flex; flex-direction: row; align-items: center; gap: 5px; justify-content: center;">
-                                    <a href="{{ route('master-data.aset.show', $aset->id) }}" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background-color: #e6f5ec; color: #1a7a40; border: 1px solid #a8dfc0; border-radius: 7px; text-decoration: none; font-size: 14px;" title="Lihat">
-                                        <i class="fas fa-eye"></i>
+                            <td class="text-center">
+                                <div class="d-grid" style="grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                                    <!-- Row 1: Detail | Edit -->
+                                    <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-outline-success" title="Lihat Detail">
+                                        Detail
                                     </a>
-                                    <a href="{{ route('master-data.aset.edit', $aset->id) }}" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background-color: #eef4fb; color: #1a5aaa; border: 1px solid #b5cef0; border-radius: 7px; text-decoration: none; font-size: 14px;" title="Edit">
-                                        <i class="fas fa-edit"></i>
+                                    <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-sm btn-outline-warning" title="Edit Aset">
+                                        Edit
                                     </a>
-                                    <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" style="display: inline;">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background-color: #fdeaea; color: #aa2222; border: 1px solid #f0b5b5; border-radius: 7px; font-size: 14px; cursor: pointer;" title="Hapus" onclick="return confirm('Hapus aset ini?')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    
+                                    <!-- Row 2: Posting | Hapus -->
                                     @if(isset($aset->is_posted_this_month) && $aset->is_posted_this_month)
-                                        <button style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background-color: #d4edda; color: #1a5c2a; border: 1px solid #a8dfc0; border-radius: 7px; font-size: 14px; cursor: not-allowed;" disabled title="Sudah Posted">
-                                            <i class="fas fa-check"></i>
+                                        <button class="btn btn-sm btn-outline-success" disabled title="Sudah Posted">
+                                            <i class="fas fa-check me-1"></i>Posted
                                         </button>
                                     @elseif(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0 && $aset->expense_coa_id && $aset->accum_depr_coa_id)
-                                        <button type="button" class="post-depreciation-btn" style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background-color: #faf3e0; color: #7a5200; border: 1px solid #e8d08a; border-radius: 7px; font-size: 14px; cursor: pointer;"
+                                        <button type="button" class="btn btn-sm btn-outline-info post-depreciation-btn"
                                             data-aset-id="{{ $aset->id }}"
                                             data-aset-name="{{ $aset->nama_aset }}"
                                             data-amount="{{ number_format($aset->monthly_depreciation, 0, ',', '.') }}"
                                             title="Posting Penyusutan">
-                                            <i class="fas fa-file-invoice"></i>
+                                            <i class="fas fa-file-invoice me-1"></i>Posting
                                         </button>
                                     @else
-                                        <button style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background-color: #f0f0f0; color: #999; border: 1px solid #ddd; border-radius: 7px; font-size: 14px; cursor: not-allowed;" disabled title="Tidak tersedia">
-                                            <i class="fas fa-minus"></i>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled title="Tidak tersedia">
+                                            <i class="fas fa-minus me-1"></i>N/A
                                         </button>
                                     @endif
+                                    
+                                    <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" class="d-inline w-100" onsubmit="return confirm('Yakin ingin hapus aset ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="Hapus Aset">
+                                            Hapus
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="15" class="text-center py-5" style="color: #999;">
-                                <i class="fas fa-box-open" style="font-size: 2rem; opacity: 0.4; display: block; margin-bottom: 10px;"></i>
-                                <p>Tidak ada data aset</p>
+                            <td colspan="15" class="text-center py-4">
+                                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Tidak ada data aset</p>
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-
-            @if($asets->hasPages())
-            <div style="padding: 15px 20px; border-top: 1px solid #e0d8ce;">
-                {{ $asets->links('pagination::bootstrap-5') }}
-            </div>
-            @endif
         </div>
     </div>
 
-    <!-- FOOTER -->
-    <div class="row mt-4 mb-3">
-        <div class="col-md-6">
-            <p class="text-muted small mb-0" style="font-size: 12px;">© 2025 SIMCOST - All rights reserved.</p>
-        </div>
-        <div class="col-md-6 text-end">
-            <p class="text-muted small mb-0" style="font-size: 12px;">Versi 1.0.0</p>
-        </div>
+    @if($asets->hasPages())
+    <div class="mt-3">
+        {{ $asets->links('pagination::bootstrap-5') }}
     </div>
+    @endif
 </div>
 @endsection
 
@@ -263,6 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!confirm(`Posting penyusutan untuk "${name}" sebesar Rp ${amount}?`)) return;
 
             this.disabled = true;
+            const originalHTML = this.innerHTML;
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             fetch(`/master-data/aset/${id}/post-depreciation`, {
@@ -282,13 +281,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     alert('❌ ' + data.message);
                     this.disabled = false;
-                    this.innerHTML = '<i class="fas fa-file-invoice"></i>';
+                    this.innerHTML = originalHTML;
                 }
             })
             .catch(() => {
                 alert('❌ Terjadi kesalahan');
                 this.disabled = false;
-                this.innerHTML = '<i class="fas fa-file-invoice"></i>';
+                this.innerHTML = originalHTML;
             });
         });
     });
