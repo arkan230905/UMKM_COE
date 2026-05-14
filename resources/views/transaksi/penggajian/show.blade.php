@@ -10,16 +10,18 @@
         $jenis = strtolower($penggajian->pegawai->jenis_pegawai ?? 'btktl');
         $coa = \App\Models\Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
 
-        if ($jenis === 'btkl') {
-            $gajiDasar = (float)($penggajian->tarif_per_jam ?? 0) * (float)($penggajian->total_jam_kerja ?? 0);
-        } else {
-            $gajiDasar = (float)($penggajian->gaji_pokok ?? 0);
+        $tarifProduk = (float)($penggajian->tarif_produk ?? $penggajian->tarif_per_jam ?? 0);
+        $produkDihasilkan = (float)($penggajian->total_produk_bulan ?? $penggajian->total_produk_bulanan ?? 0);
+        $gajiDasar = (float)($penggajian->gaji_pokok ?? 0);
+
+        if ($gajiDasar <= 0 && $produkDihasilkan > 0 && $tarifProduk > 0) {
+            $gajiDasar = $produkDihasilkan * $tarifProduk;
         }
 
         $totalGajiHitung = $gajiDasar
             + (float)($penggajian->total_tunjangan ?? 0)
-            + (float)($penggajian->asuransi ?? 0)
             + (float)($penggajian->bonus ?? 0)
+            - (float)($penggajian->asuransi ?? 0)
             - (float)($penggajian->potongan ?? 0);
     @endphp
 
@@ -86,16 +88,16 @@
                     <table class="table table-borderless mb-0">
                         @if($jenis === 'btkl')
                             <tr>
-                                <td width="45%">Tarif per Jam</td>
-                                <td>: Rp {{ number_format($penggajian->tarif_per_jam ?? 0, 0, ',', '.') }}</td>
+                                <td width="45%">Tarif per Produk</td>
+                                <td>: Rp {{ number_format($tarifProduk, 0, ',', '.') }}</td>
                             </tr>
                             <tr>
-                                <td>Total Jam Kerja</td>
-                                <td>: {{ number_format($penggajian->total_jam_kerja ?? 0, 0) }} Jam</td>
+                                <td>Produk yang Dihasilkan</td>
+                                <td>: {{ number_format($produkDihasilkan, 0, ',', '.') }} Produk</td>
                             </tr>
                             <tr>
                                 <td>Gaji Dasar</td>
-                                <td>: Rp {{ number_format(($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0), 0, ',', '.') }}</td>
+                                <td>: Rp {{ number_format($gajiDasar, 0, ',', '.') }}</td>
                             </tr>
                         @else
                             <tr>

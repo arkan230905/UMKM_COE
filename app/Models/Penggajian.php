@@ -157,8 +157,6 @@ class Penggajian extends Model
         'produk_hari_21_30',
         'total_produk_bulan',
         'tarif_produk',
-        'produk_per_hari',
-        'hari_kerja',
     ];
 
     protected $casts = [
@@ -189,8 +187,6 @@ class Penggajian extends Model
         'produk_hari_21_30' => 'integer',
         'total_produk_bulan' => 'integer',
         'tarif_produk' => 'decimal:2',
-        'produk_per_hari' => 'integer',
-        'hari_kerja' => 'integer',
     ];
 
     public function pegawai()

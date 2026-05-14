@@ -22,12 +22,23 @@
                     <td>{{ $item->kode }}</td>
                     <td>{{ $item->nama }}</td>
                     <td>
-                        <a href="{{ route('master-data.satuan.edit', $item->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <form action="{{ route('master-data.satuan.destroy', $item->id) }}" method="POST" style="display:inline-block;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" onclick="return confirm('Hapus data ini?')" class="btn btn-sm btn-danger">Hapus</button>
-                        </form>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ route('master-data.satuan.edit', $item->id) }}"
+                               class="btn btn-outline-primary"
+                               title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form action="{{ route('master-data.satuan.destroy', $item->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="btn btn-outline-danger"
+                                        title="Hapus"
+                                        onclick="return confirm('Hapus data ini?')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
             @empty

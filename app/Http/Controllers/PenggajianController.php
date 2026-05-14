@@ -185,7 +185,10 @@ class PenggajianController extends Controller
             $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($request->pegawai_id);
 
             // STEP 1: Determine if this is PRODUK-BASED or JAM-BASED
-            $isProdukBased = $request->has('produk_per_hari') && $request->produk_per_hari > 0;
+            $totalProdukInput = (int) ($request->total_produk_bulanan ?? $request->total_produk ?? 0);
+            $produkPerHariInput = (int) ($request->produk_per_hari ?? 0);
+            $gajiProduksiFinalInput = (float) ($request->gaji_produksi_final ?? 0);
+            $isProdukBased = $totalProdukInput > 0 || $produkPerHariInput > 0 || $gajiProduksiFinalInput > 0;
 
             if ($isProdukBased) {
                 // ============================================================
@@ -194,37 +197,33 @@ class PenggajianController extends Controller
                 \Log::info('Creating PRODUK-BASED penggajian for pegawai: ' . $pegawai->nama);
 
                 // Get input values
-                $produkPerHari = (int)$request->produk_per_hari;
-                $hariKerja = (int)($request->hari_kerja ?? 26);
+                $produkPerHari = (int) ($request->produk_per_hari ?? 0);
+                $hariKerja = (int) ($request->hari_kerja ?? $request->hari_kerja_bulanan ?? 26);
 
                 // STEP 1: Calculate total produk
-                $totalProduk = $produkPerHari * $hariKerja;
+                $totalProduk = $totalProdukInput > 0 ? $totalProdukInput : ($produkPerHari * $hariKerja);
 
-                // STEP 2: Round down to nearest 100
-                $totalProdukRounded = floor($totalProduk / 100) * 100;
-
-                // STEP 3: Get tarif from jabatan
+                // STEP 2: Get tarif from jabatan
                 $jabatan = $pegawai->jabatanRelasi;
-                $tarifProduk = $jabatan ? ($jabatan->tarif_produk ?? 0) : 0;
+                $tarifProduk = (float) ($jabatan ? ($jabatan->tarif_produk ?? 0) : ($pegawai->tarif_per_jam ?? 0));
 
-                // STEP 4: Calculate gaji produksi
-                $gajiProduksi = $totalProdukRounded * $tarifProduk;
+                // STEP 3: Calculate gaji produksi
+                $gajiProduksi = (float) ($request->gaji_produksi_mentah ?? ($totalProduk * $tarifProduk));
 
-                // STEP 5: Round to nearest 500,000 (normal rounding)
-                $gajiProduksiRounded = round($gajiProduksi / 500000) * 500000;
+                // STEP 4: Gaji pokok untuk produksi adalah gaji produksi final.
+                $gajiProduksiFinal = $gajiProduksiFinalInput > 0 ? $gajiProduksiFinalInput : $gajiProduksi;
 
-                // STEP 6: Get tunjangan & asuransi
-                $tunjanganJabatan = $jabatan ? ($jabatan->tunjangan ?? 0) : 0;
-                $tunjanganTransport = $jabatan ? ($jabatan->tunjangan_transport ?? 0) : 0;
-                $tunjanganKonsumsi = $jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : 0;
+                // STEP 5: Get tunjangan & asuransi dari form, fallback ke jabatan.
+                $tunjanganJabatan = (float) ($request->tunjangan_jabatan ?? ($jabatan ? ($jabatan->tunjangan ?? 0) : 0));
+                $tunjanganTransport = (float) ($request->tunjangan_transport ?? ($jabatan ? ($jabatan->tunjangan_transport ?? 0) : 0));
+                $tunjanganKonsumsi = (float) ($request->tunjangan_konsumsi ?? ($jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : 0));
                 $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
-                $asuransi = $jabatan ? ($jabatan->asuransi ?? 0) : 0;
+                $asuransi = (float) ($request->bpjs_asuransi ?? $request->asuransi ?? ($jabatan ? ($jabatan->asuransi ?? 0) : 0));
+                $bonus = (float) ($request->bonus ?? 0);
+                $potongan = (float) ($request->potongan ?? 0);
 
-                // STEP 7: Calculate total gaji
-                $totalGaji = $gajiProduksiRounded + $totalTunjangan - $asuransi;
-
-                // STEP 8: Round to nearest 500,000 (normal rounding)
-                $totalGajiRounded = round($totalGaji / 500000) * 500000;
+                // STEP 6: Calculate total gaji
+                $totalGaji = $gajiProduksiFinal + $totalTunjangan + $bonus - $asuransi - $potongan;
 
                 // Create penggajian record
                 $penggajian = Penggajian::create([
@@ -233,7 +232,7 @@ class PenggajianController extends Controller
                     'periode_tahun' => \Carbon\Carbon::parse($request->tanggal_penggajian)->year,
                     'tanggal_penggajian' => $request->tanggal_penggajian,
                     'coa_kasbank' => $request->coa_kasbank,
-                    'gaji_pokok' => $gajiProduksiRounded,
+                    'gaji_pokok' => $gajiProduksiFinal,
                     'tarif_per_jam' => 0,
                     'tunjangan' => $totalTunjangan,
                     'tunjangan_jabatan' => $tunjanganJabatan,
@@ -241,15 +240,13 @@ class PenggajianController extends Controller
                     'tunjangan_konsumsi' => $tunjanganKonsumsi,
                     'total_tunjangan' => $totalTunjangan,
                     'asuransi' => $asuransi,
-                    'bonus' => 0,
-                    'potongan' => 0,
+                    'bonus' => $bonus,
+                    'potongan' => $potongan,
                     'total_jam_kerja' => 0,
-                    'total_gaji' => $totalGajiRounded,
+                    'total_gaji' => $totalGaji,
                     'status_pembayaran' => 'belum_lunas',
                     'metode_pembayaran' => $request->metode_pembayaran ?? 'transfer_bank',
-                    'produk_per_hari' => $produkPerHari,
-                    'hari_kerja' => $hariKerja,
-                    'total_produk_bulan' => $totalProdukRounded,
+                    'total_produk_bulan' => $totalProduk,
                     'tarif_produk' => $tarifProduk,
                     'keterangan' => $request->keterangan ?? null,
                     'user_id' => auth()->id(),
@@ -257,11 +254,10 @@ class PenggajianController extends Controller
 
                 \Log::info('PRODUK-BASED penggajian created successfully', [
                     'penggajian_id' => $penggajian->id,
-                    'produk_per_hari' => $produkPerHari,
-                    'hari_kerja' => $hariKerja,
-                    'total_produk' => $totalProdukRounded,
-                    'gaji_produksi' => $gajiProduksiRounded,
-                    'total_gaji' => $totalGajiRounded,
+                    'total_produk' => $totalProduk,
+                    'gaji_produksi_mentah' => $gajiProduksi,
+                    'gaji_produksi_final' => $gajiProduksiFinal,
+                    'total_gaji' => $totalGaji,
                 ]);
 
             } else {
@@ -347,7 +343,7 @@ class PenggajianController extends Controller
                 }
 
                 // Hitung total gaji
-                $totalGaji = $gajiDasar + $totalTunjangan + $asuransi + $bonus - $potongan;
+                $totalGaji = $gajiDasar + $totalTunjangan + $bonus - $asuransi - $potongan;
 
                 // Log data sebelum menyimpan
                 \Log::info('Data dari KUALIFIKASI dan PRESENSI:', [
@@ -481,7 +477,7 @@ class PenggajianController extends Controller
                 $gajiDasar = $gajiPokok;
             }
 
-            $totalGaji = $gajiDasar + $totalTunjangan + $asuransi + $penggajian->bonus - $penggajian->potongan;
+            $totalGaji = $gajiDasar + $totalTunjangan + $penggajian->bonus - $asuransi - $penggajian->potongan;
 
             // Update dengan data terbaru
             $penggajian->update([
@@ -530,17 +526,13 @@ class PenggajianController extends Controller
                     ->with('error', 'Penggajian tidak dapat dihapus karena sudah dibayar (status: ' . $penggajian->status_pembayaran . ')');
             }
 
-            // Hapus journal entries terkait terlebih dahulu
-            $journalEntries = \App\Models\JurnalUmum::where('ref_type', 'penggajian')
-                ->where('ref_id', $penggajian->id)
-                ->get();
-
-            foreach ($journalEntries as $entry) {
-                // Hapus journal lines terlebih dahulu
-                \App\Models\JurnalUmum::where('journal_entry_id', $entry->id)->delete();
-                // Kemudian hapus journal entry
-                $entry->delete();
-            }
+            // Hapus jurnal umum terkait terlebih dahulu.
+            // Jurnal penggajian disimpan di tabel jurnal_umum dengan kolom
+            // tipe_referensi/referensi, bukan ref_type/ref_id.
+            \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
+                ->where('referensi', (string) $penggajian->id)
+                ->where('user_id', auth()->id())
+                ->delete();
 
             // Hapus data penggajian
             $penggajian->delete();
@@ -1090,7 +1082,7 @@ class PenggajianController extends Controller
             }
 
             // Hitung total gaji
-            $totalGaji = $gajiDasar + $totalTunjangan + $asuransi + $bonus - $potongan;
+            $totalGaji = $gajiDasar + $totalTunjangan + $bonus - $asuransi - $potongan;
 
             // Update penggajian
             $penggajian->update([
@@ -1167,7 +1159,17 @@ class PenggajianController extends Controller
             abort(403, 'Anda tidak memiliki akses ke slip gaji ini');
         }
 
-        return view('transaksi.penggajian.slip', compact('penggajian'));
+        // Prepare breakdown data for the slip
+        $breakdown = [
+            'gaji_pokok' => $penggajian->gaji_pokok ?? 0,
+            'tunjangan' => $penggajian->total_tunjangan ?? 0,
+            'bonus' => $penggajian->bonus ?? 0,
+            'potongan' => $penggajian->potongan ?? 0,
+            'asuransi' => $penggajian->asuransi ?? 0,
+            'total' => $penggajian->total_gaji ?? 0,
+        ];
+
+        return view('transaksi.penggajian.slip', compact('penggajian', 'breakdown'));
     }
 
     /**
@@ -1185,7 +1187,17 @@ class PenggajianController extends Controller
             abort(403, 'Anda tidak memiliki akses ke slip gaji ini');
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('transaksi.penggajian.slip-pdf', compact('penggajian'));
+        // Prepare breakdown data for the slip
+        $breakdown = [
+            'gaji_pokok' => $penggajian->gaji_pokok ?? 0,
+            'tunjangan' => $penggajian->total_tunjangan ?? 0,
+            'bonus' => $penggajian->bonus ?? 0,
+            'potongan' => $penggajian->potongan ?? 0,
+            'asuransi' => $penggajian->asuransi ?? 0,
+            'total' => $penggajian->total_gaji ?? 0,
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('transaksi.penggajian.slip-pdf', compact('penggajian', 'breakdown'));
         
         $filename = 'slip-gaji-' . $penggajian->pegawai->nama . '-' . 
                    $penggajian->tanggal_penggajian->format('Y-m-d') . '.pdf';

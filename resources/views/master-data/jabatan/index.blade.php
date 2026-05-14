@@ -50,7 +50,7 @@
                     </select>
                 </div>
                 
-                <button type="submit" class="btn shadow-sm" style="border-radius: 20px; padding: 8px 20px; background: #8B7355; color: white; border: none; font-size: 14px;">
+                <button type="submit" class="btn shadow-sm" style="border-radius: 20px; padding: 8px 20px; background: #5a3a1a; color: white; border: none; font-size: 14px;">
                     <i class="fas fa-search me-1"></i>Cari
                 </button>
                 

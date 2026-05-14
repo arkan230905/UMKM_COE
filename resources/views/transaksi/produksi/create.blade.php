@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid">
     <div class="card">
-        <div class="card-header text-white" style="background-color: #a0826d;">
+        <div class="card-header text-white" style="background-color: #5a3a1a;">
             <h4 class="mb-0">📦 Tambah Data Produksi Produk</h4>
         </div>
         <div class="card-body">
@@ -53,7 +53,7 @@
                 
                 <!-- Job Process Costing Fields -->
                 <div class="card bg-light mb-4">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h5 class="mb-0">📊 Data Produksi Bulanan</h5>
                     </div>
                     <div class="card-body">
@@ -79,7 +79,7 @@
 
                 <!-- Informasi Harga Pokok Produksi Produk -->
                 <div class="card bg-light mb-4" id="bom-info" style="display: none;">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h5 class="mb-0">📋 Informasi Harga Pokok Produksi Produk (Per Hari)</h5>
                     </div>
                     <div class="card-body">
@@ -95,7 +95,7 @@
 
                         <!-- Biaya Bahan -->
                         <div class="card mb-3" id="biaya-bahan-section" style="display: none;">
-                            <div class="card-header text-white" style="background-color: #a0826d;">
+                            <div class="card-header text-white" style="background-color: #5a3a1a;">
                                 <h6 class="mb-0">Biaya Bahan Per Produk</h6>
                             </div>
                             <div class="card-body">
@@ -124,7 +124,7 @@
 
                         <!-- Biaya Tenaga Kerja Langsung (BTKL) -->
                         <div class="card mb-3" id="btkl-section" style="display: none;">
-                            <div class="card-header text-white" style="background-color: #a0826d;">
+                            <div class="card-header text-white" style="background-color: #5a3a1a;">
                                 <h6 class="mb-0">Biaya Tenaga Kerja Langsung (BTKL)</h6>
                                 <small>Menampilkan kapasitas per jam dan jam yang diperlukan untuk produksi</small>
                             </div>
@@ -148,7 +148,7 @@
 
                         <!-- Biaya Overhead Pabrik (BOP) -->
                         <div class="card mb-3" id="bop-section" style="display: none;">
-                            <div class="card-header text-white" style="background-color: #a0826d;">
+                            <div class="card-header text-white" style="background-color: #5a3a1a;">
                                 <h6 class="mb-0">Biaya Overhead Pabrik (BOP)</h6>
                                 <small>Menampilkan detail komponen BOP per proses dengan akun COA otomatis</small>
                             </div>
@@ -190,7 +190,7 @@
 
                 <!-- Jurnal Produksi Preview -->
                 <div class="card mb-4" id="jurnal-section" style="display: none;">
-                    <div class="card-header text-white" style="background-color: #a0826d;">
+                    <div class="card-header text-white" style="background-color: #5a3a1a;">
                         <h5 class="mb-0">📒 Jurnal Produksi (Preview)</h5>
                         <small class="text-white-50">Jurnal ini akan otomatis masuk ke Jurnal Umum saat produksi disimpan</small>
                     </div>

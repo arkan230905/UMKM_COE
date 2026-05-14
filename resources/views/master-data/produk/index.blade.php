@@ -11,8 +11,8 @@
 .produk-header-right { display:flex; gap:10px; align-items:center; }
 .btn-cetak { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; background:white; border:1.5px solid #dee2e6; border-radius:8px; color:#495057; font-size:13px; font-weight:500; text-decoration:none; transition:all 0.2s; }
 .btn-cetak:hover { background:#f8f9fa; border-color:#6c757d; color:#212529; }
-.btn-tambah-prod { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:#a0826d; border:none; border-radius:8px; color:white; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; box-shadow:0 2px 8px rgba(160,130,109,0.3); }
-.btn-tambah-prod:hover { background:#8b6f5c; color:white; transform:translateY(-1px); }
+.btn-tambah-prod { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:#5a3a1a; border:none; border-radius:8px; color:white; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; box-shadow:0 2px 8px rgba(90,58,26,0.3); }
+.btn-tambah-prod:hover { background:#3d2611; color:white; transform:translateY(-1px); }
 .produk-layout { display:flex; gap:20px; align-items:flex-start; }
 .produk-sidebar { width:240px; flex-shrink:0; }
 .sidebar-card { background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); overflow:hidden; margin-bottom:12px; }
@@ -20,7 +20,7 @@
 .sidebar-card-header h3 { font-size:14px; font-weight:700; color:#212529; margin:0; }
 .kat-all { display:flex; align-items:center; gap:10px; padding:11px 18px; text-decoration:none; transition:all 0.2s; border-bottom:1px solid #f1f3f5; }
 .kat-all:hover { background:#f8f9fa; }
-.kat-all.active { background:#a0826d; }
+.kat-all.active { background:#5a3a1a; }
 .kat-icon { width:30px; height:30px; border-radius:7px; background:#e9ecef; display:flex; align-items:center; justify-content:center; font-size:12px; color:#495057; flex-shrink:0; }
 .kat-all.active .kat-icon { background:rgba(255,255,255,0.2); color:white; }
 .kat-all .kat-label { flex:1; font-size:13px; font-weight:500; color:#495057; }
@@ -34,11 +34,11 @@
 .kat-link:hover { background:#f8f9fa; }
 .kat-link.active { background:#f5ebe5; }
 .kat-link .kat-icon { background:#f1f3f5; color:#6c757d; }
-.kat-link.active .kat-icon { background:#e8d5c9; color:#a0826d; }
+.kat-link.active .kat-icon { background:#e8d5c9; color:#5a3a1a; }
 .kat-link .kat-label { flex:1; font-size:13px; color:#495057; }
-.kat-link.active .kat-label { color:#8b6f5c; font-weight:600; }
+.kat-link.active .kat-label { color:#5a3a1a; font-weight:600; }
 .kat-link .kat-count { font-size:11px; font-weight:600; color:#6c757d; background:#e9ecef; padding:2px 8px; border-radius:20px; }
-.kat-link.active .kat-count { background:#d4bfb0; color:#8b6f5c; }
+.kat-link.active .kat-count { background:#d4bfb0; color:#5a3a1a; }
 .btn-add-kat { display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px; background:white; border:1.5px dashed #adb5bd; border-radius:8px; color:#495057; font-size:12px; font-weight:500; text-decoration:none; transition:all 0.2s; width:100%; }
 .btn-add-kat:hover { background:#f8f9fa; border-color:#495057; border-style:solid; color:#212529; }
 .produk-content { flex:1; min-width:0; }
@@ -46,12 +46,12 @@
 .search-wrap { flex:1; min-width:220px; position:relative; }
 .search-wrap .si { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#adb5bd; font-size:13px; }
 .search-input { width:100%; padding:9px 12px 9px 36px; border:1.5px solid #dee2e6; border-radius:8px; font-size:13px; color:#495057; background:white; outline:none; transition:all 0.2s; }
-.search-input:focus { border-color:#a0826d; background:white; box-shadow:0 0 0 3px rgba(160,130,109,0.1); }
+.search-input:focus { border-color:#5a3a1a; background:white; box-shadow:0 0 0 3px rgba(90,58,26,0.1); }
 .search-input::placeholder { color:#adb5bd; }
 .f-select { padding:9px 12px; border:1.5px solid #dee2e6; border-radius:8px; font-size:13px; color:#495057; background:white; cursor:pointer; min-width:140px; outline:none; }
-.f-select:focus { border-color:#a0826d; }
-.btn-cari { padding:9px 16px; background:#a0826d; border:none; border-radius:8px; color:white; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; }
-.btn-cari:hover { background:#8b6f5c; }
+.f-select:focus { border-color:#5a3a1a; }
+.btn-cari { padding:9px 16px; background:#5a3a1a; border:none; border-radius:8px; color:white; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.btn-cari:hover { background:#3d2611; }
 .btn-reset { padding:9px 14px; background:white; border:1.5px solid #dee2e6; border-radius:8px; color:#6c757d; font-size:13px; cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:6px; }
 .btn-reset:hover { background:#f8f9fa; color:#495057; }
 .table-card { background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); overflow:hidden; }
@@ -70,7 +70,7 @@
 .td-no { text-align:center; color:#6c757d; font-size:12px; width:40px; }
 .td-foto { text-align:center; width:70px; }
 .pimg { width:48px; height:48px; border-radius:8px; object-fit:cover; cursor:pointer; border:2px solid #e9ecef; transition:all 0.2s; }
-.pimg:hover { border-color:#a0826d; transform:scale(1.08); }
+.pimg:hover { border-color:#5a3a1a; transform:scale(1.08); }
 .pimg-ph { width:48px; height:48px; border-radius:8px; background:#f1f3f5; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:16px; margin:0 auto; }
 .td-bc { text-align:center; width:110px; }
 .bc-svg { height:32px; display:block; margin:0 auto 2px; }
@@ -103,7 +103,7 @@
 .pg-btns { display:flex; gap:4px; align-items:center; }
 .pgb { width:32px; height:32px; border:1.5px solid #dee2e6; background:white; border-radius:7px; cursor:pointer; font-size:12px; font-weight:500; color:#495057; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
 .pgb:hover { background:#f8f9fa; border-color:#adb5bd; }
-.pgb.active { background:#a0826d; border-color:#a0826d; color:white; font-weight:700; }
+.pgb.active { background:#5a3a1a; border-color:#5a3a1a; color:white; font-weight:700; }
 .pg-sel { padding:5px 10px; border:1.5px solid #dee2e6; border-radius:7px; font-size:12px; color:#495057; background:white; cursor:pointer; outline:none; }
 @media(max-width:1024px){ .produk-layout{flex-direction:column;} .produk-sidebar{width:100%;} .filter-card{flex-direction:column;align-items:stretch;} }
 </style>
@@ -116,7 +116,7 @@
 {{-- HEADER --}}
 <div class="produk-header">
     <div class="produk-header-left">
-        <h1><i class="fas fa-box-open" style="color:#a0826d;margin-right:8px;"></i>Daftar Produk</h1>
+        <h1><i class="fas fa-box-open" style="color:#5a3a1a;margin-right:8px;"></i>Daftar Produk</h1>
         <p>Kelola semua produk yang tersedia dalam sistem</p>
     </div>
     <div class="produk-header-right">
@@ -136,7 +136,7 @@
     <div class="produk-sidebar">
         <div class="sidebar-card">
             <div class="sidebar-card-header">
-                <h3><i class="fas fa-tags" style="color:#a0826d;margin-right:6px;"></i>Kategori Produk</h3>
+                <h3><i class="fas fa-tags" style="color:#5a3a1a;margin-right:6px;"></i>Kategori Produk</h3>
             </div>
         <a href="{{ route('master-data.produk.index') }}"
                class="kat-all {{ !isset($kategoriFilter) || !$kategoriFilter ? 'active' : '' }}">

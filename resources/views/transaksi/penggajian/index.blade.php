@@ -106,18 +106,19 @@
                                 $bulanPenggajian = $tanggal->locale('id')->translatedFormat('F Y');
                                 $coa = \App\Models\Coa::where('kode_akun', $gaji->coa_kasbank)->first();
                                 
-                                // Hitung semua komponen gaji
-                                if($jenis === 'BTKL') {
-                                    $gajiPokok = ($gaji->tarif_per_jam ?? 0) * ($gaji->total_jam_kerja ?? 0);
-                                } else {
-                                    $gajiPokok = $gaji->gaji_pokok ?? 0;
+                                $gajiPokok = (float) ($gaji->gaji_pokok ?? 0);
+                                $totalProduk = (float) ($gaji->total_produk_bulan ?? $gaji->total_produk_bulanan ?? 0);
+                                $tarifProduk = (float) ($gaji->tarif_produk ?? 0);
+
+                                if ($gajiPokok <= 0 && $totalProduk > 0 && $tarifProduk > 0) {
+                                    $gajiPokok = $totalProduk * $tarifProduk;
                                 }
-                                
-                                $tunjangan = $gaji->total_tunjangan ?? 0;
-                                $asuransi = $gaji->asuransi ?? 0;
-                                $bonus = $gaji->bonus ?? 0;
-                                $potongan = $gaji->potongan ?? 0;
-                                $totalGaji = $gaji->total_gaji ?? 0;
+
+                                $tunjangan = (float) ($gaji->total_tunjangan ?? $gaji->tunjangan ?? 0);
+                                $asuransi = (float) ($gaji->asuransi ?? 0);
+                                $bonus = (float) ($gaji->bonus ?? 0);
+                                $potongan = (float) ($gaji->potongan ?? 0);
+                                $totalGaji = $gajiPokok + $tunjangan + $bonus - $asuransi - $potongan;
                             @endphp
                             <tr>
                                 <td class="text-center">PGJ{{ str_pad($gaji->id, 6, '0', STR_PAD_LEFT) }}</td>
@@ -190,4 +191,3 @@
 </div>
 
 @endsection
-

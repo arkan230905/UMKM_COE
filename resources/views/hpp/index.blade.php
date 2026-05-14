@@ -95,7 +95,7 @@
 
     <!-- Tabel Produk dengan HPP -->
     <div class="card shadow-sm">
-        <div class="card-header" style="background-color: #a0826d; color: white;">
+        <div class="card-header" style="background-color: #5a3a1a; color: white;">
             <h6 class="mb-0">
                 <i class="fas fa-list me-2"></i>Daftar Produk dan Harga Pokok Produksi
             </h6>

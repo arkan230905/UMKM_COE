@@ -113,16 +113,16 @@
 
 /* Button Enhancement */
 .btn-outline-primary {
-    border-color: #8B7355;
-    color: #8B7355;
+    border-color: #0d6efd;
+    color: #0d6efd;
     transition: all 0.3s ease;
 }
 
 .btn-outline-primary:hover {
-    background-color: #8B7355;
-    border-color: #8B7355;
+    background-color: #0d6efd;
+    border-color: #0d6efd;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(139, 115, 85, 0.2);
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
 }
 
 .btn-outline-danger:hover {

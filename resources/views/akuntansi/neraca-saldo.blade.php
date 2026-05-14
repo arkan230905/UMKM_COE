@@ -6,7 +6,7 @@
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h3 class="mb-1"><i class="bi bi-file-earmark-spreadsheet"></i> Neraca Saldo</h3>
+      <h3 class="mb-1">Neraca Saldo</h3>
       <small class="text-muted">Data diambil langsung dari Buku Besar (Journal Lines)</small>
     </div>
     <div class="d-flex gap-2 align-items-end">

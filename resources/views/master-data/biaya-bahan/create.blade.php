@@ -63,7 +63,7 @@
 
         <!-- Bahan Baku Card -->
         <div class="card shadow-sm mb-3">
-            <div class="card-header text-white" style="background-color: #a0826d;">
+            <div class="card-header text-white" style="background-color: #5a3a1a;">
                 <h6 class="mb-0">
                     <i class="fas fa-cube me-2"></i>1. Biaya Bahan Baku (BBB)
                 </h6>
@@ -161,8 +161,8 @@
                         </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-sm mt-2" style="background-color: #a0826d; color: white;" id="addBahanBaku">
-                    <i class="fas fa-plus"></i> Tambah Bahan Baku
+                <button type="button" class="btn btn-primary btn-sm mt-2" id="addBahanBaku">
+                    <i class="fas fa-plus me-1"></i>Tambah Bahan Baku
                 </button>
             </div>
         </div>
