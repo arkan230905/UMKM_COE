@@ -147,31 +147,6 @@ class BahanBakuController extends Controller
                 'keterangan' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
             ]);
         }
-        
-        // Update COA Persediaan saldo_awal (jika ada) - DISABLED
-        // Logika ini dinonaktifkan untuk mencegah bahan baku mengupdate saldo awal COA
-        if ($request->coa_persediaan_id && ($request->stok ?? 0) > 0) {
-            \Log::info("Skipping COA saldo awal update for bahan baku", [
-                'bahan_baku' => $bahanBaku->nama_bahan,
-                'coa_code' => $request->coa_persediaan_id,
-                'stok' => $request->stok,
-                'harga_satuan' => $request->harga_satuan,
-                'reason' => 'COA saldo awal update disabled for bahan baku'
-            ]);
-            
-            // COMMENTED OUT - Logika lama yang mengupdate saldo awal COA
-            /*
-            $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
-                ->where('user_id', auth()->id())
-                ->first();
-                
-            if ($coa) {
-                $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
-                $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
-                $coa->save();
-            }
-            */
-        }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
@@ -220,10 +195,15 @@ class BahanBakuController extends Controller
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
         
+        // ✅ PERBAIKAN: Track stock changes to update StockMovement
+        $oldSaldoAwal = $bahanBaku->saldo_awal;
+        $newSaldoAwal = $request->stok ?? 0;
+        $stockDifference = $newSaldoAwal - $oldSaldoAwal;
+        
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
-        $bahanBaku->saldo_awal = $request->stok ?? 0;
+        $bahanBaku->saldo_awal = $newSaldoAwal;
         $bahanBaku->harga_satuan = $request->harga_satuan ?: $bahanBaku->harga_rata_rata;
         $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
         $bahanBaku->deskripsi = $request->deskripsi;
@@ -244,9 +224,40 @@ class BahanBakuController extends Controller
         
         // Save changes
         $bahanBaku->save();
+        
+        // ✅ PERBAIKAN: Create StockMovement adjustment if stock changed
+        if (abs($stockDifference) > 0.0001) {
+            \App\Models\StockMovement::create([
+                'user_id' => auth()->id(),
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'direction' => $stockDifference > 0 ? 'in' : 'out',
+                'qty' => abs($stockDifference),
+                'tanggal' => now()->toDateString(),
+                'ref_type' => 'stock_adjustment',
+                'ref_id' => $bahanBaku->id,
+                'keterangan' => 'Penyesuaian stok dari edit bahan baku: ' . $bahanBaku->nama_bahan . ' (dari ' . $oldSaldoAwal . ' ke ' . $newSaldoAwal . ')',
+            ]);
+            
+            \Log::info('Stock adjustment created for BahanBaku', [
+                'id' => $bahanBaku->id,
+                'nama_bahan' => $bahanBaku->nama_bahan,
+                'old_stock' => $oldSaldoAwal,
+                'new_stock' => $newSaldoAwal,
+                'difference' => $stockDifference
+            ]);
+        }
 
+        // ✅ PERBAIKAN: Disable BomSyncService karena tabel bom_job_costings tidak ada
         // Sync BOM when bahan baku price changes
-        BomSyncService::syncBomFromMaterialChange('bahan_baku', $bahanBaku->id);
+        // BomSyncService::syncBomFromMaterialChange('bahan_baku', $bahanBaku->id);
+        
+        \Log::info('Bahan Baku updated successfully', [
+            'id' => $bahanBaku->id,
+            'nama_bahan' => $bahanBaku->nama_bahan,
+            'harga_satuan' => $bahanBaku->harga_satuan,
+            'note' => 'BomSyncService disabled - table bom_job_costings does not exist'
+        ]);
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
     }
@@ -261,16 +272,21 @@ class BahanBakuController extends Controller
             // Check for foreign key constraints before deleting
             $constraints = [];
             
-            // Check BOM Job BBB references
-            $bomJobBbbCount = \DB::table('bom_job_bbb')->where('bahan_baku_id', $id)->count();
-            if ($bomJobBbbCount > 0) {
-                $constraints[] = "BOM Job Costing ({$bomJobBbbCount} record(s))";
-            }
+            // ✅ PERBAIKAN: Skip BOM Job BBB check karena tabel tidak ada
+            // Check BOM Job BBB references - DISABLED
+            // $bomJobBbbCount = \DB::table('bom_job_bbb')->where('bahan_baku_id', $id)->count();
+            // if ($bomJobBbbCount > 0) {
+            //     $constraints[] = "BOM Job Costing ({$bomJobBbbCount} record(s))";
+            // }
             
-            // Check BOM Details references
-            $bomDetailsCount = \DB::table('bom_details')->where('bahan_baku_id', $id)->count();
-            if ($bomDetailsCount > 0) {
-                $constraints[] = "BOM Details ({$bomDetailsCount} record(s))";
+            // Check BOM Details references - with try-catch for safety
+            try {
+                $bomDetailsCount = \DB::table('bom_details')->where('bahan_baku_id', $id)->count();
+                if ($bomDetailsCount > 0) {
+                    $constraints[] = "BOM Details ({$bomDetailsCount} record(s))";
+                }
+            } catch (\Exception $e) {
+                \Log::info('BOM Details table check skipped', ['error' => $e->getMessage()]);
             }
             
             // Check Pembelian Details references

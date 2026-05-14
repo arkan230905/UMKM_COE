@@ -26,11 +26,11 @@ return new class extends Migration
         
         // Tambahkan foreign key constraint jika diperlukan
         // Pastikan tabel coa sudah ada sebelum menambahkan foreign key
-        if (Schema::hasTable('coas')) {
+        if (Schema::hasTable('accounts')) {
             Schema::table('bops', function (Blueprint $table) {
                 $table->foreign('kode_akun')
                       ->references('kode_akun')
-                      ->on('coas')
+                      ->on('accounts')
                       ->onDelete('restrict')
                       ->onUpdate('cascade');
             });

@@ -10,9 +10,13 @@ return new class extends Migration
     {
         Schema::create('produks', function (Blueprint $table) {
             $table->id();
+            // Tambahkan user_id
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('nama_produk');
             $table->decimal('harga_jual', 15, 2);
             $table->timestamps();
+
+            $table->index('user_id');
         });
     }
 

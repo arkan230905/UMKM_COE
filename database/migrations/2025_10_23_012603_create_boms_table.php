@@ -9,10 +9,21 @@ return new class extends Migration {
     {
         Schema::create('boms', function (Blueprint $table) {
             $table->id();
+            
+            // Kolom Multi-Tenant: Memastikan data BOM hanya milik owner tertentu
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            
+            // Relasi Utama
             $table->foreignId('produk_id')->constrained('produks')->onDelete('cascade');
-            $table->foreignId('bahan_baku_id')->constrained('bahan_bakus')->onDelete('cascade');
-            $table->decimal('jumlah', 15, 2);
+            
+            // Kolom ini harus ada di sini agar migrasi 'add_columns' atau 'make_nullable' tidak error
+            $table->foreignId('bahan_baku_id')->nullable()->constrained('bahan_bakus')->onDelete('cascade');
+            
+            $table->decimal('jumlah', 15, 2)->default(0);
             $table->timestamps();
+            
+            // Indexing untuk performa pencarian per tenant
+            $table->index('user_id');
         });
     }
 

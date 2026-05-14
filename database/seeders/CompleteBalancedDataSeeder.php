@@ -413,12 +413,12 @@ class CompleteBalancedDataSeeder extends Seeder
         
         // Create journal lines
         foreach ($lines as $line) {
-            $account = DB::table('accounts')->where('code', $line['code'])->first();
+            $account = DB::table('coas')->where('code', $line['code'])->first();
             if (!$account) {
                 // Create account if not exists
                 $coa = DB::table('coas')->where('kode_akun', $line['code'])->first();
                 if ($coa) {
-                    $accountId = DB::table('accounts')->insertGetId([
+                    $accountId = DB::table('coas')->insertGetId([
                         'code' => $line['code'],
                         'name' => $coa->nama_akun,
                         'type' => $this->getAccountType($line['code']),

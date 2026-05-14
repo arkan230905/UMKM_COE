@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Pegawai;
 use App\Models\Jabatan;
+use App\Models\User;
 
 class PegawaiSeeder extends Seeder
 {
@@ -14,7 +15,11 @@ class PegawaiSeeder extends Seeder
      */
     public function run(): void
     {
-        // Ambil jabatan yang sudah ada
+        // MULTI-TENANT: Ambil user pertama sebagai Owner default untuk data seeder
+        $owner = User::first();
+        $ownerId = $owner ? $owner->id : null;
+
+        // Ambil jabatan yang sudah ada (menggunakan nilai yang sudah kita update di JabatanSeeder)
         $operatorProduksi = Jabatan::where('kode_jabatan', 'BT001')->first();
         $perbumbuan = Jabatan::where('kode_jabatan', 'BT002')->first();
         $pengemasan = Jabatan::where('kode_jabatan', 'BT003')->first();
@@ -24,6 +29,7 @@ class PegawaiSeeder extends Seeder
         $pegawais = [
             // Pegawai BTKL (Biaya Tenaga Kerja Langsung)
             [
+                'user_id' => $ownerId,
                 'kode_pegawai' => 'PGW0001',
                 'nama' => 'Ahmad Suryanto',
                 'email' => 'ahmad.suryanto@example.com',
@@ -34,7 +40,8 @@ class PegawaiSeeder extends Seeder
                 'jabatan' => 'Operator Produksi',
                 'jenis_pegawai' => 'btkl',
                 'gaji_pokok' => 0,
-                'tarif_per_jam' => $operatorProduksi ? $operatorProduksi->tarif_per_jam : 18000,
+                // PERBAIKAN: Menggunakan tarif_per_produk
+                'tarif_per_produk' => $operatorProduksi ? $operatorProduksi->tarif_per_produk : 18000,
                 'tunjangan' => 0,
                 'asuransi' => $operatorProduksi ? $operatorProduksi->asuransi : 80000,
                 'bank' => 'BRI',
@@ -42,6 +49,7 @@ class PegawaiSeeder extends Seeder
                 'nama_rekening' => 'Ahmad Suryanto',
             ],
             [
+                'user_id' => $ownerId,
                 'kode_pegawai' => 'PGW0002',
                 'nama' => 'Budi Santoso',
                 'email' => 'budi.santoso@example.com',
@@ -52,7 +60,7 @@ class PegawaiSeeder extends Seeder
                 'jabatan' => 'Perbumbuan',
                 'jenis_pegawai' => 'btkl',
                 'gaji_pokok' => 0,
-                'tarif_per_jam' => $perbumbuan ? $perbumbuan->tarif_per_jam : 18000,
+                'tarif_per_produk' => $perbumbuan ? $perbumbuan->tarif_per_produk : 18000,
                 'tunjangan' => 0,
                 'asuransi' => $perbumbuan ? $perbumbuan->asuransi : 80000,
                 'bank' => 'BCA',
@@ -60,6 +68,7 @@ class PegawaiSeeder extends Seeder
                 'nama_rekening' => 'Budi Santoso',
             ],
             [
+                'user_id' => $ownerId,
                 'kode_pegawai' => 'PGW0003',
                 'nama' => 'Rina Wijaya',
                 'email' => 'rina.wijaya@example.com',
@@ -70,7 +79,7 @@ class PegawaiSeeder extends Seeder
                 'jabatan' => 'Pengemasan',
                 'jenis_pegawai' => 'btkl',
                 'gaji_pokok' => 0,
-                'tarif_per_jam' => $pengemasan ? $pengemasan->tarif_per_jam : 17000,
+                'tarif_per_produk' => $pengemasan ? $pengemasan->tarif_per_produk : 17000,
                 'tunjangan' => 0,
                 'asuransi' => $pengemasan ? $pengemasan->asuransi : 0,
                 'bank' => 'Mandiri',
@@ -80,6 +89,7 @@ class PegawaiSeeder extends Seeder
             
             // Pegawai BTKTL (Biaya Tenaga Kerja Tidak Langsung)
             [
+                'user_id' => $ownerId,
                 'kode_pegawai' => 'PGW0004',
                 'nama' => 'Dewi Lestari',
                 'email' => 'dewi.lestari@example.com',
@@ -90,7 +100,7 @@ class PegawaiSeeder extends Seeder
                 'jabatan' => 'Supervisor',
                 'jenis_pegawai' => 'btktl',
                 'gaji_pokok' => $supervisor ? $supervisor->gaji_pokok : 4000000,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'tunjangan' => $supervisor ? $supervisor->tunjangan : 500000,
                 'asuransi' => $supervisor ? $supervisor->asuransi : 200000,
                 'bank' => 'BNI',
@@ -98,6 +108,7 @@ class PegawaiSeeder extends Seeder
                 'nama_rekening' => 'Dewi Lestari',
             ],
             [
+                'user_id' => $ownerId,
                 'kode_pegawai' => 'PGW0005',
                 'nama' => 'Siti Nurhaliza',
                 'email' => 'siti.nurhaliza@example.com',
@@ -108,7 +119,7 @@ class PegawaiSeeder extends Seeder
                 'jabatan' => 'Admin',
                 'jenis_pegawai' => 'btktl',
                 'gaji_pokok' => $admin ? $admin->gaji_pokok : 3000000,
-                'tarif_per_jam' => 0,
+                'tarif_per_produk' => 0,
                 'tunjangan' => $admin ? $admin->tunjangan : 500000,
                 'asuransi' => $admin ? $admin->asuransi : 200000,
                 'bank' => 'BRI',
@@ -124,7 +135,6 @@ class PegawaiSeeder extends Seeder
                 ->first();
             
             if (!$existing) {
-                // Jika belum ada, buat baru
                 Pegawai::create($pegawai);
             }
         }

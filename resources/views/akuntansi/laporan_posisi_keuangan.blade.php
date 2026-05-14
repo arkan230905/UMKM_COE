@@ -168,9 +168,25 @@
                                     <td colspan="3" class="ps-5 text-muted">Tidak ada data</td>
                                 </tr>
                             @endforelse
+                            
+                            <!-- ✅ LABA/RUGI BERJALAN dari Laporan Laba Rugi -->
+                            @if(isset($neraca['laba_rugi_berjalan']))
+                                <tr>
+                                    <td class="ps-5">{{ $neraca['laba_rugi_akun_nama'] ?? 'Laba/Rugi Berjalan' }}</td>
+                                    <td class="text-muted small">-</td>
+                                    <td class="text-end">
+                                        @if($neraca['laba_rugi_berjalan'] < 0)
+                                            -Rp {{ number_format(abs($neraca['laba_rugi_berjalan']), 0, ',', '.') }}
+                                        @else
+                                            Rp {{ number_format($neraca['laba_rugi_berjalan'], 0, ',', '.') }}
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endif
+                            
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Ekuitas</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($neraca['ekuitas']['total'], 0, ',', '.') }}</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($neraca['total_ekuitas_with_laba_rugi'] ?? $neraca['ekuitas']['total'], 0, ',', '.') }}</td>
                             </tr>
                             
                             <!-- TOTAL KEWAJIBAN DAN EKUITAS -->

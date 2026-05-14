@@ -18,12 +18,12 @@ return new class extends Migration
         foreach ($users as $user) {
             // Check if COA 536 already exists (for any user)
             // Because the unique constraint is on kode_akun only
-            $exists = DB::table('coas')
+            $exists = DB::table('accounts')
                 ->where('kode_akun', '536')
                 ->exists();
             
             if (!$exists) {
-                DB::table('coas')->insert([
+                DB::table('accounts')->insert([
                     'kode_akun' => '536',
                     'nama_akun' => 'BOP Air & Kebersihan',
                     'tipe_akun' => 'Biaya',
@@ -47,7 +47,7 @@ return new class extends Migration
     public function down(): void
     {
         // Remove COA 536 from all users
-        DB::table('coas')
+        DB::table('accounts')
             ->where('kode_akun', '536')
             ->delete();
     }

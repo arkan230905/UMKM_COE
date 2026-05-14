@@ -4,16 +4,15 @@
 
 @section('content')
 <div class="container-fluid">
-
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="fas fa-calculator me-2"></i>COA
         </h2>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-end">
             <form method="get" class="d-flex gap-2 align-items-end">
                 <div>
-                    <label class="form-label">Pilih Periode</label>
-                    <select name="period_id" class="form-select" onchange="this.form.submit()" style="min-width: 200px;">
+                    <label class="form-label small mb-1">Pilih Periode</label>
+                    <select name="period_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 180px;">
                         @foreach($periods as $p)
                             <option value="{{ $p->id }}" {{ $periode && $periode->id == $p->id ? 'selected' : '' }}>
                                 {{ \Carbon\Carbon::parse($p->periode.'-01')->isoFormat('MMMM YYYY') }}
@@ -23,12 +22,11 @@
                     </select>
                 </div>
             </form>
-            <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary btn-sm" style="align-self:flex-end;display:inline-flex;align-items:center;gap:4px;">
-                <i class="fas fa-plus"></i> Tambah COA
+            <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary btn-sm shadow-sm">
+                <i class="fas fa-plus me-1"></i>Tambah COA
             </a>
         </div>
     </div>
-
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">
@@ -45,7 +43,7 @@
         </div>
     @endif
 
-<div class="card">
+    <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>Daftar COA (Chart of Accounts)
@@ -126,15 +124,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    // Auto-hide notifikasi setelah 3 detik
-    setTimeout(function() {
-        document.querySelectorAll('.alert').forEach(function(el) {
-            var alert = bootstrap.Alert.getOrCreateInstance(el);
-            alert.close();
-        });
-    }, 3000);
-</script>
-@endpush

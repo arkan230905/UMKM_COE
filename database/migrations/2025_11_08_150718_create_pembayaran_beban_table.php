@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->date('tanggal');
             $table->string('keterangan');
-            $table->foreignId('akun_beban_id')->constrained('coas');
-            $table->foreignId('akun_kas_id')->constrained('coas');
+            $table->foreignId('akun_beban_id')->constrained('accounts');
+            $table->foreignId('akun_kas_id')->constrained('accounts');
             $table->decimal('jumlah', 15, 2);
             $table->foreignId('user_id')->constrained('users');
             $table->text('catatan')->nullable();

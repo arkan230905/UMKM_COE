@@ -22,13 +22,13 @@ return new class extends Migration
                 
                 // Add COA relationships for depreciation
                 if (!Schema::hasColumn('asets', 'coa_id')) {
-                    $table->foreignId('coa_id')->nullable()->after('updated_by')->constrained('coas');
+                    $table->foreignId('coa_id')->nullable()->after('updated_by')->constrained('accounts');
                 }
                 if (!Schema::hasColumn('asets', 'depr_expense_coa_id')) {
-                    $table->foreignId('depr_expense_coa_id')->nullable()->after('coa_id')->constrained('coas');
+                    $table->foreignId('depr_expense_coa_id')->nullable()->after('coa_id')->constrained('accounts');
                 }
                 if (!Schema::hasColumn('asets', 'depr_accum_coa_id')) {
-                    $table->foreignId('depr_accum_coa_id')->nullable()->after('depr_expense_coa_id')->constrained('coas');
+                    $table->foreignId('depr_accum_coa_id')->nullable()->after('depr_expense_coa_id')->constrained('accounts');
                 }
             });
         }
@@ -40,7 +40,7 @@ return new class extends Migration
                     $table->foreignId('vendor_id')->nullable()->after('id')->constrained('vendors');
                 }
                 if (!Schema::hasColumn('pembelians', 'coa_id')) {
-                    $table->foreignId('coa_id')->nullable()->after('vendor_id')->constrained('coas');
+                    $table->foreignId('coa_id')->nullable()->after('vendor_id')->constrained('accounts');
                 }
             });
         }
@@ -52,7 +52,7 @@ return new class extends Migration
                     $table->foreignId('pelanggan_id')->nullable()->after('id')->constrained('pelanggans');
                 }
                 if (!Schema::hasColumn('penjualans', 'coa_id')) {
-                    $table->foreignId('coa_id')->nullable()->after('pelanggan_id')->constrained('coas');
+                    $table->foreignId('coa_id')->nullable()->after('pelanggan_id')->constrained('accounts');
                 }
             });
         }
@@ -64,7 +64,7 @@ return new class extends Migration
                     $table->foreignId('produk_id')->nullable()->after('id')->constrained('produks');
                 }
                 if (!Schema::hasColumn('boms', 'coa_id')) {
-                    $table->foreignId('coa_id')->nullable()->after('produk_id')->constrained('coas');
+                    $table->foreignId('coa_id')->nullable()->after('produk_id')->constrained('accounts');
                 }
             });
         }
@@ -76,10 +76,10 @@ return new class extends Migration
                     $table->foreignId('kategori_produk_id')->nullable()->after('nama_produk')->constrained('kategori_produks');
                 }
                 if (!Schema::hasColumn('produks', 'coa_persediaan_id')) {
-                    $table->foreignId('coa_persediaan_id')->nullable()->after('kategori_produk_id')->constrained('coas');
+                    $table->foreignId('coa_persediaan_id')->nullable()->after('kategori_produk_id')->constrained('accounts');
                 }
                 if (!Schema::hasColumn('produks', 'coa_hpp_id')) {
-                    $table->foreignId('coa_hpp_id')->nullable()->after('coa_persediaan_id')->constrained('coas');
+                    $table->foreignId('coa_hpp_id')->nullable()->after('coa_persediaan_id')->constrained('accounts');
                 }
             });
         }

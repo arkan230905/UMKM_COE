@@ -1,11 +1,33 @@
-*.log
-.DS_Store
+# --- Standar Laravel ---
+/vendor
+/node_modules
+/public/build
+/public/hot
+/storage/*.key
+/storage/pail
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/bootstrap/cache/*
+!/storage/framework/.gitignore
+!/bootstrap/cache/.gitignore
+
+# --- Environment & Konfigurasi ---
 .env
 .env.backup
-.env.production
-.phpactor.json
+.env.backup.*
 .phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+auth.json
 
+# --- Editor & Sistem Operasi ---
+.DS_Store
+Thumbs.db
 /.fleet
 /.idea
 /.nova
@@ -13,20 +35,28 @@
 /.vscode
 /.zed
 
-/auth.json
-/node_modules
-/public/build
-/public/hot
-# /public/storage - JANGAN diabaikan agar symlink tidak hilang saat deploy
+# --- File Sampah & Backup Tim (PENTING) ---
+# Mengabaikan semua file yang mengandung kata backup, fix, atau data tambahan
+*_backup_*
+*_fix_*
+*_data_*
+* - Copy.php
+*.bak
+*.tmp
 
-/storage/*.key
-/storage/pail
-/storage/framework/
+# --- Database & Log ---
+*.sql
+*.log
+*.sqlite
 
-/bootstrap/cache/
-
-/vendor
-
-Homestead.json
-Homestead.yaml
-Thumbs.db
+# --- Temporary scripts ---
+check_*.php
+fix_*.php
+add_*.php
+reset_*.php
+restore_*.php
+seed_*.php
+skip_*.php
+test_*.php
+update_*.php
+setup_hosting.php

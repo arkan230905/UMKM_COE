@@ -12,8 +12,9 @@ return new class extends Migration
             // Tambahkan kolom yang hilang
             if (!Schema::hasColumn('jabatans', 'gaji_pokok')) {
                 $table->decimal('gaji_pokok', 15, 2)->default(0)->after('tarif');
-                $table->decimal('tarif_per_jam', 15, 2)->default(0)->after('gaji_pokok');
-                $table->string('kode_jabatan', 10)->nullable()->after('tarif_per_jam');
+            }
+            if (!Schema::hasColumn('jabatans', 'kode_jabatan')) {
+                $table->string('kode_jabatan', 10)->nullable()->after('gaji_pokok');
             }
         });
     }
@@ -22,7 +23,12 @@ return new class extends Migration
     {
         Schema::table('jabatans', function (Blueprint $table) {
             // Hapus kolom yang ditambahkan
-            $table->dropColumn(['gaji_pokok', 'tarif_per_jam', 'kode_jabatan']);
+            if (Schema::hasColumn('jabatans', 'gaji_pokok')) {
+                $table->dropColumn('gaji_pokok');
+            }
+            if (Schema::hasColumn('jabatans', 'kode_jabatan')) {
+                $table->dropColumn('kode_jabatan');
+            }
         });
     }
 };

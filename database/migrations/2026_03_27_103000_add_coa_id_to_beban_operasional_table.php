@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('beban_operasional', function (Blueprint $table) {
-            $table->foreignId('coa_id')->nullable()->after('status')->constrained('coas');
+            $table->foreignId('coa_id')->nullable()->after('status')->constrained('accounts');
         });
     }
 

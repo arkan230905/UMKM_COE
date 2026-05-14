@@ -94,6 +94,14 @@
         .spacing {
             height: 15px;
         }
+        
+        .text-danger {
+            color: #dc3545;
+        }
+        
+        .text-success {
+            color: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -117,17 +125,16 @@
                 <td colspan="2" class="subsection-header">ASET LANCAR</td>
                 <td class="subsection-header amount"></td>
             </tr>
-            @foreach($asetLancar as $item)
-                @php $saldo = $getFinalBalance($item); @endphp
+            @foreach($neraca['aset']['lancar'] as $item)
                 <tr>
-                    <td class="account-item">{{ $item->nama_akun }}</td>
-                    <td class="account-code">{{ $item->kode_akun }}</td>
-                    <td class="amount">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                    <td class="account-item">{{ $item['nama_akun'] }}</td>
+                    <td class="account-code">{{ $item['kode_akun'] }}</td>
+                    <td class="amount">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                 </tr>
             @endforeach
             <tr>
                 <td colspan="2" class="subtotal">Jumlah Aset Lancar</td>
-                <td class="subtotal amount">Rp {{ number_format($totalAsetLancar, 0, ',', '.') }}</td>
+                <td class="subtotal amount">Rp {{ number_format($neraca['aset']['total_lancar'], 0, ',', '.') }}</td>
             </tr>
             
             <!-- ASET TIDAK LANCAR -->
@@ -135,23 +142,22 @@
                 <td colspan="2" class="subsection-header">ASET TIDAK LANCAR</td>
                 <td class="subsection-header amount"></td>
             </tr>
-            @foreach($asetTidakLancar as $item)
-                @php $saldo = $getFinalBalance($item); @endphp
+            @foreach($neraca['aset']['tidak_lancar'] as $item)
                 <tr>
-                    <td class="account-item">{{ $item->nama_akun }}</td>
-                    <td class="account-code">{{ $item->kode_akun }}</td>
-                    <td class="amount">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                    <td class="account-item">{{ $item['nama_akun'] }}</td>
+                    <td class="account-code">{{ $item['kode_akun'] }}</td>
+                    <td class="amount">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                 </tr>
             @endforeach
             <tr>
                 <td colspan="2" class="subtotal">Jumlah Aset Tidak Lancar</td>
-                <td class="subtotal amount">Rp {{ number_format($totalAsetTidakLancar, 0, ',', '.') }}</td>
+                <td class="subtotal amount">Rp {{ number_format($neraca['aset']['total_tidak_lancar'], 0, ',', '.') }}</td>
             </tr>
             
             <!-- TOTAL ASET -->
             <tr>
                 <td colspan="2" class="total-row">JUMLAH ASET</td>
-                <td class="total-row amount">Rp {{ number_format($totalAset, 0, ',', '.') }}</td>
+                <td class="total-row amount">Rp {{ number_format($neraca['aset']['total_aset'], 0, ',', '.') }}</td>
             </tr>
             
             <tr class="spacing">
@@ -164,40 +170,21 @@
                 <td class="section-title amount"></td>
             </tr>
             
-            <!-- KEWAJIBAN JANGKA PENDEK -->
+            <!-- KEWAJIBAN -->
             <tr>
-                <td colspan="2" class="subsection-header">KEWAJIBAN JANGKA PENDEK</td>
+                <td colspan="2" class="subsection-header">KEWAJIBAN</td>
                 <td class="subsection-header amount"></td>
             </tr>
-            @foreach($kewajibanPendek as $item)
-                @php $saldo = $getFinalBalance($item); @endphp
+            @foreach($neraca['kewajiban']['detail'] as $item)
                 <tr>
-                    <td class="account-item">{{ $item->nama_akun }}</td>
-                    <td class="account-code">{{ $item->kode_akun }}</td>
-                    <td class="amount">Rp {{ number_format($saldo > 0 ? $saldo : 0, 0, ',', '.') }}</td>
+                    <td class="account-item">{{ $item['nama_akun'] }}</td>
+                    <td class="account-code">{{ $item['kode_akun'] }}</td>
+                    <td class="amount">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                 </tr>
             @endforeach
             <tr>
-                <td colspan="2" class="subtotal">Jumlah Kewajiban Jangka Pendek</td>
-                <td class="subtotal amount">Rp {{ number_format($totalKewajibanPendek, 0, ',', '.') }}</td>
-            </tr>
-            
-            <!-- KEWAJIBAN JANGKA PANJANG -->
-            <tr>
-                <td colspan="2" class="subsection-header">KEWAJIBAN JANGKA PANJANG</td>
-                <td class="subsection-header amount"></td>
-            </tr>
-            @foreach($kewajibanPanjang as $item)
-                @php $saldo = $getFinalBalance($item); @endphp
-                <tr>
-                    <td class="account-item">{{ $item->nama_akun }}</td>
-                    <td class="account-code">{{ $item->kode_akun }}</td>
-                    <td class="amount">Rp {{ number_format($saldo > 0 ? $saldo : 0, 0, ',', '.') }}</td>
-                </tr>
-            @endforeach
-            <tr>
-                <td colspan="2" class="subtotal">Jumlah Kewajiban Jangka Panjang</td>
-                <td class="subtotal amount">Rp {{ number_format($totalKewajibanPanjang, 0, ',', '.') }}</td>
+                <td colspan="2" class="subtotal">Jumlah Kewajiban</td>
+                <td class="subtotal amount">Rp {{ number_format($neraca['kewajiban']['total'], 0, ',', '.') }}</td>
             </tr>
             
             <!-- EKUITAS -->
@@ -205,53 +192,67 @@
                 <td colspan="2" class="subsection-header">EKUITAS / MODAL</td>
                 <td class="subsection-header amount"></td>
             </tr>
-            @foreach($ekuitas as $item)
-                @php $saldo = $getFinalBalance($item); @endphp
+            @foreach($neraca['ekuitas']['detail'] as $item)
                 <tr>
-                    <td class="account-item">{{ $item->nama_akun }}</td>
-                    <td class="account-code">{{ $item->kode_akun }}</td>
-                    <td class="amount">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                    <td class="account-item">{{ $item['nama_akun'] }}</td>
+                    <td class="account-code">{{ $item['kode_akun'] }}</td>
+                    <td class="amount">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                 </tr>
             @endforeach
-            @if($profitLoss != 0)
+            
+            <!-- ✅ LABA/RUGI BERJALAN dari Laporan Laba Rugi -->
+            @if(isset($neraca['laba_rugi_berjalan']))
             <tr>
-                <td class="account-item">Laba/Rugi Periode Berjalan</td>
+                <td class="account-item">
+                    {{ $neraca['laba_rugi_akun_nama'] ?? 'Laba/Rugi Berjalan' }}
+                </td>
                 <td class="account-code">-</td>
-                <td class="amount">Rp {{ number_format($profitLoss, 0, ',', '.') }}</td>
+                <td class="amount">
+                    @if($neraca['laba_rugi_berjalan'] < 0)
+                        -Rp {{ number_format(abs($neraca['laba_rugi_berjalan']), 0, ',', '.') }}
+                    @else
+                        Rp {{ number_format($neraca['laba_rugi_berjalan'], 0, ',', '.') }}
+                    @endif
+                </td>
             </tr>
             @endif
+            
             <tr>
                 <td colspan="2" class="subtotal">Jumlah Ekuitas</td>
-                <td class="subtotal amount">Rp {{ number_format($totalEkuitas, 0, ',', '.') }}</td>
+                <td class="subtotal amount">Rp {{ number_format($neraca['total_ekuitas_with_laba_rugi'] ?? $neraca['ekuitas']['total'], 0, ',', '.') }}</td>
             </tr>
             
             <!-- TOTAL KEWAJIBAN DAN EKUITAS -->
             <tr>
                 <td colspan="2" class="total-row">JUMLAH KEWAJIBAN DAN EKUITAS</td>
-                <td class="total-row amount">Rp {{ number_format($totalKewajibanEkuitas, 0, ',', '.') }}</td>
+                <td class="total-row amount">Rp {{ number_format($neraca['total_kewajiban_ekuitas'], 0, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
     
     <!-- Balance Check -->
-    <div class="balance-check {{ ($totalAset == $totalKewajibanEkuitas) ? '' : 'warning' }}">
+    <div class="balance-check {{ $neraca['neraca_seimbang'] ? '' : 'warning' }}">
         <strong>Cek Keseimbangan:</strong><br>
-        Total Aset: Rp {{ number_format($totalAset, 0, ',', '.') }}<br>
-        Total Kewajiban + Ekuitas: Rp {{ number_format($totalKewajibanEkuitas, 0, ',', '.') }}<br>
-        @if($totalAset == $totalKewajibanEkuitas)
+        Total Aset: Rp {{ number_format($neraca['aset']['total_aset'], 0, ',', '.') }}<br>
+        Total Kewajiban + Ekuitas: Rp {{ number_format($neraca['total_kewajiban_ekuitas'], 0, ',', '.') }}<br>
+        @if($neraca['neraca_seimbang'])
             <strong>✓ SEIMBANG</strong>
         @else
             <strong>⚠ TIDAK SEIMBANG</strong><br>
-            Selisih: Rp {{ number_format($totalAset - $totalKewajibanEkuitas, 0, ',', '.') }}
+            Selisih: Rp {{ number_format(abs($neraca['selisih']), 0, ',', '.') }}
         @endif
     </div>
     
-    @if($profitLoss != 0)
+    @if(isset($neraca['laba_rugi_berjalan']) && $neraca['laba_rugi_berjalan'] != 0)
     <div style="margin-top: 15px; padding: 10px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px;">
-        <strong>Informasi Laba/Rugi Periode Berjalan:</strong><br>
-        Rp {{ number_format($profitLoss, 0, ',', '.') }}<br>
-        <small>Total Pendapatan: Rp {{ number_format($totalRevenue, 0, ',', '.') }} | Total Beban: Rp {{ number_format($totalExpense, 0, ',', '.') }}</small><br>
-        <small>Laba/rugi ini sudah termasuk dalam total ekuitas di atas</small>
+        <strong>Informasi {{ $neraca['laba_rugi_akun_nama'] }}:</strong><br>
+        @if($neraca['laba_rugi_berjalan'] < 0)
+            -Rp {{ number_format(abs($neraca['laba_rugi_berjalan']), 0, ',', '.') }}
+        @else
+            Rp {{ number_format($neraca['laba_rugi_berjalan'], 0, ',', '.') }}
+        @endif
+        <br>
+        <small>Nilai ini diambil dari hasil akhir Laporan Laba Rugi periode yang sama</small>
     </div>
     @endif
 </body>
