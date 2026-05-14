@@ -1617,7 +1617,7 @@ class LaporanController extends Controller
                 return $q->whereYear('tanggal', $bulan->year)
                        ->whereMonth('tanggal', $bulan->month);
             })
-            ->orderBy('tanggal', 'desc');
+            ->orderBy('kode_transaksi', 'asc');
 
         if ($request->has('export') && $request->export == 'pdf') {
             $pelunasanUtang = $query->get()->map(function($item) {

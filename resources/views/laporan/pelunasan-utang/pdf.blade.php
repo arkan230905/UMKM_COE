@@ -35,6 +35,7 @@
                 <th>Vendor</th>
                 <th>No. Faktur</th>
                 <th>Total Tagihan</th>
+                <th>Total Refund</th>
                 <th>Dibayar</th>
                 <th>Status</th>
             </tr>
@@ -48,6 +49,12 @@
                 <td>{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</td>
                 <td>{{ $item->pembelian->nomor_faktur ?? $item->pembelian->nomor_pembelian ?? '-' }}</td>
                 <td class="text-right">{{ format_rupiah($item->pembelian->total_harga ?? 0) }}</td>
+                <td class="text-right">
+                    @php
+                        $totalRefund = $item->pembelian->total_refund ?? 0;
+                    @endphp
+                    {{ format_rupiah($totalRefund) }}
+                </td>
                 <td class="text-right">{{ format_rupiah($item->jumlah) }}</td>
                 <td class="text-center">
                     @php
@@ -64,7 +71,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" class="text-center">Tidak ada data pelunasan utang</td>
+                <td colspan="9" class="text-center">Tidak ada data pelunasan utang</td>
             </tr>
             @endforelse
         </tbody>
@@ -72,6 +79,7 @@
             <tr>
                 <th colspan="5" class="text-right">Total</th>
                 <th class="text-right">{{ format_rupiah($pelunasanUtang->sum(function($item) { return $item->pembelian->total_harga ?? 0; })) }}</th>
+                <th class="text-right">{{ format_rupiah($pelunasanUtang->sum(function($item) { return $item->pembelian->total_refund ?? 0; })) }}</th>
                 <th class="text-right">{{ format_rupiah($total) }}</th>
                 <th></th>
             </tr>

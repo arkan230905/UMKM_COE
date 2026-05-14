@@ -36,7 +36,7 @@ class Pembelian extends Model
     
     protected $dates = ['tanggal', 'deleted_at'];
     
-    protected $appends = ['sisa_utang', 'status_pembayaran'];
+    protected $appends = ['sisa_utang', 'status_pembayaran', 'total_refund'];
 
     protected $casts = [
         'tanggal' => 'date',
@@ -171,6 +171,26 @@ foreach ($pembelian->pembelianDetails as $detail) {
     }
     
     /**
+     * Get the purchase returns for the pembelian.
+     */
+    public function purchaseReturns()
+    {
+        return $this->hasMany(PurchaseReturn::class, 'pembelian_id');
+    }
+    
+    /**
+     * Get total refund amount from approved returns (jenis_retur = refund)
+     */
+    public function getTotalRefundAttribute()
+    {
+        return $this->purchaseReturns()
+            ->where('jenis_retur', 'refund')
+            ->whereIn('status', ['disetujui', 'dikirim', 'selesai']) // Only approved returns
+            ->get()
+            ->sum('total_with_ppn'); // Use total with PPN
+    }
+    
+    /**
      * Get the ap settlements for the pembelian.
      */
     public function apSettlements()
@@ -188,17 +208,24 @@ foreach ($pembelian->pembelianDetails as $detail) {
     
     /**
      * Get the sisa utang attribute.
+     * Formula: Total Harga - Total Dibayar - Total Refund
      */
     public function getSisaUtangAttribute()
     {
-        // Calculate from total_harga - total payments
+        // Calculate from total_harga - total payments - total refunds
         $totalHarga = $this->total_harga ?? 0;
         $totalDibayar = $this->total_dibayar;
-        return max(0, $totalHarga - $totalDibayar);
+        $totalRefund = $this->total_refund; // Refund reduces the debt
+        
+        // Sisa utang = Total - Dibayar - Refund
+        $sisaUtang = $totalHarga - $totalDibayar - $totalRefund;
+        
+        return max(0, $sisaUtang); // Cannot be negative
     }
     
     /**
      * Sync pembelian payment status based on payment method and pelunasan records
+     * Also considers refunds from returns
      */
     public function syncPaymentStatus()
     {
@@ -210,12 +237,15 @@ foreach ($pembelian->pembelianDetails as $detail) {
             return;
         }
         
-        // For credit payments, calculate from pelunasan records
+        // For credit payments, calculate from pelunasan records and refunds
         $totalPelunasan = $this->pelunasan()->sum('jumlah');
-        $this->terbayar = $totalPelunasan;
-        $this->sisa_pembayaran = ($this->total_harga ?? 0) - $totalPelunasan;
+        $totalRefund = $this->total_refund; // Refund reduces the debt
         
-        if ($totalPelunasan >= $this->total_harga) {
+        $this->terbayar = $totalPelunasan;
+        $this->sisa_pembayaran = ($this->total_harga ?? 0) - $totalPelunasan - $totalRefund;
+        
+        // If total paid + refund >= total price, mark as lunas
+        if (($totalPelunasan + $totalRefund) >= $this->total_harga) {
             $this->status = 'lunas';
         } else {
             $this->status = 'belum_lunas';
@@ -224,6 +254,7 @@ foreach ($pembelian->pembelianDetails as $detail) {
     
     /**
      * Get the status pembayaran attribute.
+     * Considers both payments and refunds
      */
     public function getStatusPembayaranAttribute()
     {
@@ -232,13 +263,16 @@ foreach ($pembelian->pembelianDetails as $detail) {
             return 'Lunas';
         }
         
-        // For credit, check from pelunasan
+        // For credit, check from pelunasan and refunds
         $totalDibayar = $this->total_dibayar;
+        $totalRefund = $this->total_refund;
         $totalHarga = $this->total_harga ?? 0;
         
-        if ($totalDibayar == 0) {
+        $totalPaidAndRefund = $totalDibayar + $totalRefund;
+        
+        if ($totalPaidAndRefund == 0) {
             return 'Belum Bayar';
-        } elseif ($totalDibayar < $totalHarga) {
+        } elseif ($totalPaidAndRefund < $totalHarga) {
             return 'Sebagian';
         } else {
             return 'Lunas';

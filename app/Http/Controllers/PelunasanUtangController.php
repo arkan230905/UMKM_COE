@@ -62,28 +62,28 @@ class PelunasanUtangController extends Controller
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pembayarans = Pembelian::where('user_id', auth()->id())
             ->where(function($q) {
-                // Credit purchases that are not fully paid
-                $q->where('payment_method', 'credit')
-                  ->where('status', 'belum_lunas');
-            })
-            ->orWhere(function($q) {
-                // Any purchase where terbayar < total_harga (partially paid)
-                $q->where('user_id', auth()->id())
-                  ->whereRaw('terbayar < total_harga')
-                  ->where('status', '!=', 'lunas');
-            })
-            ->orWhere(function($q) {
-                // Any purchase with sisa_pembayaran > 0
-                $q->where('user_id', auth()->id())
-                  ->where('sisa_pembayaran', '>', 0);
+                $q->where(function($q2) {
+                    // Credit purchases that are not fully paid
+                    $q2->where('payment_method', 'credit')
+                       ->where('status', 'belum_lunas');
+                })
+                ->orWhere(function($q2) {
+                    // Any purchase where terbayar < total_harga (partially paid)
+                    $q2->whereRaw('terbayar < total_harga')
+                       ->where('status', '!=', 'lunas');
+                })
+                ->orWhere(function($q2) {
+                    // Any purchase with sisa_pembayaran > 0
+                    $q2->where('sisa_pembayaran', '>', 0);
+                });
             })
             ->with('vendor')
-            ->orderBy('tanggal', 'desc')
+            ->orderBy('nomor_pembelian', 'asc')
             ->get()
             ->filter(function($pembelian) {
                 // Additional filter to ensure there's actually debt remaining
-                $sisaUtang = ($pembelian->total_harga ?? 0) - ($pembelian->terbayar ?? 0);
-                return $sisaUtang > 0;
+                // Use accessor that considers refunds
+                return $pembelian->sisa_utang > 0;
             });
             
         // Get kas/bank accounts using helper for consistency
@@ -160,7 +160,7 @@ class PelunasanUtangController extends Controller
             
             // Update purchase payment status
             $pembelian->terbayar += $request->jumlah;
-            $pembelian->sisa_pembayaran = ($pembelian->total_harga ?? 0) - $pembelian->terbayar;
+            $pembelian->sisa_pembayaran = ($pembelian->total_harga ?? 0) - $pembelian->terbayar - $pembelian->total_refund;
             
             // Check if fully paid
             if (abs($pembelian->terbayar - ($pembelian->total_harga ?? 0)) < 0.01) {
@@ -247,6 +247,7 @@ class PelunasanUtangController extends Controller
     
     /**
      * Get purchase details for AJAX.
+     * Returns sisa utang that already considers refunds
      */
     public function getPembelian($id)
     {
@@ -254,7 +255,8 @@ class PelunasanUtangController extends Controller
             ->where('id', $id)
             ->firstOrFail();
         
-        $sisaUtang = max(0, ($pembelian->total_harga ?? 0) - ($pembelian->terbayar ?? 0));
+        // Use accessor that already considers refunds
+        $sisaUtang = $pembelian->sisa_utang;
         
         if ($sisaUtang <= 0) {
             return response()->json([
@@ -269,6 +271,7 @@ class PelunasanUtangController extends Controller
                 'sisa_utang' => $sisaUtang,
                 'total_pembelian' => $pembelian->total_harga ?? 0,
                 'terbayar' => $pembelian->terbayar ?? 0,
+                'total_refund' => $pembelian->total_refund ?? 0, // Add refund info
                 'vendor' => $pembelian->vendor->nama_vendor ?? '-',
                 'nomor_pembelian' => $pembelian->nomor_pembelian ?? 'PB-' . $pembelian->id
             ]

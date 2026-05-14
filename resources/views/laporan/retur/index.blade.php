@@ -137,16 +137,31 @@
                                 <td class="text-end">
                                     @php
                                         $subtotal = $return->total_retur ?? 0;
-                                        // Get PPN from pembelian, default to 11% if not set
-                                        $ppnPersen = $return->pembelian->ppn_persen ?? 11;
-                                        $ppnAmount = $subtotal * ($ppnPersen / 100);
-                                        $totalWithPpn = $subtotal + $ppnAmount;
+                                        // Get PPN from pembelian, default to 0 if not set
+                                        $ppnPersen = $return->pembelian->ppn_persen ?? 0;
+                                        
+                                        // Only calculate PPN if ppn_persen > 0
+                                        if ($ppnPersen > 0) {
+                                            $ppnAmount = $subtotal * ($ppnPersen / 100);
+                                            $totalWithPpn = $subtotal + $ppnAmount;
+                                        } else {
+                                            $ppnAmount = 0;
+                                            $totalWithPpn = $subtotal; // No PPN, total = subtotal
+                                        }
                                     @endphp
-                                    <div class="small text-muted">
-                                        Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}<br>
-                                        PPN {{ $ppnPersen }}%: Rp {{ number_format($ppnAmount, 0, ',', '.') }}
-                                    </div>
+                                    
+                                    @if($ppnPersen > 0)
+                                        <div class="small text-muted">
+                                            Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}<br>
+                                            PPN {{ $ppnPersen }}%: Rp {{ number_format($ppnAmount, 0, ',', '.') }}
+                                        </div>
+                                    @endif
+                                    
                                     <strong class="text-primary">Rp {{ number_format($totalWithPpn, 0, ',', '.') }}</strong>
+                                    
+                                    @if($ppnPersen == 0)
+                                        <div class="small text-muted">Tanpa PPN</div>
+                                    @endif
                                 </td>
                                 <td>
                                     @php

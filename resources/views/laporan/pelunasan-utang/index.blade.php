@@ -50,6 +50,7 @@
                                     <th>Vendor</th>
                                     <th>No. Faktur</th>
                                     <th>Total Tagihan</th>
+                                    <th>Total Refund</th>
                                     <th>Dibayar</th>
                                     <th>Status</th>
                                 </tr>
@@ -63,6 +64,16 @@
                                     <td>{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</td>
                                     <td>{{ $item->pembelian->nomor_faktur ?? $item->pembelian->nomor_pembelian ?? '-' }}</td>
                                     <td class="text-right">Rp {{ number_format($item->pembelian->total_harga ?? 0, 0, ',', '.') }}</td>
+                                    <td class="text-right">
+                                        @php
+                                            $totalRefund = $item->pembelian->total_refund ?? 0;
+                                        @endphp
+                                        @if($totalRefund > 0)
+                                            <span class="text-success">Rp {{ number_format($totalRefund, 0, ',', '.') }}</span>
+                                        @else
+                                            <span class="text-muted">Rp 0</span>
+                                        @endif
+                                    </td>
                                     <td class="text-right">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                                     <td>
                                         @php
@@ -79,7 +90,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" class="text-center">Tidak ada data pelunasan utang</td>
+                                    <td colspan="9" class="text-center">Tidak ada data pelunasan utang</td>
                                 </tr>
                                 @endforelse
                             </tbody>
@@ -88,6 +99,9 @@
                                     <th colspan="5" class="text-right">Total</th>
                                     <th class="text-right">
                                         Rp {{ number_format($pelunasanUtang->sum(function($item) { return $item->pembelian->total_harga ?? 0; }), 0, ',', '.') }}
+                                    </th>
+                                    <th class="text-right">
+                                        Rp {{ number_format($pelunasanUtang->sum(function($item) { return $item->pembelian->total_refund ?? 0; }), 0, ',', '.') }}
                                     </th>
                                     <th class="text-right">Rp {{ number_format($total, 0, ',', '.') }}</th>
                                     <th></th>

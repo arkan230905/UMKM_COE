@@ -46,7 +46,8 @@
                         <option value="">Pilih Pembelian</option>
                         @forelse($pembayarans as $pembayaran)
                             @php
-                                $sisaUtang = ($pembayaran->total_harga ?? 0) - ($pembayaran->terbayar ?? 0);
+                                // Use accessor that considers refunds
+                                $sisaUtang = $pembayaran->sisa_utang;
                             @endphp
                             <option value="{{ $pembayaran->id }}" data-sisa="{{ $sisaUtang }}" {{ old('pembelian_id') == $pembayaran->id ? 'selected' : '' }}>
                                 {{ $pembayaran->nomor_pembelian ?? 'PB-' . $pembayaran->id }} - {{ $pembayaran->vendor->nama_vendor ?? 'Vendor tidak diketahui' }} (Sisa: Rp {{ number_format($sisaUtang, 0, ',', '.') }})
@@ -82,18 +83,33 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <strong>Vendor:</strong>
                                     <p id="vendor-name">-</p>
                                 </div>
+                                <div class="col-md-6">
+                                    <strong>Nomor Pembelian:</strong>
+                                    <p id="nomor-pembelian">-</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
                                 <div class="col-md-4">
                                     <strong>Total Pembelian:</strong>
                                     <p id="total-pembelian">-</p>
+                                </div>
+                                <div class="col-md-4" id="refund-section" style="display: none;">
+                                    <strong>Total Refund:</strong>
+                                    <p id="total-refund" class="text-success">-</p>
                                 </div>
                                 <div class="col-md-4">
                                     <strong>Sisa Utang:</strong>
                                     <p id="sisa-utang-detail" class="text-danger font-weight-bold">-</p>
                                 </div>
+                            </div>
+                            <div class="alert alert-info mt-2" id="refund-info" style="display: none;">
+                                <i class="fas fa-info-circle"></i>
+                                <small>Sisa utang sudah dikurangi dengan total refund dari retur yang disetujui.</small>
                             </div>
                         </div>
                     </div>
@@ -258,8 +274,23 @@
                                     
                                     // Fill in the details
                                     vendorName.textContent = data.data.vendor;
+                                    document.getElementById('nomor-pembelian').textContent = data.data.nomor_pembelian;
                                     totalPembelian.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.total_pembelian);
                                     sisaUtangDetail.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.sisa_utang);
+                                    
+                                    // Show refund section if there's refund
+                                    const totalRefund = data.data.total_refund || 0;
+                                    const refundSection = document.getElementById('refund-section');
+                                    const refundInfo = document.getElementById('refund-info');
+                                    
+                                    if (totalRefund > 0) {
+                                        refundSection.style.display = 'block';
+                                        refundInfo.style.display = 'block';
+                                        document.getElementById('total-refund').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(totalRefund);
+                                    } else {
+                                        refundSection.style.display = 'none';
+                                        refundInfo.style.display = 'none';
+                                    }
                                     
                                     // Auto-fill jumlah with sisa utang (formatted)
                                     const sisaUtangValue = Math.floor(data.data.sisa_utang);
