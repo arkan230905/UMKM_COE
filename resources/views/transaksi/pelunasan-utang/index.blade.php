@@ -88,7 +88,7 @@
                         <tr>
                             <th class="text-center" style="width: 50px">No</th>
                             <th>Kode Transaksi</th>
-                            <th>Tanggal</th>
+                            <th>Tanggal Pelunasan</th>
                             <th>Pembelian</th>
                             <th>Vendor</th>
                             <th>COA Pelunasan</th>

@@ -232,20 +232,45 @@ class ReturController extends Controller
         ]);
 
         try {
+            // Load pembelian first to get the purchase date for validation
+            $pembelian = Pembelian::findOrFail($request->pembelian_id);
+            $purchaseDate = $pembelian->tanggal ? \Carbon\Carbon::parse($pembelian->tanggal) : now();
+            
+            // Calculate max date: 7 days after purchase date
+            $maxDate = $purchaseDate->copy()->addDays(7);
+            $today = \Carbon\Carbon::today();
+            
+            // If max date is in the past, use today
+            if ($maxDate->lt($today)) {
+                $maxDate = $today;
+            }
+            
             // Enhanced validation with better error messages
+            // NOTE: We don't validate items.*.qty as required because user can leave it empty
+            // Items with qty = 0 or empty will be filtered out later
             $validatedData = $request->validate([
                 'pembelian_id' => 'required|exists:pembelians,id',
+                'tanggal' => [
+                    'required',
+                    'date',
+                    'after_or_equal:' . $purchaseDate->format('Y-m-d'),
+                    'before_or_equal:' . $maxDate->format('Y-m-d'),
+                ],
                 'alasan' => 'required|string|min:3|max:500',
                 'jenis_retur' => 'required|in:tukar_barang,refund',
                 'memo' => 'nullable|string|max:1000',
                 'items' => 'required|array|min:1',
                 'items.*.pembelian_detail_id' => 'required|exists:pembelian_details,id',
-                'items.*.qty' => 'required|numeric|min:0.01|max:999999',
+                'items.*.qty' => 'nullable|numeric|min:0|max:999999', // Changed to nullable and min:0
                 'items.*.satuan' => 'nullable|string|max:50',
                 'items.*.harga_satuan' => 'nullable|numeric|min:0',
             ], [
                 'pembelian_id.required' => 'ID Pembelian harus diisi',
                 'pembelian_id.exists' => 'Data pembelian tidak ditemukan',
+                'tanggal.required' => 'Tanggal retur harus diisi',
+                'tanggal.date' => 'Format tanggal tidak valid',
+                'tanggal.after_or_equal' => 'Tanggal retur tidak boleh lebih lama dari tanggal pembelian (' . $purchaseDate->format('d/m/Y') . ')',
+                'tanggal.before_or_equal' => 'Tanggal retur tidak boleh lebih dari 7 hari setelah pembelian (' . $maxDate->format('d/m/Y') . ')',
                 'alasan.required' => 'Alasan retur harus diisi',
                 'alasan.min' => 'Alasan retur minimal 3 karakter',
                 'alasan.max' => 'Alasan retur maksimal 500 karakter',
@@ -255,8 +280,8 @@ class ReturController extends Controller
                 'items.min' => 'Minimal harus ada 1 item retur',
                 'items.*.pembelian_detail_id.required' => 'ID detail pembelian harus diisi',
                 'items.*.pembelian_detail_id.exists' => 'Detail pembelian tidak ditemukan',
-                'items.*.qty.required' => 'Quantity retur harus diisi',
-                'items.*.qty.min' => 'Quantity retur minimal 0.01',
+                'items.*.qty.numeric' => 'Quantity retur harus berupa angka',
+                'items.*.qty.min' => 'Quantity retur tidak boleh kurang dari 0',
                 'items.*.qty.max' => 'Quantity retur terlalu besar',
             ]);
             
@@ -274,7 +299,7 @@ class ReturController extends Controller
                 ->with('error', 'Terjadi kesalahan validasi. Silakan periksa form Anda.');
         }
 
-        // Load pembelian with all related data
+        // Reload pembelian with all related data (already loaded above for validation)
         $pembelian = Pembelian::with([
             'details.bahanBaku', 
             'details.bahanPendukung',
@@ -288,20 +313,29 @@ class ReturController extends Controller
         ]);
         
         // Filter and validate items
+        // IMPORTANT: Only process items with qty > 0
+        // Items with empty or 0 qty will be excluded from retur
         $items = collect($request->items)->filter(function($item) {
-            return isset($item['qty']) && (float)$item['qty'] > 0;
+            $qty = isset($item['qty']) ? (float)$item['qty'] : 0;
+            return $qty > 0; // Only include items with qty greater than 0
         });
 
         \Log::info('Items filtered', [
             'original_count' => count($request->items),
             'filtered_count' => $items->count(),
-            'items' => $items->toArray()
+            'filtered_items' => $items->map(function($item, $index) {
+                return [
+                    'index' => $index,
+                    'pembelian_detail_id' => $item['pembelian_detail_id'] ?? null,
+                    'qty' => $item['qty'] ?? 0
+                ];
+            })->toArray()
         ]);
 
         if ($items->isEmpty()) {
-            \Log::error('No valid items found');
+            \Log::error('No valid items found - all items have qty = 0 or empty');
             return redirect()->back()
-                ->withErrors(['items' => 'Minimal satu item harus diisi qty retur lebih dari 0.'])
+                ->withErrors(['items' => 'Minimal satu item harus diisi qty retur lebih dari 0. Contoh: Jagung qty retur 5, Ketan qty retur 0 (tidak diretur).'])
                 ->withInput();
         }
 
@@ -352,11 +386,14 @@ class ReturController extends Controller
             // Generate return number
             $returnNumber = $this->generateReturnNumber();
             
+            // Get tanggal retur from request
+            $tanggalRetur = $request->tanggal;
+            
             // Create PurchaseReturn record
             $purchaseReturn = \App\Models\PurchaseReturn::create([
                 'return_number' => $returnNumber,
                 'pembelian_id' => $pembelian->id,
-                'return_date' => now()->format('Y-m-d'),
+                'return_date' => $tanggalRetur, // Use user-selected date
                 'reason' => $request->alasan,
                 'jenis_retur' => $request->jenis_retur,
                 'notes' => $request->memo,

@@ -70,6 +70,8 @@
             <li><strong>Jenis Retur:</strong> Pilih "Tukar Barang" atau "Refund"</li>
             <li><strong>Alasan Retur:</strong> Wajib diisi (contoh: "Barang rusak", "Salah kirim")</li>
             <li><strong>Qty Retur:</strong> Masukkan jumlah yang akan diretur (harus lebih dari 0)</li>
+            <li><strong>Item yang Tidak Diretur:</strong> Biarkan qty retur kosong atau 0, item tersebut tidak akan masuk ke data retur</li>
+            <li><strong>Contoh:</strong> Jika hanya ingin retur Jagung 5 kg, isi qty retur Jagung = 5, biarkan Ketan kosong/0</li>
         </ul>
     </div>
 
@@ -107,9 +109,32 @@
                     
                     <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Tanggal Retur</label>
-                            <input type="text" class="form-control" value="{{ date('d/m/Y') }}" readonly>
-                            <input type="hidden" name="tanggal" value="{{ date('Y-m-d') }}">
+                            <label class="form-label">Tanggal Retur <span class="text-danger">*</span></label>
+                            @php
+                                // Calculate max date: 7 days after purchase date or today, whichever is later
+                                $purchaseDate = $pembelian->tanggal ? \Carbon\Carbon::parse($pembelian->tanggal) : now();
+                                $maxDate = $purchaseDate->copy()->addDays(7);
+                                $today = \Carbon\Carbon::today();
+                                
+                                // If max date is in the past, use today
+                                if ($maxDate->lt($today)) {
+                                    $maxDate = $today;
+                                }
+                                
+                                $maxDateFormatted = $maxDate->format('Y-m-d');
+                                $minDateFormatted = $purchaseDate->format('Y-m-d');
+                            @endphp
+                            <input type="date" name="tanggal" class="form-control @error('tanggal') is-invalid @enderror" 
+                                   value="{{ old('tanggal', date('Y-m-d')) }}" 
+                                   min="{{ $minDateFormatted }}"
+                                   max="{{ $maxDateFormatted }}"
+                                   required>
+                            <small class="text-muted">
+                                Pilih tanggal retur ({{ $purchaseDate->format('d/m/Y') }} - {{ $maxDate->format('d/m/Y') }})
+                            </small>
+                            @error('tanggal')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </div>
@@ -203,8 +228,8 @@
                                                class="form-control qty-input" 
                                                data-price="{{ $detail->harga_satuan }}"
                                                value="{{ old('items.'.$index.'.qty', '') }}" 
-                                               min="0.01" max="{{ $detail->jumlah }}"
-                                               placeholder="Masukkan qty > 0">
+                                               min="0" max="{{ $detail->jumlah }}"
+                                               placeholder="0 = tidak diretur">
                                         <small class="text-muted">Min: 0.01, Max: {{ $detail->jumlah }}</small>
                                     </td>
                                     <td>

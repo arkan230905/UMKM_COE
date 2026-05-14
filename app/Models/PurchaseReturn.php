@@ -129,15 +129,25 @@ class PurchaseReturn extends Model
         return $this->total_retur;
     }
 
-    // Accessor for PPN amount (11%)
+    // Accessor for PPN amount (based on pembelian's ppn_persen)
     public function getPpnAmountAttribute()
     {
-        return $this->total_retur * 0.11;
+        // Get PPN percentage from pembelian, default to 0 if not set
+        $ppnPersen = $this->pembelian->ppn_persen ?? 0;
+        
+        // Only calculate PPN if ppn_persen > 0
+        if ($ppnPersen > 0) {
+            return $this->total_retur * ($ppnPersen / 100);
+        }
+        
+        return 0; // No PPN
     }
 
     // Accessor for total with PPN
     public function getTotalWithPpnAttribute()
     {
+        // If no PPN, total = total_retur
+        // If has PPN, total = total_retur + ppn_amount
         return $this->total_retur + $this->ppn_amount;
     }
 

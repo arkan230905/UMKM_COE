@@ -91,10 +91,10 @@ class ApSettlementController extends Controller
 
         // Update terbayar dan sisa_pembayaran di pembelian
         $pembelian->terbayar = ($pembelian->terbayar ?? 0) + (float)$request->dibayar_bersih;
-        $pembelian->sisa_pembayaran = max(0, ($pembelian->total_harga ?? 0) - $pembelian->terbayar);
+        $pembelian->sisa_pembayaran = max(0, ($pembelian->total_harga ?? 0) - $pembelian->terbayar - $pembelian->total_refund);
         
         // Update status pembelian
-        if ($pembelian->sisa_pembayaran <= 0 || $pembelian->terbayar >= ($pembelian->total_harga ?? 0)) {
+        if ($pembelian->sisa_pembayaran <= 0 || ($pembelian->terbayar + $pembelian->total_refund) >= ($pembelian->total_harga ?? 0)) {
             $pembelian->status = 'lunas';
             $pembelian->sisa_pembayaran = 0;
         } else {
@@ -184,9 +184,9 @@ class ApSettlementController extends Controller
 
         // Update terbayar di pembelian (kurangi pembayaran lama, tambah pembayaran baru)
         $pembelian->terbayar = ($pembelian->terbayar ?? 0) - (float)$oldDibayar + (float)$request->dibayar_bersih;
-        $pembelian->sisa_pembayaran = max(0, ($pembelian->total_harga ?? 0) - $pembelian->terbayar);
+        $pembelian->sisa_pembayaran = max(0, ($pembelian->total_harga ?? 0) - $pembelian->terbayar - $pembelian->total_refund);
         
-        if ($pembelian->sisa_pembayaran <= 0 || $pembelian->terbayar >= ($pembelian->total_harga ?? 0)) {
+        if ($pembelian->sisa_pembayaran <= 0 || ($pembelian->terbayar + $pembelian->total_refund) >= ($pembelian->total_harga ?? 0)) {
             $pembelian->status = 'lunas';
             $pembelian->sisa_pembayaran = 0;
         } else {
@@ -205,7 +205,7 @@ class ApSettlementController extends Controller
         // Kembalikan terbayar di pembelian
         if ($pembelian) {
             $pembelian->terbayar = max(0, ($pembelian->terbayar ?? 0) - (float)$row->dibayar_bersih);
-            $pembelian->sisa_pembayaran = max(0, ($pembelian->total_harga ?? 0) - $pembelian->terbayar);
+            $pembelian->sisa_pembayaran = max(0, ($pembelian->total_harga ?? 0) - $pembelian->terbayar - $pembelian->total_refund);
             
             if ($pembelian->sisa_pembayaran > 0) {
                 $pembelian->status = 'belum_lunas';
