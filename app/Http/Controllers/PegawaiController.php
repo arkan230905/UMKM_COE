@@ -19,13 +19,8 @@ class PegawaiController extends Controller
         $search = request('search');
         $jenis = request('jenis');
         
-        // Use safety check for multi-tenant filtering
-        $query = Pegawai::query();
-        
-        // Check if user_id column exists and filter by it
-        if (Schema::hasColumn('pegawais', 'user_id')) {
-            $query->where('user_id', auth()->id());
-        }
+        // CRITICAL: Always filter by user_id for multi-tenant
+        $query = Pegawai::where('user_id', auth()->id());
         
         // Filter berdasarkan jenis pegawai (opsional)
         if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
@@ -51,40 +46,23 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        // 🔒 SECURITY: Filter jabatans by user_id with safety check
-        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif');
+        // CRITICAL: Filter jabatans by user_id for multi-tenant
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_per_jam as tarif')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama')
+            ->get();
         
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $jabatanQuery->where('user_id', auth()->id());
-        } else {
-            // If no user_id column, return empty collection to prevent global data access
-            $jabatans = collect();
-            $kategoris = collect();
-            return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
-        }
-        
-        $jabatans = $jabatanQuery->orderBy('nama')->get();
-        
-        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
-        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
-            ->where('kategori', '!=', '');
-        
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $kategoriQuery->where('user_id', auth()->id());
-        }
-        
-        $kategoris = $kategoriQuery->distinct()
+        // Get unique kategori values from Jabatan table
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
             ->pluck('kategori')
             ->map(function($k) {
                 return strtolower($k);
             })
             ->unique()
             ->values();
-        
-        // IMPORTANT: Do NOT provide default categories if user has no data
-        // This prevents mixing user data with global data
         
         return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
@@ -94,13 +72,14 @@ class PegawaiController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
+
             // MULTI-TENANT: email unique dengan safety check
             'email' => [
                 'required',
                 'email',
                 'unique:pegawais,email'
             ],
-            'no_telepon' => 'required|string|max:20',
+'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
             'kategori' => 'required|string',
@@ -108,7 +87,32 @@ class PegawaiController extends Controller
             'bank' => 'required|string|max:100',
             'nomor_rekening' => 'required|string|max:50',
             'nama_rekening' => 'required|string|max:100',
+        ], [
+            'email.required' => 'Email harus diisi',
+            'email.email' => 'Format email tidak valid',
         ]);
+
+        // Manual check for duplicate email (karena global scope)
+        $existingPegawai = Pegawai::withoutGlobalScopes()
+            ->where('email', $validated['email'])
+            ->first();
+        
+        if ($existingPegawai) {
+            return back()
+                ->withErrors(['email' => 'Email sudah digunakan oleh pegawai lain: ' . $existingPegawai->nama])
+                ->withInput();
+        }
+
+        // Manual check for duplicate nama
+        $existingNama = Pegawai::where('user_id', auth()->id())
+            ->where('nama', $validated['nama'])
+            ->first();
+        
+        if ($existingNama) {
+            return back()
+                ->withErrors(['nama' => 'Nama pegawai sudah ada'])
+                ->withInput();
+        }
 
         $jabatan = \App\Models\Jabatan::find($validated['jabatan_id']);
         
@@ -118,8 +122,23 @@ class PegawaiController extends Controller
 
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
 
+        // Generate unique kode_pegawai
+        $lastPegawai = Pegawai::withoutGlobalScopes()
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $nextNumber = $lastPegawai ? ($lastPegawai->id + 1) : 1;
+        $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        
+        // Pastikan kode unik (jika ada yang dihapus)
+        while (Pegawai::withoutGlobalScopes()->where('kode_pegawai', $kodePegawai)->exists()) {
+            $nextNumber++;
+            $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
+
         // Prepare data for creation
         $pegawaiData = [
+            'kode_pegawai' => $kodePegawai,
             'nama' => $validated['nama'],
             'email' => $validated['email'],
             $phoneColumn => $validated['no_telepon'],
@@ -128,13 +147,15 @@ class PegawaiController extends Controller
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
             'jenis_pegawai' => strtolower($validated['kategori']),
+
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
             'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
             'tunjangan' => $jabatan->tunjangan ?? 0,
             'asuransi' => $jabatan->asuransi ?? 0,
-            'bank' => $validated['bank'],
+'bank' => $validated['bank'],
             'nomor_rekening' => $validated['nomor_rekening'],
             'nama_rekening' => $validated['nama_rekening'],
+            'user_id' => auth()->id(),
         ];
         
         // Add user_id only if column exists
@@ -182,31 +203,17 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        // 🔒 SECURITY: Filter jabatans by user_id with safety check
-        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam');
+        // CRITICAL: Filter jabatans by user_id for multi-tenant
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama')
+            ->get();
         
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $jabatanQuery->where('user_id', auth()->id());
-        } else {
-            // If no user_id column, return empty collection to prevent global data access
-            $jabatans = collect();
-            $kategoris = collect();
-            return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
-        }
-        
-        $jabatans = $jabatanQuery->orderBy('nama')->get();
-        
-        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
-        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
-            ->where('kategori', '!=', '');
-        
-        // CRITICAL: Always filter by user_id if column exists
-        if (Schema::hasColumn('jabatans', 'user_id')) {
-            $kategoriQuery->where('user_id', auth()->id());
-        }
-        
-        $kategoris = $kategoriQuery->distinct()
+        // Get unique kategori values from Jabatan table
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
             ->orderBy('kategori')
             ->pluck('kategori');
         
@@ -216,8 +223,14 @@ class PegawaiController extends Controller
     // Update data pegawai
     public function update(Request $request, Pegawai $pegawai)
     {
+        // Ensure user can only update their own pegawai
+        if ($pegawai->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $oldEmail = $pegawai->email;
         $validated = $request->validate([
+
             'nama' => 'required|string|max:255',
             // MULTI-TENANT: email unique hanya dalam scope user yang sama, kecuali record ini sendiri
             'email' => [
@@ -227,7 +240,7 @@ class PegawaiController extends Controller
                     ->where('user_id', auth()->id())
                     ->ignore($pegawai->id),
             ],
-            'no_telepon' => 'required|string|max:20',
+'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
             'kategori' => 'required|string',
@@ -255,11 +268,12 @@ class PegawaiController extends Controller
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
             'jenis_pegawai' => strtolower($validated['kategori']),
+
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
             'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
             'tunjangan' => $jabatan->tunjangan ?? 0,
             'asuransi' => $jabatan->asuransi ?? 0,
-        ];
+];
         
         // Add bank info if provided
         if (!empty($validated['bank'])) {
@@ -302,192 +316,34 @@ class PegawaiController extends Controller
         }
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
-        // Disabled to prevent timeout - will be synced in background or manually
-        // if (strtolower($jenisPegawai) === 'btkl') {
-        //     try {
-        //         \App\Services\BomSyncService::syncBomFromJabatanChange($jab->id);
-        //     } catch (\Exception $e) {
-        //         \Log::warning('BOM sync failed during pegawai update: ' . $e->getMessage());
-        //     }
-        // }
+        if (strtolower($validated['kategori']) === 'btkl') {
+            \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
+        }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
     }
 
     // Hapus pegawai
-    public function destroy(Request $request, Pegawai $pegawai)
+    public function destroy(Pegawai $pegawai)
     {
-        // Get jabatan before deleting
-        $jabatanNama = $pegawai->jabatan;
-        $jabatan = \App\Models\Jabatan::where('nama', $jabatanNama)->first();
-
-        \Log::info('Pegawai destroy started', [
-            'pegawai_key' => $pegawai->getKey(),
-            'pegawai_id' => $pegawai->id ?? null,
-            'kode_pegawai' => $pegawai->kode_pegawai ?? null,
-            'nomor_induk_pegawai' => $pegawai->nomor_induk_pegawai ?? null,
-            'expects_json' => $request->expectsJson(),
-        ]);
-
-        $pegawaiIdCandidates = [];
-        if (!empty($pegawai->kode_pegawai)) {
-            $pegawaiIdCandidates[] = (string) $pegawai->kode_pegawai;
+        // Ensure user can only delete their own pegawai
+        if ($pegawai->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
         }
-        if (!empty($pegawai->id)) {
-            $pegawaiIdCandidates[] = (string) $pegawai->id;
-        }
-        if (Schema::hasColumn('pegawais', 'nomor_induk_pegawai') && !empty($pegawai->nomor_induk_pegawai)) {
-            $pegawaiIdCandidates[] = (string) $pegawai->nomor_induk_pegawai;
-        }
-        $pegawaiIdCandidates = array_values(array_unique(array_filter($pegawaiIdCandidates)));
-
-        $blockedBy = [];
-        $blockedMessage = null;
-
+        
         try {
-            if (!empty($pegawaiIdCandidates)) {
-                if (Schema::hasTable('presensis') && Schema::hasColumn('presensis', 'pegawai_id')) {
-                    $count = Presensi::whereIn('pegawai_id', $pegawaiIdCandidates)->count();
-                    if ($count > 0) {
-                        $blockedBy['presensis'] = $count;
-                    }
-                }
-
-                if (Schema::hasTable('penggajians') && Schema::hasColumn('penggajians', 'pegawai_id')) {
-                    $count = DB::table('penggajians')->whereIn('pegawai_id', $pegawaiIdCandidates)->count();
-                    if ($count > 0) {
-                        $blockedBy['penggajians'] = $count;
-                    }
-                }
-
-                if (Schema::hasTable('pegawai_produk_allocations') && Schema::hasColumn('pegawai_produk_allocations', 'pegawai_id')) {
-                    $count = DB::table('pegawai_produk_allocations')->whereIn('pegawai_id', $pegawaiIdCandidates)->count();
-                    if ($count > 0) {
-                        $blockedBy['pegawai_produk_allocations'] = $count;
-                    }
-                }
-
-                if (Schema::hasTable('users') && Schema::hasColumn('users', 'pegawai_id')) {
-                    $count = DB::table('users')->whereIn('pegawai_id', $pegawaiIdCandidates)->count();
-                    if ($count > 0) {
-                        $blockedBy['users'] = $count;
-                    }
-                }
-            }
-
-            if (Schema::hasTable('verifikasi_wajah') && Schema::hasColumn('verifikasi_wajah', 'kode_pegawai') && !empty($pegawai->kode_pegawai)) {
-                $count = DB::table('verifikasi_wajah')->where('kode_pegawai', $pegawai->kode_pegawai)->count();
-                if ($count > 0) {
-                    $blockedBy['verifikasi_wajah'] = $count;
-                }
-            }
-
-            if (Schema::hasTable('produksi_proses') && Schema::hasColumn('produksi_proses', 'pegawai_ids') && !empty($pegawai->id)) {
-                $pidStr = (string) $pegawai->id;
-                $pidInt = is_numeric($pegawai->id) ? (int) $pegawai->id : null;
-
-                $query = DB::table('produksi_proses');
-                $count = 0;
-                try {
-                    $q = clone $query;
-                    $q->whereJsonContains('pegawai_ids', $pidStr);
-                    if ($pidInt !== null) {
-                        $q->orWhereJsonContains('pegawai_ids', $pidInt);
-                    }
-                    $count = $q->count();
-                } catch (\Throwable $e) {
-                    $count = 0;
-                }
-
-                if ($count > 0) {
-                    $blockedBy['produksi_proses'] = $count;
-                }
-            }
-
-            // Hapus user dari blockedBy karena akan dihapus otomatis
-            if (isset($blockedBy['users'])) {
-                unset($blockedBy['users']);
+            // Delete associated user account
+            $user = User::where('pegawai_id', $pegawai->id)->first();
+            if ($user) {
+                $user->delete();
             }
             
-            if (!empty($blockedBy)) {
-                $tableNames = [
-                    'presensis' => 'Data Presensi',
-                    'penggajians' => 'Data Penggajian',
-                    'pegawai_produk_allocations' => 'Alokasi Produk',
-                    'verifikasi_wajah' => 'Verifikasi Wajah',
-                    'produksi_proses' => 'Proses Produksi',
-                ];
-                
-                $blockedList = [];
-                foreach ($blockedBy as $table => $count) {
-                    $tableName = $tableNames[$table] ?? $table;
-                    $blockedList[] = "$tableName ($count data)";
-                }
-                
-                $blockedMessage = 'Pegawai tidak dapat dihapus karena masih terhubung dengan: ' . implode(', ', $blockedList) . '. Silakan hapus data terkait terlebih dahulu atau nonaktifkan pegawai.';
-
-                \Log::warning('Pegawai destroy blocked', [
-                    'pegawai_key' => $pegawai->getKey(),
-                    'blocked_by' => $blockedBy,
-                ]);
-
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $blockedMessage,
-                        'blocked_by' => $blockedBy,
-                    ], 409);
-                }
-
-                return redirect()
-                    ->route('master-data.pegawai.index')
-                    ->with('error', $blockedMessage);
-            }
-
-            $deleted = DB::transaction(function () use ($pegawai, $pegawaiIdCandidates) {
-                // Hapus user terkait terlebih dahulu
-                if (!empty($pegawaiIdCandidates)) {
-                    DB::table('users')->whereIn('pegawai_id', $pegawaiIdCandidates)->delete();
-                }
-                
-                // Hapus pegawai
-                $ok = $pegawai->delete();
-                return $ok ? 1 : 0;
-            });
-
-            if ($deleted < 1) {
-                throw new \RuntimeException('Pegawai tidak terhapus (0 rows affected).');
-            }
-        } catch (\Throwable $e) {
-            \Log::error('Gagal menghapus pegawai', [
-                'pegawai_key' => $pegawai->getKey(),
-                'message' => $e->getMessage(),
-            ]);
-
-            $message = 'Gagal menghapus pegawai: ' . $e->getMessage();
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => $message], 500);
-            }
-
-            return redirect()
-                ->route('master-data.pegawai.index')
-                ->with('error', $message);
+            // Delete pegawai
+            $pegawai->delete();
+            
+            return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->route('master-data.pegawai.index')->with('error', 'Gagal menghapus pegawai: ' . $e->getMessage());
         }
-
-        // Sync BOM when pegawai changes (affects BTKL calculations)
-        if ($jabatan && strtolower($jabatan->kategori) === 'btkl') {
-            \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
-        }
-
-        \Log::info('Pegawai destroy finished', [
-            'pegawai_key' => $pegawai->getKey(),
-            'result' => ['pegawais' => 1],
-        ]);
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Pegawai berhasil dihapus.', 'result' => ['pegawais' => 1]]);
-        }
-
-        return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
     }
 }

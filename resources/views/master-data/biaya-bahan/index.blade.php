@@ -6,7 +6,7 @@
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0 text-dark">
-            <i class="fas fa-calculator me-2"></i>Perhitungan Biaya Bahan
+            <i class="fas fa-calculator me-2"></i>Perhitungan Biaya Bahan Baku
         </h2>
     </div>
 
@@ -26,7 +26,7 @@
 
     <!-- Filter Section -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header" style="background-color: #a0826d; color: white;">
             <h6 class="mb-0">
                 <i class="fas fa-filter me-2"></i>Filter Data
             </h6>
@@ -52,7 +52,7 @@
                     <div class="col-md-2">
                         <label class="form-label d-block">&nbsp;</label>
                         <div class="btn-group w-100">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn" style="background-color: #a0826d; color: white;">
                                 <i class="fas fa-search"></i> Filter
                             </button>
                             <a href="{{ route('master-data.biaya-bahan.index') }}" class="btn btn-outline-secondary">
@@ -73,10 +73,11 @@
                     <thead class="table-warning">
                         <tr>
                             <th style="width: 3%;" class="text-center">No</th>
+
                             <th style="width: 25%;">Produk</th>
                             <th style="width: 20%;" class="text-center">Bahan Baku</th>
                             <th style="width: 22%;" class="text-end">Total Biaya Bahan Baku</th>
-                            <th style="width: 10%;" class="text-center">Status</th>
+<th style="width: 10%;" class="text-center">Status</th>
                             <th style="width: 20%;" class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -89,7 +90,7 @@
                                 $totalBiayaBahanBaku = $biaya['total_biaya_bahan_baku'] ?? 0;
                                 $totalBiayaBahanPendukung = $biaya['total_biaya_bahan_pendukung'] ?? 0;
                                 
-                                // HANYA HITUNG ITEM YANG VALID (harga > 0)
+                                // HANYA HITUNG ITEM BAHAN BAKU YANG VALID (harga > 0)
                                 $detailBahanBaku = $biaya['detail_bahan_baku'] ?? [];
                                 $detailBahanPendukung = $biaya['detail_bahan_pendukung'] ?? [];
                                 
@@ -133,11 +134,12 @@
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
                                         </small>
                                     @else
+
                                         <span class="text-muted">0 item</span>
-                                    @endif
+@endif
                                 </td>
                                 <td class="text-end">
-                                    <div class="fw-bold text-primary">
+                                    <div class="fw-bold" style="color: #a0826d;">
                                         Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
                                     </div>
                                     @if($totalBiayaBahanPendukung > 0)
@@ -167,7 +169,7 @@
                                         </div>
                                     @else
                                         <a href="{{ route('master-data.biaya-bahan.create', $produk->id) }}" 
-                                           class="btn btn-sm btn-primary" title="Input Biaya Bahan">
+                                           class="btn btn-sm" style="background-color: #a0826d; color: white;" title="Input Biaya Bahan">
                                             <i class="fas fa-plus"></i> Input
                                         </a>
                                     @endif
@@ -175,17 +177,19 @@
                             </tr>
                         @empty
                             <tr>
+
                                 <td colspan="6" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                                         <p>Belum ada data biaya bahan</p>
                                         <small>Silakan input biaya bahan untuk produk yang tersedia</small>
                                     </div>
-                                </td>
+</td>
                             </tr>
                         @endforelse
                     </tbody>
-                </table>
+
+</table>
             </div>
             
             <!-- Summary -->
@@ -197,7 +201,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="d-flex align-items-center">
-                                            <i class="fas fa-box text-primary me-2"></i>
+                                            <i class="fas fa-box me-2" style="color: #a0826d;"></i>
                                             <div>
                                                 <small class="text-muted">Total Keseluruhan:</small>
                                                 <div class="fw-bold">{{ count($produkBiaya) }} item</div>

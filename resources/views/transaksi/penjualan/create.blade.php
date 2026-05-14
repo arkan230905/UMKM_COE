@@ -4,6 +4,190 @@
 
 @section('content')
 
+<script>
+// Simple, bulletproof calculation function
+function hitungTotal() {
+    // Get all subtotals from table rows
+    let subtotalProduk = 0;
+    document.querySelectorAll('#detailTableJual tbody tr').forEach(function(row) {
+        const subtotalEl = row.querySelector('.subtotal');
+        if (subtotalEl && subtotalEl.value) {
+            const rawValue = subtotalEl.getAttribute('data-raw');
+            if (rawValue) {
+                subtotalProduk += parseFloat(rawValue);
+            } else {
+                const numStr = subtotalEl.value.replace(/\./g, '').replace(',', '.');
+                subtotalProduk += parseFloat(numStr) || 0;
+            }
+        }
+    });
+
+    // Get ongkir value
+    const ongkirEl = document.getElementById('biaya_ongkir');
+    let ongkir = 0;
+    if (ongkirEl) {
+        ongkir = parseFloat(ongkirEl.value) || 0;
+        if (ongkir === 0 && ongkirEl.selectedIndex > 0) {
+            const opt = ongkirEl.options[ongkirEl.selectedIndex];
+            if (opt) ongkir = parseFloat(opt.value) || 0;
+        }
+    }
+
+    // Get PPN percentage
+    const ppnEl = document.getElementById('ppn_persen');
+    const ppnPersen = ppnEl ? (parseFloat(ppnEl.value) || 0) : 0;
+
+    // Calculate: PPN = (Subtotal Produk + Biaya Ongkir) × PPN%
+    const totalPPN   = Math.round((subtotalProduk + ongkir) * ppnPersen / 100);
+    const totalFinal = subtotalProduk + ongkir + totalPPN;
+
+    function fmtIDR(n) { return Math.round(n).toLocaleString('id-ID'); }
+
+    // Update hidden inputs (form submission)
+    const hiddenSubtotal = document.getElementById('subtotal_produk_hidden');
+    if (hiddenSubtotal) hiddenSubtotal.value = Math.round(subtotalProduk);
+
+    const hiddenPPN = document.getElementById('total_ppn');
+    if (hiddenPPN) hiddenPPN.value = Math.round(totalPPN);
+
+    const hiddenTotal = document.getElementById('total_final');
+    if (hiddenTotal) hiddenTotal.value = Math.round(totalFinal);
+
+    // Update display spans
+    const ds = document.getElementById('display_subtotal_produk');
+    if (ds) ds.textContent = fmtIDR(subtotalProduk);
+
+    const dp = document.getElementById('display_total_ppn');
+    if (dp) dp.textContent = fmtIDR(totalPPN);
+
+    const dg = document.getElementById('display_biaya_ongkir');
+    if (dg) dg.textContent = fmtIDR(ongkir);
+
+    const df = document.getElementById('display_total_final');
+    if (df) df.textContent = fmtIDR(totalFinal);
+}
+
+// Tambah baris produk (dipanggil langsung dari onclick button)
+function tambahBarisProduk() {
+    const table = document.getElementById('detailTableJual');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    const firstRow = tbody.rows[0];
+    if (!firstRow) return;
+    
+    const clone = firstRow.cloneNode(true);
+    
+    // Reset semua input di baris baru
+    clone.querySelectorAll('input').forEach(inp => {
+        if (inp.classList.contains('jumlah')) {
+            inp.value = 1;
+            inp.setAttribute('data-max-stok', '0'); // reset stok agar validasi tidak pakai stok baris lama
+        } else if (inp.classList.contains('harga')) {
+            inp.removeAttribute('readonly');
+            inp.value = 0;
+            inp.setAttribute('readonly', 'readonly');
+            inp.removeAttribute('data-raw');
+        } else if (inp.classList.contains('diskon')) {
+            inp.value = 0;
+        } else if (inp.classList.contains('subtotal')) {
+            inp.value = 0;
+            inp.removeAttribute('data-raw');
+        }
+    });
+    
+    // Reset select
+    clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
+    
+    // Reset stok info
+    const stokInfo = clone.querySelector('.stok-info');
+    if (stokInfo) stokInfo.textContent = '';
+    
+    tbody.appendChild(clone);
+    hitungTotal();
+}
+
+// Hapus baris produk (dipanggil langsung dari onclick button)
+function hapusBarisProduk(btn) {
+    const table = document.getElementById('detailTableJual');
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+    if (rows.length <= 1) return; // minimal 1 baris
+    const tr = btn.closest('tr');
+    if (tr) {
+        tr.remove();
+        hitungTotal();
+    }
+}
+
+// Toggle opsi "Terima di" berdasarkan metode pembayaran
+function toggleSumberDana() {
+    const paymentMethod = document.getElementById('payment_method_jual').value;
+    const sumberDana    = document.getElementById('sumber_dana_jual');
+    if (!sumberDana) return;
+
+    const allOptions = sumberDana.querySelectorAll('option');
+    let firstVisible = null;
+
+    allOptions.forEach(opt => {
+        const tipe = opt.getAttribute('data-tipe'); // 'kas', 'bank', 'piutang'
+        let show = true;
+
+        if (paymentMethod === 'cash') {
+            show = (tipe === 'kas');
+        } else if (paymentMethod === 'transfer') {
+            show = (tipe === 'bank');
+        } else if (paymentMethod === 'credit') {
+            show = (tipe === 'piutang');
+        }
+
+        opt.style.display = show ? '' : 'none';
+        opt.disabled = !show;
+        if (show && !firstVisible) firstVisible = opt;
+    });
+
+    // Kalau pilihan saat ini tersembunyi, pilih yang pertama visible
+    const currentOpt = sumberDana.options[sumberDana.selectedIndex];
+    if (!currentOpt || currentOpt.disabled) {
+        if (firstVisible) sumberDana.value = firstVisible.value;
+    }
+}
+
+// Jalankan saat halaman pertama kali load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleSumberDana();
+});
+
+// Handler barcode input — dipanggil langsung dari oninput di HTML
+function handleBarcodeOninput(value) {
+    value = value.trim();
+
+    if (!value) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    // Hanya proses input numerik
+    if (!/^\d+$/.test(value)) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    // Input panjang (>= 8 digit) → proses sebagai barcode lengkap
+    if (value.length >= 8) {
+        document.getElementById('search-results').style.display = 'none';
+        setTimeout(() => {
+            const current = document.getElementById('barcode-scanner').value.trim();
+            if (current === value) processAutomaticBarcode(value);
+        }, 100);
+        return;
+    }
+
+    // Input pendek (1-7 digit) → tampilkan search results
+    performRealTimeSearch(value);
+}
+</script>
+
 <style>
 /* Enhanced search result styling */
 .search-result-item {
@@ -77,7 +261,7 @@ mark.bg-warning {
             </div>
             <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
-                <select name="payment_method" id="payment_method_jual" class="form-select" required>
+                <select name="payment_method" id="payment_method_jual" class="form-select" required onchange="toggleSumberDana()">
                     <option value="cash" selected>Tunai</option>
                     <option value="transfer">Transfer Bank</option>
                     <option value="credit">Kredit</option>
@@ -87,7 +271,17 @@ mark.bg-warning {
                 <label class="form-label">Terima di</label>
                 <select name="sumber_dana" id="sumber_dana_jual" class="form-select">
                     @foreach($kasbank as $kb)
-                        <option value="{{ $kb->kode_akun }}">
+                        @php
+                            $kode = $kb->kode_akun;
+                            if ($kode === '118' || stripos($kb->nama_akun, 'piutang') !== false) {
+                                $tipe = 'piutang';
+                            } elseif ($kode === '111' || stripos($kb->nama_akun, 'bank') !== false) {
+                                $tipe = 'bank';
+                            } else {
+                                $tipe = 'kas'; // 112, 113, dll
+                            }
+                        @endphp
+                        <option value="{{ $kb->kode_akun }}" data-tipe="{{ $tipe }}">
                             {{ $kb->nama_akun }} ({{ $kb->kode_akun }})
                         </option>
                     @endforeach
@@ -107,7 +301,8 @@ mark.bg-warning {
                         <div class="input-group">
                             <input type="text" id="barcode-scanner" class="form-control form-control-lg" 
                                    placeholder="Ketik atau scan barcode..." 
-                                   autocomplete="off" autofocus>
+                                   autocomplete="off" autofocus
+                                   oninput="handleBarcodeOninput(this.value)">
                             <div class="input-group-text bg-success text-white">
                                 <i class="fas fa-wifi me-1"></i>
                                 <span id="scan-indicator">Siap Scan</span>
@@ -147,64 +342,203 @@ mark.bg-warning {
                         <th class="text-end">Harga/Satuan</th>
                         <th class="text-end">Diskon (%)</th>
                         <th class="text-end">Subtotal</th>
-                        <th style="width:6%"><button class="btn btn-success btn-sm" type="button" id="addRowJual">+</button></th>
+                        <th style="width:6%"><button class="btn btn-success btn-sm" type="button" id="addRowJual" onclick="tambahBarisProduk()">+</button></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>
-                            <select name="produk_id[]" class="form-select produk-select" required>
+                            <select name="produk_id[]" class="form-select produk-select" required onchange="
+                                const tr = this.closest('tr');
+                                const hargaInput = tr.querySelector('.harga');
+                                const subtotalInput = tr.querySelector('.subtotal');
+                                const qtyInput = tr.querySelector('.jumlah');
+                                const stokInfo = tr.querySelector('.stok-info');
+                                const selectedOption = this.options[this.selectedIndex];
+                                
+                                if (!this.value) {
+                                    hargaInput.removeAttribute('readonly');
+                                    hargaInput.value = 0;
+                                    hargaInput.setAttribute('readonly', 'readonly');
+                                    subtotalInput.value = 0;
+                                    qtyInput.setAttribute('data-max-stok', '0');
+                                    if (stokInfo) stokInfo.textContent = '';
+                                    hitungTotal();
+                                    return;
+                                }
+                                
+                                const harga = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                                const stok  = parseFloat(selectedOption.getAttribute('data-stok')  || '0') || 0;
+                                const qty = parseFloat(qtyInput.value) || 1;
+                                const diskon = parseFloat(tr.querySelector('.diskon').value) || 0;
+                                const subtotal = qty * harga * (1 - diskon / 100);
+                                
+                                hargaInput.removeAttribute('readonly');
+                                hargaInput.value = harga.toLocaleString('id-ID');
+                                hargaInput.setAttribute('readonly', 'readonly');
+                                hargaInput.setAttribute('data-raw', harga);
+                                subtotalInput.value = subtotal.toLocaleString('id-ID');
+                                subtotalInput.setAttribute('data-raw', subtotal);
+                                
+                                // Simpan stok ke data-max-stok agar validasi qty bisa membacanya
+                                qtyInput.setAttribute('data-max-stok', stok);
+                                
+                                // Tampilkan info stok di bawah select
+                                if (stokInfo) {
+                                    stokInfo.textContent = 'Stok tersedia: ' + stok.toLocaleString('id-ID');
+                                    stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+                                }
+                                
+                                hitungTotal();
+                            ">
                                 <option value="">-- Pilih Produk --</option>
-                                @foreach($produks as $p)
-                                    <option value="{{ $p->id }}" 
-                                            data-price="{{ round($p->harga_jual ?? 0) }}"
-                                            data-stok="{{ $p->stok ?? 0 }}">
-                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok ?? 0, 0, ',', '.') }})
-                                    </option>
-                                @endforeach
+                                <optgroup label="Produk Individual">
+                                    @foreach($produks as $p)
+                                        <option value="{{ $p->id }}" 
+                                                data-price="{{ $p->harga_jual ?? 0 }}"
+                                                data-stok="{{ $p->stok ?? 0 }}"
+                                                data-type="produk"
+                                                data-nama="{{ $p->nama_produk ?? $p->nama }}">
+                                            {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok ?? 0, 0, ',', '.') }})
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                @if($paketMenus->count() > 0)
+                                <optgroup label="Paket Menu">
+                                    @foreach($paketMenus as $paket)
+                                        <option value="paket_{{ $paket->id }}" 
+                                                data-price="{{ round($paket->harga_paket ?? 0) }}"
+                                                data-stok="999"
+                                                data-type="paket"
+                                                data-paket-id="{{ $paket->id }}"
+                                                data-paket-details="{{ json_encode($paket->details->map(function($d) { return ['produk_id' => $d->produk_id, 'jumlah' => $d->jumlah, 'nama_produk' => $d->produk->nama_produk ?? $d->produk->nama]; })) }}">
+                                            {{ $paket->nama_paket }} - Rp {{ number_format($paket->harga_paket, 0, ',', '.') }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                @endif
                             </select>
                             <small class="text-muted stok-info"></small>
                         </td>
-                        <td><input type="number" step="1" min="1" name="jumlah[]" class="form-control jumlah" value="1" required></td>
-                        <td><input type="text" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
-                        <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0"></td>
+                        <td><input type="number" step="1" min="1" name="jumlah[]" class="form-control jumlah" value="1" required onchange="
+                            const tr = this.closest('tr');
+                            if (!validateStock(tr)) return;
+                            const hargaInput = tr.querySelector('.harga');
+                            const harga = parseFloat(hargaInput.getAttribute('data-raw') || hargaInput.value.replace(/\./g,'').replace(',','.')) || 0;
+                            const qty = parseFloat(this.value) || 1;
+                            const diskon = parseFloat(tr.querySelector('.diskon').value) || 0;
+                            const subtotal = qty * harga * (1 - diskon / 100);
+                            const subtotalInput = tr.querySelector('.subtotal');
+                            subtotalInput.value = subtotal.toLocaleString('id-ID');
+                            subtotalInput.setAttribute('data-raw', subtotal);
+                            hitungTotal();
+                        " oninput="
+                            const tr = this.closest('tr');
+                            const hargaInput = tr.querySelector('.harga');
+                            const harga = parseFloat(hargaInput.getAttribute('data-raw') || hargaInput.value.replace(/\./g,'').replace(',','.')) || 0;
+                            const qty = parseFloat(this.value) || 1;
+                            const diskon = parseFloat(tr.querySelector('.diskon').value) || 0;
+                            const subtotal = qty * harga * (1 - diskon / 100);
+                            const subtotalInput = tr.querySelector('.subtotal');
+                            subtotalInput.value = subtotal.toLocaleString('id-ID');
+                            subtotalInput.setAttribute('data-raw', subtotal);
+                            hitungTotal();
+                        "></td>
+                        <td><input type="text" name="harga_satuan[]" class="form-control harga" value="0" readonly required style="background-color: #e9ecef; cursor: not-allowed;"></td>
+                        <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0" onchange="
+                            const tr = this.closest('tr');
+                            const hargaInput = tr.querySelector('.harga');
+                            const harga = parseFloat(hargaInput.getAttribute('data-raw') || hargaInput.value.replace(/\./g,'').replace(',','.')) || 0;
+                            const qty = parseFloat(tr.querySelector('.jumlah').value) || 1;
+                            const diskon = parseFloat(this.value) || 0;
+                            const subtotal = qty * harga * (1 - diskon / 100);
+                            const subtotalInput = tr.querySelector('.subtotal');
+                            subtotalInput.value = subtotal.toLocaleString('id-ID');
+                            subtotalInput.setAttribute('data-raw', subtotal);
+                            hitungTotal();
+                        "></td>
                         <td><input type="text" class="form-control subtotal" value="0" readonly></td>
-                        <td><button type="button" class="btn btn-danger btn-sm removeRow">-</button></td>
+                        <td><button type="button" class="btn btn-danger btn-sm removeRow" onclick="hapusBarisProduk(this)">-</button></td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="row g-3 mt-3">
-            <div class="col-md-3 ms-auto">
-                <label class="form-label">Subtotal Produk</label>
-                <input type="text" name="subtotal_produk" class="form-control" value="0" readonly>
+        <!-- Hidden inputs for form submission -->
+        <input type="hidden" name="subtotal_produk" id="subtotal_produk_hidden" value="0">
+        <input type="hidden" name="total_ppn" id="total_ppn" value="0">
+        <input type="hidden" name="total" id="total_final" value="0">
+
+        <!-- Ringkasan Pembayaran Card -->
+        <div class="card mt-4 border-0" style="background:#f8f9fa; border-radius:12px;">
+            <div class="card-body px-4 py-3">
+
+                <!-- Row: Subtotal Produk -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="text-muted">Subtotal Produk</span>
+                    <span class="fw-semibold">Rp <span id="display_subtotal_produk">0</span></span>
+                </div>
+
+                <!-- Row: Biaya Ongkir -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted me-2">Biaya Ongkir</span>
+                        <select name="biaya_ongkir" id="biaya_ongkir"
+                                class="form-select form-select-sm"
+                                style="width:220px;"
+                                onchange="hitungTotal();">
+                            <option value="0">Tanpa Ongkir</option>
+                            @foreach($ongkirSettings as $ongkir)
+                                <option value="{{ (int)$ongkir->harga_ongkir }}">
+                                    {{ $ongkir->getJarakLabel() }} - Rp {{ number_format($ongkir->harga_ongkir, 0, ',', '.') }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <span class="fw-semibold">Rp <span id="display_biaya_ongkir">0</span></span>
+                </div>
+
+                <!-- Row: PPN -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-2">PPN (%)</span>
+                        <input type="number" name="ppn_persen" id="ppn_persen"
+                               class="form-control form-control-sm"
+                               style="width:80px;"
+                               value="11" min="0" max="100" step="0.01"
+                               oninput="hitungTotal();"
+                               onchange="hitungTotal();">
+                        <span class="text-muted ms-4">Total PPN</span>
+                    </div>
+                    <span class="fw-semibold">Rp <span id="display_total_ppn">0</span></span>
+                </div>
+
+                <!-- Separator -->
+                <hr class="my-2">
+
+                <!-- Row: Total Bayar -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-semibold">Total Bayar</span>
+                    <span class="fw-bold text-success" style="font-size:1.25rem;">Rp <span id="display_total_final">0</span></span>
+                </div>
+
             </div>
         </div>
 
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Biaya Ongkir</label>
-                <input type="number" step="0.01" min="0" name="biaya_ongkir" class="form-control" value="0" id="biaya_ongkir">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Biaya Service</label>
-                <input type="number" step="0.01" min="0" name="biaya_service" class="form-control" value="0" id="biaya_service">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">PPN (%)</label>
-                <input type="number" step="0.01" min="0" max="100" name="ppn_persen" class="form-control" value="11" id="ppn_persen">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Total PPN</label>
-                <input type="text" name="total_ppn" class="form-control" value="0" readonly id="total_ppn">
-            </div>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-md-4 ms-auto">
-                <label class="form-label">Total Final</label>
-                <input type="text" name="total" class="form-control" value="0" readonly id="total_final">
+        {{-- Notifikasi validasi jurnal real-time --}}
+        <div id="jurnal-validation-alert" class="alert alert-warning d-none mt-3" role="alert">
+            <div class="d-flex align-items-start gap-2">
+                <i class="fas fa-exclamation-triangle mt-1 flex-shrink-0"></i>
+                <div class="flex-grow-1">
+                    <strong>Perhatian: Beberapa akun jurnal belum tersedia</strong>
+                    <div id="jurnal-missing-list" class="mt-1 small"></div>
+                    <div class="mt-2">
+                        <a href="{{ route('master-data.coa.create') }}" target="_blank" class="btn btn-warning btn-sm">
+                            <i class="fas fa-plus me-1"></i>Tambah Akun COA
+                        </a>
+                        <small class="text-muted ms-2">Transaksi tetap bisa disimpan, jurnal akan dibuat setelah akun dilengkapi.</small>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -256,12 +590,12 @@ mark.bg-warning {
         
         // Get total
         const totalInput = document.getElementById('total_final');
+
         console.log('Total input value:', totalInput ? totalInput.value : 'null');
         
         const total = parseCurrency(totalInput.value);
         console.log('Parsed total:', total);
-        
-        if (total <= 0) {
+if (total <= 0) {
             console.error('Total is zero or negative');
             alert('Total pembayaran harus lebih dari 0');
             return;
@@ -275,6 +609,7 @@ mark.bg-warning {
         tableRows.forEach(row => {
             const produkSelect = row.querySelector('.produk-select');
             if (produkSelect && produkSelect.value) {
+
                 const itemData = {
                     produk_id: produkSelect.value,
                     jumlah: row.querySelector('.jumlah').value,
@@ -284,22 +619,26 @@ mark.bg-warning {
                 };
                 console.log('Adding item:', itemData);
                 tableData.push(itemData);
-            }
+}
         });
         
         console.log('Total items:', tableData.length);
         
         // Prepare data for payment
+        const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
+        const subtotalProdukVal = document.getElementById('subtotal_produk_hidden').value;
+        const totalPPNVal = document.getElementById('total_ppn').value;
+        const totalDiskon = tableData.reduce(function(sum, item) { return sum + (item.diskon_nominal || 0); }, 0);
         const paymentData = {
             tanggal: document.querySelector('input[name="tanggal"]').value,
             waktu: document.querySelector('input[name="waktu"]').value,
             payment_method: paymentMethod,
             sumber_dana: document.getElementById('sumber_dana_jual').value,
-            subtotal_produk: parseCurrency(document.querySelector('input[name="subtotal_produk"]').value),
-            biaya_ongkir: parseFloat(document.getElementById('biaya_ongkir').value) || 0,
-            biaya_service: parseFloat(document.getElementById('biaya_service').value) || 0,
+            subtotal_produk: parseFloat(subtotalProdukVal) || 0,
+            total_diskon: totalDiskon,
+            biaya_ongkir: biayaOngkir,
             ppn_persen: parseFloat(document.getElementById('ppn_persen').value) || 0,
-            total_ppn: parseCurrency(document.getElementById('total_ppn').value),
+            total_ppn: parseFloat(totalPPNVal) || 0,
             total: total,
             items: tableData
         };
@@ -356,13 +695,15 @@ mark.bg-warning {
 // Product data for barcode lookup
 const productData = {
     @foreach($produks as $p)
-    '{{ $p->barcode ?? '' }}': {
+    @if($p->barcode)
+    '{{ trim($p->barcode) }}': {
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
         harga: {{ round($p->harga_jual ?? 0) }},
         stok: {{ $p->stok ?? 0 }},
-        barcode: '{{ $p->barcode ?? '' }}'
+        barcode: '{{ trim($p->barcode) }}'
     },
+    @endif
     @endforeach
 };
 
@@ -375,14 +716,34 @@ const searchableProducts = [
         harga: {{ round($p->harga_jual ?? 0) }},
         stok: {{ $p->stok ?? 0 }},
         barcode: '{{ $p->barcode ?? '' }}',
+        type: 'produk',
         searchText: '{{ strtolower(addslashes($p->nama_produk ?? $p->nama)) }} {{ $p->barcode ?? '' }}'.toLowerCase()
+    },
+    @endforeach
+    @foreach($paketMenus as $paket)
+    {
+        id: 'paket_{{ $paket->id }}',
+        nama: '{{ addslashes($paket->nama_paket) }}',
+        harga: {{ round($paket->harga_paket ?? 0) }},
+        stok: 999,
+        barcode: '',
+        type: 'paket',
+        paket_id: {{ $paket->id }},
+        paket_details: {!! json_encode($paket->details->map(function($d) { return ['produk_id' => $d->produk_id, 'jumlah' => $d->jumlah, 'nama_produk' => $d->produk->nama_produk ?? $d->produk->nama]; })) !!},
+        searchText: '{{ strtolower(addslashes($paket->nama_paket)) }} paket menu'.toLowerCase()
     },
     @endforeach
 ];
 
 // Debug: Log productData to console
-console.log('Product Data:', productData);
-console.log('Searchable Products:', searchableProducts);
+console.log('Product Data loaded:', Object.keys(productData).length, 'products');
+console.log('Searchable Products loaded:', searchableProducts.length, 'products');
+
+// Verify searchableProducts has prices
+if (searchableProducts.length > 0) {
+    console.log('First product in searchableProducts:', searchableProducts[0]);
+    console.log('First product harga:', searchableProducts[0].harga);
+}
 
 // Global utility functions (must be outside DOMContentLoaded)
 function formatCurrency(value) {
@@ -398,78 +759,160 @@ function parseCurrency(formattedValue) {
     return parseFloat(formattedValue.toString().replace(/[^\d]/g, '')) || 0;
 }
 
+// SIMPLE function to set price manually
+function setPriceManual(option, harga) {
+    console.log('setPriceManual called with harga:', harga);
+    
+    // Find the select element and then the row
+    const select = option.parentElement.parentElement;
+    const tr = select.closest('tr');
+    const hargaInput = tr.querySelector('.harga');
+    
+    // Remove readonly, set value, add readonly back
+    hargaInput.removeAttribute('readonly');
+    hargaInput.value = harga;
+    hargaInput.setAttribute('readonly', 'readonly');
+    
+    console.log('Price set to:', hargaInput.value);
+    
+    // Recalculate
+    recalcRow(tr);
+    hitungTotal();
+}
+
 // Global functions for barcode system
+function handleProdukChange(selectElement) {
+    const tr = selectElement.closest('tr');
+    const hargaInput = tr.querySelector('.harga');
+    
+    console.log('handleProdukChange called');
+    console.log('Selected value:', selectElement.value);
+    
+    if (!selectElement.value) {
+        hargaInput.value = 0;
+        recalcRow(tr);
+        hitungTotal();
+        return;
+    }
+    
+    // Ambil harga dari data-price
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const harga = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+    
+    console.log('Data-price attribute:', selectedOption.getAttribute('data-price'));
+    console.log('Parsed harga:', harga);
+    
+    // Set harga — store raw number in data-raw, display formatted
+    hargaInput.removeAttribute('readonly');
+    hargaInput.value = harga.toLocaleString('id-ID');
+    hargaInput.setAttribute('readonly', 'readonly');
+    hargaInput.setAttribute('data-raw', harga);
+    
+    // Recalculate row and total
+    recalcRow(tr);
+    hitungTotal();
+    
+    // Update stock info
+    const stok = parseFloat(selectedOption.getAttribute('data-stok')) || 0;
+    const stokInfo = tr.querySelector('.stok-info');
+    if (stokInfo) {
+        stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
+        stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+    }
+}
+
+function updateSubtotal(qtyInput) {
+    const tr = qtyInput.closest('tr');
+    recalcRow(tr);
+    hitungTotal();
+}
+
 function recalcRow(tr) {
     const q = Math.round(parseFloat(tr.querySelector('.jumlah').value) || 0);
-    tr.querySelector('.jumlah').value = q; // Ensure integer display
-    const p = parseCurrency(tr.querySelector('.harga').value) || 0;
+    tr.querySelector('.jumlah').value = q;
+    const hargaEl = tr.querySelector('.harga');
+    // Baca data-raw (nilai numerik murni), fallback strip titik ribuan
+    const p = parseFloat(hargaEl.getAttribute('data-raw') || hargaEl.value.replace(/\./g, '').replace(',', '.')) || 0;
     const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
     const sub = q * p;
     const dNom = sub * (dPct/100.0);
     const line = Math.max(sub - dNom, 0);
-    tr.querySelector('.subtotal').value = formatCurrency(line);
+    // Format as Indonesian number without Rp prefix (e.g., "25.000")
+    tr.querySelector('.subtotal').value = Math.round(line).toLocaleString('id-ID');
+    // Store raw value for calculations
+    tr.querySelector('.subtotal').setAttribute('data-raw', line);
+    hitungTotal();
 }
 
-function recalcTotal() {
-    const table = document.getElementById('detailTableJual');
-    let sum = 0;
-    table.querySelectorAll('tbody tr').forEach(tr => {
-        const val = (tr.querySelector('.subtotal').value || 'Rp 0').replace(/[^\d]/g,'');
-        sum += parseFloat(val) || 0;
-    });
-    
-    // Update subtotal produk
-    const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
-    if (subtotalProdukInput) {
-        subtotalProdukInput.value = formatCurrency(sum);
-    }
-    
-    // Get additional costs
-    const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
-    const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
-    const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
-    
-    // Calculate PPN base (subtotal + ongkir + service)
-    const ppnBase = sum + biayaOngkir + biayaService;
-    const totalPPN = ppnBase * (ppnPersen / 100);
-    
-    // Update PPN
-    const totalPPNInput = document.getElementById('total_ppn');
-    if (totalPPNInput) {
-        totalPPNInput.value = formatCurrency(totalPPN);
-    }
-    
-    // Calculate final total
-    const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
-    
-    // Update total
-    const totalInput = document.getElementById('total_final');
-    if (totalInput) {
-        totalInput.value = formatCurrency(finalTotal);
-    }
-}
 
 function setPriceFromSelect(tr) {
     const sel = tr.querySelector('.produk-select');
     const opt = sel.options[sel.selectedIndex];
-    const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
-    const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
     
-    tr.querySelector('.harga').value = formatCurrency(price);
+    // If no product is selected, reset to defaults
+    if (!opt || !opt.value) {
+        tr.querySelector('.harga').value = 0;
+        const stokInfo = tr.querySelector('.stok-info');
+        if (stokInfo) stokInfo.textContent = '';
+        const qtyInput = tr.querySelector('.jumlah');
+        qtyInput.setAttribute('data-max-stok', '0');
+        qtyInput.setAttribute('data-type', 'produk');
+        recalcRow(tr);
+        hitungTotal();
+        return;
+    }
+    
+    const selectedVal = opt.value;
+    const type = opt.getAttribute('data-type') || 'produk';
+    
+    // Read price from data attribute
+    let price = parseFloat(opt.getAttribute('data-price') || '0') || 0;
+    let stok  = parseFloat(opt.getAttribute('data-stok')  || '0') || 0;
+    
+    // Fallback: look up in searchableProducts if price is still 0
+    if (price === 0 && type !== 'paket') {
+        const found = searchableProducts.find(p => String(p.id) === String(selectedVal));
+        if (found) {
+            price = found.harga;
+            stok  = found.stok;
+        }
+    }
+    
+    // Set price — store raw number in data-raw, display formatted
+    const hargaInput = tr.querySelector('.harga');
+    hargaInput.removeAttribute('readonly');
+    hargaInput.value = price.toLocaleString('id-ID');
+    hargaInput.setAttribute('readonly', 'readonly');
+    hargaInput.setAttribute('data-raw', price);
     
     // Update stok info
     const stokInfo = tr.querySelector('.stok-info');
-    if (stokInfo && opt.value) {
-        stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
-        stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+    if (stokInfo) {
+        if (type === 'paket') {
+            try {
+                const paketDetails = JSON.parse(opt.getAttribute('data-paket-details') || '[]');
+                const detailText = paketDetails.map(d => `${d.nama_produk} (${d.jumlah})`).join(', ');
+                stokInfo.innerHTML = `<span class="text-primary"><i class="fas fa-box me-1"></i><strong>Paket:</strong> ${detailText}</span>`;
+            } catch(e) {
+                stokInfo.textContent = 'Paket Menu';
+            }
+        } else {
+            stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
+            stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+        }
     }
     
-    // Set max qty to available stock
     const qtyInput = tr.querySelector('.jumlah');
     qtyInput.setAttribute('data-max-stok', stok);
+    qtyInput.setAttribute('data-type', type);
     
-    recalcRow(tr); 
-    recalcTotal();
+    if (type === 'paket') {
+        qtyInput.setAttribute('data-paket-details', opt.getAttribute('data-paket-details') || '[]');
+        qtyInput.setAttribute('data-paket-id', opt.getAttribute('data-paket-id') || '');
+    }
+    
+    recalcRow(tr);
+    hitungTotal();
 }
 
 function validateStock(tr) {
@@ -536,74 +979,78 @@ function performRealTimeSearch(query) {
         return;
     }
     
-    console.log('Searching for products with barcode starting with:', query);
+    const queryLower = query.toLowerCase();
     
-    // Search in products with priority for barcode prefix match
+    // Search in products: barcode prefix match OR name contains query
     const results = searchableProducts.filter(product => {
         // Priority 1: Barcode starts with query (exact prefix match)
-        if (product.barcode && product.barcode.startsWith(query)) {
-            console.log('Found barcode prefix match:', product.barcode, 'for product:', product.nama);
+        if (product.barcode && product.barcode.toLowerCase().startsWith(queryLower)) {
             return true;
         }
-        // Priority 2: Product name contains query (fallback for name search)
-        if (product.searchText.includes(query.toLowerCase())) {
-            console.log('Found name match:', product.nama, 'for query:', query);
+        // Priority 2: Product name or searchText contains query
+        if (product.searchText && product.searchText.includes(queryLower)) {
             return true;
         }
         return false;
     })
     .sort((a, b) => {
-        // Sort by priority: barcode prefix matches first
-        const aStartsWithBarcode = a.barcode && a.barcode.startsWith(query);
-        const bStartsWithBarcode = b.barcode && b.barcode.startsWith(query);
-        
-        if (aStartsWithBarcode && !bStartsWithBarcode) return -1;
-        if (!aStartsWithBarcode && bStartsWithBarcode) return 1;
-        
-        // If both or neither start with barcode, sort by name
+        const aBarcode = a.barcode && a.barcode.toLowerCase().startsWith(queryLower);
+        const bBarcode = b.barcode && b.barcode.toLowerCase().startsWith(queryLower);
+        if (aBarcode && !bBarcode) return -1;
+        if (!aBarcode && bBarcode) return 1;
         return a.nama.localeCompare(b.nama);
     })
-    .slice(0, 10); // Limit to 10 results for performance
-    
-    console.log('Search results count:', results.length);
+    .slice(0, 10);
     
     if (results.length > 0) {
         searchCount.textContent = results.length;
         
         let html = '';
         results.forEach(product => {
-            const stockBadge = product.stok > 0 ? 
-                `<span class="badge bg-success">${product.stok}</span>` : 
-                `<span class="badge bg-danger">Habis</span>`;
+            let stockBadge, barcodeDisplay, onclickAction;
             
-            // Highlight matching part in barcode for prefix matches
-            let barcodeDisplay = '';
-            if (product.barcode) {
-                if (product.barcode.startsWith(query)) {
-                    // Highlight the matching prefix
-                    const matchedPart = product.barcode.substring(0, query.length);
-                    const remainingPart = product.barcode.substring(query.length);
-                    barcodeDisplay = `<code class="text-primary"><mark class="bg-warning text-dark">${matchedPart}</mark>${remainingPart}</code>`;
-                } else {
-                    barcodeDisplay = `<code class="text-primary">${product.barcode}</code>`;
-                }
+            if (product.type === 'paket') {
+                // For paket menu
+                stockBadge = `<span class="badge bg-info">Paket</span>`;
+                barcodeDisplay = `<small class="text-info"><i class="fas fa-box"></i> Paket Menu</small>`;
+                onclickAction = `selectPaketFromSearch('${product.id}', '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${JSON.stringify(product.paket_details).replace(/"/g, '&quot;')})`;
             } else {
-                barcodeDisplay = '<small class="text-muted">No barcode</small>';
+                // For regular product
+                stockBadge = product.stok > 0 ? 
+                    `<span class="badge bg-success">${product.stok}</span>` : 
+                    `<span class="badge bg-danger">Habis</span>`;
+                
+                // Highlight matching part in barcode
+                if (product.barcode) {
+                    const idx = product.barcode.indexOf(query);
+                    if (idx !== -1) {
+                        const before = product.barcode.substring(0, idx);
+                        const match  = product.barcode.substring(idx, idx + query.length);
+                        const after  = product.barcode.substring(idx + query.length);
+                        barcodeDisplay = `<code class="text-primary">${before}<mark class="bg-warning text-dark">${match}</mark>${after}</code>`;
+                    } else {
+                        barcodeDisplay = `<code class="text-primary">${product.barcode}</code>`;
+                    }
+                } else {
+                    barcodeDisplay = '<small class="text-muted">No barcode</small>';
+                }
+                
+                onclickAction = `selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})`;
             }
             
             html += `
                 <div class="d-flex justify-content-between align-items-center py-1 border-bottom search-result-item" 
                      style="cursor: pointer;" 
-                     onclick="selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})"
+                     onclick="${onclickAction}"
                      onmouseover="this.style.backgroundColor='#f8f9fa'" 
                      onmouseout="this.style.backgroundColor=''">
                     <div class="flex-grow-1">
                         <div class="fw-bold text-dark">${product.nama}</div>
-                        <small class="text-muted">${barcodeDisplay} * Rp ${product.harga.toLocaleString('id-ID')}</small>
+                        <small class="text-muted">${barcodeDisplay} &bull; Rp ${product.harga.toLocaleString('id-ID')}</small>
                     </div>
                     <div class="text-end">
                         ${stockBadge}
-                        <button type="button" class="btn btn-sm btn-primary ms-2" onclick="event.stopPropagation(); selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})">
+                        <button type="button" class="btn btn-sm btn-primary ms-2" onclick="event.stopPropagation(); ${onclickAction}">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
@@ -618,7 +1065,7 @@ function performRealTimeSearch(query) {
         searchResultsBody.innerHTML = `
             <div class="text-center text-muted py-2">
                 <i class="fas fa-search me-1"></i>
-                Tidak ada produk dengan barcode yang diawali "${query}"
+                Tidak ada produk yang cocok dengan "<strong>${query}</strong>"
             </div>
         `;
         searchResults.style.display = 'block';
@@ -637,6 +1084,74 @@ function selectProductFromSearch(productId, productName, price, stock) {
     try {
         addProductByBarcode(product);
         showNotification('Produk ditambahkan: ' + productName, 'success');
+        
+        // Clear search
+        document.getElementById('barcode-scanner').value = '';
+        document.getElementById('search-results').style.display = 'none';
+        
+        // Reset scan indicator to "Siap Scan" after product selection
+        const scanIndicator = document.getElementById('scan-indicator');
+        if (scanIndicator) {
+            scanIndicator.textContent = 'Siap Scan';
+            scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+        }
+        
+        // Focus back to barcode input
+        setTimeout(() => {
+            document.getElementById('barcode-scanner').focus();
+        }, 100);
+        
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+// Select paket menu from search results
+function selectPaketFromSearch(paketId, paketName, price, paketDetails) {
+    try {
+        // Find first empty row or create new one
+        const table = document.getElementById('detailTableJual');
+        const tbody = table.querySelector('tbody');
+        let targetRow = null;
+        const rows = tbody.querySelectorAll('tr');
+        
+        // Look for empty row (no product selected)
+        for (let row of rows) {
+            const select = row.querySelector('.produk-select');
+            if (!select || !select.value) {
+                targetRow = row;
+                break;
+            }
+        }
+        
+        // If no empty row found, create new one
+        if (!targetRow) {
+            targetRow = createNewRow();
+            tbody.appendChild(targetRow);
+        }
+        
+        // Fill the row with paket data
+        const select = targetRow.querySelector('.produk-select');
+        const qtyInput = targetRow.querySelector('.jumlah');
+        const hargaInput = targetRow.querySelector('.harga');
+        const diskonInput = targetRow.querySelector('.diskon');
+        
+        select.value = paketId;
+        qtyInput.value = 1;
+        hargaInput.value = formatCurrency(price);
+        diskonInput.value = 0;
+        
+        // Update stock info for paket
+        setPriceFromSelect(targetRow);
+        
+        // Recalculate
+        recalcRow(targetRow);
+        hitungTotal();
+        
+        // Highlight row
+        highlightRow(targetRow);
+        
+        showNotification('Paket menu ditambahkan: ' + paketName, 'success');
         
         // Clear search
         document.getElementById('barcode-scanner').value = '';
@@ -678,19 +1193,12 @@ function handleBarcodeInputEnhanced(value) {
         return;
     }
     
-    // Only show search results for numeric input (barcode search) and manual typing
-    if (/^\d+$/.test(value)) {
-        // Set timeout for real-time search for numeric input
-        searchTimeout = setTimeout(() => {
-            // Double check we're not processing a barcode scan
-            if (!isProcessing) {
-                performRealTimeSearch(value);
-            }
-        }, SEARCH_DELAY);
-    } else {
-        // Hide search results for non-numeric input
-        document.getElementById('search-results').style.display = 'none';
-    }
+    // Tampilkan hasil pencarian untuk semua jenis input (angka maupun huruf)
+    searchTimeout = setTimeout(() => {
+        if (!isProcessing) {
+            performRealTimeSearch(value);
+        }
+    }, SEARCH_DELAY);
 }
 
 // Safety mechanism to reset processing state if stuck
@@ -742,7 +1250,9 @@ function processAutomaticBarcode(barcode) {
     if (isProcessing) return;
     
     isProcessing = true;
-    console.log('Auto-processing barcode:', barcode);
+    // Bersihkan barcode dari semua whitespace dan karakter non-printable
+    barcode = barcode.replace(/[\s\r\n\t]/g, '').trim();
+    console.log('Auto-processing barcode:', JSON.stringify(barcode), 'length:', barcode.length);
     
     const barcodeInput = document.getElementById('barcode-scanner');
     const scanIndicator = document.getElementById('scan-indicator');
@@ -751,7 +1261,7 @@ function processAutomaticBarcode(barcode) {
     // Hide search results when processing exact barcode
     searchResults.style.display = 'none';
     
-    // Clear input immediately for silent processing
+    // Clear input immediately
     barcodeInput.value = '';
     
     // Update UI to show processing
@@ -759,64 +1269,53 @@ function processAutomaticBarcode(barcode) {
     scanIndicator.parentElement.className = 'input-group-text bg-warning text-dark';
     
     try {
-        const product = productData[barcode];
+        // Cari produk: coba exact match dulu, lalu fallback ke searchableProducts
+        let product = productData[barcode];
+        
+        // Fallback: cari di searchableProducts jika tidak ketemu di productData
+        if (!product) {
+            const found = searchableProducts.find(p => p.barcode === barcode || p.barcode === barcode.trim());
+            if (found) {
+                product = { id: found.id, nama: found.nama, harga: found.harga, stok: found.stok, barcode: found.barcode };
+            }
+        }
         
         if (product) {
             console.log('Product found:', product);
             
-            // Validate stock before adding
             if (product.stok <= 0) {
                 throw new Error('Produk ' + product.nama + ' stok habis!');
             }
             
-            // Product found - add to table silently
             addProductByBarcode(product);
             
-            // Success feedback
-            scanIndicator.textContent = 'Produk ditambahkan';
+            scanIndicator.textContent = '✓ ' + product.nama;
             scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
-            
-            // Play success sound
             playBeep(true);
-            
-            // Show success notification
             showNotification('Produk ditambahkan: ' + product.nama, 'success');
             
         } else {
-            console.log('Product not found for barcode:', barcode);
+            console.log('Product not found for barcode:', barcode, '| productData keys:', Object.keys(productData));
             
-            // Product not found - show error without search results
-            scanIndicator.textContent = 'Produk tidak ditemukan';
+            scanIndicator.textContent = 'Tidak ditemukan';
             scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
-            
-            // Show error notification
-            showNotification('Produk dengan barcode ' + barcode + ' tidak ditemukan', 'error');
-            
-            // Play error sound
+            showNotification('Barcode ' + barcode + ' tidak ditemukan', 'error');
             playBeep(false);
         }
     } catch (error) {
         console.error('Error processing barcode:', error);
-        
-        // Error feedback
         scanIndicator.textContent = 'Error';
         scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
-        
-        // Show specific error message
-        showNotification(error.message || 'Terjadi kesalahan saat memproses barcode', 'error');
-        
-        // Play error sound
+        showNotification(error.message || 'Terjadi kesalahan', 'error');
         playBeep(false);
     }
     
-    // Reset status after 2 seconds
+    // Reset status setelah 2 detik
     setTimeout(() => {
         scanIndicator.textContent = 'Siap Scan';
         scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
         isProcessing = false;
-        
-        // Ensure focus is maintained
-        maintainFocus();
+        barcodeInput.focus();
     }, 2000);
 }
 
@@ -920,7 +1419,7 @@ function addProductByBarcode(product) {
         
         qtyInput.value = Math.round(newQty);
         recalcRow(existingRow);
-        recalcTotal();
+        hitungTotal();
         
         // Highlight row
         highlightRow(existingRow);
@@ -950,7 +1449,6 @@ function addProductByBarcode(product) {
         // Fill the row with product data
         const select = targetRow.querySelector('.produk-select');
         const qtyInput = targetRow.querySelector('.jumlah');
-        const hargaInput = targetRow.querySelector('.harga');
         const diskonInput = targetRow.querySelector('.diskon');
         
         console.log('Setting product data in row:', {
@@ -959,19 +1457,18 @@ function addProductByBarcode(product) {
             price: product.harga
         });
         
+        // Set nilai select dan trigger change agar setPriceFromSelect berjalan
         select.value = product.id;
         qtyInput.value = 1;
-        hargaInput.value = formatCurrency(product.harga);
         diskonInput.value = 0;
         
-        // Update stock info
-        setPriceFromSelect(targetRow);
+        // Dispatch change event — ini akan trigger table change listener
+        // yang memanggil setPriceFromSelect dan set data-raw dengan benar
+        select.dispatchEvent(new Event('change', { bubbles: true }));
         
-        // Recalculate
+        // Recalculate dan highlight
         recalcRow(targetRow);
-        recalcTotal();
-        
-        // Highlight row
+        hitungTotal();
         highlightRow(targetRow);
     }
 }
@@ -985,9 +1482,9 @@ function createNewRow() {
     // Reset all inputs
     clone.querySelectorAll('input').forEach(inp => {
         if (inp.classList.contains('jumlah')) inp.value = 1;
-        else if (inp.classList.contains('harga')) inp.value = formatCurrency(0);
+        else if (inp.classList.contains('harga')) inp.value = 0;
         else if (inp.classList.contains('diskon')) inp.value = 0;
-        else if (inp.classList.contains('subtotal')) inp.value = formatCurrency(0);
+        else if (inp.classList.contains('subtotal')) inp.value = 'Rp 0';
     });
     
     // Reset select
@@ -1055,7 +1552,8 @@ document.addEventListener('DOMContentLoaded', function() {
             activeElement.tagName === 'TEXTAREA' ||
             activeElement.classList.contains('form-control') ||
             activeElement.classList.contains('form-select') ||
-            activeElement.hasAttribute('data-dropdown-focused')
+            activeElement.hasAttribute('data-dropdown-focused') ||
+            activeElement.hasAttribute('data-user-focused')
         )) {
             return; // Don't steal focus
         }
@@ -1065,13 +1563,24 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Don't steal focus if any input is marked as user-focused
+        if (document.querySelector('input[data-user-focused="true"]')) {
+            return;
+        }
+        
         // Don't steal focus if modal is open
         if (document.querySelector('.modal.show')) {
             return;
         }
         
+        // Don't steal focus if user is actively typing in any input field
+        if (document.querySelector('input:focus, textarea:focus, select:focus')) {
+            return;
+        }
+        
         // Only focus barcode input if no other form element is focused
-        if (document.activeElement !== barcodeInput) {
+        if (document.activeElement !== barcodeInput && 
+            !document.activeElement.matches('input, select, textarea, button')) {
             barcodeInput.focus();
         }
     }
@@ -1079,8 +1588,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set initial focus
     barcodeInput.focus();
     
-    // Maintain focus every 1000ms (reduced frequency to be less aggressive)
-    setInterval(ensureBarcodeInputFocus, 1000);
+    // Maintain focus every 2000ms (increased frequency to be less aggressive)
+    setInterval(ensureBarcodeInputFocus, 2000);
     
     // Enhanced keyboard handling for better UX
     document.addEventListener('keydown', function(e) {
@@ -1133,22 +1642,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Handle Enter key (barcode scanners usually send Enter at the end)
+        // Handle Enter key — ditangani oleh barcodeInput keydown listener
+        // Skip di sini untuk menghindari double-call
         if (e.key === 'Enter') {
-            e.preventDefault();
-            const currentValue = barcodeInput.value.trim();
-            if (currentValue && currentValue.length >= MIN_BARCODE_LENGTH) {
-                // Check if search results are visible and select first result
-                const searchResults = document.getElementById('search-results');
-                if (searchResults.style.display !== 'none') {
-                    const firstResult = searchResults.querySelector('.search-result-item');
-                    if (firstResult) {
-                        firstResult.click();
-                        return;
-                    }
-                }
-                processAutomaticBarcode(currentValue);
-            }
             return;
         }
         
@@ -1198,17 +1694,19 @@ function navigateSearchResults(direction) {
     // Handle direct input to barcode field - Enhanced with real-time search
     barcodeInput.addEventListener('input', function(e) {
         const value = e.target.value.trim();
+        console.log('INPUT EVENT fired, value:', JSON.stringify(value), 'length:', value.length, 'isProcessing:', isProcessing);
         const scanIndicator = document.getElementById('scan-indicator');
+        
+        // Reset isProcessing jika input baru masuk dan processing sudah > 3 detik (stuck)
+        if (value && isProcessing) {
+            isProcessing = false;
+        }
         
         // If input is cleared, reset buffer and hide search
         if (!value) {
             barcodeBuffer = '';
-            if (barcodeTimeout) {
-                clearTimeout(barcodeTimeout);
-            }
+            if (barcodeTimeout) clearTimeout(barcodeTimeout);
             document.getElementById('search-results').style.display = 'none';
-            
-            // Reset scan indicator to "Siap Scan" when input is cleared
             if (scanIndicator) {
                 scanIndicator.textContent = 'Siap Scan';
                 scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
@@ -1216,49 +1714,62 @@ function navigateSearchResults(direction) {
             return;
         }
         
-        // Handle rapid input (typical of barcode scanners)
-        const currentTime = Date.now();
-        const timeDiff = barcodeInput.lastInputTime ? (currentTime - barcodeInput.lastInputTime) : 1000;
-        
-        // If input is very rapid (< 50ms between characters), it's likely a barcode scanner
-        if (timeDiff < 50) {
-            // Rapid input detected - likely from scanner, hide search results and process silently
+        // Jika sudah ada 8+ karakter numerik → barcode lengkap dari scanner
+        // Proses langsung tanpa timeout (lebih cepat dan reliable)
+        if (/^\d+$/.test(value) && value.length >= 8) {
             document.getElementById('search-results').style.display = 'none';
-            handleBarcodeInput(value.slice(-1)); // Get last character for buffer
-            barcodeInput.lastInputTime = currentTime;
+            if (barcodeTimeout) clearTimeout(barcodeTimeout);
+            if (!isProcessing) {
+                processAutomaticBarcode(value);
+            }
             return;
         }
         
-        // If input is slower, treat as manual typing and show search results
-        barcodeInput.lastInputTime = currentTime;
-        
-        // Only show search results for numeric input (barcode search) and manual typing
-        // Don't show search results for text input
-        if (/^\d+$/.test(value)) {
-            // Numeric input - show search results for barcode search only for manual typing
-            if (value.length >= 1 && value.length < 8 && !isProcessing) {
-                // Handle real-time search for numeric input (barcode search) - only for manual input
-                handleBarcodeInputEnhanced(value);
-            } else if (value.length >= 8) {
-                // Long numeric input - try to process as complete barcode
-                document.getElementById('search-results').style.display = 'none';
-                setTimeout(() => {
-                    if (barcodeInput.value === value) {
-                        processAutomaticBarcode(value);
-                    }
-                }, 100);
-            }
-        } else {
-            // Non-numeric input - hide search results completely
-            document.getElementById('search-results').style.display = 'none';
+        // Input manual (angka pendek atau huruf) — tampilkan hasil pencarian
+        if (!isProcessing) {
+            handleBarcodeInputEnhanced(value);
         }
     });
     
-    // Prevent form submission on Enter in barcode input
-    barcodeInput.addEventListener('keypress', function(e) {
+    // Handle Enter key — untuk scanner yang kirim Enter di akhir
+    // DAN untuk user yang tekan Enter setelah ketik manual
+    barcodeInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
+            e.stopPropagation();
+            // Beri 50ms agar value ter-update jika scanner masih mengirim karakter terakhir
+            setTimeout(() => {
+                const currentValue = barcodeInput.value.trim();
+                if (barcodeTimeout) { clearTimeout(barcodeTimeout); barcodeTimeout = null; }
+                if (!currentValue) return;
+                if (isProcessing) { isProcessing = false; } // reset jika stuck
+                const searchResults = document.getElementById('search-results');
+                if (searchResults.style.display !== 'none') {
+                    const firstResult = searchResults.querySelector('.search-result-item');
+                    if (firstResult) { firstResult.click(); return; }
+                }
+                processAutomaticBarcode(currentValue);
+            }, 50);
         }
+    });
+    
+    // Fallback: change event (fired when field loses focus or Enter pressed in some browsers)
+    barcodeInput.addEventListener('change', function(e) {
+        const value = e.target.value.trim();
+        if (value && value.length >= 8 && /^\d+$/.test(value) && !isProcessing) {
+            processAutomaticBarcode(value);
+        }
+    });
+    
+    // Fallback: paste event (beberapa scanner menggunakan clipboard paste)
+    barcodeInput.addEventListener('paste', function(e) {
+        setTimeout(() => {
+            const value = barcodeInput.value.trim();
+            console.log('PASTE EVENT fired, value:', value);
+            if (value && value.length >= 8 && /^\d+$/.test(value) && !isProcessing) {
+                processAutomaticBarcode(value);
+            }
+        }, 10);
     });
     
     // Re-focus when clicking anywhere on the page (except inputs/buttons)
@@ -1281,20 +1792,35 @@ function navigateSearchResults(direction) {
             return;
         }
         
+        // Don't interfere if clicking on table cells or form elements
+        if (e.target.closest('table') || e.target.closest('.form-group')) {
+            return;
+        }
+        
         setTimeout(() => {
-            // Only focus if no form element is currently focused
+            // Only focus if no form element is currently focused and user isn't interacting with form
             const activeElement = document.activeElement;
-            if (!activeElement || (!activeElement.matches('input, select, textarea') && !activeElement.classList.contains('form-control'))) {
+            if (!activeElement || 
+                (!activeElement.matches('input, select, textarea, button') && 
+                 !activeElement.classList.contains('form-control') &&
+                 !activeElement.classList.contains('form-select'))) {
                 barcodeInput.focus();
             }
-        }, 10);
+        }, 50); // Increased delay to allow user interaction to complete
     });
     
     // Handle window focus/blur
     window.addEventListener('focus', function() {
         setTimeout(() => {
-            barcodeInput.focus();
-        }, 100);
+            // Only focus barcode input if no other form element is focused
+            const activeElement = document.activeElement;
+            if (!activeElement || 
+                (!activeElement.matches('input, select, textarea, button') && 
+                 !activeElement.classList.contains('form-control') &&
+                 !activeElement.classList.contains('form-select'))) {
+                barcodeInput.focus();
+            }
+        }, 200); // Increased delay to allow user interaction
     });
     
     // END AUTOMATIC BARCODE SCANNING SYSTEM
@@ -1308,66 +1834,8 @@ function navigateSearchResults(direction) {
         }
     });
 
-    // Show/hide sumber dana based on payment method
-    function toggleSumberDana() {
-        const paymentMethod = document.getElementById('payment_method_jual').value;
-        const sumberDanaWrapper = document.getElementById('sumber_dana_wrapper_jual');
-        const sumberDana = document.getElementById('sumber_dana_jual');
-        
-        if (paymentMethod === 'cash' || paymentMethod === 'transfer') {
-            sumberDanaWrapper.style.display = 'block';
-            sumberDana.required = true;
-            
-            // Get recent pick from localStorage
-            const recentPick = localStorage.getItem('recent_sumber_dana_' + paymentMethod);
-            
-            // Update options based on payment method
-            if (paymentMethod === 'cash') {
-                // Ambil dari kasbank yang sudah di-load dari server
-                let cashOptions = '';
-                @foreach($kasbank as $kb)
-                    @if(stripos($kb->nama_akun, 'kas') !== false && stripos($kb->nama_akun, 'bank') === false)
-                        cashOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
-                    @endif
-                @endforeach
-                
-                // Jika tidak ada kas spesifik, gunakan semua kasbank
-                if (!cashOptions.trim()) {
-                    @foreach($kasbank as $kb)
-                        cashOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
-                    @endforeach
-                }
-                
-                sumberDana.innerHTML = cashOptions;
-            } else if (paymentMethod === 'transfer') {
-                // Ambil dari kasbank yang sudah di-load dari server
-                let bankOptions = '';
-                @foreach($kasbank as $kb)
-                    @if(stripos($kb->nama_akun, 'bank') !== false)
-                        bankOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
-                    @endif
-                @endforeach
-                
-                // Jika tidak ada bank spesifik, gunakan semua kasbank
-                if (!bankOptions.trim()) {
-                    @foreach($kasbank as $kb)
-                        bankOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
-                    @endforeach
-                }
-                
-                sumberDana.innerHTML = bankOptions;
-            }
-            
-            // Set recent pick if exists and valid
-            if (recentPick && sumberDana.querySelector(`option[value="${recentPick}"]`)) {
-                sumberDana.value = recentPick;
-            }
-        } else {
-            sumberDanaWrapper.style.display = 'none';
-            sumberDana.required = false;
-        }
-    }
-    
+    // toggleSumberDana handled globally above
+
     // Initial toggle
     toggleSumberDana();
     
@@ -1382,28 +1850,83 @@ function navigateSearchResults(direction) {
         }
     });
 
-    addBtn.addEventListener('click', () => {
-        const tbody = table.querySelector('tbody');
-        const clone = tbody.rows[0].cloneNode(true);
-        clone.querySelectorAll('input').forEach(inp => {
-            if (inp.classList.contains('jumlah')) inp.value = 1;
-            else if (inp.classList.contains('harga')) inp.value = 'Rp 0';
-            else if (inp.classList.contains('diskon')) inp.value = 0;
-            else if (inp.classList.contains('subtotal')) inp.value = 'Rp 0';
-        });
-        clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
-        table.querySelector('tbody').appendChild(clone);
-    });
+    // addBtn handled via onclick="tambahBarisProduk()" directly on the button
 
     table.addEventListener('change', (e) => {
         if (e.target && e.target.classList.contains('produk-select')) {
             const tr = e.target.closest('tr');
+            const hargaInput = tr.querySelector('.harga');
+
+            if (!e.target.value) {
+                hargaInput.removeAttribute('readonly');
+                hargaInput.value = 0;
+                hargaInput.setAttribute('readonly', 'readonly');
+                hargaInput.removeAttribute('data-raw');
+                recalcRow(tr);
+                hitungTotal();
+                return;
+            }
+
+            // Ambil harga dari data-price
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const harga = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+
+            // Set harga — store raw number in data-raw, display formatted
+            hargaInput.removeAttribute('readonly');
+            hargaInput.value = harga.toLocaleString('id-ID');
+            hargaInput.setAttribute('readonly', 'readonly');
+            hargaInput.setAttribute('data-raw', harga);
+
+            // Recalculate row and total
+            recalcRow(tr);
+            hitungTotal();
+
+            // Update stock info
+            const stok = parseFloat(selectedOption.getAttribute('data-stok')) || 0;
+            const stokInfo = tr.querySelector('.stok-info');
+            if (stokInfo) {
+                stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
+                stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+            }
+        }
+    });
+    
+    // Initialize price for existing rows on page load
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        const select = tr.querySelector('.produk-select');
+        if (select && select.value) {
             setPriceFromSelect(tr);
         }
     });
     
-    // Add special handling for dropdown focus/blur to prevent barcode interference
+    // SIMPLE jQuery event handler - PASTI berhasil
+    // (moved outside DOMContentLoaded - handled by vanilla JS below)
+    
+    table.addEventListener('input', (e) => {
+        if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon'))) {
+            const tr = e.target.closest('tr');
+            
+            console.log('Input changed:', e.target.className, 'value:', e.target.value);
+            
+            // Mark input as actively being used to prevent focus stealing
+            e.target.setAttribute('data-user-focused', 'true');
+            
+            // Validate stock if qty changed
+            if (e.target.classList.contains('jumlah')) {
+                validateStock(tr);
+            }
+            
+            recalcRow(tr); 
+            hitungTotal();
+        }
+    });
+    
+    // Add focus and blur handlers for quantity inputs to prevent cursor jumping
     table.addEventListener('focus', (e) => {
+        if (e.target && e.target.classList.contains('jumlah')) {
+            // Mark quantity input as actively focused
+            e.target.setAttribute('data-user-focused', 'true');
+        }
         if (e.target && e.target.classList.contains('produk-select')) {
             // Stop barcode auto-focus when dropdown is focused
             e.target.setAttribute('data-dropdown-focused', 'true');
@@ -1411,46 +1934,45 @@ function navigateSearchResults(direction) {
     }, true);
     
     table.addEventListener('blur', (e) => {
+        if (e.target && e.target.classList.contains('jumlah')) {
+            // Remove focus flag after a delay to allow for recalculation
+            setTimeout(() => {
+                e.target.removeAttribute('data-user-focused');
+            }, 500);
+        }
         if (e.target && e.target.classList.contains('produk-select')) {
             // Remove dropdown focus flag
             e.target.removeAttribute('data-dropdown-focused');
             
             // Resume barcode focus after a short delay
             setTimeout(() => {
-                if (!document.querySelector('select:focus')) {
+                if (!document.querySelector('select:focus, input:focus')) {
                     barcodeInput.focus();
                 }
-            }, 100);
+            }, 200);
         }
     }, true);
-    table.addEventListener('input', (e) => {
-        if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon'))) {
-            const tr = e.target.closest('tr');
-            
-            // Validate stock if qty changed
-            if (e.target.classList.contains('jumlah')) {
-                validateStock(tr);
-            }
-            
-            recalcRow(tr); recalcTotal();
-        }
-    });
     
-    // Listen to additional cost changes
-    document.getElementById('biaya_ongkir').addEventListener('input', recalcTotal);
-    document.getElementById('biaya_service').addEventListener('input', recalcTotal);
-    document.getElementById('ppn_persen').addEventListener('input', recalcTotal);
-    table.addEventListener('click', (e) => {
-        if (e.target && e.target.classList.contains('removeRow')) {
-            const rows = table.querySelectorAll('tbody tr');
-            if (rows.length > 1) e.target.closest('tr').remove();
-            recalcTotal();
-        }
-    });
+    // Listen to additional cost changes - Updated for dropdown
+    const ongkirEl = document.getElementById('biaya_ongkir');
+    const ppnEl = document.getElementById('ppn_persen');
+
+    if (ongkirEl) {
+        ongkirEl.addEventListener('change', function() { hitungTotal(); });
+        ongkirEl.addEventListener('input',  function() { hitungTotal(); });
+        ongkirEl.addEventListener('click',  function() { setTimeout(hitungTotal, 50); });
+    }
+
+    if (ppnEl) {
+        ppnEl.addEventListener('change', function() { hitungTotal(); });
+        ppnEl.addEventListener('input',  function() { hitungTotal(); });
+    }
+    // removeRow handled via onclick="hapusBarisProduk(this)" directly on the button
 
     // Init first row
     setPriceFromSelect(table.querySelector('tbody tr'));
-    recalcRow(table.querySelector('tbody tr')); recalcTotal();
+    recalcRow(table.querySelector('tbody tr'));
+    hitungTotal();
     
     // Validate before submit
     document.getElementById('form-penjualan').addEventListener('submit', function(e) {
@@ -1473,3 +1995,79 @@ function navigateSearchResults(direction) {
 });
 </script>
 @endsection
+
+
+<script>
+// ── Validasi Jurnal Real-time ────────────────────────────────────────────────
+(function() {
+    var validationTimer = null;
+
+    function getSelectedProdukIds() {
+        var ids = [];
+        document.querySelectorAll('#detailTableJual tbody tr .produk-select').forEach(function(sel) {
+            if (sel.value) ids.push(parseInt(sel.value));
+        });
+        return ids.filter(function(v, i, a) { return a.indexOf(v) === i; });
+    }
+
+    function runJurnalValidation() {
+        var ppnEl    = document.getElementById('ppn_persen');
+        var ongkirEl = document.getElementById('biaya_ongkir');
+
+        var hasPPN    = ppnEl    ? (parseFloat(ppnEl.value) || 0) > 0    : false;
+        var hasOngkir = ongkirEl ? (parseFloat(ongkirEl.value) || 0) > 0 : false;
+        var produkIds = getSelectedProdukIds();
+
+        if (produkIds.length === 0) { hideJurnalAlert(); return; }
+
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfToken = csrfMeta ? csrfMeta.content : '';
+
+        fetch('{{ route("api-internal.penjualan.validate-jurnal") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ has_ppn: hasPPN, has_ongkir: hasOngkir, has_diskon: false, produk_ids: produkIds })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.valid && data.missing && data.missing.length > 0) {
+                showJurnalAlert(data.missing);
+            } else {
+                hideJurnalAlert();
+            }
+        })
+        .catch(function() {});
+    }
+
+    function showJurnalAlert(missing) {
+        var alertEl = document.getElementById('jurnal-validation-alert');
+        var listEl  = document.getElementById('jurnal-missing-list');
+        if (!alertEl || !listEl) return;
+
+        var names = missing.map(function(m) { return '<strong>' + m.nama + '</strong> (' + m.tipe + ')'; });
+        listEl.innerHTML = (names.length === 1)
+            ? 'Akun ' + names[0] + ' belum dibuat. Silakan tambahkan terlebih dahulu agar jurnal dapat dibuat dengan benar.'
+            : 'Akun berikut belum dibuat: ' + names.join(', ') + '.';
+
+        alertEl.classList.remove('d-none');
+    }
+
+    function hideJurnalAlert() {
+        var alertEl = document.getElementById('jurnal-validation-alert');
+        if (alertEl) alertEl.classList.add('d-none');
+    }
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('produk-select') ||
+            e.target.id === 'ppn_persen' ||
+            e.target.id === 'biaya_ongkir') {
+            clearTimeout(validationTimer);
+            validationTimer = setTimeout(runJurnalValidation, 700);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(runJurnalValidation, 1500);
+    });
+})();
+</script>

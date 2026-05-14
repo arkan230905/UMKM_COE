@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Scopes\UserScope;
 
 class Pembelian extends Model
 {
@@ -53,6 +54,9 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
         static::created(function ($pembelian) {
             // Journal akan dibuat manual di controller setelah semua detail tersimpan
             // Tidak perlu auto-create di sini untuk menghindari jurnal dobel
@@ -64,9 +68,11 @@ class Pembelian extends Model
         });
         
         static::deleting(function ($pembelian) {
-            // Delete related pembelian details
-            $pembelian->pembelianDetails()->delete();
+            // Delete journal entries FIRST (before details are deleted)
+            $journalService = new \App\Services\JournalService();
+            $journalService->deleteByRef('purchase', $pembelian->id);
             
+
             // Delete related AP settlements
             $pembelian->apSettlements()->delete();
             
@@ -85,7 +91,7 @@ class Pembelian extends Model
             }
             
             // Update stock layers - reverse the stock movements
-            foreach ($pembelian->pembelianDetails as $detail) {
+foreach ($pembelian->pembelianDetails as $detail) {
                 // Create reverse stock movement
                 \App\Models\StockMovement::create([
                     'item_type' => 'material',
@@ -112,6 +118,15 @@ class Pembelian extends Model
                     $stockLayer->save();
                 }
             }
+            
+            // Delete related pembelian details LAST
+            $pembelian->pembelianDetails()->delete();
+            
+            // Delete related AP settlements
+            $pembelian->apSettlements()->delete();
+            
+            // Delete related pelunasan
+            $pembelian->pelunasan()->delete();
         });
     }
     

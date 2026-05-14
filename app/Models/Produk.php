@@ -20,7 +20,9 @@ class Produk extends Model
         'kategori_id',
         'satuan_id',
         'harga_jual',
+        'harga_bom',
         'stok',
+        'is_unlimited_stok',
         'stok_minimum',
         'btkl_per_unit',
         'coa_persediaan_id',
@@ -33,6 +35,9 @@ class Produk extends Model
     protected static function boot()
     {
         parent::boot();
+        
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
         
         static::creating(function ($produk) {
             // CRITICAL: Auto-fill user_id for multi-tenant isolation

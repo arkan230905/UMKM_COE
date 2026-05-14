@@ -12,10 +12,8 @@ class JabatanController extends Controller
     {
         $search = request('search');
         $kategori = request('kategori');
-
-        // MULTI-TENANT: Auto-fix NULL user_id records to current user
-        Jabatan::whereNull('user_id')->update(['user_id' => auth()->id()]);
         
+        // CRITICAL: Filter by user_id for multi-tenant
         $q = Jabatan::where('user_id', auth()->id());
         
         if ($search) {
@@ -48,9 +46,10 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
+
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama' => 'required|string|max:255|unique:jabatans,nama,NULL,id,user_id,' . auth()->id(),
-            'kategori' => 'required|in:btkl,btktl',
+'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
@@ -76,6 +75,7 @@ class JabatanController extends Controller
         $nextNumber = $lastJabatan ? ((int) substr($lastJabatan->kode_jabatan, 2) + 1) : 1;
         
         $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        $data['user_id'] = auth()->id();
 
         // CRITICAL: Always set user_id for multi-tenant isolation
         $data['user_id'] = auth()->id();
@@ -116,9 +116,10 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
+
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id . ',id,user_id,' . auth()->id(),
-            'kategori' => 'required|in:btkl,btktl',
+'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
@@ -202,13 +203,8 @@ class JabatanController extends Controller
             return response()->json(['success' => false, 'message' => 'Parameter kategori required'], 400);
         }
 
-        // MULTI-TENANT: Filter by user_id, also include NULL user_id records (legacy data)
-        // Fix NULL user_id records to belong to current user automatically
+        // CRITICAL: Filter by user_id for multi-tenant
         $userId = auth()->id();
-
-        // Auto-fix: assign user_id to NULL records that match current user's data
-        Jabatan::whereNull('user_id')->update(['user_id' => $userId]);
-
         $query = Jabatan::where('user_id', $userId);
 
         // If kategori is numeric, it's a kategori_id

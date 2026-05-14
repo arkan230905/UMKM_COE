@@ -38,7 +38,7 @@
 
     <!-- Product Info Card -->
     <div class="card shadow-sm mb-3">
-        <div class="card-header bg-dark text-white">
+        <div class="card-header text-white" style="background-color: #8b6f5c;">
             <h6 class="mb-0">
                 <i class="fas fa-info-circle me-2"></i>Informasi Produk
             </h6>
@@ -59,18 +59,19 @@
 
     <form action="{{ route('master-data.biaya-bahan.store', $produk->id) }}" method="POST">
         @csrf
+        <input type="hidden" name="produk_id" value="{{ $produk->id }}">
 
         <!-- Bahan Baku Card -->
         <div class="card shadow-sm mb-3">
-            <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-header text-white" style="background-color: #a0826d;">
                 <h6 class="mb-0">
                     <i class="fas fa-cube me-2"></i>1. Biaya Bahan Baku (BBB)
                 </h6>
             </div>
-            <div class="card-body" style="background-color: #f8f4ff;">
+            <div class="card-body" style="background-color: #faf8f5;">
                 <div class="table-responsive">
                     <table class="table table-sm" id="bahanBakuTable">
-                        <thead style="background-color: #9f7aea; color: white;">
+                        <thead style="background-color: #c9b5a0; color: white;">
                             <tr>
                                 <th>BAHAN BAKU</th>
                                 <th class="text-center">JUMLAH</th>
@@ -139,6 +140,7 @@
                                     </select>
                                 </td>
                                 <td class="text-end harga-display" style="width: 200px;">
+                                    <input type="hidden" name="bahan_baku[new][harga_satuan]" class="harga-satuan-input" value="0">
                                     <div class="harga-utama">-</div>
                                     <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
                                 </td>
@@ -150,7 +152,7 @@
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot style="background-color: #fef3c7;">
+                        <tfoot style="background-color: #f5ebe0;">
                             <tr>
                                 <th colspan="4" class="text-end">Total BBB</th>
                                 <th class="text-end" id="totalBahanBaku">Rp 0</th>
@@ -159,7 +161,7 @@
                         </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary mt-2" id="addBahanBaku">
+                <button type="button" class="btn btn-sm mt-2" style="background-color: #a0826d; color: white;" id="addBahanBaku">
                     <i class="fas fa-plus"></i> Tambah Bahan Baku
                 </button>
             </div>
@@ -171,8 +173,9 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
+
                         <small class="text-muted">BBB: <span id="summaryBahanBaku">Rp 0</span></small>
-                    </div>
+</div>
                     <div>
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-save me-2"></i>Simpan Biaya Bahan
@@ -366,7 +369,7 @@ function getConversionFactor(fromUnit, toUnit, subSatuanData = []) {
 function calculateRowSubtotal(row) {
     console.log("🧮 calculateRowSubtotal called");
     
-    const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+    const bahanSelect = row.querySelector(".bahan-baku-select");
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const subtotalDisplay = row.querySelector(".subtotal-display");
@@ -425,12 +428,11 @@ function calculateRowSubtotal(row) {
     setTimeout(calculateTotals, 50);
 }
 
-// Calculate all totals - FIXED VERSION
+// Calculate all totals - FIXED VERSION (BBB Only)
 function calculateTotals() {
     let totalBB = 0;
-    let totalBP = 0;
     
-    // Bahan Baku
+    // Bahan Baku only
     document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)").forEach(row => {
         const subtotalText = row.querySelector(".subtotal-display")?.textContent || "";
         const cleanText = subtotalText.replace(/[^\d]/g, "");
@@ -438,37 +440,25 @@ function calculateTotals() {
         totalBB += subtotal;
     });
     
-    // Bahan Pendukung
-    document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)").forEach(row => {
-        const subtotalText = row.querySelector(".subtotal-display")?.textContent || "";
-        const cleanText = subtotalText.replace(/[^\d]/g, "");
-        const subtotal = parseFloat(cleanText) || 0;
-        totalBP += subtotal;
-    });
+    const total = totalBB; // Only BBB now
     
-    const total = totalBB + totalBP;
-    
-    console.log("📊 Totals calculated:", { bb: totalBB, bp: totalBP, total: total });
+    console.log("📊 Totals calculated:", { bb: totalBB, total: total });
     
     // Update displays
     const elements = {
         totalBahanBaku: document.getElementById("totalBahanBaku"),
-        totalBahanPendukung: document.getElementById("totalBahanPendukung"),
         summaryBahanBaku: document.getElementById("summaryBahanBaku"),
-        summaryBahanPendukung: document.getElementById("summaryBahanPendukung"),
         summaryTotalBiaya: document.getElementById("summaryTotalBiaya")
     };
     
     if (elements.totalBahanBaku) elements.totalBahanBaku.textContent = formatRupiah(totalBB);
-    if (elements.totalBahanPendukung) elements.totalBahanPendukung.textContent = formatRupiah(totalBP);
     if (elements.summaryBahanBaku) elements.summaryBahanBaku.textContent = formatRupiah(totalBB);
-    if (elements.summaryBahanPendukung) elements.summaryBahanPendukung.textContent = formatRupiah(totalBP);
     if (elements.summaryTotalBiaya) elements.summaryTotalBiaya.textContent = formatRupiah(total);
 }
 
 // Add event listeners to row - ENHANCED VERSION
 function addRowEventListeners(row) {
-    const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+    const bahanSelect = row.querySelector(".bahan-baku-select");
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const removeBtn = row.querySelector(".remove-item");
@@ -478,6 +468,13 @@ function addRowEventListeners(row) {
             console.log("🔄 Bahan changed:", this.value);
             const option = this.options[this.selectedIndex];
             if (option && option.dataset.harga) {
+                // Update hidden harga_satuan field
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
+                if (hargaSatuanInput) {
+                    hargaSatuanInput.value = option.dataset.harga;
+                    console.log("✅ Updated hidden harga_satuan:", option.dataset.harga);
+                }
+                
                 // Auto-fill satuan utama
                 if (option.dataset.satuan && satuanSelect) {
                     satuanSelect.value = option.dataset.satuan;
@@ -505,10 +502,12 @@ function addRowEventListeners(row) {
                 calculateRowSubtotal(row);
             } else {
                 // Clear displays if no selection
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
                 const hargaDisplay = row.querySelector(".harga-utama");
                 const hargaKonversiDiv = row.querySelector(".harga-konversi");
                 const subtotalDisplay = row.querySelector(".subtotal-display");
                 
+                if (hargaSatuanInput) hargaSatuanInput.value = "0";
                 if (hargaDisplay) hargaDisplay.innerHTML = "-";
                 if (hargaKonversiDiv) hargaKonversiDiv.innerHTML = "";
                 if (subtotalDisplay) subtotalDisplay.innerHTML = "-";
@@ -528,7 +527,7 @@ function addRowEventListeners(row) {
     if (satuanSelect) {
         satuanSelect.addEventListener("change", function() {
             console.log("🔄 Satuan changed:", this.value);
-            const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+            const bahanSelect = row.querySelector(".bahan-baku-select");
             if (bahanSelect && bahanSelect.value) {
                 const option = bahanSelect.options[bahanSelect.selectedIndex];
                 updateConversionDisplay(row, option);
@@ -547,7 +546,7 @@ function addRowEventListeners(row) {
     }
 }
 
-// Add new row functions
+// Add new row function (BBB only)
 function addBahanBakuRow() {
     console.log("➕ Adding Bahan Baku row");
     
@@ -574,35 +573,6 @@ function addBahanBakuRow() {
     addRowEventListeners(clone);
     
     console.log("✅ Bahan Baku row added");
-    return false;
-}
-
-function addBahanPendukungRow() {
-    console.log("➕ Adding Bahan Pendukung row");
-    
-    const newRow = document.getElementById("newBahanPendukungRow");
-    if (!newRow) {
-        console.error("❌ Template row not found");
-        return false;
-    }
-    
-    const tbody = newRow.parentElement;
-    const clone = newRow.cloneNode(true);
-    clone.classList.remove("d-none");
-    clone.id = "bahanPendukung_" + Date.now();
-    
-    // Update name attributes
-    const timestamp = Date.now();
-    clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
-        const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
-        input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
-        input.value = "";
-    });
-    
-    tbody.insertBefore(clone, newRow);
-    addRowEventListeners(clone);
-    
-    console.log("✅ Bahan Pendukung row added");
     return false;
 }
 
@@ -764,7 +734,6 @@ function emergencyDebug() {
 
 // Make functions global
 window.addBahanBakuRow = addBahanBakuRow;
-window.addBahanPendukungRow = addBahanPendukungRow;
 window.emergencyDebug = emergencyDebug;
 window.testConversionFunction = testConversionFunction;
 window.testSubtotalCalculation = testSubtotalCalculation;
@@ -778,7 +747,6 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Attach button listeners
     const addBBBtn = document.getElementById("addBahanBaku");
-    const addBPBtn = document.getElementById("addBahanPendukung");
     
     if (addBBBtn) {
         addBBBtn.addEventListener("click", function(e) {
@@ -788,26 +756,12 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log("✅ BB button attached");
     }
     
-    if (addBPBtn) {
-        addBPBtn.addEventListener("click", function(e) {
-            e.preventDefault();
-            addBahanPendukungRow();
-        });
-        console.log("✅ BP button attached");
-    }
-    
     // Auto-add first row
     setTimeout(() => {
         const existingBBRows = document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)");
         if (existingBBRows.length === 0) {
             console.log("🚀 Auto-adding first Bahan Baku row");
             addBahanBakuRow();
-        }
-        
-        const existingBPRows = document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)");
-        if (existingBPRows.length === 0) {
-            console.log("🚀 Auto-adding first Bahan Pendukung row");
-            addBahanPendukungRow();
         }
     }, 500);
     
@@ -850,7 +804,7 @@ console.log("🎉 BIAYA BAHAN SCRIPT LOADED SUCCESSFULLY");
 
 .subtotal-display {
     font-weight: 600;
-    color: #28a745;
+    color: #a0826d;
 }
 
 #summaryTotalBiaya, #summaryHargaJual {

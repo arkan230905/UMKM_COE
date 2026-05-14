@@ -77,13 +77,14 @@ class BahanBakuController extends Controller
         $this->convertCommaToDecimal($request);
         
         $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => 'required|string|max:255|unique:bahan_bakus,nama_bahan,NULL,id,user_id,'.auth()->id(),
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
+
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,' . auth()->id(),
-            'stok_minimum' => 'nullable|numeric|min:0',
+'stok_minimum' => 'nullable|numeric|min:0',
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
@@ -129,36 +130,22 @@ class BahanBakuController extends Controller
             'coa_pembelian_id' => $request->coa_pembelian_id,
             'coa_persediaan_id' => $request->coa_persediaan_id,
             'coa_hpp_id' => $request->coa_hpp_id,
+            'user_id' => auth()->id(),
         ]);
 
-        // Create initial stock movement if stock > 0
+        // IMPORTANT: Create initial stock movement for saldo_awal
         if (($request->stok ?? 0) > 0) {
             \App\Models\StockMovement::create([
+                'user_id' => auth()->id(),
                 'item_type' => 'material',
                 'item_id' => $bahanBaku->id,
-                'tanggal' => now()->format('Y-m-d'),
                 'direction' => 'in',
                 'qty' => $request->stok,
-                'satuan' => $bahanBaku->satuan->nama ?? 'Unit',
-                'unit_cost' => $request->harga_satuan ?? 0,
-                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
+                'tanggal' => now()->toDateString(),
                 'ref_type' => 'initial_stock',
-                'ref_id' => 0,
-                'keterangan' => 'Stok awal ' . $request->nama_bahan,
+                'ref_id' => $bahanBaku->id,
+                'keterangan' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
             ]);
-            
-            // Update COA Persediaan saldo_awal
-            if ($request->coa_persediaan_id) {
-                $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
-                    ->where('user_id', auth()->id())
-                    ->first();
-                    
-                if ($coa) {
-                    $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
-                    $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
-                    $coa->save();
-                }
-            }
         }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
@@ -208,10 +195,15 @@ class BahanBakuController extends Controller
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
         
+        // ✅ PERBAIKAN: Track stock changes to update StockMovement
+        $oldSaldoAwal = $bahanBaku->saldo_awal;
+        $newSaldoAwal = $request->stok ?? 0;
+        $stockDifference = $newSaldoAwal - $oldSaldoAwal;
+        
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
-        $bahanBaku->saldo_awal = $request->stok ?? 0;
+        $bahanBaku->saldo_awal = $newSaldoAwal;
         $bahanBaku->harga_satuan = $request->harga_satuan ?: $bahanBaku->harga_rata_rata;
         $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
         $bahanBaku->deskripsi = $request->deskripsi;
@@ -232,9 +224,40 @@ class BahanBakuController extends Controller
         
         // Save changes
         $bahanBaku->save();
+        
+        // ✅ PERBAIKAN: Create StockMovement adjustment if stock changed
+        if (abs($stockDifference) > 0.0001) {
+            \App\Models\StockMovement::create([
+                'user_id' => auth()->id(),
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'direction' => $stockDifference > 0 ? 'in' : 'out',
+                'qty' => abs($stockDifference),
+                'tanggal' => now()->toDateString(),
+                'ref_type' => 'stock_adjustment',
+                'ref_id' => $bahanBaku->id,
+                'keterangan' => 'Penyesuaian stok dari edit bahan baku: ' . $bahanBaku->nama_bahan . ' (dari ' . $oldSaldoAwal . ' ke ' . $newSaldoAwal . ')',
+            ]);
+            
+            \Log::info('Stock adjustment created for BahanBaku', [
+                'id' => $bahanBaku->id,
+                'nama_bahan' => $bahanBaku->nama_bahan,
+                'old_stock' => $oldSaldoAwal,
+                'new_stock' => $newSaldoAwal,
+                'difference' => $stockDifference
+            ]);
+        }
 
+        // ✅ PERBAIKAN: Disable BomSyncService karena tabel bom_job_costings tidak ada
         // Sync BOM when bahan baku price changes
-        BomSyncService::syncBomFromMaterialChange('bahan_baku', $bahanBaku->id);
+        // BomSyncService::syncBomFromMaterialChange('bahan_baku', $bahanBaku->id);
+        
+        \Log::info('Bahan Baku updated successfully', [
+            'id' => $bahanBaku->id,
+            'nama_bahan' => $bahanBaku->nama_bahan,
+            'harga_satuan' => $bahanBaku->harga_satuan,
+            'note' => 'BomSyncService disabled - table bom_job_costings does not exist'
+        ]);
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
     }
@@ -249,16 +272,21 @@ class BahanBakuController extends Controller
             // Check for foreign key constraints before deleting
             $constraints = [];
             
-            // Check BOM Job BBB references
-            $bomJobBbbCount = \DB::table('bom_job_bbb')->where('bahan_baku_id', $id)->count();
-            if ($bomJobBbbCount > 0) {
-                $constraints[] = "BOM Job Costing ({$bomJobBbbCount} record(s))";
-            }
+            // ✅ PERBAIKAN: Skip BOM Job BBB check karena tabel tidak ada
+            // Check BOM Job BBB references - DISABLED
+            // $bomJobBbbCount = \DB::table('bom_job_bbb')->where('bahan_baku_id', $id)->count();
+            // if ($bomJobBbbCount > 0) {
+            //     $constraints[] = "BOM Job Costing ({$bomJobBbbCount} record(s))";
+            // }
             
-            // Check BOM Details references
-            $bomDetailsCount = \DB::table('bom_details')->where('bahan_baku_id', $id)->count();
-            if ($bomDetailsCount > 0) {
-                $constraints[] = "BOM Details ({$bomDetailsCount} record(s))";
+            // Check BOM Details references - with try-catch for safety
+            try {
+                $bomDetailsCount = \DB::table('bom_details')->where('bahan_baku_id', $id)->count();
+                if ($bomDetailsCount > 0) {
+                    $constraints[] = "BOM Details ({$bomDetailsCount} record(s))";
+                }
+            } catch (\Exception $e) {
+                \Log::info('BOM Details table check skipped', ['error' => $e->getMessage()]);
             }
             
             // Check Pembelian Details references
@@ -346,16 +374,27 @@ class BahanBakuController extends Controller
             return 0;
         }
         
-        // Hitung total harga dan total quantity
+        // Hitung total harga dan total quantity dalam satuan utama
         $totalHarga = 0;
         $totalQuantity = 0;
         
         foreach ($details as $detail) {
-            $totalHarga += ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
-            $totalQuantity += ($detail->jumlah ?? 0);
+            // Gunakan jumlah_dalam_satuan_utama untuk perhitungan yang benar
+            $quantityInMainUnit = $detail->jumlah_dalam_satuan_utama ?? 0;
+            
+            // Jika jumlah_dalam_satuan_utama = 0, skip detail ini
+            if ($quantityInMainUnit <= 0) {
+                continue;
+            }
+            
+            // Hitung total harga untuk detail ini
+            $detailTotalHarga = ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            
+            $totalHarga += $detailTotalHarga;
+            $totalQuantity += $quantityInMainUnit;
         }
         
-        // Hitung harga rata-rata
+        // Hitung harga rata-rata per satuan utama
         $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
         
         return $averageHarga;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produk;
+use App\Models\KategoriProduk;
 use App\Models\PenjualanDetail;
 use App\Models\Produksi;
 use App\Models\Bom;
@@ -15,12 +16,35 @@ use Illuminate\Support\Facades\DB;
 
 class ProdukController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Get all products
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $produks = Produk::where('user_id', auth()->id())
-            ->get();
+        $search = $request->get('search');
+        $kategoriFilter = $request->get('kategori');
+        $statusFilter = $request->get('status');
+        
+        // Get all products with filters
+        $query = Produk::where('user_id', auth()->id());
+        
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama_produk', 'like', "%{$search}%")
+                  ->orWhere('kode_produk', 'like', "%{$search}%");
+            });
+        }
+        
+        if ($kategoriFilter) {
+            $query->where('kategori_id', $kategoriFilter);
+        }
+        
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
+        }
+        
+        $produks = $query->get();
+        
+        // Get kategoris for filter dropdown (CRITICAL: filter by user_id untuk multi-tenant)
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Calculate HPP from Harga Pokok Produksi (BBB + BTKL + BOP)
         $hargaBom = [];
@@ -30,7 +54,7 @@ class ProdukController extends Controller
             $hargaBom[$produk->id] = $totalBiayaHPP;
         }
         
-        return view('master-data.produk.index', compact('produks', 'hargaBom'));
+        return view('master-data.produk.index', compact('produks', 'hargaBom', 'kategoris', 'search', 'kategoriFilter', 'statusFilter'));
     }
 
     public function katalogPelanggan()
@@ -52,7 +76,16 @@ class ProdukController extends Controller
 
     public function create()
     {
-        return view('master-data.produk.create');
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
+        
+        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
+        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
+            ->where('tipe_akun', 'Aset')
+            ->where('kode_akun', 'LIKE', '11%')
+            ->orderBy('kode_akun')
+            ->get();
+        
+        return view('master-data.produk.create', compact('kategoris', 'coaPersediaan'));
     }
     
     public function show($id)
@@ -83,6 +116,8 @@ class ProdukController extends Controller
     {
         $request->validate([
             'nama_produk' => 'required|string|max:255',
+            'kategori_id' => 'nullable|exists:kategori_produks,id',
+            'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|numeric|min:0',
@@ -96,20 +131,8 @@ class ProdukController extends Controller
 
         $fotoPath = null;
         if ($request->hasFile('foto')) {
+            // Store file using Laravel Storage - no need manual copy
             $fotoPath = $request->file('foto')->store('produk', 'public');
-            
-            // Copy file to public/storage for web access
-            $sourcePath = storage_path('app/public/' . $fotoPath);
-            $targetPath = public_path('storage/' . $fotoPath);
-            
-            // Ensure target directory exists
-            $targetDir = dirname($targetPath);
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
-            }
-            
-            // Copy file for web access
-            copy($sourcePath, $targetPath);
         }
 
         // Parse harga_jual from formatted string (remove dots)
@@ -117,6 +140,8 @@ class ProdukController extends Controller
 
         Produk::create([
             'nama_produk' => $request->nama_produk,
+            'kategori_id' => $request->input('kategori_id'),
+            'coa_persediaan_id' => $request->input('coa_persediaan_id'),
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPath,
             'harga_jual' => $hargaJual,
@@ -130,11 +155,21 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
+
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
         
-        return view('master-data.produk.edit', compact('produk'));
-    }
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
+        
+        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
+        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
+            ->where('tipe_akun', 'Aset')
+            ->where('kode_akun', 'LIKE', '11%')
+            ->orderBy('kode_akun')
+            ->get();
+        
+        return view('master-data.produk.edit', compact('produk', 'kategoris', 'coaPersediaan'));
+}
     
     /**
      * Print barcode labels for a product
@@ -217,6 +252,8 @@ class ProdukController extends Controller
         // Regular update validation
         $request->validate([
             'nama_produk' => 'required|string|max:255',
+            'kategori_id' => 'nullable|exists:kategori_produks,id',
+            'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|string',
@@ -246,6 +283,8 @@ class ProdukController extends Controller
 
         $data = [
             'nama_produk' => $request->nama_produk,
+            'kategori_id' => $request->input('kategori_id'),
+            'coa_persediaan_id' => $request->input('coa_persediaan_id'),
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
             'btkl_per_unit' => $request->input('btkl_per_unit'),
@@ -283,32 +322,6 @@ class ProdukController extends Controller
             $data['foto'] = $storedPath;
             
             \Log::info('New photo stored at: ' . $storedPath);
-            \Log::info('Full storage path: ' . storage_path('app/public/' . $storedPath));
-            \Log::info('Public path: ' . public_path('storage/' . $storedPath));
-            
-            // Copy file to public/storage for web access
-            $sourcePath = storage_path('app/public/' . $storedPath);
-            $targetPath = public_path('storage/' . $storedPath);
-            
-            // Ensure target directory exists
-            $targetDir = dirname($targetPath);
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
-            }
-            
-            // Copy file for web access
-            if (copy($sourcePath, $targetPath)) {
-                \Log::info('File copied to public/storage for web access: ' . $targetPath);
-            } else {
-                \Log::error('Failed to copy file to public/storage: ' . $targetPath);
-            }
-            
-            // Verify file exists after storage
-            $fullPath = storage_path('app/public/' . $storedPath);
-            \Log::info('File exists after storage: ' . (file_exists($fullPath) ? 'YES' : 'NO'));
-            \Log::info('Public file exists: ' . (file_exists($targetPath) ? 'YES' : 'NO'));
-            
-            // Also verify via Storage facade
             \Log::info('Storage exists check: ' . (\Storage::disk('public')->exists($storedPath) ? 'YES' : 'NO'));
         }
 
@@ -405,6 +418,12 @@ class ProdukController extends Controller
             $catalogPhotos = $company->catalogPhotos()->active()->get();
         }
 
-        return view('catalog.index', compact('produks', 'company', 'catalogPhotos'));
+        // Check if company has catalog sections (builder data)
+        $sections = collect();
+        if ($company) {
+            $sections = $company->catalogSections()->where('is_active', true)->orderBy('order')->get();
+        }
+
+        return view('catalog.index', compact('produks', 'company', 'catalogPhotos', 'sections'));
     }
 }

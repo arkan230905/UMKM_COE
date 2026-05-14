@@ -11,21 +11,38 @@ use Illuminate\Support\Facades\DB;
 class PersediaanSaldoAwalService
 {
     /**
-     * Posting otomatis saldo awal persediaan dari bahan baku, bahan pendukung, dan produk ke COA
+     * Posting otomatis saldo awal persediaan dari bahan baku, bahan pendukung, dan produk ke COA - MODIFIED
+     * Logika untuk bahan baku dan bahan pendukung dinonaktifkan
      */
     public static function postSaldoAwalPersediaan()
     {
         try {
             DB::beginTransaction();
             
-            // Reset semua saldo awal COA persediaan ke 0 terlebih dahulu
-            $persediaanCoas = Coa::where('nama_akun', 'like', '%persediaan%')->get();
-            foreach($persediaanCoas as $coa) {
+            // Reset semua saldo awal COA persediaan bahan baku dan bahan pendukung ke 0
+            $bahanBakuCoas = Coa::where('kode_akun', 'LIKE', '1104%')->get();
+            foreach($bahanBakuCoas as $coa) {
                 $coa->saldo_awal = 0;
                 $coa->save();
+                \Log::info("Reset bahan baku COA saldo awal", [
+                    'coa_code' => $coa->kode_akun,
+                    'coa_name' => $coa->nama_akun
+                ]);
             }
             
-            // Posting dari Bahan Baku
+            $bahanPendukungCoas = Coa::where('kode_akun', 'LIKE', '113%')->get();
+            foreach($bahanPendukungCoas as $coa) {
+                $coa->saldo_awal = 0;
+                $coa->save();
+                \Log::info("Reset bahan pendukung COA saldo awal", [
+                    'coa_code' => $coa->kode_akun,
+                    'coa_name' => $coa->nama_akun
+                ]);
+            }
+            
+            // DISABLED - Tidak posting dari Bahan Baku
+            \Log::info("Skipping saldo awal posting for bahan baku - disabled");
+            /*
             $bahanBakus = BahanBaku::with(['coaPersediaan'])->get();
             foreach($bahanBakus as $bb) {
                 if ($bb->coaPersediaan && $bb->stok > 0 && $bb->harga_satuan > 0) {
@@ -38,8 +55,11 @@ class PersediaanSaldoAwalService
                     $coa->save();
                 }
             }
+            */
             
-            // Posting dari Bahan Pendukung
+            // DISABLED - Tidak posting dari Bahan Pendukung
+            \Log::info("Skipping saldo awal posting for bahan pendukung - disabled");
+            /*
             $bahanPendukungs = BahanPendukung::with(['coaPersediaan'])->get();
             foreach($bahanPendukungs as $bp) {
                 if ($bp->coaPersediaan && $bp->stok > 0 && $bp->harga_satuan > 0) {
@@ -52,8 +72,9 @@ class PersediaanSaldoAwalService
                     $coa->save();
                 }
             }
+            */
             
-            // Posting dari Produk (Barang Jadi)
+            // Posting dari Produk (Barang Jadi) - TETAP AKTIF
             $produks = Produk::with(['coaPersediaan'])->get();
             foreach($produks as $produk) {
                 if ($produk->coaPersediaan && $produk->stok > 0) {
@@ -74,7 +95,7 @@ class PersediaanSaldoAwalService
             DB::commit();
             return [
                 'success' => true,
-                'message' => 'Posting saldo awal persediaan berhasil!'
+                'message' => 'Posting saldo awal persediaan berhasil! (Bahan baku/pendukung dikecualikan)'
             ];
             
         } catch (\Exception $e) {
@@ -87,10 +108,23 @@ class PersediaanSaldoAwalService
     }
     
     /**
-     * Update saldo awal COA persediaan untuk item tertentu
+     * Update saldo awal COA persediaan untuk item tertentu - DISABLED
+     * Logika ini dinonaktifkan untuk mencegah bahan baku/pendukung mengupdate saldo awal COA
      */
     public static function updateSaldoAwalItem($item, $type = 'bahan_baku')
     {
+        // DISABLED - Tidak melakukan update saldo awal COA untuk bahan
+        \Log::info("Skipping saldo awal update for item", [
+            'item_type' => $type,
+            'item_id' => $item->id ?? 'unknown',
+            'item_name' => $item->nama_bahan ?? 'unknown',
+            'reason' => 'Saldo awal COA update disabled for bahan baku/pendukung'
+        ]);
+        
+        return false; // Selalu return false untuk menandakan tidak ada update
+        
+        // COMMENTED OUT - Logika lama yang mengupdate saldo awal COA
+        /*
         if (!$item->coaPersediaan || $item->stok <= 0) {
             return false;
         }
@@ -144,5 +178,6 @@ class PersediaanSaldoAwalService
         } catch (\Exception $e) {
             return false;
         }
+        */
     }
 }

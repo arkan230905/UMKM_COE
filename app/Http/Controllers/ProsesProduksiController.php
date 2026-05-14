@@ -20,21 +20,31 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
+
         // 🔒 MULTI-TENANT: Filter by user_id
         // Load with essential relationships only from logged-in user
-        $prosesProduksis = ProsesProduksi::with(['jabatan' => function($query) {
-                // 🔒 SECURITY: Only get jabatans from logged-in user
-                $query->where('user_id', auth()->id())
-                      ->with(['pegawais' => function($pegawaiQuery) {
-                          // 🔒 SECURITY: Only get pegawais from logged-in user
-                          $pegawaiQuery->where('user_id', auth()->id());
-                      }]);
-            }])
+        // Global scope on Jabatan and Pegawai models will automatically filter by user_id
+        $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
             ->where('user_id', auth()->id())
             ->orderBy('kode_proses')
             ->paginate(10);
         
-        return view('master-data.proses-produksi.index', compact('prosesProduksis'));
+        // Calculate statistics
+        $totalProses = $prosesProduksis->count();
+        $totalBiayaPerProduk = $prosesProduksis->sum('biaya_per_produk');
+        $rataRataTarif = $totalProses > 0 ? $prosesProduksis->sum('tarif_btkl') / $totalProses : 0;
+        $rataRataKapasitas = $totalProses > 0 ? $prosesProduksis->sum('kapasitas_per_jam') / $totalProses : 0;
+        $rataRataBiayaPerUnit = $totalProses > 0 ? $totalBiayaPerProduk / $totalProses : 0;
+
+        $statistics = [
+            'total_proses' => $totalProses,
+            'total_biaya_per_produk' => $totalBiayaPerProduk,
+            'rata_rata_tarif' => $rataRataTarif,
+            'rata_rata_kapasitas' => $rataRataKapasitas,
+            'rata_rata_biaya_per_unit' => $rataRataBiayaPerUnit,
+        ];
+        
+        return view('master-data.proses-produksi.index', compact('prosesProduksis', 'statistics'));
     }
 
     /**
@@ -42,13 +52,13 @@ class ProsesProduksiController extends Controller
      */
     public function create()
     {
-        // 🔒 MULTI-TENANT: Only get data from logged-in user
-        $komponenBops = KomponenBop::where('user_id', auth()->id())->active()->orderBy('nama_komponen')->get();
+        // Komponen BOP sudah tidak digunakan lagi setelah cleanup migration
+        // Sekarang BOP langsung disimpan di bop_proses dengan kolom budget dan aktual
         
         // 🔒 MULTI-TENANT: Only get jabatans from logged-in user
         $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        return view('master-data.proses-produksi.create', compact('komponenBops', 'jabatans'));
+        return view('master-data.proses-produksi.create', compact('jabatans'));
     }
 
     /**
@@ -70,6 +80,7 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
+
             // 🔒 MULTI-TENANT SECURITY: Verify jabatan belongs to logged-in user
             $jabatan = \App\Models\Jabatan::with(['pegawais' => function($query) {
                 // 🔒 SECURITY: Only get pegawais from logged-in user
@@ -77,9 +88,8 @@ class ProsesProduksiController extends Controller
             }])
             ->where('user_id', auth()->id())
             ->findOrFail($validated['jabatan_id']);
-            
-            // Verify calculation (for security)
-            $jumlahPegawai = $jabatan->pegawais->count();
+// Count pegawai manually using jabatan name instead of jabatan_id
+            $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
@@ -106,6 +116,9 @@ class ProsesProduksiController extends Controller
                 'satuan_btkl' => $validated['satuan_btkl'],
                 'kapasitas_per_jam' => $validated['kapasitas_per_jam'],
                 'jabatan_id' => $validated['jabatan_id'], // Store jabatan reference
+                'biaya_btkl_per_produk' => $validated['kapasitas_per_jam'] > 0 
+                    ? $validated['tarif_btkl'] / $validated['kapasitas_per_jam'] 
+                    : 0, // CRITICAL: Calculate and store biaya per produk
             ];
 
             \Log::info('BTKL Create Data', $createData);
@@ -159,15 +172,14 @@ class ProsesProduksiController extends Controller
             abort(404);
         }
         
-        $prosesProduksi->load('prosesBops.komponenBop');
-        
-        // 🔒 MULTI-TENANT: Only get data from logged-in user
-        $komponenBops = KomponenBop::where('user_id', auth()->id())->active()->orderBy('nama_komponen')->get();
+        // Komponen BOP sudah tidak digunakan lagi setelah cleanup migration
+        // Load bopProses instead
+        $prosesProduksi->load('bopProses');
         
         // 🔒 MULTI-TENANT: Only get jabatans from logged-in user
         $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'komponenBops', 'jabatans'));
+        return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'jabatans'));
     }
 
     /**
@@ -195,6 +207,7 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
+
             // 🔒 MULTI-TENANT SECURITY: Verify jabatan belongs to logged-in user
             $jabatan = \App\Models\Jabatan::with(['pegawais' => function($query) {
                 // 🔒 SECURITY: Only get pegawais from logged-in user
@@ -202,9 +215,8 @@ class ProsesProduksiController extends Controller
             }])
             ->where('user_id', auth()->id())
             ->findOrFail($validated['jabatan_id']);
-            
-            // Verify calculation (for security)
-            $jumlahPegawai = $jabatan->pegawais->count();
+// Count pegawai manually using jabatan name instead of jabatan_id
+            $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
@@ -231,6 +243,9 @@ class ProsesProduksiController extends Controller
                 'satuan_btkl' => $validated['satuan_btkl'],
                 'kapasitas_per_jam' => $validated['kapasitas_per_jam'],
                 'jabatan_id' => $validated['jabatan_id'], // Store jabatan reference
+                'biaya_btkl_per_produk' => $validated['kapasitas_per_jam'] > 0 
+                    ? $validated['tarif_btkl'] / $validated['kapasitas_per_jam'] 
+                    : 0, // CRITICAL: Calculate and store biaya per produk
             ];
 
             \Log::info('BTKL Update Data', $updateData);

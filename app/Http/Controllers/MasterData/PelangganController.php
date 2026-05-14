@@ -33,14 +33,16 @@ class PelangganController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+
             'name' => 'required|string|max:255',
             // 🔒 SECURITY: Add user_id to unique validation for multi-tenant isolation
             'email' => 'required|email|unique:users,email,NULL,id,user_id,' . auth()->id(),
             'phone' => 'required|string|max:20',
-            'password' => 'required|min:6|confirmed',
+'password' => 'required|min:6|confirmed',
         ]);
 
         $user = User::create([
+
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -48,9 +50,8 @@ class PelangganController extends Controller
             'role' => 'pelanggan',
             'email_verified_at' => now(),
             'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id for multi-tenant isolation
-        ]);
-        
-        // Store plain password separately for admin view (security consideration)
+]);
+
         $user->plain_password = $request->password;
         $user->save();
 
@@ -124,16 +125,18 @@ class PelangganController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'phone' => 'required|string|max:20',
+            'name'    => 'required|string|max:255',
+            'email'   => 'required|email|unique:users,email,' . $id,
+            'phone'   => 'required|string|max:20',
+            'address' => 'nullable|string',
             'password' => 'nullable|min:6|confirmed',
         ]);
 
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
+            'name'    => $request->name,
+            'email'   => $request->email,
+            'phone'   => $request->phone,
+            'address' => $request->address,
         ];
 
         // Update password jika diisi

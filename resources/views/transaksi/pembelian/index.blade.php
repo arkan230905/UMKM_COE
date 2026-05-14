@@ -61,6 +61,54 @@
     </div>
 </div>
 
+<!-- Journal Modal -->
+<div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="journalModalLabel">
+                    <i class="fas fa-book me-2"></i>Jurnal Pembelian
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Akun</th>
+                                <th>Keterangan</th>
+                                <th class="text-end">Debet</th>
+                                <th class="text-end">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="journalTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Pilih pembelian untuk melihat jurnal
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr class="fw-bold">
+                                <td colspan="3" class="text-end">Total:</td>
+                                <td class="text-end" id="totalDebit">Rp 0</td>
+                                <td class="text-end" id="totalCredit">Rp 0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 @push('styles')
 <style>
     .nav-tabs .nav-link {
@@ -82,9 +130,98 @@
     }
 </style>
 @endpush
-
 @push('scripts')
 <script>
+// Cache busting for journal modal
+const journalModalVersion = '2026-04-30-v2';
+    // Function to load journal data for a specific pembelian
+    function loadJournal(pembelianId, nomorPembelian) {
+        console.log('Loading journal for pembelian ID:', pembelianId, 'Nomor:', nomorPembelian);
+        
+        // Show loading state
+        const journalTableBody = document.getElementById('journalTableBody');
+        const totalDebit = document.getElementById('totalDebit');
+        const totalCredit = document.getElementById('totalCredit');
+        
+        if (!journalTableBody) {
+            console.error('journalTableBody element not found');
+            return;
+        }
+        
+        journalTableBody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+        totalDebit.textContent = 'Rp 0';
+        totalCredit.textContent = 'Rp 0';
+        
+        // Fetch journal data
+        fetch(`/transaksi/api/pembelian/${pembelianId}/journal?v=${journalModalVersion}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                console.log('API Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response data:', data);
+                if (data.success && data.journals && data.journals.length > 0) {
+                    let totalDebitAmount = 0;
+                    let totalCreditAmount = 0;
+                    let rows = '';
+                    
+                    data.journals.forEach(entry => {
+                        totalDebitAmount += entry.debit;
+                        totalCreditAmount += entry.kredit;
+                        
+                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : '-';
+                        const coaInfo = entry.coa ? 
+                            `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
+                            '<span class="badge bg-secondary">COA tidak ditemukan</span>';
+                        const keterangan = entry.keterangan || '-';
+                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-';
+                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-';
+                        
+                        rows += `
+                            <tr>
+                                <td>${tanggal}</td>
+                                <td>${coaInfo}</td>
+                                <td>${keterangan}</td>
+                                <td class="text-end">${debit}</td>
+                                <td class="text-end">${kredit}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    journalTableBody.innerHTML = rows;
+                    totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID');
+                    totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID');
+                } else {
+                    journalTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Jurnal belum dibuat untuk pembelian ini
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading journal:', error);
+                journalTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Gagal memuat data jurnal: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
         // Handle tab switching with URL update and dynamic actions
         const tabButtons = document.querySelectorAll('#pembelianTabs button[data-bs-toggle="tab"]');
@@ -126,5 +263,6 @@
         });
     });
 </script>
+
 @endpush
 @endsection

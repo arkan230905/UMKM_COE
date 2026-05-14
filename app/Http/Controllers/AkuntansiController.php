@@ -42,10 +42,15 @@ class AkuntansiController extends Controller
      */
     private function posisiNeracaSaldo($saldo, $tipeAkun)
     {
-        // Gunakan tipe_akun Indonesian values langsung
-        // ASET, BEBAN have normal DEBIT balance
-        // KEWAJIBAN, MODAL, PENDAPATAN have normal KREDIT balance
-        $isDebitNormal = in_array($tipeAkun, ['ASET', 'BEBAN']);
+        // Normalize tipe_akun to uppercase for comparison
+        $tipeAkunUpper = strtoupper(trim($tipeAkun));
+        
+        // ASET, BEBAN, BIAYA have normal DEBIT balance
+        // KEWAJIBAN, MODAL, EKUITAS, PENDAPATAN have normal KREDIT balance
+        $isDebitNormal = in_array($tipeAkunUpper, [
+            'ASET', 'ASSET', 'AKTIVA',                    // Asset variations
+            'BEBAN', 'EXPENSE', 'BIAYA', 'COST'           // Expense variations
+        ]);
 
         $debit  = 0;
         $kredit = 0;
@@ -79,6 +84,7 @@ class AkuntansiController extends Controller
 
     /**
      * Helper function untuk mendapatkan ringkasan akun (sama untuk Buku Besar & Neraca Saldo)
+     * HANYA DARI jurnal_umum - konsisten dengan Buku Besar
      * @param string $from Tanggal awal periode (Y-m-d)
      * @param string $to Tanggal akhir periode (Y-m-d)
      * @param string|null $kodeAkun Filter by kode_akun (optional, untuk Buku Besar)
@@ -86,42 +92,11 @@ class AkuntansiController extends Controller
      */
     private function getAccountSummary($from, $to, $kodeAkun = null)
     {
-        // Dari journal_lines - join dengan coas untuk dapat kode_akun yang benar
-        $queryJournalLines = DB::table('journal_lines as jl')
-            ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
-            ->join('coas', 'coas.id', '=', 'jl.coa_id')
-            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-            ->whereBetween('je.tanggal', [$from, $to])
-            ->select(
-                'coas.kode_akun',
-                DB::raw('COALESCE(SUM(jl.debit),0) as total_debit'),
-                DB::raw('COALESCE(SUM(jl.credit),0) as total_kredit')
-            )
-            ->groupBy('coas.kode_akun');
-
-        // Filter by kode_akun jika diberikan
-        if ($kodeAkun) {
-            $queryJournalLines->where('coas.kode_akun', $kodeAkun);
-        }
-
-        $mutasiJournalLines = $queryJournalLines->get();
-
-        // Dari jurnal_umum - join dengan coas untuk dapat kode_akun yang benar
-        // PERBAIKAN: Exclude tipe yang sudah ada di journal_entries untuk menghindari duplikasi
+        // Hanya dari jurnal_umum - SAMA DENGAN LOGIKA BUKU BESAR
         $queryJurnalUmum = DB::table('jurnal_umum as ju')
             ->join('coas', 'coas.id', '=', 'ju.coa_id')
             ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$from, $to])
-            ->whereNotIn('ju.tipe_referensi', [
-                // Hanya exclude yang SUDAH ADA di journal_entries untuk menghindari duplikasi
-                'sale', 'penjualan',     // Penjualan ada di journal_entries
-                'retur_pembelian', 'retur_penjualan',
-                'production_material', 'production_labor_overhead', 'production_finished',
-                'production_finish', 'production_labor', 'production_bop',
-                'produksi',
-                'expense_payment'
-                // NOTE: 'pembelian' TIDAK di-exclude karena pembelian hanya ada di jurnal_umum
-            ])
             ->select(
                 'coas.kode_akun',
                 DB::raw('COALESCE(SUM(ju.debit),0) as total_debit'),
@@ -136,24 +111,13 @@ class AkuntansiController extends Controller
 
         $mutasiJurnalUmum = $queryJurnalUmum->get();
 
-        // Gabungkan mutasi dari kedua sumber - gunakan kode_akun sebagai key
+        // Buat array dengan kode_akun sebagai key
         $summaryByKodeAkun = [];
-        foreach ($mutasiJournalLines as $line) {
+        foreach ($mutasiJurnalUmum as $line) {
             $summaryByKodeAkun[$line->kode_akun] = [
                 'total_debit' => $line->total_debit,
                 'total_kredit' => $line->total_kredit
             ];
-        }
-        foreach ($mutasiJurnalUmum as $line) {
-            if (isset($summaryByKodeAkun[$line->kode_akun])) {
-                $summaryByKodeAkun[$line->kode_akun]['total_debit'] += $line->total_debit;
-                $summaryByKodeAkun[$line->kode_akun]['total_kredit'] += $line->total_kredit;
-            } else {
-                $summaryByKodeAkun[$line->kode_akun] = [
-                    'total_debit' => $line->total_debit,
-                    'total_kredit' => $line->total_kredit
-                ];
-            }
         }
 
         return $summaryByKodeAkun;
@@ -166,6 +130,16 @@ class AkuntansiController extends Controller
         $refType = $request->get('ref_type');
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
+
+        // Map ref_type to tipe_referensi - use actual values stored in database
+        $mappedRefType = match($refType) {
+            'purchase' => 'pembelian',
+            'sale' => 'sale',  // Jurnal penjualan disimpan dengan 'sale', bukan 'penjualan'
+            default => $refType
+        };
+
+        // Keep ref_id as is - it's stored as string in jurnal_umum.referensi
+        $mappedRefId = $refId ? (string)$refId : null;
 
         // MULTI-TENANT: Query jurnal_umum (flat structure)
         $query = \DB::table('jurnal_umum as ju')
@@ -181,14 +155,14 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '!=', 0)
                   ->orWhere('ju.kredit', '!=', 0);
             })
+
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
             ->orderBy('ju.id','asc');
-            
-        if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
+if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $query->whereDate('ju.tanggal','<=',$to); }
-        if ($refType) { $query->where('ju.tipe_referensi', $refType); }
-        if ($refId)   { $query->where('ju.referensi', $refId); }
+        if ($mappedRefType) { $query->where('ju.tipe_referensi', $mappedRefType); }
+        if ($mappedRefId)   { $query->where('ju.referensi', $mappedRefId); }
         if ($accountCode) { 
             $query->where('coas.kode_akun', $accountCode);
         }
@@ -234,7 +208,8 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
-        // Sort all entries by date and created_at
+
+// Sort all entries by date and created_at
         $entries = $entries->sortBy(function($entry) {
             return $entry->tanggal . ' ' . $entry->created_at;
         });
@@ -366,12 +341,13 @@ class AkuntansiController extends Controller
                 $saldoAwal = (float)($coa->saldo_awal ?? 0);
             }
 
+
             // MULTI-TENANT: Query jurnal_umum untuk konsistensi dengan sistem lain
             $query = \DB::table('jurnal_umum as ju')
                 ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
                 ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
                 ->where('coas.kode_akun', $accountCode) // Filter akun yang dipilih
-                ->select([
+->select([
                     'ju.*',
                     'coas.kode_akun',
                     'coas.nama_akun',
@@ -381,7 +357,8 @@ class AkuntansiController extends Controller
                     $q->where('ju.debit', '>', 0)
                       ->orWhere('ju.kredit', '>', 0);
                 })
-                ->orderBy('ju.tanggal','asc')
+
+->orderBy('ju.tanggal','asc')
                 ->orderBy('ju.id','asc');
             
             if ($month && $year) {
@@ -390,6 +367,7 @@ class AkuntansiController extends Controller
             }
 
             $journalLines = $query->get();
+
 
             // DEBUG: Log query results untuk verifikasi multi-tenant
             \Log::info('Buku Besar Query Results', [
@@ -410,7 +388,7 @@ class AkuntansiController extends Controller
                     'kode_akun' => $line->kode_akun,
                     'nama_akun' => $line->nama_akun,
                     'tipe_akun' => $line->tipe_akun
-                ]);
+]);
             }
 
             $totalDebit = $journalLines->sum('debit');
@@ -423,6 +401,18 @@ class AkuntansiController extends Controller
 
     private function getInventorySaldoAwal($kodeAkun)
     {
+        // DISABLED - Logika ini dinonaktifkan untuk mencegah perhitungan saldo awal dari bahan
+        // Bahan baku dan bahan pendukung tidak lagi berkontribusi ke saldo awal COA
+        
+        \Log::info("Skipping inventory saldo awal calculation in AkuntansiController", [
+            'kode_akun' => $kodeAkun,
+            'reason' => 'Inventory saldo awal calculation disabled for bahan baku/pendukung'
+        ]);
+        
+        return 0; // Selalu return 0 agar tidak ada kontribusi dari bahan
+        
+        // COMMENTED OUT - Logika lama yang menghitung dari bahan
+        /*
         // Map kode akun persediaan ke COA yang terhubung dengan bahan baku/pendukung
         $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143']; // Persediaan Bahan Baku
         $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115']; // Persediaan Bahan Pendukung
@@ -438,7 +428,9 @@ class AkuntansiController extends Controller
                 $saldoAwal = 0;
             } else {
                 // Specific child account
+                // MULTI-TENANT: Filter by user_id
                 $saldoAwal = \DB::table('bahan_bakus')
+                    ->where('user_id', auth()->id())
                     ->where('coa_persediaan_id', $kodeAkun)
                     ->where('saldo_awal', '>', 0)
                     ->sum(\DB::raw('saldo_awal * harga_satuan'));
@@ -454,7 +446,9 @@ class AkuntansiController extends Controller
                 $saldoAwal = 0;
             } else {
                 // Specific child account
+                // MULTI-TENANT: Filter by user_id
                 $saldoAwal = \DB::table('bahan_pendukungs')
+                    ->where('user_id', auth()->id())
                     ->where('coa_persediaan_id', $kodeAkun)
                     ->where('saldo_awal', '>', 0)
                     ->sum(\DB::raw('saldo_awal * harga_satuan'));
@@ -462,6 +456,7 @@ class AkuntansiController extends Controller
         }
         
         return (float)$saldoAwal;
+        */
     }
 
     public function neracaSaldo(Request $request)
@@ -543,24 +538,263 @@ class AkuntansiController extends Controller
             return $t['saldo_awal'] != 0 || $t['debit'] != 0 || $t['kredit'] != 0 || $t['saldo_akhir'] != 0;
         });
 
-        return view('akuntansi.neraca-saldo', compact('coas', 'totals', 'bulan', 'tahun'));
+        // Calculate balance check totals
+        $totalSaldoDebit = 0;
+        $totalSaldoKredit = 0;
+        $totalMutasiDebit = 0;
+        $totalMutasiKredit = 0;
+        
+        foreach ($coas as $coa) {
+            $data = $totals[$coa->kode_akun] ?? [];
+            $totalSaldoDebit += $data['saldo_debit'] ?? 0;
+            $totalSaldoKredit += $data['saldo_kredit'] ?? 0;
+            $totalMutasiDebit += $data['debit'] ?? 0;
+            $totalMutasiKredit += $data['kredit'] ?? 0;
+        }
+        
+        // Balance check
+        $balanceDiff = abs($totalSaldoDebit - $totalSaldoKredit);
+        $isBalanced = $balanceDiff < 0.01; // Toleransi 1 sen untuk pembulatan
+        
+        // Log balance check for debugging
+        \Log::info('Neraca Saldo Balance Check', [
+            'user_id' => auth()->id(),
+            'periode' => "$bulan/$tahun",
+            'total_saldo_debit' => $totalSaldoDebit,
+            'total_saldo_kredit' => $totalSaldoKredit,
+            'total_mutasi_debit' => $totalMutasiDebit,
+            'total_mutasi_kredit' => $totalMutasiKredit,
+            'balance_diff' => $balanceDiff,
+            'is_balanced' => $isBalanced,
+            'total_accounts' => $coas->count()
+        ]);
+
+        return view('akuntansi.neraca-saldo', compact(
+            'coas', 'totals', 'bulan', 'tahun',
+            'totalSaldoDebit', 'totalSaldoKredit', 
+            'totalMutasiDebit', 'totalMutasiKredit',
+            'balanceDiff', 'isBalanced'
+        ));
     }
 
     public function laporanPosisiKeuangan(Request $request)
     {
-        $periode = $request->get('periode', now()->format('Y-m'));
+        // Gunakan format bulan/tahun seperti neraca saldo untuk konsistensi
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
         
-        // Parse periode to get bulan and tahun
-        $tahun = substr($periode, 0, 4);
-        $bulan = substr($periode, 5, 2);
+        // Validasi range
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = date('m');
+        }
+        if ($tahun < 2020 || $tahun > 2030) {
+            $tahun = date('Y');
+        }
         
-        // Get data using helper method
-        $data = $this->getLaporanPosisiKeuanganData($bulan, $tahun);
+        // Ensure bulan is zero-padded
+        $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
         
-        // Add periode to data for view
-        $data['periode'] = $periode;
+        // Hitung periode - sama seperti neraca saldo
+        $tanggalAwal = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $tanggalAkhir = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+
+        // Gunakan NeracaService untuk konsistensi dengan neraca saldo
+        $neracaService = app(\App\Services\NeracaService::class);
+        $neraca = $neracaService->generateLaporanPosisiKeuangan($tanggalAwal, $tanggalAkhir);
         
-        return view('akuntansi.laporan_posisi_keuangan', $data);
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
+        $labaRugiData = $this->calculateLabaRugiBersih($tanggalAwal, $tanggalAkhir);
+        $labaRugiBersih = $labaRugiData['laba_bersih'];
+        
+        // Tambahkan data laba/rugi ke neraca
+        $neraca['laba_rugi_berjalan'] = $labaRugiBersih;
+        $neraca['laba_rugi_akun_nama'] = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
+        $neraca['total_ekuitas_with_laba_rugi'] = $neraca['ekuitas']['total'] + $labaRugiBersih;
+        $neraca['total_kewajiban_ekuitas'] = $neraca['kewajiban']['total'] + $neraca['total_ekuitas_with_laba_rugi'];
+        
+        // Update status keseimbangan
+        $neraca['neraca_seimbang'] = abs($neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas']) < 0.01;
+        $neraca['selisih'] = $neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas'];
+
+        return view('akuntansi.laporan_posisi_keuangan', compact('neraca', 'bulan', 'tahun'));
+    }
+
+    /**
+     * ✅ Export Laporan Posisi Keuangan ke PDF
+     */
+    public function laporanPosisiKeuanganPdf(Request $request)
+    {
+        // Gunakan format bulan/tahun seperti neraca saldo untuk konsistensi
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
+        
+        // Validasi range
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = date('m');
+        }
+        if ($tahun < 2020 || $tahun > 2030) {
+            $tahun = date('Y');
+        }
+        
+        // Ensure bulan is zero-padded
+        $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
+        
+        // Hitung periode - sama seperti neraca saldo
+        $tanggalAwal = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $tanggalAkhir = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+
+        // Gunakan NeracaService untuk konsistensi dengan neraca saldo
+        $neracaService = app(\App\Services\NeracaService::class);
+        $neraca = $neracaService->generateLaporanPosisiKeuangan($tanggalAwal, $tanggalAkhir);
+        
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
+        $labaRugiData = $this->calculateLabaRugiBersih($tanggalAwal, $tanggalAkhir);
+        $labaRugiBersih = $labaRugiData['laba_bersih'];
+        
+        // Tambahkan data laba/rugi ke neraca
+        $neraca['laba_rugi_berjalan'] = $labaRugiBersih;
+        $neraca['laba_rugi_akun_nama'] = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
+        $neraca['total_ekuitas_with_laba_rugi'] = $neraca['ekuitas']['total'] + $labaRugiBersih;
+        $neraca['total_kewajiban_ekuitas'] = $neraca['kewajiban']['total'] + $neraca['total_ekuitas_with_laba_rugi'];
+        
+        // Update status keseimbangan
+        $neraca['neraca_seimbang'] = abs($neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas']) < 0.01;
+        $neraca['selisih'] = $neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas'];
+
+        // Generate PDF
+        $pdf = Pdf::loadView('akuntansi.laporan-posisi-keuangan-pdf', compact('neraca', 'bulan', 'tahun'))
+            ->setPaper('a4', 'portrait');
+        
+        // Dynamic filename
+        $fileName = 'laporan-posisi-keuangan-' . $tahun . '-' . $bulan . '.pdf';
+        
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * ✅ PERBAIKAN: Hitung Laba/Rugi Bersih untuk periode tertentu
+     * Digunakan untuk Laporan Posisi Keuangan
+     * 
+     * LOGIKA:
+     * 1. Ambil semua COA dan mutasi periode
+     * 2. Hitung Total Pendapatan (4xxx)
+     * 3. Hitung HPP (5xx dengan nama "Harga Pokok" atau kode 56/560)
+     * 4. Hitung Laba Kotor = Total Pendapatan - HPP
+     * 5. Hitung Total Beban (5xx dan 6xx, excluding HPP)
+     * 6. Hitung Laba/Rugi Bersih = Laba Kotor - Total Beban
+     * 
+     * HASIL AKHIR:
+     * - Jika positif = Laba Bersih
+     * - Jika negatif = Rugi Bersih
+     */
+    private function calculateLabaRugiBersih($from, $to)
+    {
+        $coas = \App\Models\Coa::where('user_id', auth()->id())
+            ->orderBy('kode_akun')
+            ->get();
+
+        // Hitung mutasi per COA untuk periode ini
+        $mutasi = \DB::table('jurnal_umum')
+            ->select('coa_id', 
+                \DB::raw('SUM(debit) as total_debit'), 
+                \DB::raw('SUM(kredit) as total_kredit'))
+            ->where('user_id', auth()->id())
+            ->whereDate('tanggal', '>=', $from)
+            ->whereDate('tanggal', '<=', $to)
+            ->groupBy('coa_id')
+            ->get()
+            ->keyBy('coa_id');
+
+        // Build account data
+        $accountData = [];
+        foreach ($coas as $coa) {
+            $m = $mutasi[$coa->id] ?? null;
+            $debit = $m ? (float)$m->total_debit : 0;
+            $kredit = $m ? (float)$m->total_kredit : 0;
+            
+            // Hitung saldo akhir berdasarkan tipe akun
+            // Pendapatan (4xxx): saldo normal kredit → saldo = kredit - debit
+            // HPP & Beban (5xxx, 6xxx): saldo normal debit → saldo = debit - kredit
+            $first = substr($coa->kode_akun, 0, 1);
+            $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
+            
+            $accountData[$coa->kode_akun] = [
+                'coa' => $coa,
+                'saldo_akhir' => $saldoAkhir
+            ];
+        }
+        
+        // ✅ STEP 1: Hitung Total Pendapatan (4xxx)
+        $totalPendapatan = 0;
+        foreach ($coas as $coa) {
+            if (substr($coa->kode_akun, 0, 1) === '4') {
+                $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+                if ($saldo > 0) {
+                    $totalPendapatan += $saldo;
+                }
+            }
+        }
+        
+        // ✅ STEP 2: Hitung HPP (5xx - Harga Pokok Penjualan)
+        $hppAmount = 0;
+        foreach ($coas as $coa) {
+            if (substr($coa->kode_akun, 0, 1) === '5') {
+                if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                    stripos($coa->nama_akun, 'hpp') !== false ||
+                    $coa->kode_akun === '56' ||
+                    $coa->kode_akun === '560') {
+                    $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+                    if ($saldo > 0) {
+                        $hppAmount += $saldo;
+                    }
+                }
+            }
+        }
+        
+        // ✅ STEP 3: Hitung Laba Kotor
+        $labaKotor = $totalPendapatan - $hppAmount;
+        
+        // ✅ STEP 4: Hitung Total Beban (5xx dan 6xx, excluding HPP)
+        $totalBeban = 0;
+        foreach ($coas as $coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if (in_array($first, ['5', '6'])) {
+                // Skip HPP accounts
+                if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                    stripos($coa->nama_akun, 'hpp') !== false ||
+                    $coa->kode_akun === '56' ||
+                    $coa->kode_akun === '560') {
+                    continue;
+                }
+                
+                $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+                if ($saldo > 0) {
+                    $totalBeban += $saldo;
+                }
+            }
+        }
+        
+        // ✅ STEP 5: Hitung Laba/Rugi Bersih = Laba Kotor - Total Beban
+        // Jika positif = Laba Bersih
+        // Jika negatif = Rugi Bersih
+        $labaBersih = $labaKotor - $totalBeban;
+        
+        \Log::info('Calculate Laba/Rugi Bersih', [
+            'periode' => "$from - $to",
+            'total_pendapatan' => $totalPendapatan,
+            'hpp' => $hppAmount,
+            'laba_kotor' => $labaKotor,
+            'total_beban' => $totalBeban,
+            'laba_bersih' => $labaBersih
+        ]);
+        
+        return [
+            'total_pendapatan' => $totalPendapatan,
+            'hpp' => $hppAmount,
+            'laba_kotor' => $labaKotor,
+            'total_beban' => $totalBeban,
+            'laba_bersih' => $labaBersih
+        ];
     }
 
     private function getLaporanPosisiKeuanganData($bulan, $tahun)
@@ -718,9 +952,17 @@ class AkuntansiController extends Controller
             return $getFinalBalance($coa);
         });
         
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
+        $labaRugiBersih = $this->calculateLabaRugiBersih($from, $to)['laba_bersih'];
+        
+        // Tentukan nama akun berdasarkan nilai laba/rugi
+        $labaRugiAkunNama = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
+        
         $totalAset = $totalAsetLancar + $totalAsetTidakLancar;
         $totalKewajiban = $totalKewajibanPendek + $totalKewajibanPanjang;
-        $totalEkuitasWithProfitLoss = $totalEkuitas + $profitLoss;
+        
+        // ✅ PERBAIKAN: Total Ekuitas = Modal + Laba/Rugi Bersih
+        $totalEkuitasWithProfitLoss = $totalEkuitas + $labaRugiBersih;
         $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitasWithProfitLoss;
         
         return compact(
@@ -729,7 +971,8 @@ class AkuntansiController extends Controller
             'totalAsetLancar', 'totalAsetTidakLancar',
             'totalKewajibanPendek', 'totalKewajibanPanjang', 'totalEkuitas',
             'totalAset', 'totalKewajiban', 'totalKewajibanEkuitas',
-            'getFinalBalance', 'profitLoss', 'totalRevenue', 'totalExpense'
+            'getFinalBalance', 'labaRugiBersih', 'labaRugiAkunNama',
+            'totalRevenue', 'totalExpense'
         );
     }
 
@@ -739,64 +982,139 @@ class AkuntansiController extends Controller
     public function labaRugi(Request $request)
     {
         $periode = $request->get('periode', now()->format('Y-m'));
-        
-        // Parse periode to get bulan and tahun
+
         $tahun = substr($periode, 0, 4);
         $bulan = substr($periode, 5, 2);
-        
-        // Hitung tanggal awal dan akhir bulan
-        $from = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
-        $to = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+        $from  = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $to    = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
 
         // Ambil semua COA
-        $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
-            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-            ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+        $coas = \App\Models\Coa::where('user_id', auth()->id())
             ->orderBy('kode_akun')
             ->get();
 
-        // Ambil mutasi periode
-        $mutasiByKodeAkun = $this->getAccountSummary($from, $to);
+        // Debug: Log periode dan COA count
+        \Log::info('Laba Rugi Report', [
+            'periode' => $periode,
+            'from' => $from,
+            'to' => $to,
+            'user_id' => auth()->id(),
+            'coa_count' => $coas->count()
+        ]);
 
+        // Hitung mutasi per COA untuk periode ini
+        $mutasi = \DB::table('jurnal_umum')
+            ->select('coa_id', 
+                \DB::raw('SUM(debit) as total_debit'), 
+                \DB::raw('SUM(kredit) as total_kredit'))
+            ->where('user_id', auth()->id())
+            ->whereDate('tanggal', '>=', $from)
+            ->whereDate('tanggal', '<=', $to)
+            ->groupBy('coa_id')
+            ->get()
+            ->keyBy('coa_id');
+
+        // Debug: Log mutasi count
+        \Log::info('Mutasi Count', ['count' => $mutasi->count()]);
+
+        // Build account data with final balance
         $accountData = [];
         foreach ($coas as $coa) {
-            $saldoAwal = (float)($coa->saldo_awal ?? 0);
-            $totalDebit  = $mutasiByKodeAkun[$coa->kode_akun]['total_debit']  ?? 0;
-            $totalKredit = $mutasiByKodeAkun[$coa->kode_akun]['total_kredit'] ?? 0;
-
-            // Hitung saldo akhir
-            $firstDigit = substr($coa->kode_akun, 0, 1);
-            $isDebitNormal = !in_array($firstDigit, ['2', '3', '4']);
+            $m = $mutasi[$coa->id] ?? null;
+            $debit = $m ? (float)$m->total_debit : 0;
+            $kredit = $m ? (float)$m->total_kredit : 0;
             
-            if ($isDebitNormal) {
-                $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
-            } else {
-                $saldoAkhir = $saldoAwal - $totalDebit + $totalKredit;
-            }
-
+            // Calculate saldo akhir based on account type
+            // Pendapatan (4xxx): saldo normal kredit → saldo = kredit - debit
+            // HPP & Beban (5xxx, 6xxx): saldo normal debit → saldo = debit - kredit
+            $first = substr($coa->kode_akun, 0, 1);
+            $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
+            
             $accountData[$coa->kode_akun] = [
                 'coa' => $coa,
                 'saldo_akhir' => $saldoAkhir
             ];
         }
         
-        // Filter akun pendapatan dan beban
+        // Filter akun pendapatan (4xxx)
         $pendapatan = $coas->filter(function($coa) use ($accountData) {
-            if (!in_array($coa->tipe_akun, ['Revenue', 'revenue', 'Pendapatan'])) return false;
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '4') return false;
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo != 0;
+            return $saldo > 0;
         })->sortBy('kode_akun');
+
+        // Debug: Log pendapatan
+        $allPendapatanCoas = $coas->filter(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            return $first === '4';
+        });
+        \Log::info('Pendapatan COAs', [
+            'count' => $allPendapatanCoas->count(),
+            'filtered_count' => $pendapatan->count(),
+            'coas' => $allPendapatanCoas->map(function($coa) use ($accountData) {
+                return [
+                    'kode' => $coa->kode_akun,
+                    'nama' => $coa->nama_akun,
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0
+                ];
+            })->toArray()
+        ]);
         
-        $hppCoa = $coas->where('kode_akun', '560')->first();
-        $hppAmount = $hppCoa ? ($accountData['560']['saldo_akhir'] ?? 0) : 0;
+        // Get HPP - cari akun dengan nama "Harga Pokok Penjualan" atau kode 56/560
+        $hppCoa = $coas->first(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '5') return false;
+            
+            // Cari berdasarkan nama atau kode
+            $isHpp = stripos($coa->nama_akun, 'harga pokok') !== false ||
+                     stripos($coa->nama_akun, 'hpp') !== false ||
+                     $coa->kode_akun === '56' ||
+                     $coa->kode_akun === '560';
+            
+            return $isHpp;
+        });
         
-        $beban = $coas->filter(function($coa) use ($accountData) {
-            // Exclude HPP from beban section
-            if ($coa->kode_akun == '560') return false;
-            if (!in_array($coa->tipe_akun, ['Expense', 'expense', 'Beban', 'Biaya'])) return false;
+        $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
+        
+        // Filter akun beban (5xxx, 6xxx) excluding HPP
+        $beban = $coas->filter(function($coa) use ($accountData, $hppCoa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if (!in_array($first, ['5', '6'])) return false;
+            
+            // Exclude HPP account
+            if ($hppCoa && $coa->id === $hppCoa->id) return false;
+            
+            // Also exclude if nama contains "harga pokok" or "hpp"
+            if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                stripos($coa->nama_akun, 'hpp') !== false) {
+                return false;
+            }
+            
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo != 0;
+            return $saldo > 0;
         })->sortBy('kode_akun');
+
+        // Debug: Log beban
+        $allBebanCoas = $coas->filter(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            return in_array($first, ['5', '6']);
+        });
+        \Log::info('Beban COAs', [
+            'count' => $allBebanCoas->count(),
+            'filtered_count' => $beban->count(),
+            'hpp_kode' => $hppCoa ? $hppCoa->kode_akun : 'NOT FOUND',
+            'hpp_nama' => $hppCoa ? $hppCoa->nama_akun : 'NOT FOUND',
+            'coas' => $allBebanCoas->map(function($coa) use ($accountData, $hppCoa) {
+                $isHpp = $hppCoa && $coa->id === $hppCoa->id;
+                return [
+                    'kode' => $coa->kode_akun,
+                    'nama' => $coa->nama_akun,
+                    'saldo' => $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0,
+                    'is_hpp' => $isHpp
+                ];
+            })->toArray()
+        ]);
         
         // Hitung total
         $totalPendapatan = $pendapatan->sum(function($coa) use ($accountData) {
@@ -807,14 +1125,65 @@ class AkuntansiController extends Controller
             return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
         });
         
+        // Calculate diskon penjualan (account 412 or similar)
+        $diskonPenjualanCoa = $coas->where('kode_akun', '412')->first();
+        $totalDiskonPenjualan = $diskonPenjualanCoa ? ($accountData['412']['saldo_akhir'] ?? 0) : 0;
+        
         // Calculate laba kotor dan laba bersih
         $labaKotor = $totalPendapatan - $hppAmount;
         $labaBersih = $labaKotor - $totalBeban;
         
+        // ── DETAIL PENJUALAN PER PRODUK ────────────────────────────
+        // Breakdown penjualan per produk untuk ditampilkan di bawah COA Penjualan
+        $detailPenjualan = \DB::table('penjualan_details as pd')
+            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+            ->whereBetween('p.tanggal', [$from, $to])
+            ->selectRaw('pr.nama_produk,
+                         SUM(pd.jumlah) as total_qty,
+                         SUM(pd.jumlah * pd.harga_satuan) as total_pendapatan')
+            ->groupBy('pr.id', 'pr.nama_produk')
+            ->orderBy('total_pendapatan', 'desc')
+            ->get();
+
+        // ── DETAIL HPP PER PRODUK ──────────────────────────────────
+        // Breakdown HPP per produk untuk ditampilkan di bawah COA HPP
+        $detailHpp = \DB::table('penjualan_details as pd')
+            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+            ->whereBetween('p.tanggal', [$from, $to])
+            ->selectRaw('pr.nama_produk,
+                         SUM(pd.jumlah) as total_qty,
+                         SUM(pd.jumlah * pr.harga_jual) as total_hpp')
+            ->groupBy('pr.id', 'pr.nama_produk')
+            ->having('total_hpp', '>', 0)
+            ->orderBy('total_hpp', 'desc')
+            ->get();
+
+        // Debug: Log totals
+        \Log::info('Laba Rugi Totals', [
+            'totalPendapatan' => $totalPendapatan,
+            'totalBeban' => $totalBeban,
+            'hppAmount' => $hppAmount,
+            'labaKotor' => $labaKotor,
+            'labaBersih' => $labaBersih,
+            'detailPenjualan_count' => $detailPenjualan->count(),
+            'detailHpp_count' => $detailHpp->count()
+        ]);
+
         return view('akuntansi.laba_rugi', compact(
-            'periode', 'pendapatan', 'beban', 
-            'totalPendapatan', 'totalBeban', 'labaBersih',
-            'hppAmount', 'labaKotor', 'accountData'
-        ));
+            'periode', 'from', 'to',
+            'pendapatan', 'beban',
+            'totalPendapatan', 'totalBeban',
+            'labaKotor', 'labaBersih',
+            'hppAmount', 'totalDiskonPenjualan',
+            'detailPenjualan', 'detailHpp',
+            'accountData'
+        ) + [
+            'totalHpp' => $hppAmount,
+            'getSaldo' => function($coa) use ($accountData) {
+                return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            }
+        ]);
     }
 }

@@ -141,10 +141,11 @@ class ProduksiController extends Controller
                 'jumlah_produksi_bulanan' => $request->jumlah_produksi_bulanan,
                 'hari_produksi_bulanan' => $request->hari_produksi_bulanan,
                 'qty_produksi' => $qtyProd,
+
                 'total_bahan' => $totalBahan,
                 'total_btkl' => $totalBTKLTotal,
                 'total_bop' => $totalBOPTotal,
-                'total_biaya' => $totalBiaya,
+'total_biaya' => $totalBiaya,
                 'status' => 'draft',
                 'user_id' => $user_id,
             ]);
@@ -156,11 +157,12 @@ class ProduksiController extends Controller
             $produksi->total_proses = $produksi->proses()->count();
             $produksi->save();
 
-            // Create journal entries
-            $this->createProductionJournals($produksi, $hppData, $qtyProd, $tanggal, $journal);
+            // NOTE: Journal entries will be created when production is COMPLETED
+            // NOT when it's first created (status = 'draft')
+            // See completeProduction() method
 
             return redirect()->route('transaksi.produksi.index')
-                ->with('success', 'Produksi berhasil disimpan dengan lengkap. Data detail dan jurnal telah tercatat.');
+                ->with('success', 'Produksi berhasil disimpan. Silakan mulai produksi untuk memproses bahan baku.');
         });
     }
 
@@ -228,9 +230,14 @@ class ProduksiController extends Controller
                         $qtyBase = $qtyResepTotal;
                     }
                     
-                    // Update stok bahan baku
-                    $bahan->stok = (float)$bahan->stok - $qtyBase;
-                    $bahan->save();
+                    // IMPORTANT: Update stok directly in database to avoid triggering setter
+                    // which would create duplicate manual_adjustment stock movement
+                    \DB::table('bahan_bakus')
+                        ->where('id', $bahan->id)
+                        ->decrement('stok', $qtyBase);
+                    
+                    // Refresh model to get updated stok value
+                    $bahan->refresh();
                     
                     // Record stock movement
                     \App\Models\StockMovement::create([
@@ -266,44 +273,20 @@ class ProduksiController extends Controller
 
     public function show($id)
     {
+
         // 🔒 SECURITY: Add user_id filtering to prevent cross-tenant data access
-        $produksi = Produksi::with(['produk','details.bahanBaku.satuan','details.bahanPendukung.satuan'])
+        $produksi = Produksi::with([
+            'produk',
+            'details.bahanBaku.satuan',
+            'details.bahanPendukung.satuan',
+            'proses'
+        ])
             ->where('user_id', auth()->id())
             ->findOrFail($id);
         
-        // If production is still in draft status, fetch breakdown data
-        if ($produksi->status === 'draft') {
-            // Get breakdown similar to create page
-            $breakdown = $this->getProductionCostBreakdown($produksi);
-            $produksi->detail_breakdown = $breakdown;
-        } else {
-            // Calculate proper conversions for display from existing details
-            foreach ($produksi->details as $detail) {
-                if ($detail->bahan_baku_id && $detail->bahanBaku) {
-                    $bahan = $detail->bahanBaku;
-                    $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan ?? 'unit';
-                    
-                    // Calculate proper conversion for display
-                    $detail->qty_konversi_display = $bahan->konversiBerdasarkanProduksi(
-                        $detail->qty_resep, 
-                        $detail->satuan_resep, 
-                        $satuanBahan
-                    );
-                    $detail->satuan_bahan_display = $satuanBahan;
-                } elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
-                    $bahan = $detail->bahanPendukung;
-                    $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan ?? 'unit';
-                    
-                    // Calculate proper conversion for display using BahanPendukung method
-                    $detail->qty_konversi_display = $bahan->konversiBerdasarkanProduksi(
-                        $detail->qty_resep, 
-                        $detail->satuan_resep, 
-                        $satuanBahan
-                    );
-                    $detail->satuan_bahan_display = $satuanBahan;
-                }
-            }
-        }
+        // Always fetch breakdown data for display
+        $breakdown = $this->getProductionCostBreakdown($produksi);
+        $produksi->detail_breakdown = $breakdown;
         
         return view('transaksi.produksi.show', compact('produksi'));
     }
@@ -424,8 +407,28 @@ class ProduksiController extends Controller
             ]);
         }
 
-        // Note: Journal entries are already created in store() method
-        // No need to create duplicate journals here
+        // IMPORTANT: Create journal entries ONLY when production is completed
+        // Check if journals already exist to avoid duplicates
+        $existingJournal = \DB::table('jurnal_umum')
+            ->where('tipe_referensi', 'produksi_bbb')
+            ->where('referensi', $produksi->id)
+            ->where('user_id', $produksi->user_id)
+            ->exists();
+        
+        if (!$existingJournal) {
+            // Get HPP data for journal creation
+            $hppData = $this->getHppBreakdownForProduction($produk->id, $produksi->user_id);
+            
+            // Create journal entries
+            $journal = app(\App\Services\JournalService::class);
+            $this->createProductionJournals($produksi, $hppData, $qtyProd, $tanggal, $journal);
+            
+            \Log::info('Production journals created on completion', [
+                'produksi_id' => $produksi->id,
+                'user_id' => $produksi->user_id,
+                'status' => 'selesai'
+            ]);
+        }
 
         // Update status produksi ke selesai
         $produksi->update([
@@ -435,7 +438,8 @@ class ProduksiController extends Controller
     }
 
     /**
-     * Start production again for completed products using last production data
+
+* Start production again for completed products using last production data
      */
     public function mulaiLagi(Request $request, StockService $stock, JournalService $journal, KonversiProduksiService $konversiService)
     {
@@ -585,8 +589,9 @@ class ProduksiController extends Controller
                 })
                 ->exists();
 
+
             if (!$hasHppData) {
-                return response()->json([
+return response()->json([
                     'success' => false,
                     'message' => 'Data Harga Pokok Produksi tidak ditemukan untuk produk ini. Silakan buat HPP terlebih dahulu di menu Master Data > Harga Pokok Produksi.'
                 ]);
@@ -676,14 +681,28 @@ class ProduksiController extends Controller
                             foreach ($komponenBop as $komponen) {
                                 $namaKomponen = $komponen['component'] ?? $komponen['nama'] ?? 'BOP';
                                 $ratePerHour = $komponen['rate_per_hour'] ?? 0;
+                                $bahanPendukungId = $komponen['bahan_pendukung_id'] ?? null;
                                 
                                 // Calculate proportional rate per produk
                                 $ratePerProduk = $totalRatePerHour > 0 
                                     ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                     : 0;
 
-                                // Determine COA based on component name keywords
-                                $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                // Determine COA - prioritize bahan pendukung's COA if available
+                                if ($bahanPendukungId) {
+                                    $bahanPendukung = \App\Models\BahanPendukung::find($bahanPendukungId);
+                                    if ($bahanPendukung && $bahanPendukung->coa_persediaan_id) {
+                                        $coa = \App\Models\Coa::where('kode_akun', $bahanPendukung->coa_persediaan_id)->first();
+                                        $coaInfo = [
+                                            'kode' => $bahanPendukung->coa_persediaan_id,
+                                            'nama' => $coa ? $coa->nama_akun : 'Persediaan ' . $namaKomponen
+                                        ];
+                                    } else {
+                                        $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                    }
+                                } else {
+                                    $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                }
 
                                 // Add to BOP display array
                                 $breakdown['bop'][] = [
@@ -741,21 +760,14 @@ class ProduksiController extends Controller
     private function getKonversiInfo($bahan, $satuanResep)
     {
         $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan;
-        
-        if ($satuanResep === $satuanBahan) {
-            return "Tidak perlu konversi (satuan sama)";
-        }
-        
-        // Check master data conversion
+        if ($satuanResep === $satuanBahan) return "Tidak perlu konversi (satuan sama)";
         $konversi = $bahan->convertToSubUnit(1, $satuanBahan, $satuanResep);
-        if ($konversi != 1) {
-            return "1 {$satuanBahan} = {$konversi} {$satuanResep}";
-        }
-        
+        if ($konversi != 1) return "1 {$satuanBahan} = {$konversi} {$satuanResep}";
         return "Konversi standar";
     }
 
     /**
+
      * Determine COA for BOP component based on keyword matching
      */
     private function determineBopCoaByKeyword($namaKomponen)
@@ -814,10 +826,11 @@ class ProduksiController extends Controller
         return [
             'kode' => '210',
             'nama' => 'Hutang Usaha (BOP Lain-lain)'
-        ];
+];
     }
 
     /**
+
      * Get HPP breakdown for production (BBB, BTKL, BOP with components)
      */
     private function getHppBreakdownForProduction($produk_id, $user_id)
@@ -949,40 +962,66 @@ class ProduksiController extends Controller
 
         // Save BTKL as produksi_proses records
         $urutan = 1;
+        $prosesMapByName = []; // Map nama_proses to ProduksiProses record
+        $prosesMapById = []; // Map proses_produksi_id to ProduksiProses record
+        
         foreach ($hppData['btkl'] as $btkl) {
             $biayaBtkl = $btkl['subtotal'] * $qtyProd;
             
-            \App\Models\ProduksiProses::create([
+            $proses = \App\Models\ProduksiProses::create([
                 'produksi_id' => $produksi->id,
                 'proses_produksi_id' => $btkl['proses_produksi_id'],
                 'nama_proses' => $btkl['nama_proses'],
                 'urutan' => $urutan++,
                 'biaya_btkl' => $biayaBtkl,
-                'biaya_bop' => 0, // Will be calculated from BOP data
-                'total_biaya_proses' => $biayaBtkl, // Will be updated after BOP
+                'biaya_bop' => 0,
+                'total_biaya_proses' => $biayaBtkl,
                 'status' => 'pending',
                 'user_id' => $produksi->user_id,
             ]);
+            
+            // Store in both maps for BOP update
+            $prosesMapByName[$btkl['nama_proses']] = $proses;
+            $prosesMapById[$btkl['proses_produksi_id']] = $proses;
         }
 
-        // Group BOP by proses_id and sum the subtotals
-        $bopByProses = [];
+        // Group BOP by proses_id (proses_produksi_id) and sum the subtotals
+        $bopByProsesId = [];
         foreach ($hppData['bop'] as $bop) {
-            $prosesId = $bop['proses_id'];
-            if (!isset($bopByProses[$prosesId])) {
-                $bopByProses[$prosesId] = 0;
+            // Use proses_id if available, otherwise fallback to nama_proses
+            $prosesId = $bop['proses_id'] ?? null;
+            $namaProses = $bop['nama_proses'] ?? null;
+            
+            if ($prosesId) {
+                if (!isset($bopByProsesId[$prosesId])) {
+                    $bopByProsesId[$prosesId] = 0;
+                }
+                $bopByProsesId[$prosesId] += $bop['subtotal'];
+            } elseif ($namaProses) {
+                // Fallback: group by nama_proses
+                if (!isset($bopByProsesId['name_' . $namaProses])) {
+                    $bopByProsesId['name_' . $namaProses] = 0;
+                }
+                $bopByProsesId['name_' . $namaProses] += $bop['subtotal'];
             }
-            $bopByProses[$prosesId] += $bop['subtotal'];
         }
 
         // Update BOP costs in produksi_proses
-        foreach ($bopByProses as $prosesId => $totalBop) {
-            $proses = \App\Models\ProduksiProses::where('produksi_id', $produksi->id)
-                ->where('proses_produksi_id', $prosesId)
-                ->first();
+        foreach ($bopByProsesId as $key => $totalBopPerUnit) {
+            $proses = null;
+            
+            // Check if key is proses_id (numeric) or nama_proses (prefixed with 'name_')
+            if (is_numeric($key) && isset($prosesMapById[$key])) {
+                $proses = $prosesMapById[$key];
+            } elseif (strpos($key, 'name_') === 0) {
+                $namaProses = substr($key, 5); // Remove 'name_' prefix
+                if (isset($prosesMapByName[$namaProses])) {
+                    $proses = $prosesMapByName[$namaProses];
+                }
+            }
             
             if ($proses) {
-                $biayaBop = $totalBop * $qtyProd;
+                $biayaBop = $totalBopPerUnit * $qtyProd;
                 $proses->biaya_bop = $biayaBop;
                 $proses->total_biaya_proses = $proses->biaya_btkl + $biayaBop;
                 $proses->save();
@@ -996,6 +1035,11 @@ class ProduksiController extends Controller
     private function createProductionJournals($produksi, $hppData, $qtyProd, $tanggal, $journal)
     {
         $user_id = $produksi->user_id;
+        
+        // VALIDATE: Ensure all required COAs exist before creating journals
+        // This prevents incorrect journal entries with fallback COAs
+        \App\Helpers\ProductionCoaValidator::validateOrThrow($hppData, $user_id);
+        
         $totalBBB = $produksi->total_bahan;
         $totalBTKL = $produksi->total_btkl;
         $totalBOP = $produksi->total_bop;
@@ -1150,27 +1194,93 @@ class ProduksiController extends Controller
             }
 
             if ($totalBOP > 0) {
-                \App\Models\JurnalUmum::create([
-                    'user_id' => $user_id,
-                    'coa_id' => $this->getCoaIdByKode('1173'),
-                    'tanggal' => $tanggal,
-                    'keterangan' => 'Transfer WIP BOP ke Barang Jadi',
-                    'debit' => 0,
-                    'kredit' => $totalBOP,
-                    'referensi' => $produksi->id,
-                    'tipe_referensi' => 'produksi_transfer',
-                    'created_by' => $user_id,
-                ]);
+                // Create individual journal entries for each BOP component with specific COA
+                $this->createBOPJournalEntries($produksi, $tanggal, $user_id);
             }
         }
     }
 
     /**
-     * Get COA ID by kode_akun with fallback to Hutang Usaha (210)
+     * Create BOP journal entries using specific COA from BOP proses setup
+     * Multi-tenant support: Uses COA from bop_proses table for each user
      */
-    private function getCoaIdByKode($kodeAkun)
+    private function createBOPJournalEntries($produksi, $tanggal, $user_id)
     {
-        $user_id = auth()->id();
+        // Get all BOP proses for this user (multi-tenant support)
+        $bopProsesList = \App\Models\BopProses::where('user_id', $user_id)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($bopProsesList as $bopProses) {
+            // Get komponen_bop data from database
+            $komponenBop = $bopProses->komponen_bop;
+            if (is_string($komponenBop)) {
+                $komponenBop = json_decode($komponenBop, true) ?? [];
+            } elseif (!is_array($komponenBop)) {
+                $komponenBop = [];
+            }
+
+            // Calculate total BOP for this proses
+            $totalBopPerProduk = $bopProses->total_bop_per_produk ?? 0;
+            $totalBopAmount = $totalBopPerProduk * $produksi->qty_produksi;
+
+            if ($totalBopAmount > 0) {
+                // Create journal entry for each component with its specific COA from database
+                foreach ($komponenBop as $komp) {
+                    $componentName = $komp['component'] ?? 'BOP';
+                    $ratePerHour = $komp['rate_per_hour'] ?? 0;
+                    // Use COA from bop_proses table (multi-tenant aware)
+                    $coaDebit = $komp['coa_debit'] ?? '1173';
+                    $coaKredit = $komp['coa_kredit'] ?? '510';
+                    $description = $komp['description'] ?? '';
+
+                    // Calculate proportional amount for this component
+                    $totalRate = array_sum(array_column($komponenBop, 'rate_per_hour'));
+                    $componentAmount = $totalRate > 0 ? ($ratePerHour / $totalRate) * $totalBopAmount : 0;
+
+                    if ($componentAmount > 0) {
+                        // Create debit entry (WIP BOP account) with user-specific COA
+                        $coaDebitId = $this->getCoaIdByKode($coaDebit, $user_id);
+                        \App\Models\JurnalUmum::create([
+                            'user_id' => $user_id,
+                            'coa_id' => $coaDebitId,
+                            'tanggal' => $tanggal,
+                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
+                            'debit' => $componentAmount,
+                            'kredit' => 0,
+                            'referensi' => $produksi->id,
+                            'tipe_referensi' => 'produksi_bop',
+                            'created_by' => $user_id,
+                        ]);
+
+                        // Create credit entry (expense account) with user-specific COA
+                        $coaKreditId = $this->getCoaIdByKode($coaKredit, $user_id);
+                        \App\Models\JurnalUmum::create([
+                            'user_id' => $user_id,
+                            'coa_id' => $coaKreditId,
+                            'tanggal' => $tanggal,
+                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
+                            'debit' => 0,
+                            'kredit' => $componentAmount,
+                            'referensi' => $produksi->id,
+                            'tipe_referensi' => 'produksi_bop',
+                            'created_by' => $user_id,
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Get COA ID by kode_akun - STRICT MODE (no fallback)
+     * Throws exception if COA not found to prevent incorrect journal entries
+     * Multi-tenant support: Uses specific user_id parameter
+     */
+    private function getCoaIdByKode($kodeAkun, $user_id = null)
+    {
+        // Use provided user_id or current authenticated user
+        $user_id = $user_id ?? auth()->id();
         
         // Try to find the COA with user_id filter
         $coa = \App\Models\Coa::where('kode_akun', $kodeAkun)
@@ -1182,32 +1292,19 @@ class ProduksiController extends Controller
             return $coa->id;
         }
         
-        // Fallback: Try to find Hutang Usaha (210) as default
-        $fallbackCoa = \App\Models\Coa::where('kode_akun', '210')
-            ->where('user_id', $user_id)
-            ->first();
-        
-        if ($fallbackCoa) {
-            \Log::warning("COA {$kodeAkun} tidak ditemukan, menggunakan fallback COA 210 (Hutang Usaha)");
-            return $fallbackCoa->id;
-        }
-        
-        // Last resort: return any liability account
-        $anyLiability = \App\Models\Coa::where('user_id', $user_id)
-            ->where('kode_akun', 'like', '2%')
-            ->first();
-        
-        if ($anyLiability) {
-            \Log::warning("COA {$kodeAkun} dan 210 tidak ditemukan, menggunakan COA {$anyLiability->kode_akun}");
-            return $anyLiability->id;
-        }
-        
-        throw new \Exception("COA {$kodeAkun} tidak ditemukan dan tidak ada COA fallback. Silakan buat COA terlebih dahulu.");
+        // NO FALLBACK! Throw error immediately to prevent incorrect journal entries
+        // This ensures that missing COAs are caught early rather than creating wrong journals
+        throw new \Exception(
+            "COA dengan kode '{$kodeAkun}' tidak ditemukan untuk user ID {$user_id}. " .
+            "Silakan buat COA ini terlebih dahulu di Master Data > Chart of Accounts sebelum melakukan produksi. " .
+            "COA yang diperlukan untuk produksi: 1171 (WIP BBB), 1172 (WIP BTKL), 1173 (WIP BOP), " .
+            "211 (Hutang Gaji), dan COA untuk setiap komponen BOP."
+        );
     }
 
     /**
      * Get detailed cost breakdown for production from saved details
-     */
+*/
     private function getProductionCostBreakdown($produksi)
     {
         $breakdown = [
@@ -1259,11 +1356,11 @@ class ProduksiController extends Controller
 
         // Get BOP details from HPP with components
         $hppBop = \App\Models\HargaPokokProduksiBop::where('user_id', $user_id)
-            ->with('bopProses.prosesProduksi')
+            ->with('bopProses')
             ->get();
         
         foreach ($hppBop as $bop) {
-            if ($bop->bopProses && $bop->bopProses->prosesProduksi) {
+            if ($bop->bopProses) {
                 // Check if komponen_bop is already an array or needs decoding
                 $komponenBop = $bop->bopProses->komponen_bop;
                 if (is_string($komponenBop)) {
@@ -1290,7 +1387,7 @@ class ProduksiController extends Controller
                     $totalBiaya = $bopPerUnit * $produksi->qty_produksi;
                     
                     $breakdown['bop'][] = [
-                        'nama_proses' => $bop->bopProses->prosesProduksi->nama_proses,
+                        'nama_proses' => $bop->bopProses->nama_bop_proses,
                         'nama_komponen' => $namaKomponen,
                         'biaya_per_unit' => $bopPerUnit,
                         'total_biaya' => $totalBiaya
@@ -1298,8 +1395,8 @@ class ProduksiController extends Controller
                 }
             }
         }
-        
-        return $breakdown;
+
+return $breakdown;
     }
 
     /**
@@ -1308,56 +1405,52 @@ class ProduksiController extends Controller
     private function createMaterialJournals($produksi, $journal, $produksiDetails)
     {
         $tanggal = $produksi->tanggal;
-        
-        // 1. Journal for Material Consumption (Material → WIP)
+        $userId  = $produksi->user_id ?? auth()->id();
+
+        // COA BDP-BBB spesifik (1171), fallback ke 117
+        $coaBdpBbb = \App\Models\Coa::withoutGlobalScopes()
+            ->where('user_id', $userId)->where('kode_akun', '1171')->first()
+            ?? \App\Models\Coa::withoutGlobalScopes()
+                ->where('user_id', $userId)->where('kode_akun', '117')->first();
+
+        if (!$coaBdpBbb) return;
+
         $materialEntries = [];
         $totalMaterialCost = 0;
-        
+
         foreach ($produksiDetails as $detail) {
+            // Bahan Baku
             if ($detail->bahan_baku_id && $detail->bahanBaku) {
                 $bahan = $detail->bahanBaku;
-                $coaPersediaan = \App\Models\Coa::where('kode_akun', $bahan->coa_persediaan_id ?? '1101')->first();
-                
+                $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+                    ->where('user_id', $userId)
+                    ->where('kode_akun', $bahan->coa_persediaan_id ?? '114')->first();
                 if ($coaPersediaan && $detail->subtotal > 0) {
-                    $materialEntries[] = [
-                        'code' => $coaPersediaan->kode_akun,
-                        'debit' => 0,
-                        'credit' => $detail->subtotal,
-                        'memo' => "Konsumsi {$bahan->nama_bahan}"
-                    ];
+                    $materialEntries[] = ['code' => $coaPersediaan->kode_akun, 'debit' => 0, 'credit' => $detail->subtotal, 'memo' => "Konsumsi {$bahan->nama_bahan}"];
                     $totalMaterialCost += $detail->subtotal;
                 }
             }
-            
-            if ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
+            // Bahan Pendukung
+            elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
                 $bahan = $detail->bahanPendukung;
-                $coaPersediaan = \App\Models\Coa::where('kode_akun', $bahan->coa_persediaan_id ?? '1150')->first();
-                
+                $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+                    ->where('user_id', $userId)
+                    ->where('kode_akun', $bahan->coa_persediaan_id ?? '115')->first();
                 if ($coaPersediaan && $detail->subtotal > 0) {
-                    $materialEntries[] = [
-                        'code' => $coaPersediaan->kode_akun,
-                        'debit' => 0,
-                        'credit' => $detail->subtotal,
-                        'memo' => "Konsumsi {$bahan->nama_bahan}"
-                    ];
+                    $materialEntries[] = ['code' => $coaPersediaan->kode_akun, 'debit' => 0, 'credit' => $detail->subtotal, 'memo' => "Konsumsi {$bahan->nama_bahan}"];
                     $totalMaterialCost += $detail->subtotal;
                 }
             }
         }
-        
-        // Add WIP debit entry for materials
+
         if ($totalMaterialCost > 0) {
-            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first(); // Barang Dalam Proses
-            if ($coaWIP) {
-                array_unshift($materialEntries, [
-                    'code' => $coaWIP->kode_akun,
-                    'debit' => $totalMaterialCost,
-                    'credit' => 0,
-                    'memo' => 'Transfer material ke WIP'
-                ]);
-                
-                $journal->post($tanggal, 'production_material', (int)$produksi->id, 'Konsumsi Material untuk Produksi', $materialEntries);
-            }
+            array_unshift($materialEntries, [
+                'code'  => $coaBdpBbb->kode_akun,
+                'debit' => $totalMaterialCost,
+                'credit' => 0,
+                'memo'  => 'Transfer material ke BDP-BBB'
+            ]);
+            $journal->post($tanggal, 'production_material', (int)$produksi->id, 'Konsumsi Material untuk Produksi', $materialEntries);
         }
     }
 
@@ -1432,41 +1525,64 @@ class ProduksiController extends Controller
             $prosesOrder++;
         }
 
+
         // Calculate BOP for each process
         $bomJobBOPs = \App\Models\BomJobBOP::where('user_id', auth()->id())->where('produk_id', $bomJobCosting->produk_id)->get();
         
         // Group BOP by process name and multiply by production quantity
-        $bopByProcess = [];
-        foreach ($bomJobBOPs as $bomJobBOP) {
-            $namaProses = 'Umum';
-            $namaBiaya = strtolower($bomJobBOP->nama_bop ?? '');
-            
-            // Map BOP components to process names based on naming convention
-            if (stripos($namaBiaya, 'penggorengan') !== false || stripos($namaBiaya, 'goreng') !== false) {
-                $namaProses = 'Penggorengan';
-            } elseif (stripos($namaBiaya, 'perbumbuan') !== false || stripos($namaBiaya, 'bumbu') !== false) {
-                $namaProses = 'Perbumbuan';
-            } elseif (stripos($namaBiaya, 'pengemasan') !== false || stripos($namaBiaya, 'kemas') !== false) {
-                $namaProses = 'Pengemasan';
-            }
-            
+$bopByProcess = [];
+        $bopDetails = \App\Models\ProduksiBopDetail::where('produksi_id', $produksi->id)->get();
+        foreach ($bopDetails as $bopDetail) {
+            $namaProses = $bopDetail->nama_proses;
             if (!isset($bopByProcess[$namaProses])) {
                 $bopByProcess[$namaProses] = 0;
             }
-            // Multiply by production quantity to get total BOP for this production
-            $bopByProcess[$namaProses] += ($bomJobBOP->subtotal ?? 0) * $produksi->qty_produksi;
+            $bopByProcess[$namaProses] += (float)$bopDetail->total;
+        }
+
+        // Fallback: jika ProduksiBopDetail belum ada, hitung dari BomJobBOP
+        if (empty($bopByProcess)) {
+            $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get();
+            foreach ($bomJobBOPs as $bomJobBOP) {
+                $namaBop  = $bomJobBOP->nama_bop ?? '';
+                $dashPos  = strpos($namaBop, ' - ');
+                $namaProses = $dashPos !== false ? trim(substr($namaBop, 0, $dashPos)) : 'Umum';
+                if (!isset($bopByProcess[$namaProses])) {
+                    $bopByProcess[$namaProses] = 0;
+                }
+                $bopByProcess[$namaProses] += ($bomJobBOP->subtotal ?? 0) * $produksi->qty_produksi;
+            }
         }
         
         // Update BOP for each process
         foreach ($produksi->proses as $proses) {
             $bopAmount = 0;
             
-            // Find matching BOP for this process
-            foreach ($bopByProcess as $prosesName => $bopValue) {
-                if (stripos($proses->nama_proses, $prosesName) !== false || 
-                    ($prosesName === 'Umum' && !isset($bopByProcess[$proses->nama_proses]))) {
-                    $bopAmount = $bopValue;
-                    break;
+            // Normalize process names by removing extra spaces for comparison
+            $normalizedProsesName = preg_replace('/\s+/', ' ', trim($proses->nama_proses));
+            
+            // Exact match dengan nama yang dinormalisasi
+            if (isset($bopByProcess[$normalizedProsesName])) {
+                $bopAmount = $bopByProcess[$normalizedProsesName];
+            } else {
+                // Coba match dengan nama asli (fallback)
+                if (isset($bopByProcess[$proses->nama_proses])) {
+                    $bopAmount = $bopByProcess[$proses->nama_proses];
+                } else {
+                    // Partial match sebagai fallback dengan normalisasi
+                    foreach ($bopByProcess as $prosesName => $bopValue) {
+                        $normalizedBopName = preg_replace('/\s+/', ' ', trim($prosesName));
+                        if ($prosesName !== 'Umum' && $normalizedBopName !== 'Umum' &&
+                            (stripos($normalizedProsesName, $normalizedBopName) !== false ||
+                             stripos($normalizedBopName, $normalizedProsesName) !== false)) {
+                            $bopAmount = $bopValue;
+                            break;
+                        }
+                    }
+                    // Jika masih 0, cek apakah ada bucket 'Umum'
+                    if ($bopAmount == 0 && isset($bopByProcess['Umum'])) {
+                        $bopAmount = $bopByProcess['Umum'];
+                    }
                 }
             }
             

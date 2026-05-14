@@ -50,11 +50,11 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required>
                     <option value="">Pilih tipe</option>
-                    <option value="ASET" {{ old('tipe_akun', $coa->tipe_akun)==='ASET'?'selected':'' }}>Aset</option>
-                    <option value="KEWAJIBAN" {{ old('tipe_akun', $coa->tipe_akun)==='KEWAJIBAN'?'selected':'' }}>Kewajiban</option>
-                    <option value="MODAL" {{ old('tipe_akun', $coa->tipe_akun)==='MODAL'?'selected':'' }}>Modal</option>
-                    <option value="PENDAPATAN" {{ old('tipe_akun', $coa->tipe_akun)==='PENDAPATAN'?'selected':'' }}>Pendapatan</option>
-                    <option value="BEBAN" {{ old('tipe_akun', $coa->tipe_akun)==='BEBAN'?'selected':'' }}>Beban</option>
+                    <option value="Asset" {{ old('tipe_akun', $coa->tipe_akun)==='Asset'?'selected':'' }}>Aset</option>
+                    <option value="Liability" {{ old('tipe_akun', $coa->tipe_akun)==='Liability'?'selected':'' }}>Kewajiban</option>
+                    <option value="Equity" {{ old('tipe_akun', $coa->tipe_akun)==='Equity'?'selected':'' }}>Modal</option>
+                    <option value="Revenue" {{ old('tipe_akun', $coa->tipe_akun)==='Revenue'?'selected':'' }}>Pendapatan</option>
+                    <option value="Expense" {{ old('tipe_akun', $coa->tipe_akun)==='Expense'?'selected':'' }}>Beban</option>
                 </select>
             </div>
 
@@ -126,11 +126,9 @@ document.getElementById('parent_coa_id').addEventListener('change', function() {
     if (sel.value) {
         const opt = sel.options[sel.selectedIndex];
         const tipe = opt.getAttribute('data-tipe');
-        const kategori = opt.getAttribute('data-kategori');
         const saldoNormal = opt.getAttribute('data-saldo-normal');
 
         if (tipe) document.getElementById('tipe_akun').value = tipe;
-        if (kategori) document.getElementById('kategori_akun').value = kategori;
         if (saldoNormal) document.getElementById('saldo_normal').value = saldoNormal;
     } else {
         document.getElementById('generateInfo').style.display = 'none';
@@ -160,7 +158,6 @@ function generateChildKode() {
             document.getElementById('auto_generate_kode').value = '1';
 
             if (data.parent_tipe) document.getElementById('tipe_akun').value = data.parent_tipe;
-            if (data.parent_kategori) document.getElementById('kategori_akun').value = data.parent_kategori;
             if (data.parent_saldo_normal) document.getElementById('saldo_normal').value = data.parent_saldo_normal;
 
             document.getElementById('infoKode').textContent = data.kode_akun;

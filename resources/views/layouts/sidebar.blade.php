@@ -1,6 +1,5 @@
-﻿<div class="sidebar">
-
-    {{-- ===== USER PROFILE ===== --}}
+<div class="sidebar">
+{{-- ===== USER PROFILE ===== --}}
     <div class="sb-profile">
         <div class="sb-avatar">
             @if(Auth::check() && Auth::user()->profile_photo)
@@ -25,12 +24,13 @@
             <i class="fas fa-home"></i><span>Dashboard</span>
         </a>
         <div class="sb-section">PRESENSI</div>
+
         <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="sb-link {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}">
             <i class="fas fa-camera"></i><span>Absen Wajah</span>
         </a>
         <a href="{{ route('pegawai.riwayat-presensi') }}" class="sb-link {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}">
             <i class="fas fa-history"></i><span>Riwayat Presensi</span>
-        </a>
+</a>
         <div class="sb-section">PENGGAJIAN</div>
         <a href="{{ route('pegawai.slip-gaji.index') }}" class="sb-link {{ request()->is('pegawai/slip-gaji*') ? 'active' : '' }}">
             <i class="fas fa-file-invoice-dollar"></i><span>Slip Gaji</span>
@@ -102,8 +102,9 @@
             <a href="{{ route('laporan.kas-bank') }}"                    class="sb-sub {{ request()->is('laporan/kas-bank*') ? 'active' : '' }}">Laporan Kas &amp; Bank</a>
             <a href="{{ route('akuntansi.jurnal-umum') }}"               class="sb-sub {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}">Jurnal Umum</a>
             <a href="{{ route('akuntansi.buku-besar') }}"                class="sb-sub {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}">Buku Besar</a>
+
             <a href="{{ route('akuntansi.neraca-saldo') }}"              class="sb-sub {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}">Neraca Saldo</a>
-            <a href="{{ route('akuntansi.laporan-posisi-keuangan') }}"   class="sb-sub {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}">Posisi Keuangan</a>
+<a href="{{ route('akuntansi.laporan-posisi-keuangan') }}"   class="sb-sub {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}">Posisi Keuangan</a>
             <a href="{{ route('akuntansi.laba-rugi') }}"                 class="sb-sub {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}">Laba Rugi</a>
         </div>
 
@@ -164,8 +165,9 @@
                 </div>
             </div>
         </div>
+
         <div class="sb-footer-copy">┬⌐ 2026 SIMCOST<br>All rights reserved.</div>
-    </div>
+</div>
 
 </div>
 

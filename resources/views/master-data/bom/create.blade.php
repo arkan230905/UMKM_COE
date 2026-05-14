@@ -33,7 +33,7 @@
             <!-- Product Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h6 class="mb-0">
                             <i class="fas fa-box me-2"></i>Pilih Produk
                         </h6>
@@ -60,7 +60,7 @@
             <!-- BBB Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h6 class="mb-0">
                             <i class="fas fa-cube me-2"></i>Biaya Bahan Baku
                         </h6>
@@ -78,22 +78,75 @@
                 </div>
             </div>
 
+
             <!-- BTKL Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-warning text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h6 class="mb-0">
                             <i class="fas fa-users me-2"></i>BTKL (Biaya Tenaga Kerja Langsung)
                         </h6>
                     </div>
                     <div class="card-body">
                         <div id="btkl-container" class="row">
-                            <div class="col-12 text-center">
-                                <div class="spinner-border text-muted" role="status">
-                                    <span class="sr-only">Loading...</span>
+                            @php
+                                $prosesProduksi = \App\Models\ProsesProduksi::where('user_id', auth()->id())->get();
+                            @endphp
+                            
+                            @if($prosesProduksi->isEmpty())
+                                <div class="col-12 text-center text-muted py-3">
+                                    <i class="fas fa-info-circle me-2"></i>Belum ada data BTKL tersedia
                                 </div>
-                                <p class="text-muted">Memuat data proses produksi...</p>
-                            </div>
+                            @else
+                                @foreach($prosesProduksi as $item)
+                                    @php
+                                        $tarif = $item->tarif_btkl ?? 0;
+                                        $kapasitas = $item->kapasitas_per_jam ?? 1;
+                                        $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
+                                    @endphp
+                                    <div class="col-12 mb-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #fef9e7 100%); border-left: 5px solid #ffc107 !important;">
+                                            <div class="card-body p-3">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input btkl-checkbox" type="checkbox" 
+                                                           name="selected_btkl[]" value="{{ $item->id }}" id="btkl_{{ $item->id }}"
+                                                           data-tarif="{{ $biayaPerProduk }}"
+                                                           style="transform: scale(1.2); margin-top: 8px;">
+                                                    <label class="form-check-label w-100" for="btkl_{{ $item->id }}">
+                                                        <div class="row align-items-center">
+                                                            <div class="col-md-4">
+                                                                <div class="d-flex align-items-center">
+                                                                    <div class="bg-warning rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center;">
+                                                                        <i class="fas fa-users text-white"></i>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h6 class="mb-0 text-warning fw-bold">{{ $item->nama_proses }}</h6>
+                                                                        <small class="text-muted">{{ $item->kode_proses ?? '-' }}</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-3 text-center">
+                                                                <small class="text-muted d-block">Tarif/Jam</small>
+                                                                <strong class="text-dark">Rp {{ number_format($tarif, 0, ',', '.') }}</strong>
+                                                            </div>
+                                                            <div class="col-md-2 text-center">
+                                                                <small class="text-muted d-block">Kapasitas</small>
+                                                                <strong class="text-dark">{{ $kapasitas }} {{ $item->satuan_btkl ?? 'Unit' }}/jam</strong>
+                                                            </div>
+                                                            <div class="col-md-3 text-center">
+                                                                <div class="bg-warning bg-opacity-10 rounded p-2">
+                                                                    <small class="text-muted d-block">Biaya/Produk</small>
+                                                                    <h5 class="mb-0 fw-bold text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -102,19 +155,80 @@
             <!-- BOP Selection -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-danger text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h6 class="mb-0">
                             <i class="fas fa-cogs me-2"></i>BOP (Biaya Overhead Pabrik)
                         </h6>
                     </div>
                     <div class="card-body">
                         <div id="bop-container" class="row">
-                            <div class="col-12 text-center">
-                                <div class="spinner-border text-muted" role="status">
-                                    <span class="sr-only">Loading...</span>
+                            @php
+                                $bopProses = \App\Models\BopProses::where('user_id', auth()->id())
+                                    ->where('is_active', true)
+                                    ->get();
+                            @endphp
+                            
+                            @if($bopProses->isEmpty())
+                                <div class="col-12 text-center text-muted py-3">
+                                    <i class="fas fa-info-circle me-2"></i>Belum ada data BOP tersedia
                                 </div>
-                                <p class="text-muted">Memuat data komponen BOP...</p>
-                            </div>
+                            @else
+                                @foreach($bopProses as $item)
+                                    @php
+                                        $komponenBop = is_string($item->komponen_bop) ? json_decode($item->komponen_bop, true) : ($item->komponen_bop ?? []);
+                                        $totalBop = $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0;
+                                    @endphp
+                                    <div class="col-12 mb-3">
+                                        <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f5e6d3 0%, #f9f0e6 100%); border-left: 5px solid #a0826d !important;">
+                                            <div class="card-body p-3">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input bop-checkbox" type="checkbox" 
+                                                           name="selected_bop[]" value="{{ $item->id }}" id="bop_{{ $item->id }}"
+                                                           data-tarif="{{ $totalBop }}"
+                                                           style="transform: scale(1.2); margin-top: 8px;">
+                                                    <label class="form-check-label w-100" for="bop_{{ $item->id }}">
+                                                        <div class="row align-items-center">
+                                                            <div class="col-md-4">
+                                                                <div class="d-flex align-items-center">
+                                                                    <div class="rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center; background-color: #a0826d;">
+                                                                        <i class="fas fa-cogs text-white"></i>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h6 class="mb-0 fw-bold" style="color: #a0826d;">{{ $item->nama_bop_proses ?? 'BOP Proses' }}</h6>
+                                                                        <small class="text-muted">{{ is_array($komponenBop) ? count($komponenBop) : 0 }} komponen</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-5 text-center">
+                                                                @if(is_array($komponenBop) && count($komponenBop) > 0)
+                                                                    <div class="row g-1">
+                                                                        @foreach($komponenBop as $komp)
+                                                                            <div class="col-6">
+                                                                                <div class="d-flex justify-content-between align-items-center p-1 rounded" style="background-color: rgba(160, 130, 109, 0.05); font-size: 0.8rem;">
+                                                                                    <small class="text-muted text-truncate me-1">{{ $komp['component'] ?? 'N/A' }}</small>
+                                                                                    <strong class="text-dark text-nowrap">Rp {{ number_format($komp['rate_per_hour'] ?? 0, 0, ',', '.') }}</strong>
+                                                                                </div>
+                                                                            </div>
+                                                                        @endforeach
+                                                                    </div>
+                                                                @else
+                                                                    <small class="text-muted">Tidak ada komponen</small>
+                                                                @endif
+                                                            </div>
+                                                            <div class="col-md-3 text-center">
+                                                                <div class="rounded p-2" style="background-color: rgba(160, 130, 109, 0.1);">
+                                                                    <small class="text-muted d-block">Total BOP</small>
+                                                                    <h5 class="mb-0 fw-bold" style="color: #a0826d;">Rp {{ number_format($totalBop, 0, ',', '.') }}</h5>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -123,7 +237,7 @@
             <!-- Summary Section -->
             <div class="col-md-12 mb-4">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-info text-white">
+                    <div class="card-header text-white" style="background-color: #a0826d;">
                         <h6 class="mb-0">
                             <i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan
                         </h6>
@@ -132,25 +246,25 @@
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <h5 class="text-success">Rp <span id="total-bbb">0</span></h5>
+                                    <h5 style="color: #a0826d;">Rp <span id="total-bbb">0</span></h5>
                                     <small>Biaya Bahan Baku</small>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <h5 class="text-warning">Rp <span id="total-btkl">0</span></h5>
+                                    <h5 style="color: #a0826d;">Rp <span id="total-btkl">0</span></h5>
                                     <small>BTKL</small>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <h5 class="text-danger">Rp <span id="total-bop">0</span></h5>
+                                    <h5 style="color: #a0826d;">Rp <span id="total-bop">0</span></h5>
                                     <small>BOP</small>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="text-center">
-                                    <h5 class="text-primary">Rp <span id="total-hpp">0</span></h5>
+                                    <h5 style="color: #a0826d;">Rp <span id="total-hpp">0</span></h5>
                                     <small>Total HPP</small>
                                 </div>
                             </div>
@@ -165,10 +279,11 @@
                     <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-outline-secondary me-2">
                         <i class="fas fa-times me-2"></i>Batal
                     </a>
-                    <button type="submit" class="btn btn-primary">
+
+                    <button type="submit" class="btn text-white" style="background-color: #a0826d;">
                         <i class="fas fa-save me-2"></i>Simpan HPP
                     </button>
-                </div>
+</div>
             </div>
         </div>
     </form>
@@ -178,27 +293,45 @@
 document.addEventListener('DOMContentLoaded', function() {
     const produkSelect = document.getElementById('produk_id');
     
+    // Add event listeners for BTKL and BOP checkboxes that are already rendered
+    document.querySelectorAll('.btkl-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateTotals);
+    });
+    
+    document.querySelectorAll('.bop-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateTotals);
+    });
+    
     produkSelect.addEventListener('change', function() {
         const produkId = this.value;
         
         if (produkId) {
+            // Only load BBB data (BTKL and BOP already displayed)
             loadBBBData(produkId);
-            loadBTKLData(produkId);
-            loadBOPData();
         } else {
-            clearAllData();
+            clearBBBData();
         }
     });
     
     function loadBBBData(produkId) {
+        const container = document.getElementById('bbb-container');
+        
+        // Show loading
+        container.innerHTML = `
+            <div class="col-12 text-center py-3">
+                <div class="spinner-border text-muted" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="text-muted mt-2">Memuat data bahan baku...</p>
+            </div>
+        `;
+        
         fetch(`/api/get-available-bbb/${produkId}`)
             .then(response => response.json())
             .then(data => {
-                const container = document.getElementById('bbb-container');
-                
                 if (data.length === 0) {
                     container.innerHTML = `
-                        <div class="col-12 text-center py-5">
+                        <div class="col-12 text-center py-3">
                             <div class="alert alert-warning border-0 shadow-sm">
                                 <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
                                 <h5 class="text-warning">Belum Ada Data Biaya Bahan Baku</h5>
@@ -211,89 +344,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Get product name for display
-                const produkSelect = document.getElementById('produk_id');
                 const selectedOption = produkSelect.options[produkSelect.selectedIndex];
                 const produkName = selectedOption ? selectedOption.text : 'Produk Terpilih';
                 
                 let html = '';
-                let totalBBB = 0; // Auto-calculate total
+                let totalBBB = 0;
                 
                 // Add header info
                 html += `
-                    <div class="col-12 mb-4">
-                        <div class="alert alert-info border-0 shadow-sm" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-info rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-info-circle text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h6 class="mb-1 text-info fw-bold">Biaya Bahan Baku untuk: ${produkName}</h6>
-                                            <small class="text-muted">Semua biaya bahan baku akan otomatis dimasukkan dalam perhitungan HPP</small>
-                                        </div>
+                    <div class="col-12 mb-3">
+                        <div class="alert alert-info border-0 shadow-sm mb-0">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <div>
+                                        <strong>Biaya Bahan Baku untuk: ${produkName}</strong>
+                                        <br><small>Semua biaya bahan baku otomatis dimasukkan dalam perhitungan HPP</small>
                                     </div>
                                 </div>
-                                <div class="col-md-4 text-end">
-                                    <span class="badge bg-info text-white px-3 py-2">
-                                        <i class="fas fa-magic me-1"></i>
-                                        Otomatis Terpilih
-                                    </span>
-                                </div>
+                                <span class="badge bg-info">Otomatis Terpilih</span>
                             </div>
                         </div>
                     </div>
                 `;
                 
                 data.forEach(item => {
-                    totalBBB += parseFloat(item.subtotal); // Add to total automatically
+                    totalBBB += parseFloat(item.subtotal);
                     
                     html += `
-                        <div class="col-12 mb-4">
-                            <!-- Hidden input to automatically include this item -->
+                        <div class="col-12 mb-3">
                             <input type="hidden" name="selected_bbb[]" value="${item.id}" data-subtotal="${item.subtotal}">
                             
-                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%); border-left: 5px solid #28a745 !important;">
-                                <div class="card-body p-4">
+                            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f9f0 100%); border-left: 5px solid #28a745 !important;">
+                                <div class="card-body p-3">
                                     <div class="row align-items-center">
-                                        <div class="col-md-3">
+                                        <div class="col-md-4">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-success rounded-circle p-2 me-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                                <div class="bg-success rounded-circle p-2 me-2" style="width: 40px; height: 40px; display: flex; align-items-center; justify-content: center;">
                                                     <i class="fas fa-seedling text-white"></i>
                                                 </div>
                                                 <div>
-                                                    <h5 class="mb-1 text-success fw-bold">${item.nama_bahan}</h5>
-                                                    <small class="text-muted">Bahan Baku ${produkName}</small>
+                                                    <h6 class="mb-0 text-success fw-bold">${item.nama_bahan}</h6>
+                                                    <small class="text-muted">${item.keterangan || ''}</small>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-2 text-center">
-                                            <div class="border-end pe-3">
-                                                <small class="text-muted d-block">Jumlah</small>
-                                                <h6 class="mb-0 fw-bold text-dark">${parseFloat(item.jumlah).toLocaleString('id-ID')}</h6>
-                                                <small class="text-success fw-semibold">${item.satuan}</small>
-                                            </div>
+                                        <div class="col-md-3 text-center">
+                                            <small class="text-muted d-block">Jumlah</small>
+                                            <strong class="text-dark">${parseFloat(item.jumlah).toLocaleString('id-ID')} ${item.satuan}</strong>
                                         </div>
                                         <div class="col-md-2 text-center">
-                                            <div class="border-end pe-3">
-                                                <small class="text-muted d-block">Harga Satuan</small>
-                                                <h6 class="mb-0 fw-bold text-dark">Rp ${parseFloat(item.harga_satuan).toLocaleString('id-ID')}</h6>
-                                                <small class="text-muted">per ${item.satuan}</small>
-                                            </div>
+                                            <small class="text-muted d-block">Harga Satuan</small>
+                                            <strong class="text-dark">Rp ${parseFloat(item.harga_satuan).toLocaleString('id-ID')}</strong>
                                         </div>
                                         <div class="col-md-3 text-center">
-                                            <div class="bg-success bg-opacity-10 rounded p-3">
+                                            <div class="bg-success bg-opacity-10 rounded p-2">
                                                 <small class="text-muted d-block">Subtotal</small>
-                                                <h4 class="mb-0 fw-bold text-success">Rp ${parseFloat(item.subtotal).toLocaleString('id-ID')}</h4>
-                                                <small class="text-success">Total Biaya</small>
+                                                <h5 class="mb-0 fw-bold text-success">Rp ${parseFloat(item.subtotal).toLocaleString('id-ID')}</h5>
                                             </div>
-                                        </div>
-                                        <div class="col-md-2 text-center">
-                                            <div class="badge bg-success text-white px-3 py-2 d-flex align-items-center justify-content-center" style="min-height: 40px;">
-                                                <i class="fas fa-check-circle me-1"></i>
-                                                <span class="text-white">Otomatis</span>
-                                            </div>
-                                            ${item.keterangan ? `<div class="mt-2"><small class="text-muted">${item.keterangan}</small></div>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -304,236 +412,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 html += `
                     <div class="col-12">
-                        <div class="alert alert-success border-0 shadow-sm" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-calculator text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="mb-1 text-success fw-bold">Total Biaya Bahan Baku - ${produkName}</h5>
-                                            <small class="text-muted">Semua biaya bahan baku sudah otomatis dimasukkan dalam perhitungan HPP</small>
-                                        </div>
-                                    </div>
+                        <div class="alert alert-success border-0 shadow-sm mb-0">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <strong class="text-success">Total Biaya Bahan Baku - ${produkName}</strong>
+                                    <br><small class="text-muted">Siap untuk perhitungan HPP</small>
                                 </div>
-                                <div class="col-md-4 text-end">
-                                    <h3 class="mb-0 fw-bold text-success">Rp ${totalBBB.toLocaleString('id-ID')}</h3>
-                                    <small class="text-success">Siap untuk perhitungan HPP</small>
-                                </div>
+                                <h4 class="mb-0 fw-bold text-success">Rp ${totalBBB.toLocaleString('id-ID')}</h4>
                             </div>
                         </div>
                     </div>
                 `;
                 
                 container.innerHTML = html;
-                updateTotals(); // Update the summary totals
+                updateTotals();
             })
             .catch(error => {
                 console.error('Error loading BBB data:', error);
-                document.getElementById('bbb-container').innerHTML = 
-                    '<div class="col-12 text-center text-danger">Gagal memuat data biaya bahan baku</div>';
+                container.innerHTML = '<div class="col-12 text-center text-danger py-3">Gagal memuat data biaya bahan baku</div>';
             });
     }
     
-    function loadBTKLData(produkId) {
-        fetch(`/api/get-available-btkl/${produkId}`)
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('btkl-container');
-                
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="col-12 text-center text-muted">Belum ada data BTKL tersedia</div>';
-                    updateTotals();
-                    return;
-                }
-                
-                let html = '';
-                
-                data.forEach(item => {
-                    html += `
-                        <div class="col-12 mb-4">
-                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #fef9e7 100%); border-left: 5px solid #ffc107 !important;">
-                                <div class="card-body p-4">
-                                    <div class="form-check mb-0">
-                                        <input class="form-check-input" type="checkbox" 
-                                               name="selected_btkl[]" value="${item.id}" id="btkl_${item.id}"
-                                               data-tarif="${item.biaya_per_produk}"
-                                               style="transform: scale(1.2); margin-top: 8px;">
-                                        <label class="form-check-label w-100" for="btkl_${item.id}">
-                                            <div class="row align-items-center">
-                                                <div class="col-md-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-warning rounded-circle p-2 me-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
-                                                            <i class="fas fa-users text-white"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h5 class="mb-1 text-warning fw-bold">${item.nama_proses}</h5>
-                                                            <small class="text-muted">Kode: ${item.kode_proses || '-'}</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2 text-center">
-                                                    <div class="border-end pe-3">
-                                                        <small class="text-muted d-block">Tarif BTKL</small>
-                                                        <h6 class="mb-0 fw-bold text-dark">Rp ${parseFloat(item.tarif_per_jam).toLocaleString('id-ID')}</h6>
-                                                        <small class="text-warning fw-semibold">per jam</small>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2 text-center">
-                                                    <div class="border-end pe-3">
-                                                        <small class="text-muted d-block">Kapasitas</small>
-                                                        <h6 class="mb-0 fw-bold text-dark">${item.kapasitas_per_jam}</h6>
-                                                        <small class="text-muted">${item.satuan}/jam</small>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3 text-center">
-                                                    <div class="bg-warning bg-opacity-10 rounded p-3">
-                                                        <small class="text-muted d-block">Biaya per Produk</small>
-                                                        <h4 class="mb-0 fw-bold text-warning">Rp ${parseFloat(item.biaya_per_produk).toLocaleString('id-ID')}</h4>
-                                                        <small class="text-warning">BTKL Cost</small>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2 text-center">
-                                                    <div class="badge bg-warning text-white px-3 py-2 d-flex align-items-center justify-content-center" style="min-height: 40px;">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        <span class="text-white">Proses</span>
-                                                    </div>
-                                                    ${item.deskripsi ? `<div class="mt-2"><small class="text-muted">${item.deskripsi}</small></div>` : ''}
-                                                </div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                container.innerHTML = html;
-                updateTotals();
-            })
-            .catch(error => {
-                console.error('Error loading BTKL data:', error);
-                document.getElementById('btkl-container').innerHTML = 
-                    '<div class="col-12 text-center text-danger">Gagal memuat data BTKL: ' + error.message + '</div>';
-            });
-    }
-    
-    function loadBOPData() {
-        fetch(`/api/get-available-bop`)
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('bop-container');
-                
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="col-12 text-center text-muted">Belum ada data BOP tersedia</div>';
-                    updateTotals();
-                    return;
-                }
-                
-                let html = '';
-                
-                data.forEach(item => {
-                    html += `
-                        <div class="col-12 mb-4">
-                            <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f8d7da 0%, #fce4e6 100%); border-left: 5px solid #dc3545 !important;">
-                                <div class="card-body p-4">
-                                    <div class="form-check mb-0">
-                                        <input class="form-check-input" type="checkbox" 
-                                               name="selected_bop[]" value="${item.id}" id="bop_${item.id}"
-                                               data-tarif="${item.tarif}"
-                                               style="transform: scale(1.2); margin-top: 8px;">
-                                        <label class="form-check-label w-100" for="bop_${item.id}">
-                                            <div class="row align-items-center">
-                                                <div class="col-md-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="bg-danger rounded-circle p-2 me-3" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
-                                                            <i class="fas fa-cogs text-white"></i>
-                                                        </div>
-                                                        <div>
-                                                            <h5 class="mb-1 text-danger fw-bold">${item.nama_bop}</h5>
-                                                            <small class="text-muted">${item.kategori}</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="row text-center">
-                                                        <div class="col-4">
-                                                            <div class="border-end pe-2">
-                                                                <small class="text-muted d-block">Listrik</small>
-                                                                <strong class="text-dark">Rp ${parseFloat(item.listrik || 0).toLocaleString('id-ID')}</strong>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-4">
-                                                            <div class="border-end pe-2">
-                                                                <small class="text-muted d-block">Gas/BBM</small>
-                                                                <strong class="text-dark">Rp ${parseFloat(item.gas_bbm || 0).toLocaleString('id-ID')}</strong>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-4">
-                                                            <small class="text-muted d-block">Penyusutan</small>
-                                                            <strong class="text-dark">Rp ${parseFloat(item.penyusutan || 0).toLocaleString('id-ID')}</strong>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-2 text-center">
-                                                    <div class="bg-danger bg-opacity-10 rounded p-3">
-                                                        <small class="text-muted d-block">Total BOP</small>
-                                                        <h4 class="mb-0 fw-bold text-danger">Rp ${parseFloat(item.tarif).toLocaleString('id-ID')}</h4>
-                                                        <small class="text-danger">per Unit</small>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-1 text-center">
-                                                    <div class="badge bg-danger text-white px-3 py-2 d-flex align-items-center justify-content-center" style="min-height: 40px;">
-                                                        <i class="fas fa-industry me-1"></i>
-                                                        <span class="text-white">BOP</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                container.innerHTML = html;
-                updateTotals();
-            })
-            .catch(error => {
-                console.error('Error loading BOP data:', error);
-                document.getElementById('bop-container').innerHTML = 
-                    '<div class="col-12 text-center text-danger">Gagal memuat data BOP: ' + error.message + '</div>';
-            });
-    }
-    
-    function clearAllData() {
+    function clearBBBData() {
         document.getElementById('bbb-container').innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-light border-2 border-dashed" style="border-color: #dee2e6 !important;">
-                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Pilih Produk Terlebih Dahulu</h5>
-                    <p class="text-muted mb-0">Silakan pilih produk dari dropdown di atas untuk melihat data biaya bahan baku, BTKL, dan BOP</p>
-                </div>
-            </div>
-        `;
-        document.getElementById('btkl-container').innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-light border-2 border-dashed" style="border-color: #dee2e6 !important;">
-                    <i class="fas fa-users fa-2x text-muted mb-3"></i>
-                    <h6 class="text-muted">Menunggu Pemilihan Produk</h6>
-                    <small class="text-muted">Data BTKL akan muncul setelah produk dipilih</small>
-                </div>
-            </div>
-        `;
-        document.getElementById('bop-container').innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-light border-2 border-dashed" style="border-color: #dee2e6 !important;">
-                    <i class="fas fa-cogs fa-2x text-muted mb-3"></i>
-                    <h6 class="text-muted">Menunggu Pemilihan Produk</h6>
-                    <small class="text-muted">Data BOP akan muncul setelah produk dipilih</small>
+            <div class="col-12 text-center py-3">
+                <div class="alert alert-light border">
+                    <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                    <h6 class="text-muted">Pilih Produk Terlebih Dahulu</h6>
+                    <small class="text-muted">Data biaya bahan baku akan muncul setelah produk dipilih</small>
                 </div>
             </div>
         `;
@@ -541,27 +447,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateTotals() {
-        // Calculate totals based on selected items
         let totalBBB = 0;
         let totalBTKL = 0;
         let totalBOP = 0;
         
-        // Calculate BBB total from hidden inputs (automatically included)
+        // Calculate BBB total
         document.querySelectorAll('input[name="selected_bbb[]"]').forEach(input => {
-            const subtotal = parseFloat(input.dataset.subtotal) || 0;
-            totalBBB += subtotal;
+            totalBBB += parseFloat(input.dataset.subtotal) || 0;
         });
         
         // Calculate BTKL total
-        document.querySelectorAll('input[name="selected_btkl[]"]:checked').forEach(checkbox => {
-            const tarif = parseFloat(checkbox.dataset.tarif) || 0;
-            totalBTKL += tarif;
+        document.querySelectorAll('.btkl-checkbox:checked').forEach(checkbox => {
+            totalBTKL += parseFloat(checkbox.dataset.tarif) || 0;
         });
         
         // Calculate BOP total
-        document.querySelectorAll('input[name="selected_bop[]"]:checked').forEach(checkbox => {
-            const tarif = parseFloat(checkbox.dataset.tarif) || 0;
-            totalBOP += tarif;
+        document.querySelectorAll('.bop-checkbox:checked').forEach(checkbox => {
+            totalBOP += parseFloat(checkbox.dataset.tarif) || 0;
         });
         
         // Update display
@@ -570,15 +472,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('total-bop').textContent = totalBOP.toLocaleString('id-ID');
         document.getElementById('total-hpp').textContent = (totalBBB + totalBTKL + totalBOP).toLocaleString('id-ID');
     }
-    
-    // Add event listeners for checkboxes
-    document.addEventListener('change', function(e) {
-        if (e.target.type === 'checkbox' && 
-            (e.target.name === 'selected_btkl[]' || 
-             e.target.name === 'selected_bop[]')) {
-            updateTotals();
-        }
-    });
 });
 </script>
 @endsection

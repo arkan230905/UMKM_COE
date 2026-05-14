@@ -76,6 +76,9 @@
                                 </div>
                             </div>
                             
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password" class="form-label fw-bold">

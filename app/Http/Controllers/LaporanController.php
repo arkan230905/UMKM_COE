@@ -613,8 +613,13 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
-                // Filter out invalid purchase movements (orphaned ones) and refund returns
+                // Filter out invalid purchase movements (orphaned ones), refund returns, and manual adjustments
                 $movements = $movements->filter(function($movement) {
+                    // Filter out manual adjustment entries
+                    if ($movement->ref_type === 'manual_adjustment' || $movement->ref_type === 'adjustment') {
+                        return false; // Skip all adjustment entries
+                    }
+                    
                     // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
                     if ($movement->ref_type === 'retur_penjualan') {
                         $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
@@ -642,8 +647,13 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
-                // Filter out invalid purchase movements (orphaned ones) and refund returns
+                // Filter out invalid purchase movements (orphaned ones), refund returns, and manual adjustments
                 $movements = $movements->filter(function($movement) {
+                    // Filter out manual adjustment entries
+                    if ($movement->ref_type === 'manual_adjustment' || $movement->ref_type === 'adjustment') {
+                        return false; // Skip all adjustment entries
+                    }
+                    
                     // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
                     if ($movement->ref_type === 'retur_penjualan') {
                         $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
@@ -720,18 +730,25 @@ class LaporanController extends Controller
                                 // Production IN for products goes to produksi column
                                 $dailyOutQty = (float)$m->qty;
                                 $dailyOutNilai = (float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'retur_tukar_terima') {
+                                // Retur barang masuk - show as positive purchase
+                                $dailyInQty = (float)$m->qty;
+                                $dailyInNilai = (float)($m->total_cost ?? 0);
                             } elseif ($m->ref_type === 'initial_stock') {
                                 // Skip initial_stock - handled by opening balance
                                 continue;
                             }
                         } else {
                             // OUT movements
-                            if (($m->ref_type === 'retur' || $m->ref_type === 'return' || $m->ref_type === 'retur_tukar_kirim') && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
-                                // Retur/Return for materials - show as negative purchase
-                                $dailyInQty = -(float)$m->qty;
-                                $dailyInNilai = -(float)($m->total_cost ?? 0);
+                            if (str_contains($m->ref_type, 'retur') && $m->ref_type !== 'retur_tukar_terima' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // ONLY show actual retur pembelian as negative purchase
+                                // Exclude production-related movements that might have 'retur' in ref_type
+                                if ($m->ref_type === 'retur' || $m->ref_type === 'retur_tukar_kirim' || $m->ref_type === 'return') {
+                                    $dailyInQty = -(float)$m->qty;
+                                    $dailyInNilai = -(float)($m->total_cost ?? 0);
+                                }
                             } elseif ($m->ref_type === 'production' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
-                                // Production consumption - show in produksi column
+                                // Production consumption - show in produksi column ONLY
                                 $dailyOutQty = (float)$m->qty;
                                 $dailyOutNilai = (float)($m->total_cost ?? 0);
                             } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
@@ -975,6 +992,7 @@ class LaporanController extends Controller
                 $itemType = $tipe == 'bahan_pendukung' ? 'support' : $tipe;
                 $movements = \App\Models\StockMovement::where('item_type', $itemType)
                     ->where('item_id', $itemId)
+                    ->whereNotIn('ref_type', ['manual_adjustment', 'adjustment']) // Exclude adjustment entries
                     ->orderBy('tanggal', 'asc')
                     ->get();
                 
@@ -1022,13 +1040,30 @@ class LaporanController extends Controller
                         $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
                     } elseif((str_contains($movement->ref_type, 'retur') || $movement->ref_type === 'retur_tukar_kirim') && $movement->direction === 'out') {
                         // RETUR PEMBELIAN - tampilkan di kolom pembelian dengan tanda minus
-                        $pembelianQty = -($movement->qty * $unit['conversion']); // Negatif untuk retur
+                        // ONLY for actual retur pembelian, not production movements
+                        if ($movement->ref_type === 'retur' || $movement->ref_type === 'retur_tukar_kirim' || $movement->ref_type === 'return') {
+                            $pembelianQty = -($movement->qty * $unit['conversion']); // Negatif untuk retur
+                            // Use item's harga_satuan as fallback when movement unit_cost is 0
+                            $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                            $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                            $pembelianTotal = $movement->total_cost > 0 ? -($movement->total_cost) : -($movement->qty * $unitCost); // Negatif untuk retur
+                            
+                            \Log::info('RETUR KELUAR DETECTED', [
+                                'ref_type' => $movement->ref_type,
+                                'qty' => $movement->qty,
+                                'pembelian_qty' => $pembelianQty,
+                                'unit_name' => $unit['name']
+                            ]);
+                        }
+                    } elseif($movement->ref_type === 'retur_tukar_terima' && $movement->direction === 'in') {
+                        // RETUR BARANG MASUK - tampilkan di kolom pembelian dengan tanda plus
+                        $pembelianQty = $movement->qty * $unit['conversion']; // Positif untuk retur masuk
                         // Use item's harga_satuan as fallback when movement unit_cost is 0
                         $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
                         $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
-                        $pembelianTotal = $movement->total_cost > 0 ? -($movement->total_cost) : -($movement->qty * $unitCost); // Negatif untuk retur
+                        $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost); // Positif untuk retur masuk
                         
-                        \Log::info('RETUR DETECTED', [
+                        \Log::info('RETUR MASUK DETECTED', [
                             'ref_type' => $movement->ref_type,
                             'qty' => $movement->qty,
                             'pembelian_qty' => $pembelianQty,

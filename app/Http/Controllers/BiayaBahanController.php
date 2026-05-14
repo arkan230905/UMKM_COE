@@ -89,13 +89,34 @@ class BiayaBahanController extends Controller
      */
     public function store(Request $request)
     {
+        // Filter out 'new' template row from bahan_baku array
+        $bahanBakuData = collect($request->input('bahan_baku', []))
+            ->filter(function($item, $key) {
+                // Skip 'new' template row and empty rows
+                return $key !== 'new' && 
+                       !empty($item['id']) && 
+                       !empty($item['jumlah']) && 
+                       !empty($item['satuan']);
+            })
+            ->toArray();
+
+        // Validate
+        $request->merge(['bahan_baku' => $bahanBakuData]);
+        
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
-            'bahan_baku_id' => 'required|exists:bahan_bakus,id',
-            'jumlah' => 'required|numeric|min:0.0001',
-            'satuan' => 'required|string|max:20',
-            'harga_satuan' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string'
+            'bahan_baku' => 'required|array|min:1',
+            'bahan_baku.*.id' => 'required|exists:bahan_bakus,id',
+            'bahan_baku.*.jumlah' => 'required|numeric|min:0.0001',
+            'bahan_baku.*.satuan' => 'required|string|max:20',
+            'bahan_baku.*.harga_satuan' => 'required|numeric|min:0',
+        ], [
+            'bahan_baku.required' => 'Minimal harus ada 1 bahan baku',
+            'bahan_baku.min' => 'Minimal harus ada 1 bahan baku',
+            'bahan_baku.*.id.required' => 'Bahan baku harus dipilih',
+            'bahan_baku.*.jumlah.required' => 'Jumlah harus diisi',
+            'bahan_baku.*.satuan.required' => 'Satuan harus dipilih',
+            'bahan_baku.*.harga_satuan.required' => 'Harga satuan harus diisi',
         ]);
 
         // Check if product belongs to user
@@ -103,23 +124,79 @@ class BiayaBahanController extends Controller
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
-        // Check if bahan baku belongs to user
-        $bahanBaku = BahanBaku::where('id', $request->bahan_baku_id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+        $savedCount = 0;
+        
+        foreach ($bahanBakuData as $key => $item) {
+            // Check if bahan baku belongs to user and load relations
+            $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+                ->where('id', $item['id'])
+                ->where('user_id', auth()->id())
+                ->first();
+            
+            if (!$bahanBaku) {
+                continue;
+            }
+            
+            // Get harga satuan from bahan baku (harga per satuan utama)
+            $hargaSatuanUtama = $bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan;
+            $satuanUtama = $bahanBaku->satuan->nama ?? 'unit';
+            $satuanDipilih = $item['satuan'];
+            
+            // Calculate actual harga_satuan based on conversion
+            $hargaSatuanAktual = $hargaSatuanUtama;
+            
+            // If different unit, apply conversion
+            if (strtolower($satuanUtama) !== strtolower($satuanDipilih)) {
+                // Check sub satuan for conversion
+                $conversionFactor = 1;
+                
+                // Check sub_satuan_1
+                if ($bahanBaku->subSatuan1 && 
+                    strtolower($bahanBaku->subSatuan1->nama) === strtolower($satuanDipilih)) {
+                    $nilai = $bahanBaku->sub_satuan_1_nilai ?? 1;
+                    $conversionFactor = 1 / $nilai;
+                }
+                // Check sub_satuan_2
+                elseif ($bahanBaku->subSatuan2 && 
+                    strtolower($bahanBaku->subSatuan2->nama) === strtolower($satuanDipilih)) {
+                    $nilai = $bahanBaku->sub_satuan_2_nilai ?? 1;
+                    $conversionFactor = 1 / $nilai;
+                }
+                // Check sub_satuan_3
+                elseif ($bahanBaku->subSatuan3 && 
+                    strtolower($bahanBaku->subSatuan3->nama) === strtolower($satuanDipilih)) {
+                    $nilai = $bahanBaku->sub_satuan_3_nilai ?? 1;
+                    $conversionFactor = 1 / $nilai;
+                }
+                
+                $hargaSatuanAktual = $hargaSatuanUtama * $conversionFactor;
+            }
+            
+            // Calculate subtotal with converted price
+            $subtotal = $item['jumlah'] * $hargaSatuanAktual;
 
-        BiayaBahanBaku::create([
-            'user_id' => auth()->id(),
-            'produk_id' => $request->produk_id,
-            'bahan_baku_id' => $request->bahan_baku_id,
-            'jumlah' => $request->jumlah,
-            'satuan' => $request->satuan,
-            'harga_satuan' => $request->harga_satuan,
-            'keterangan' => $request->keterangan
-        ]);
+            BiayaBahanBaku::create([
+                'user_id' => auth()->id(),
+                'produk_id' => $request->produk_id,
+                'bahan_baku_id' => $item['id'],
+                'jumlah' => $item['jumlah'],
+                'satuan' => $item['satuan'],
+                'harga_satuan' => $hargaSatuanAktual, // Use converted price
+                'subtotal' => $subtotal,
+                'keterangan' => $item['keterangan'] ?? null
+            ]);
+            
+            $savedCount++;
+        }
 
-        return redirect()->route('master-data.biaya-bahan.index')
-            ->withSuccess('Biaya bahan baku berhasil ditambahkan');
+        if ($savedCount > 0) {
+            return redirect()->route('master-data.biaya-bahan.index')
+                ->with('success', "Berhasil menyimpan {$savedCount} biaya bahan baku");
+        } else {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Tidak ada data yang disimpan. Pastikan Anda menambahkan minimal 1 bahan baku.');
+        }
     }
 
     /**

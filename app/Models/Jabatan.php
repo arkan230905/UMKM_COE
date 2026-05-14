@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Jabatan extends Model
 {
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
+    
     protected $fillable = [
         'user_id',
         'kode_jabatan', 
@@ -20,7 +32,8 @@ class Jabatan extends Model
         'asuransi', 
         'tarif',
         'tarif_per_jam', 
-        'deskripsi'
+        'deskripsi',
+        'user_id'
     ];
     
     
@@ -44,10 +57,14 @@ class Jabatan extends Model
 
     /**
      * Relasi ke pegawai dengan multi-tenant isolation
+     * FIXED: Use jabatan (string) instead of jabatan_id for matching
+     * Note: Don't add where clause here, let global scope handle user_id filtering
      */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan_id');
+        // Match by jabatan name (string) instead of jabatan_id
+        // Global scope on Pegawai model will automatically filter by user_id
+        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
     }
 
     /**

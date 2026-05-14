@@ -124,6 +124,7 @@ class BopController extends Controller
     // Edit data BOP
     public function edit(Bop $bop)
     {
+
         // MULTI-TENANT: Check ownership
         if ($bop->user_id != auth()->id()) {
             abort(404);
@@ -134,11 +135,12 @@ class BopController extends Controller
                 ->whereIn('tipe_akun', ['Beban', 'Biaya'])
                 ->get();
         return view('master-data.bop.edit', compact('bop', 'coa'));
-    }
+}
 
     // Update data BOP
     public function update(Request $request, Bop $bop)
     {
+
         // MULTI-TENANT: Check ownership
         if ($bop->user_id != auth()->id()) {
             abort(404);
@@ -147,12 +149,39 @@ class BopController extends Controller
         $request->validate([
             'nominal' => 'nullable|numeric',
             'tanggal' => 'nullable|date',
+]);
+
+        // Cari COA berdasarkan kode_akun
+        $coa = Coa::where('kode_akun', $validated['kode_akun'])->first();
+        
+        if (!$coa) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Akun dengan kode ' . $validated['kode_akun'] . ' tidak ditemukan');
+        }
+
+        // Cek apakah kode_akun berubah dan sudah ada budget untuk akun baru
+        if ($bop->kode_akun !== $validated['kode_akun']) {
+            $existing = Bop::where('kode_akun', $validated['kode_akun'])
+                ->where('id', '!=', $bop->id)
+                ->first();
+            
+            if ($existing) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Budget untuk akun ' . $coa->nama_akun . ' sudah ada. Silakan edit budget yang sudah ada.');
+            }
+        }
+
+        $bop->update([
+            'coa_id' => $coa->id,
+            'kode_akun' => $coa->kode_akun,
+            'budget' => $validated['budget'],
+            'keterangan' => $validated['keterangan'] ?? null,
         ]);
 
-        $bop->update($request->only('nominal', 'tanggal'));
-
         return redirect()->route('master-data.bop.index')
-                         ->with('success', 'Data BOP berhasil diperbarui');
+            ->with('success', 'Budget BOP untuk ' . $coa->nama_akun . ' berhasil diperbarui');
     }
 
     // Hapus data BOP

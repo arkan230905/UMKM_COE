@@ -79,6 +79,15 @@ class PenggajianController extends Controller
         try {
             $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
             
+            // Debug logging
+            \Log::info('getEmployeeData called', [
+                'pegawai_id' => $pegawaiId,
+                'pegawai_nama' => $pegawai->nama,
+                'jabatan_id' => $pegawai->jabatan_id,
+                'jabatan_relasi_loaded' => $pegawai->relationLoaded('jabatanRelasi'),
+                'jabatan_relasi_value' => $pegawai->jabatanRelasi ? $pegawai->jabatanRelasi->nama : 'NULL',
+            ]);
+            
             // Get current salary data from qualification (jabatan)
             $jabatan = $pegawai->jabatanRelasi;
             if ($jabatan) {
@@ -88,6 +97,11 @@ class PenggajianController extends Controller
                 $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
                 $asuransi = $jabatan->asuransi ?? 0;
+                
+                \Log::info('Tunjangan dari jabatan', [
+                    'tunjangan_transport' => $tunjanganTransport,
+                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                ]);
             } else {
                 // Fallback to pegawai stored values
                 $gajiPokok = $pegawai->gaji_pokok ?? 0;
@@ -96,6 +110,12 @@ class PenggajianController extends Controller
                 $tunjanganTransport = $pegawai->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $pegawai->tunjangan_konsumsi ?? 0;
                 $asuransi = $pegawai->asuransi ?? 0;
+                
+                \Log::warning('Fallback to pegawai stored values - jabatan is NULL', [
+                    'pegawai_id' => $pegawaiId,
+                    'tunjangan_transport' => $tunjanganTransport,
+                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                ]);
             }
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
@@ -104,6 +124,9 @@ class PenggajianController extends Controller
                 'jenis' => strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl'),
                 'gaji_pokok' => $gajiPokok,
                 'tarif' => $tarif,
+                'tunjangan_jabatan' => $tunjanganJabatan,
+                'tunjangan_transport' => $tunjanganTransport,
+                'tunjangan_konsumsi' => $tunjanganKonsumsi,
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
@@ -111,6 +134,11 @@ class PenggajianController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            \Log::error('Error in getEmployeeData', [
+                'pegawai_id' => $pegawaiId,
+                'error' => $e->getMessage(),
+            ]);
+            
             return response()->json([
                 'error' => 'Employee not found',
                 'message' => $e->getMessage()
@@ -143,32 +171,38 @@ class PenggajianController extends Controller
             // STEP 1: Get data from KUALIFIKASI (JABATAN) - NOT from form
             $jenisPegawai = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
             
-            if (!$pegawai->jabatanRelasi) {
-                throw new \Exception('Pegawai tidak memiliki kualifikasi jabatan. Harap set jabatan terlebih dahulu.');
+            // Ambil data dari KUALIFIKASI (JABATAN) atau fallback ke pegawai
+            if ($pegawai->jabatanRelasi) {
+                $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
+                $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
+                $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
+                $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
+                $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
+            } else {
+                // Fallback ke data pegawai jika tidak ada jabatan
+                $gajiPokok = (float) ($pegawai->gaji_pokok ?? 0);
+                $tarifPerJam = (float) ($pegawai->tarif_per_jam ?? 0);
+                $tunjanganJabatan = (float) ($pegawai->tunjangan ?? 0);
+                $tunjanganTransport = 0;
+                $tunjanganKonsumsi = 0;
+                $asuransi = (float) ($pegawai->asuransi ?? 0);
             }
-            
-            // Ambil data dari KUALIFIKASI (JABATAN) dengan validasi
-            $gajiPokok = (float) ($pegawai->jabatanRelasi->gaji_pokok ?? 0);
-            $tarifPerJam = (float) ($pegawai->jabatanRelasi->tarif_per_jam ?? 0);
-            $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
-            $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
-            $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
-            $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
             
             // Validasi data kualifikasi berdasarkan jenis pegawai
             if ($jenisPegawai === 'btkl') {
                 if ($tarifPerJam <= 0) {
-                    throw new \Exception("Tarif per jam untuk pegawai BTKL '{$pegawai->nama}' belum diset di kualifikasi jabatan '{$pegawai->jabatanRelasi->nama}'.");
+                    throw new \Exception("Tarif per jam untuk pegawai BTKL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
                 }
             } else { // BTKTL
                 if ($gajiPokok <= 0) {
-                    throw new \Exception("Gaji pokok untuk pegawai BTKTL '{$pegawai->nama}' belum diset di kualifikasi jabatan '{$pegawai->jabatanRelasi->nama}'.");
+                    throw new \Exception("Gaji pokok untuk pegawai BTKTL '{$pegawai->nama}' belum diset. Harap set di master data pegawai atau jabatan.");
                 }
             }
             
             // Warning jika asuransi 0 (opsional tapi sebaiknya ada)
             if ($asuransi <= 0) {
-                \Log::warning("Asuransi untuk jabatan '{$pegawai->jabatanRelasi->nama}' adalah 0. Pastikan ini sudah benar.");
+                \Log::warning("Asuransi untuk pegawai '{$pegawai->nama}' adalah 0. Pastikan ini sudah benar.");
             }
             
             // STEP 2: Get jam kerja from PRESENSI - NOT from form
@@ -217,7 +251,7 @@ class PenggajianController extends Controller
             \Log::info('Data dari KUALIFIKASI dan PRESENSI:', [
                 'pegawai_id' => $pegawai->id,
                 'pegawai_nama' => $pegawai->nama,
-                'jabatan_nama' => $pegawai->jabatanRelasi->nama_jabatan,
+                'jabatan_nama' => $pegawai->jabatanRelasi?->nama_jabatan ?? 'N/A',
                 'jenis_pegawai' => $jenisPegawai,
                 'FROM_KUALIFIKASI' => [
                     'gaji_pokok' => $gajiPokok,
@@ -299,7 +333,7 @@ class PenggajianController extends Controller
             $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
-            if ($penggajian->isPosted()) {
+            if ($penggajian->status_posting === 'posted') {
                 return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat direcalculate.']);
             }
 
@@ -422,7 +456,7 @@ class PenggajianController extends Controller
     }
 
     /**
-     * Tandai penggajian sebagai sudah dibayar
+     * Tandai penggajian sebagai sudah dibayar (otomatis posting ke jurnal)
      */
     public function markAsPaid($id)
     {
@@ -439,25 +473,27 @@ class PenggajianController extends Controller
                 try {
                     $penggajian->status_pembayaran = 'lunas';
                     $penggajian->tanggal_dibayar = now()->format('Y-m-d');
-                    $penggajian->save(); // This will trigger the boot method to create journal entries
+                    $penggajian->status_posting = 'posted';
+                    $penggajian->tanggal_posting = now();
+                    $penggajian->save(); // Model event akan otomatis membuat jurnal entry
 
                     // Commit transaksi
                     DB::commit();
 
                     return redirect()->back()
-                        ->with('success', 'Penggajian berhasil ditandai sebagai sudah dibayar dan jurnal umum telah dibuat.');
+                        ->with('success', 'Penggajian berhasil ditandai sebagai sudah dibayar dan otomatis diposting ke jurnal umum.');
                         
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    \Log::error('Error creating journal entry when marking as paid: ' . $e->getMessage());
+                    \Log::error('Error marking as paid and posting to journal: ' . $e->getMessage());
                     
                     return redirect()->back()
-                        ->withErrors(['error' => 'Gagal membuat jurnal umum: ' . $e->getMessage()]);
+                        ->withErrors(['error' => 'Gagal memproses pembayaran: ' . $e->getMessage()]);
                 }
             }
 
             return redirect()->back()
-                ->with('info', 'Penggajian sudah berstatus ' . $penggajian->status_pembayaran);
+                ->with('info', 'Penggajian sudah berstatus lunas dan sudah diposting ke jurnal.');
         } catch (\Exception $e) {
             \Log::error('Error marking penggajian as paid: ' . $e->getMessage());
 
@@ -474,50 +510,31 @@ class PenggajianController extends Controller
         try {
             // Tentukan akun beban berdasarkan jenis pegawai
             $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
-            
+
             // Special handling untuk Bagian Gudang
             if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
                 // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
-                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BIAYA TENAGA KERJA TIDAK LANGSUNG
+                $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
                 $gajiDasar = $penggajian->gaji_pokok ?? 0;
             } else if ($jenisPegawai === 'btkl') {
                 $gajiDasar = ($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0);
-                $coaBebanGaji = Coa::where('kode_akun', '52')->first(); // BIAYA TENAGA KERJA LANGSUNG (BTKL)
+                $coaBebanGaji = $this->getOrCreateCoa('52', 'Beban Tenaga Kerja Langsung', '5');
             } else {
                 $gajiDasar = $penggajian->gaji_pokok ?? 0;
-                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BOP TENAGA KERJA TIDAK LANGSUNG
+                $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
             }
-            
+
             $totalTunjangan = $penggajian->total_tunjangan ?? 0;
             $bonus = $penggajian->bonus ?? 0;
             $potongan = $penggajian->potongan ?? 0;
             $asuransi = $penggajian->asuransi ?? 0;
             $totalGaji = $penggajian->total_gaji ?? 0;
-            
-            // COA untuk komponen lainnya dengan validasi ketat
-            $coaBebanTunjangan = Coa::where('kode_akun', '513')->first(); // Beban Tunjangan
-            $coaBebanBonus = Coa::where('kode_akun', '515')->first(); // Beban Bonus
-            $coaBebanAsuransi = Coa::where('kode_akun', '514')->first(); // Beban Asuransi
-            $coaPotongan = Coa::where('kode_akun', '516')->first(); // Potongan Gaji
-            
-            // Fallback: cari akun beban gaji umum
-            if (!$coaBebanGaji) {
-                $coaBebanGaji = Coa::whereRaw('LOWER(nama_akun) LIKE ?', ['%beban gaji%'])
-                    ->orWhereRaw('LOWER(nama_akun) LIKE ?', ['%biaya tenaga kerja%'])
-                    ->first();
-            }
-            
-            // Validasi COA - SEMUA HARUS ADA
-            $missingCoas = [];
-            if (!$coaBebanGaji) $missingCoas[] = ($jenisPegawai === 'btkl' ? '52 (BTKL)' : '54 (BOP)');
-            if (!$coaBebanTunjangan) $missingCoas[] = '513 (Beban Tunjangan)';
-            if (!$coaBebanBonus) $missingCoas[] = '515 (Beban Bonus)';
-            if (!$coaBebanAsuransi) $missingCoas[] = '514 (Beban Asuransi)';
-            if (!$coaPotongan) $missingCoas[] = '516 (Potongan Gaji)';
-            
-            if (!empty($missingCoas)) {
-                throw new \Exception('COA tidak ditemukan: ' . implode(', ', $missingCoas) . '. Pastikan semua akun sudah dibuat.');
-            }
+
+            // COA untuk komponen lainnya - otomatis buat jika belum ada
+            $coaBebanTunjangan = $this->getOrCreateCoa('513', 'Beban Tunjangan', '5');
+            $coaBebanBonus = $this->getOrCreateCoa('515', 'Beban Bonus', '5');
+            $coaBebanAsuransi = $this->getOrCreateCoa('514', 'Beban Asuransi', '5');
+            $coaPotongan = $this->getOrCreateCoa('516', 'Potongan Gaji', '5');
 
             // Pastikan akun kas/bank valid
             $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
@@ -654,16 +671,67 @@ class PenggajianController extends Controller
     }
 
     /**
+     * Get or create COA account automatically
+     * This ensures journal entries can be created even if COA doesn't exist
+     */
+    private function getOrCreateCoa($kodeAkun, $namaAkun, $tipeAkun = '5')
+    {
+        $userId = auth()->id() ?? 1;
+
+        // Try to find existing COA
+        $coa = Coa::withoutGlobalScopes()
+            ->where('user_id', $userId)
+            ->where('kode_akun', $kodeAkun)
+            ->first();
+
+        if ($coa) {
+            \Log::info("COA found: {$kodeAkun} - {$namaAkun}");
+            return $coa;
+        }
+
+        // COA doesn't exist, create it automatically
+        \Log::info("Creating COA automatically: {$kodeAkun} - {$namaAkun}");
+
+        // Determine kategori_akun based on tipe_akun
+        $kategoriAkun = '';
+        if ($tipeAkun == '5') {
+            $kategoriAkun = 'Beban';
+        } elseif ($tipeAkun == 'Asset') {
+            $kategoriAkun = 'Aset';
+        } elseif ($tipeAkun == 'Liability') {
+            $kategoriAkun = 'Kewajiban';
+        } elseif ($tipeAkun == 'Equity') {
+            $kategoriAkun = 'Ekuitas';
+        } elseif ($tipeAkun == 'Revenue') {
+            $kategoriAkun = 'Pendapatan';
+        }
+
+        $coa = Coa::create([
+            'user_id' => $userId,
+            'kode_akun' => $kodeAkun,
+            'nama_akun' => $namaAkun,
+            'tipe_akun' => $tipeAkun,
+            'kategori_akun' => $kategoriAkun,
+            'saldo_normal' => 'debit',
+            'saldo_awal' => 0,
+        ]);
+
+        \Log::info("COA created successfully: {$kodeAkun} - {$namaAkun}");
+        return $coa;
+    }
+
+    /**
      * Buat journal entry di sistem modern (journal_entries + journal_lines)
      * Ini memastikan penggajian muncul di halaman jurnal umum
      * METHOD DINONAKTIKAN - Menggunakan createJournalEntry() yang sudah bekerja dengan baik
      */
     private function createJournalEntryModern($penggajian, $pegawai)
     {
+
         // Method ini dinonaktifkan karena createJournalEntry() sudah bekerja dengan baik
         // dan tidak menyebabkan error field coa_id
         return true;
-    }
+}
     
     /**
      * Update BOP untuk beban gaji
@@ -725,7 +793,7 @@ class PenggajianController extends Controller
             ->findOrFail($id);
         
         // Cek apakah sudah diposting ke jurnal
-        if ($penggajian->isPosted()) {
+        if ($penggajian->status_posting === 'posted') {
             return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat diedit.']);
         }
         
@@ -752,7 +820,7 @@ class PenggajianController extends Controller
                 ->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
-            if ($penggajian->isPosted()) {
+            if ($penggajian->status_posting === 'posted') {
                 return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat diedit.']);
             }
 
@@ -986,7 +1054,7 @@ class PenggajianController extends Controller
             ->findOrFail($id);
 
         // Cegah double posting
-        if ($penggajian->isPosted()) {
+        if ($penggajian->status_posting === 'posted') {
             return back()->with('error', 'Penggajian ini sudah diposting ke jurnal');
         }
 

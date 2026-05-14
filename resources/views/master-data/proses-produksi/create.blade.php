@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah BTKL')
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -57,6 +59,7 @@
                             <select name="jabatan_id" id="jabatanSelect" class="form-select @error('jabatan_id') is-invalid @enderror" required onchange="calculateBTKL()">
                                 <option value="">-- Pilih Jabatan BTKL --</option>
                                 @php
+
                                     $jabatanBtkl = \App\Models\Jabatan::where('kategori', 'btkl')
                                         ->where('user_id', auth()->id())
                                         ->with(['pegawais' => function($q) {
@@ -64,13 +67,17 @@
                                         }])
                                         ->orderBy('nama')
                                         ->get();
-                                @endphp
+@endphp
                                 @foreach($jabatanBtkl as $jabatan)
+                                    @php
+                                        // Count pegawai manually to avoid foreign key error
+                                        $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
+                                    @endphp
                                     <option value="{{ $jabatan->id }}" 
                                             data-tarif="{{ $jabatan->tarif }}"
-                                            data-pegawai-count="{{ $jabatan->pegawais->count() }}"
+                                            data-pegawai-count="{{ $pegawaiCount }}"
                                             {{ old('jabatan_id') == $jabatan->id ? 'selected' : '' }}>
-                                        {{ $jabatan->nama }} ({{ $jabatan->pegawais->count() }} pegawai @ Rp {{ number_format($jabatan->tarif, 0, ',', '.') }}/jam)
+                                        {{ $jabatan->nama }} ({{ $pegawaiCount }} pegawai @ Rp {{ number_format($jabatan->tarif, 0, ',', '.') }}/jam)
                                     </option>
                                 @endforeach
                             </select>

@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SIMCOST - @yield('title', 'Dashboard')</title>
     <!-- Favicon menggunakan logo asli - PRIORITAS UKURAN BESAR -->
     <link rel="icon" type="image/png" sizes="128x128" href="{{ asset('images/logo.png') }}?v={{ time() }}">
@@ -23,20 +24,20 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Bootstrap --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css?v={{ time() }}" rel="stylesheet">
     
     {{-- Font Awesome --}}
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css?v={{ time() }}" rel="stylesheet">
     
     {{-- Custom Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 
     {{-- Modern Dashboard CSS - MULTIPLE ATTEMPTS --}}
     <link href="{{ asset('css/modern-dashboard.css') }}" rel="stylesheet">
     <link href="{{ url('css/modern-dashboard.css') }}" rel="stylesheet">
     <link href="/css/modern-dashboard.css" rel="stylesheet">
-    
-    {{-- CRITICAL: Inline CSS Fallback --}}
+{{-- CRITICAL: Inline CSS Fallback --}}
     <style>
         /* Critical CSS - Always loaded */
         :root {
@@ -146,15 +147,68 @@
 
 </div>
 
+@if(session('success') || session('error') || session('warning'))
+@php
+    // Context-aware notification filtering
+    $currentRoute = request()->route()->getName() ?? '';
+    $currentTab = request('tab', '');
+    $successMessage = session('success');
+    $errorMessage = session('error');
+    $warningMessage = session('warning');
+    $showNotification = true;
+    
+    // If we're on pembelian page with retur tab, filter out pembelian success messages
+    if ($currentRoute === 'transaksi.pembelian.index' && $currentTab === 'retur' && $successMessage) {
+        // Only show retur-related messages on retur tab
+        // Hide messages that contain "pembelian" or "Pembelian" but not "retur" or "Retur"
+        $isPembelianMessage = (str_contains(strtolower($successMessage), 'pembelian') || 
+                               str_contains(strtolower($successMessage), 'purchase'));
+        $isReturMessage = (str_contains(strtolower($successMessage), 'retur') || 
+                          str_contains(strtolower($successMessage), 'return'));
+        
+        if ($isPembelianMessage && !$isReturMessage) {
+            $showNotification = false;
+        }
+    }
+    
+    // Always show error and warning messages
+    if ($errorMessage || $warningMessage) {
+        $showNotification = true;
+    }
+@endphp
+
+@if($showNotification)
+<div id="notif-flash" style="position:fixed;top:20px;right:20px;z-index:99999;min-width:300px;max-width:450px;padding:14px 18px;border-radius:8px;color:white;font-size:14px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;background:{{ session('success') ? '#28a745' : (session('error') ? '#dc3545' : '#e6a817') }}">
+    <span style="font-size:18px;flex-shrink:0">{{ session('success') ? '✔' : (session('error') ? '✖' : '⚠') }}</span>
+    <span style="flex:1">{{ session('success') ?? session('error') ?? session('warning') }}</span>
+    <button onclick="document.getElementById('notif-flash').remove()" style="margin-left:auto;background:none;border:none;color:white;font-size:22px;cursor:pointer;line-height:1">&times;</button>
+</div>
+<script>setTimeout(function(){var e=document.getElementById('notif-flash');if(e)e.remove();},3500);</script>
+@endif
+@endif
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
 {{-- Auto Reset System untuk Multi-Perusahaan --}}
-<script src="{{ asset('js/auto-reset.js') }}"></script>
+{{-- <script src="{{ asset('js/auto-reset.js') }}"></script> --}}
 
 {{-- Favicon Optimizer --}}
 <script src="{{ asset('js/favicon-optimizer.js') }}"></script>
 
 @stack('scripts')
+
+<script>
+// Auto-hide flash messages setelah 3 detik
+setTimeout(function() {
+    ['flash-success','flash-error'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            var alert = bootstrap.Alert.getOrCreateInstance(el);
+            alert.close();
+        }
+    });
+}, 3000);
+</script>
 </body>
 </html>

@@ -13,31 +13,20 @@ class BopProses extends Model
 
     protected $fillable = [
         'user_id',
-        'proses_produksi_id',
-        'listrik_per_jam',
-        'gas_bbm_per_jam',
-        'penyusutan_mesin_per_jam',
-        'maintenance_per_jam',
-        'gaji_mandor_per_jam',
-        'lain_lain_per_jam',
+        'nama_bop_proses',
         'komponen_bop', // JSON array of components with rate_per_produk
         'total_bop_per_produk', // Total BOP per produk from components
         'total_biaya_per_produk', // Total biaya per produk (BTKL + BOP)
         'total_bop_per_jam', // Backward compatibility
         'kapasitas_per_jam', // Read-only dari BTKL
         'bop_per_unit', // Same as total_bop_per_produk
+        'keterangan',
         'budget',
         'aktual',
         'is_active'
     ];
 
     protected $casts = [
-        'listrik_per_jam' => 'decimal:2',
-        'gas_bbm_per_jam' => 'decimal:2',
-        'penyusutan_mesin_per_jam' => 'decimal:2',
-        'maintenance_per_jam' => 'decimal:2',
-        'gaji_mandor_per_jam' => 'decimal:2',
-        'lain_lain_per_jam' => 'decimal:2',
         'komponen_bop' => 'array',
         'total_bop_per_produk' => 'decimal:2',
         'total_biaya_per_produk' => 'decimal:2',

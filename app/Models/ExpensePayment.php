@@ -94,7 +94,7 @@ class ExpensePayment extends Model
      */
     public function getKategoriBebanAttribute()
     {
-        return $this->bebanOperasional ? $this->bebanOperasional->kategori : '-';
+        return $this->bebanOperasional ? $this->bebanOperasional->nama_beban : '-';
     }
     
     /**

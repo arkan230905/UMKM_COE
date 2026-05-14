@@ -31,6 +31,34 @@
             <label for="nama_produk" class="form-label">Nama Produk</label>
             <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="{{ $produk->nama_produk }}" required>
         </div>
+
+        <div class="mb-3">
+            <label for="kategori_id" class="form-label">Kategori Produk</label>
+            <select name="kategori_id" id="kategori_id" class="form-control">
+                <option value="">-- Pilih Kategori --</option>
+                @foreach($kategoris as $kat)
+                    <option value="{{ $kat->id }}"
+                        {{ old('kategori_id', $produk->kategori_id) == $kat->id ? 'selected' : '' }}>
+                        {{ $kat->nama }}
+                    </option>
+                @endforeach
+            </select>
+            <small class="form-text text-muted">Opsional. Pilih kategori untuk produk ini.</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="coa_persediaan_id" class="form-label">COA Persediaan <span class="text-danger">*</span></label>
+            <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-control" required>
+                <option value="">-- Pilih COA Persediaan --</option>
+                @foreach($coaPersediaan as $coa)
+                    <option value="{{ $coa->kode_akun }}"
+                        {{ old('coa_persediaan_id', $produk->coa_persediaan_id) == $coa->kode_akun ? 'selected' : '' }}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+            <small class="form-text text-muted">Pilih akun persediaan untuk produk ini (biasanya 116 - Persediaan Barang Jadi).</small>
+        </div>
         <div class="mb-3">
             <label for="barcode" class="form-label">Barcode</label>
             <div class="input-group">

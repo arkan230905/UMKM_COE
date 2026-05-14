@@ -16,6 +16,12 @@ class Satuan extends Model
     protected $fillable = [
         'kode',
         'nama',
+        'tipe',
+        'kategori',
+        'is_dasar',
+        'is_active',
+        'nilai_konversi',
+        'faktor_ke_dasar',
         'faktor', // Add faktor field if it exists
         'user_id',
     ];

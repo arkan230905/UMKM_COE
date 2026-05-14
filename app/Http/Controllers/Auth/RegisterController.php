@@ -74,23 +74,7 @@ class RegisterController extends Controller
     {
         $perusahaanId = null;
 
-        if (($data['role'] ?? null) === 'owner') {
-            $kode = $this->generateCompanyCode();
-
-            $perusahaanId = DB::table('perusahaan')->insertGetId([
-                'nama' => $data['company_nama'],
-                'alamat' => $data['company_alamat'],
-                'email' => $data['company_email'],
-                'telepon' => $data['company_telepon'],
-                'kode' => $kode,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } elseif (in_array($data['role'] ?? null, ['never'], true)) {
-            $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
-            $perusahaanId = $perusahaan?->id;
-        }
-
+        // Create user first
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -99,10 +83,32 @@ class RegisterController extends Controller
             'perusahaan_id' => $perusahaanId,
         ]);
 
-        // Trigger event untuk setup data awal (COA, dll)
-        if ($perusahaanId) {
-            event(new UserRegistered($user, $perusahaanId));
+        // Create company if user is owner
+        if (($data['role'] ?? null) === 'owner') {
+            $kode = $this->generateCompanyCode();
+
+            $perusahaanId = DB::table('perusahaan')->insertGetId([
+                'user_id' => $user->id, // CRITICAL: Link company to user for multi-tenant
+                'nama' => $data['company_nama'],
+                'alamat' => $data['company_alamat'],
+                'email' => $data['company_email'],
+                'telepon' => $data['company_telepon'],
+                'kode' => $kode,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            // Update user with perusahaan_id
+            $user->update(['perusahaan_id' => $perusahaanId]);
+        } elseif (in_array($data['role'] ?? null, ['never'], true)) {
+            $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
+            $perusahaanId = $perusahaan?->id;
         }
+
+        // CRITICAL: Trigger event untuk setup data awal (COA, Satuan, dll)
+        // Event HARUS di-dispatch untuk SETIAP user baru (multi-tenant)
+        // Setiap user perlu COA default, tidak peduli apakah punya perusahaan atau tidak
+        event(new UserRegistered($user, $perusahaanId));
 
         return $user;
     }
@@ -144,26 +150,26 @@ class RegisterController extends Controller
     /**
      * Handle a customer registration request.
      */
-    public function registerPelanggan(Request $request)
+    public function registerPelanggan(\Illuminate\Http\Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone'    => ['required', 'string', 'max:20'],
+            'address'  => ['nullable', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'no_telepon' => ['required', 'string', 'max:15'],
-            'alamat' => ['required', 'string', 'max:500'],
         ]);
 
         DB::beginTransaction();
         try {
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
+                'name'     => $request->name,
+                'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'pelanggan',
-                'no_telepon' => $request->no_telepon,
-                'alamat' => $request->alamat,
-                'status' => 'aktif',
+                'role'     => 'pelanggan',
+                'phone'    => $request->phone,
+                'address'  => $request->address,
+                'status'   => 'aktif',
             ]);
 
             DB::commit();
@@ -171,7 +177,7 @@ class RegisterController extends Controller
             auth()->login($user);
 
             return redirect()->route('pelanggan.dashboard')
-                ->with('success', 'Registrasi berhasil! Selamat datang di UMKM Desa Karangpakuan.');
+                ->with('success', 'Registrasi berhasil! Selamat datang.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()

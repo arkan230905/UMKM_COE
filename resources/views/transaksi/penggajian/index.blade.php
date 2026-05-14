@@ -121,7 +121,7 @@
                             @endphp
                             <tr>
                                 <td class="text-center">PGJ{{ str_pad($gaji->id, 6, '0', STR_PAD_LEFT) }}</td>
-                                <td>{{ $tanggal->format('d M Y') }}</td>
+                                <td class="text-center">{{ $tanggal->format('d/m/Y') }}</td>
                                 <td>{{ $bulanPenggajian }}</td>
                                 <td>
                                     <div>

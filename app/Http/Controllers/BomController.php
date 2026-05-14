@@ -50,11 +50,13 @@ class BomController extends Controller
 
     public function create()
     {
+
         return view('master-data.bom.create');
-    }
+}
 
     public function store(Request $request)
     {
+
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'selected_bbb' => 'nullable|array',
@@ -64,8 +66,7 @@ class BomController extends Controller
             'selected_bop' => 'nullable|array',
             'selected_bop.*' => 'exists:bop_proses,id',
         ]);
-
-        $user_id = auth()->id();
+$user_id = auth()->id();
         $produk_id = $request->produk_id;
 
         // Clear existing selections for this product
@@ -73,12 +74,13 @@ class BomController extends Controller
         HargaPokokProduksiBtkl::where('user_id', $user_id)->delete();
         HargaPokokProduksiBop::where('user_id', $user_id)->delete();
 
+
         // Save BBB selections
         if ($request->filled('selected_bbb')) {
             foreach ($request->selected_bbb as $bbb_id) {
                 HargaPokokProduksiBiayaBahanBaku::create([
                     'user_id' => $user_id,
-                    'biaya_bahan_baku_id' => $bbb_id,
+                    'bom_job_bbb_id' => $bbb_id,
                 ]);
             }
         }
@@ -184,18 +186,19 @@ class BomController extends Controller
         elseif ($hasAnySelections) {
             $allProductIds = \App\Models\Produk::where('user_id', $user_id)
                 ->pluck('id')
+
                 ->take(5); // Limit to first 5 products to avoid too many results
         } 
         else {
             $allProductIds = collect();
-        }
+}
+
 
         // Get product details
         return $allProductIds->map(function($produk_id) {
             $produk = \App\Models\Produk::find($produk_id);
             if (!$produk) return null;
-            
-            return [
+return [
                 'id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
                 'kode' => $produk->kode_produk,  // Fixed: use kode_produk instead of kode
@@ -247,10 +250,13 @@ class BomController extends Controller
     // API endpoints for data
     public function getAvailableBbb($produk_id)
     {
-        // Get biaya bahan baku data from the new table structure
+        // Optimized query with specific columns and minimal joins
         $biayaBahanBaku = \App\Models\BiayaBahanBaku::where('produk_id', $produk_id)
             ->where('user_id', auth()->id())
-            ->with(['bahanBaku.satuan'])
+            ->with(['bahanBaku' => function($query) {
+                $query->select('id', 'nama_bahan', 'saldo_awal'); // Don't use stok accessor (slow)
+            }])
+            ->select('id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan')
             ->get();
             
         // Transform data to match expected format
@@ -262,7 +268,7 @@ class BomController extends Controller
                 'satuan' => $item->satuan,
                 'harga_satuan' => $item->harga_satuan,
                 'subtotal' => $item->subtotal,
-                'stok' => $item->bahanBaku->stok ?? 0,
+                'stok' => $item->bahanBaku->saldo_awal ?? 0, // Use saldo_awal instead of stok accessor
                 'keterangan' => $item->keterangan
             ];
         });
@@ -272,16 +278,15 @@ class BomController extends Controller
 
     public function getAvailableBtkl($produk_id)
     {
-        // Get all BTKL (proses produksi) data for the user
-        // Since proses_produksis doesn't have produk_id, we get all for the user
+        // Optimized query with specific columns only
         $prosesProduksi = \App\Models\ProsesProduksi::where('user_id', auth()->id())
+            ->select('id', 'nama_proses', 'tarif_btkl', 'kapasitas_per_jam', 'jumlah_produksi_per_jam', 'satuan_btkl', 'kode_proses')
             ->get();
             
         // Transform data to include calculated costs
         $transformedData = $prosesProduksi->map(function($item) {
             $tarif = $item->tarif_btkl ?? 0;
             $kapasitas = $item->kapasitas_per_jam ?? 1;
-            $jumlahProduksi = $item->jumlah_produksi_per_jam ?? 1;
             
             // Calculate cost per product
             $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
@@ -291,10 +296,9 @@ class BomController extends Controller
                 'nama_proses' => $item->nama_proses ?? 'Proses Produksi',
                 'tarif_per_jam' => $tarif,
                 'kapasitas_per_jam' => $kapasitas,
-                'jumlah_produksi_per_jam' => $jumlahProduksi,
+                'jumlah_produksi_per_jam' => $item->jumlah_produksi_per_jam ?? 1,
                 'satuan' => $item->satuan_btkl ?? 'Unit',
                 'biaya_per_produk' => $biayaPerProduk,
-                'deskripsi' => $item->deskripsi,
                 'kode_proses' => $item->kode_proses
             ];
         });
@@ -304,26 +308,22 @@ class BomController extends Controller
 
     public function getAvailableBop()
     {
-        // Get BOP data for the user
+        // Optimized query with specific columns only
         $bopProses = \App\Models\BopProses::where('user_id', auth()->id())
-            ->with('prosesProduksi')
+            ->where('is_active', true)
+            ->select('id', 'nama_bop_proses', 'komponen_bop', 'bop_per_unit', 'total_bop_per_produk')
             ->get();
         
         // Transform data to match expected format
         $transformedData = $bopProses->map(function($item) {
             return [
                 'id' => $item->id,
-                'nama_bop' => $item->prosesProduksi->nama_proses ?? 'BOP Item',
-                'tarif' => $item->total_bop_per_produk ?? $item->bop_per_unit ?? 0,
+                'nama_bop_proses' => $item->nama_bop_proses ?? 'BOP Proses',
+                'komponen_bop' => $item->komponen_bop ?? [],
+                'bop_per_unit' => $item->bop_per_unit ?? 0,
+                'total_bop_per_produk' => $item->total_bop_per_produk ?? 0,
+                'tarif' => $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0,
                 'satuan' => 'Unit',
-                'deskripsi' => 'BOP untuk ' . ($item->prosesProduksi->nama_proses ?? 'proses'),
-                'kategori' => 'Overhead',
-                'listrik' => $item->listrik_per_jam ?? 0,
-                'gas_bbm' => $item->gas_bbm_per_jam ?? 0,
-                'penyusutan' => $item->penyusutan_mesin_per_jam ?? 0,
-                'maintenance' => $item->maintenance_per_jam ?? 0,
-                'gaji_mandor' => $item->gaji_mandor_per_jam ?? 0,
-                'lain_lain' => $item->lain_lain_per_jam ?? 0
             ];
         });
         

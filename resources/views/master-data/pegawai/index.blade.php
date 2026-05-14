@@ -7,24 +7,10 @@
     <div class="d-flex justify-content-end align-items-center mb-4">
         <div>
             <a href="{{ route('master-data.pegawai.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i>Tambah Pegawai
+                <i class="fas fa-plus me-1"></i>Tambah Pegawai
             </a>
         </div>
     </div>
-
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">

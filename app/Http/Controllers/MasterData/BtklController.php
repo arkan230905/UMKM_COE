@@ -15,24 +15,33 @@ class BtklController extends Controller
      * Ambil jabatan BTKL + jumlah pegawai milik user yang sedang login.
      * Menggunakan DB::table (query builder mentah) agar tidak terpengaruh
      * global scope Eloquent yang kadang tidak aktif di server.
+     * 
+     * MULTI-TENANT: Semua query HARUS filter by user_id
      */
     private function getJabatanBtklForUser(int $userId): array
     {
         // 1. Ambil jabatan BTKL milik user ini saja
+        // MULTI-TENANT: Filter by user_id AND kategori = 'btkl'
         $jabatans = DB::table('jabatans')
+            ->where('user_id', $userId) // CRITICAL: Multi-tenant filter
             ->where('kategori', 'btkl')
-            ->where('user_id', $userId)
             ->orderBy('nama')
             ->get();
 
         // 2. Hitung pegawai per jabatan — hanya pegawai milik user yang sama
-        //    Relasi: pegawais.jabatan_id = jabatans.id DAN pegawais.user_id = user ini
-        $pegawaiCount = DB::table('pegawais')
-            ->select('jabatan_id', DB::raw('COUNT(*) as jumlah'))
-            ->where('user_id', $userId)
-            ->whereNotNull('jabatan_id')
-            ->groupBy('jabatan_id')
-            ->pluck('jumlah', 'jabatan_id');
+        //    MULTI-TENANT: pegawais.jabatan_id = jabatans.id DAN pegawais.user_id = user ini
+        //    IMPORTANT: Harus join dengan jabatans untuk memastikan jabatan_id milik user yang sama
+        $pegawaiCount = DB::table('pegawais as p')
+            ->join('jabatans as j', function($join) use ($userId) {
+                $join->on('p.jabatan_id', '=', 'j.id')
+                     ->where('j.user_id', '=', $userId); // CRITICAL: Ensure jabatan belongs to same user
+            })
+            ->where('p.user_id', $userId) // CRITICAL: Multi-tenant filter
+            ->where('j.kategori', 'btkl') // Only BTKL jabatan
+            ->whereNotNull('p.jabatan_id')
+            ->select('p.jabatan_id', DB::raw('COUNT(*) as jumlah'))
+            ->groupBy('p.jabatan_id')
+            ->pluck('jumlah', 'p.jabatan_id');
 
         // 3. Gabungkan
         $jabatanBtkl   = collect();
@@ -69,14 +78,30 @@ class BtklController extends Controller
     {
         try {
             $userId = auth()->id();
-            $btkls  = DB::table('btkls')
-                ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                ->where('btkls.user_id', $userId)
-                ->select('btkls.*', 'jabatans.nama as jabatan_nama', 'jabatans.tarif as jabatan_tarif')
-                ->orderBy('btkls.kode_proses')
+            
+            // FIXED: Use Eloquent to get proper model relationships and accessors
+            // This ensures biaya_per_produk_formatted and other accessors work correctly
+            $btkls = Btkl::with(['jabatan.pegawais'])
+                ->where('user_id', $userId)
+                ->orderBy('kode_proses')
                 ->get();
 
-            return view('master-data.btkl.index', compact('btkls'));
+            // Calculate statistics
+            $totalProses = $btkls->count();
+            $totalBiayaPerProduk = $btkls->sum('biaya_per_produk');
+            $rataRataTarif = $totalProses > 0 ? $btkls->sum('tarif_btkl') / $totalProses : 0;
+            $rataRataKapasitas = $totalProses > 0 ? $btkls->sum('kapasitas_per_jam') / $totalProses : 0;
+            $rataRataBiayaPerUnit = $totalProses > 0 ? $totalBiayaPerProduk / $totalProses : 0;
+
+            $statistics = [
+                'total_proses' => $totalProses,
+                'total_biaya_per_produk' => $totalBiayaPerProduk,
+                'rata_rata_tarif' => $rataRataTarif,
+                'rata_rata_kapasitas' => $rataRataKapasitas,
+                'rata_rata_biaya_per_unit' => $rataRataBiayaPerUnit,
+            ];
+
+            return view('master-data.btkl.index', compact('btkls', 'statistics'));
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
@@ -88,6 +113,7 @@ class BtklController extends Controller
      */
     public function create()
     {
+
         $userId = auth()->id();
 
         [$jabatanBtkl, $employeeData] = $this->getJabatanBtklForUser($userId);
@@ -99,7 +125,7 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
+return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
 
     /**
@@ -136,17 +162,34 @@ class BtklController extends Controller
 
             $btkl = Btkl::create($validated);
 
-            ProsesProduksi::create([
-                'kode_proses'     => $btkl->kode_proses,
-                'nama_proses'     => $btkl->nama_btkl,
-                'deskripsi'       => $btkl->deskripsi_proses,
+            // Calculate biaya BTKL per produk
+            // FIXED: Use $validated instead of $btkl to ensure we get the correct value
+            $biayaBtklPerProduk = 0;
+            if ($validated['kapasitas_per_jam'] > 0) {
+                $biayaBtklPerProduk = $tarifBtkl / $validated['kapasitas_per_jam'];
+            }
+
+            $prosesProduksi = ProsesProduksi::create([
+                'user_id'         => $userId,
+                'kode_proses'     => $validated['kode_proses'],
+                'nama_proses'     => $validated['nama_btkl'],
+                'deskripsi'       => $validated['deskripsi_proses'] ?? null,
                 'tarif_btkl'      => $tarifBtkl,
-                'satuan_btkl'     => $btkl->satuan,
-                'kapasitas_per_jam'=> $btkl->kapasitas_per_jam,
-                'btkl_id'         => $btkl->id,
+                'satuan_btkl'     => $validated['satuan'],
+                'kapasitas_per_jam'=> $validated['kapasitas_per_jam'],
+                'jabatan_id'      => $validated['jabatan_id'],
+                'btkl_id'         => $btkl->id, // CRITICAL: Link to Btkl record
+                'biaya_btkl_per_produk' => $biayaBtklPerProduk,
             ]);
 
-            BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            // ✅ PERBAIKAN: Disable BomSyncService karena menyebabkan error dengan tabel kode_proses
+            // BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            
+            \Log::info('BTKL created successfully', [
+                'btkl_id' => $btkl->id,
+                'kode_proses' => $validated['kode_proses'],
+                'note' => 'BomSyncService disabled - table kode_proses issue'
+            ]);
 
             DB::commit();
 
@@ -227,7 +270,14 @@ class BtklController extends Controller
                 ]);
             }
 
-            BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            // ✅ PERBAIKAN: Disable BomSyncService karena menyebabkan error dengan tabel kode_proses
+            // BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
+            
+            \Log::info('BTKL updated successfully', [
+                'btkl_id' => $btkl->id,
+                'kode_proses' => $btkl->kode_proses,
+                'note' => 'BomSyncService disabled - table kode_proses issue'
+            ]);
 
             DB::commit();
 

@@ -192,9 +192,9 @@ class PembelianController extends Controller
         ])->where('user_id', auth()->id())->get();
         $satuans = \App\Models\Satuan::all();
         
-        // Ambil data COA untuk metode pembayaran yang spesifik saja
+        // Ambil data COA kas/bank milik user yang login
         $kasbank = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
-            ->where('tipe_akun', 'Aset')
+            ->whereIn('tipe_akun', ['Aset', 'Asset', 'ASET'])
             ->orderBy('kode_akun')
             ->get();
             
@@ -234,6 +234,9 @@ class PembelianController extends Controller
             $subSatuan3 = $freshBahanBaku->sub_satuan_3_id ? 
                 \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_3_id)->first() : null;
             
+            // Get COA data
+            $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->first() : null;
+            
             $subSatuanData['bahan_baku'][$bb->id] = [
                 'satuan_utama' => $bb->satuan->nama ?? 'Unit',
                 'sub_satuan_1' => $subSatuan1 ? [
@@ -251,6 +254,8 @@ class PembelianController extends Controller
                     'nama' => $subSatuan3->nama,
                     'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_3_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '114',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Baku',
             ];
         }
         
@@ -273,6 +278,9 @@ class PembelianController extends Controller
             $subSatuan3 = $freshBahanPendukung->sub_satuan_3_id ? 
                 \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_3_id)->first() : null;
             
+            // Get COA data
+            $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->first() : null;
+            
             $subSatuanData['bahan_pendukung'][$bp->id] = [
                 'satuan_utama' => $bp->satuanRelation->nama ?? 'Unit',
                 'sub_satuan_1' => $subSatuan1 ? [
@@ -290,6 +298,8 @@ class PembelianController extends Controller
                     'nama' => $subSatuan3->nama,
                     'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_3_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '115',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung',
             ];
         }
             
@@ -479,12 +489,13 @@ class PembelianController extends Controller
             'tanggal' => 'required|date',
             'bank_id' => 'required',
             'jumlah_satuan_utama' => 'nullable|array',
+
         ], [
             'nomor_faktur.required' => 'Nomor faktur pembelian wajib diisi',
             'bukti_faktur.required' => 'Bukti faktur wajib diupload',
             'bukti_faktur.mimes' => 'Bukti faktur harus berformat JPG, PNG, atau PDF',
             'bukti_faktur.max' => 'Ukuran bukti faktur maksimal 2MB',
-        ]);
+]);
         
         // Cek manual apakah ada item yang dipilih
         $hasValidItems = false;
@@ -631,6 +642,7 @@ class PembelianController extends Controller
                     $vendor = Vendor::find($request->vendor_id);
                     $tipePembelian = $vendor->kategori ?? 'Bahan Baku';
                     
+
                     // Handle bukti faktur upload (sudah divalidasi di awal)
                     $buktiFakturPath = null;
                     if ($request->hasFile('bukti_faktur')) {
@@ -653,12 +665,13 @@ class PembelianController extends Controller
                         ]);
                     }
                     
-                    // 1. Buat header pembelian
+// 1. Buat header pembelian
                     $pembelian = new Pembelian([
                         'vendor_id' => $request->vendor_id,
                         'nomor_faktur' => $request->nomor_faktur,
+
                         'bukti_faktur' => $buktiFakturPath,  // Save file path
-                        'tanggal' => $request->tanggal,
+'tanggal' => $request->tanggal,
                         'subtotal' => $subtotal,
                         'biaya_kirim' => $biayaKirim,
                         'ppn_persen' => $ppnPersen,
@@ -1057,8 +1070,11 @@ class PembelianController extends Controller
                     \Log::error('Failed to create journal entries for pembelian', [
                         'pembelian_id' => $pembelian->id,
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                     ]);
-                    // Don't fail the transaction, just log the error
+                    // Show warning to user but don't fail the transaction
+                    return redirect()->route('transaksi.pembelian.show', $pembelian->id)
+                        ->with('warning', 'Data pembelian berhasil disimpan, tetapi jurnal akuntansi belum dapat dibuat: ' . $e->getMessage());
                 }
 
                 return redirect()->route('transaksi.pembelian.index')
@@ -1167,16 +1183,17 @@ class PembelianController extends Controller
             ->where('user_id', auth()->id())
             ->findOrFail($id);
         
+
         // CRITICAL MULTI-TENANT: Filter semua data by user_id
         $vendors = Vendor::where('user_id', auth()->id())->orderBy('nama_vendor')->get();
         $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get();
         $bahanBakus = BahanBaku::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $satuans = \App\Models\Satuan::where('user_id', auth()->id())->get();
         $coas = Coa::where('user_id', auth()->id())->get();
-        
-        // Filter COA untuk metode pembayaran yang spesifik saja
+// Filter COA untuk metode pembayaran yang spesifik saja
         $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])
-            ->where('tipe_akun', 'Aset')
+            ->whereIn('tipe_akun', ['Aset', 'Asset', 'ASET'])
             ->orderBy('kode_akun')
             ->get();
         
@@ -1203,18 +1220,105 @@ class PembelianController extends Controller
         $showBahanBaku = ($kategoriPembelian === 'bahan_baku' || $kategoriPembelian === 'mixed');
         $showBahanPendukung = ($kategoriPembelian === 'bahan_pendukung' || $kategoriPembelian === 'mixed');
         
+        // Prepare sub satuan data for JavaScript (same as create method)
+        $subSatuanData = [];
+        
+        // Process Bahan Baku
+        foreach ($bahanBakus as $bb) {
+            $freshBahanBaku = \DB::table('bahan_bakus')
+                ->select('id', 'nama_bahan', 
+                        'sub_satuan_1_id', 'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
+                        'sub_satuan_2_id', 'sub_satuan_2_konversi', 'sub_satuan_2_nilai',
+                        'sub_satuan_3_id', 'sub_satuan_3_konversi', 'sub_satuan_3_nilai')
+                ->where('id', $bb->id)
+                ->first();
+            
+            $subSatuan1 = $freshBahanBaku->sub_satuan_1_id ? 
+                \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_1_id)->first() : null;
+            $subSatuan2 = $freshBahanBaku->sub_satuan_2_id ? 
+                \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_2_id)->first() : null;
+            $subSatuan3 = $freshBahanBaku->sub_satuan_3_id ? 
+                \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_3_id)->first() : null;
+            
+            $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->first() : null;
+            
+            $subSatuanData['bahan_baku'][$bb->id] = [
+                'satuan_utama' => $bb->satuan->nama ?? 'Unit',
+                'sub_satuan_1' => $subSatuan1 ? [
+                    'id' => $subSatuan1->id,
+                    'nama' => $subSatuan1->nama,
+                    'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_1_nilai ?? 1)
+                ] : null,
+                'sub_satuan_2' => $subSatuan2 ? [
+                    'id' => $subSatuan2->id,
+                    'nama' => $subSatuan2->nama,
+                    'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_2_nilai ?? 1)
+                ] : null,
+                'sub_satuan_3' => $subSatuan3 ? [
+                    'id' => $subSatuan3->id,
+                    'nama' => $subSatuan3->nama,
+                    'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_3_nilai ?? 1)
+                ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '114',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Baku',
+            ];
+        }
+        
+        // Process Bahan Pendukung
+        foreach ($bahanPendukungs as $bp) {
+            $freshBahanPendukung = \DB::table('bahan_pendukungs')
+                ->select('id', 'nama_bahan', 
+                        'sub_satuan_1_id', 'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
+                        'sub_satuan_2_id', 'sub_satuan_2_konversi', 'sub_satuan_2_nilai',
+                        'sub_satuan_3_id', 'sub_satuan_3_konversi', 'sub_satuan_3_nilai')
+                ->where('id', $bp->id)
+                ->first();
+            
+            $subSatuan1 = $freshBahanPendukung->sub_satuan_1_id ? 
+                \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_1_id)->first() : null;
+            $subSatuan2 = $freshBahanPendukung->sub_satuan_2_id ? 
+                \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_2_id)->first() : null;
+            $subSatuan3 = $freshBahanPendukung->sub_satuan_3_id ? 
+                \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_3_id)->first() : null;
+            
+            $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->first() : null;
+            
+            $subSatuanData['bahan_pendukung'][$bp->id] = [
+                'satuan_utama' => $bp->satuanRelation->nama ?? 'Unit',
+                'sub_satuan_1' => $subSatuan1 ? [
+                    'id' => $subSatuan1->id,
+                    'nama' => $subSatuan1->nama,
+                    'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_1_nilai ?? 1)
+                ] : null,
+                'sub_satuan_2' => $subSatuan2 ? [
+                    'id' => $subSatuan2->id,
+                    'nama' => $subSatuan2->nama,
+                    'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_2_nilai ?? 1)
+                ] : null,
+                'sub_satuan_3' => $subSatuan3 ? [
+                    'id' => $subSatuan3->id,
+                    'nama' => $subSatuan3->nama,
+                    'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_3_nilai ?? 1)
+                ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '115',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung',
+            ];
+        }
+        
         return view('transaksi.pembelian.edit', compact(
             'pembelian',
             'vendors',
             'produks', 
             'bahanBakus',
             'bahanPendukungs',
+            'satuans',
             'coas',
             'kasbank',
             'currentBalances',
             'kategoriPembelian',
             'showBahanBaku',
-            'showBahanPendukung'
+            'showBahanPendukung',
+            'subSatuanData'
         ));
     }
 
@@ -1230,6 +1334,7 @@ class PembelianController extends Controller
             'nomor_faktur' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
             'bank_id' => 'required', // Add validation for payment method
+            'bukti_faktur' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:5120', // Max 5MB
         ]);
         
         try {
@@ -1292,6 +1397,20 @@ class PembelianController extends Controller
                 ]);
             }
             
+            // Handle bukti faktur upload
+            $buktiFakturPath = $pembelian->bukti_faktur; // Keep existing path
+            if ($request->hasFile('bukti_faktur')) {
+                // Delete old file if exists
+                if ($pembelian->bukti_faktur && file_exists(public_path($pembelian->bukti_faktur))) {
+                    unlink(public_path($pembelian->bukti_faktur));
+                }
+                
+                $file = $request->file('bukti_faktur');
+                $fileName = 'bukti_faktur_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('uploads/bukti_faktur'), $fileName);
+                $buktiFakturPath = 'uploads/bukti_faktur/' . $fileName;
+            }
+
             // Check if payment method actually changed
             $paymentMethodChanged = ($originalPaymentMethod !== $paymentMethod) || ($originalBankId != $selectedBankId);
             
@@ -1299,6 +1418,7 @@ class PembelianController extends Controller
             $pembelian->update([
                 'vendor_id' => $request->vendor_id,
                 'nomor_faktur' => $request->nomor_faktur,
+                'bukti_faktur' => $buktiFakturPath,
                 'tanggal' => $request->tanggal,
                 'keterangan' => $request->keterangan,
                 'payment_method' => $paymentMethod,

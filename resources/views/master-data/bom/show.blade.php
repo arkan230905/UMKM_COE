@@ -18,6 +18,7 @@
         </div>
     </div>
 
+
     <!-- Product Information -->
     <div class="row mb-4">
         <div class="col-md-12">
@@ -48,7 +49,7 @@
                         <div class="col-md-3">
                             <strong>Harga Jual:</strong><br>
                             <span class="text-success fs-6">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
-                        </div>
+</div>
                     </div>
                 </div>
             </div>

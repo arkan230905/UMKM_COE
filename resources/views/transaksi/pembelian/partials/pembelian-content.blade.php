@@ -93,6 +93,7 @@
             <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
                 <thead class="table-light">
                     <tr>
+
                         <th class="text-center" style="width: 50px">No</th>
                         <th class="nowrap">No. Transaksi</th>
                         <th class="nowrap">No. Faktur</th>
@@ -106,20 +107,21 @@
                         <th class="nowrap">Total Harga</th>
                         <th class="nowrap">Status Retur</th>
                         <th class="text-center" style="width: 180px">Aksi</th>
-                    </tr>
+</tr>
                 </thead>
                 <tbody>
                     @forelse ($pembelians as $key => $pembelian)
                         <tr>
                             <td class="text-center">{{ $key + 1 }}</td>
-                            <td class="nowrap" style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
-                            <td class="nowrap">
+                            <td class="text-center nowrap" style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
+                            <td class="text-center nowrap">
                                 @if($pembelian->nomor_faktur)
                                     {{ $pembelian->nomor_faktur }}
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
+
                             <td class="nowrap text-center">
                                 @if($pembelian->bukti_faktur)
                                     @php
@@ -139,7 +141,7 @@
                             <td class="nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
                             <td class="nowrap">
                                 <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+<div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
                                         <i class="fas fa-store text-primary"></i>
                                     </div>
                                     <div>
@@ -147,7 +149,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="nowrap">
+                            <td class="text-center nowrap">
                                 @if($pembelian->details && $pembelian->details->count() > 0)
                                     @foreach($pembelian->details as $detail)
                                         <div class="mb-1">
@@ -164,7 +166,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="nowrap">
+                            <td class="text-center nowrap">
                                 @if($pembelian->details && $pembelian->details->count() > 0)
                                     <small>
                                     @foreach($pembelian->details as $detail)
@@ -177,7 +179,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td class="nowrap">
+                            <td class="text-center nowrap">
                                 @php
                                     $paymentMethod = $pembelian->payment_method ?? 'cash';
                                     if ($paymentMethod === 'credit') {
@@ -190,7 +192,7 @@
                                 @endphp
                                 {{ $paymentText }}
                             </td>
-                            <td class="nowrap">
+                            <td class="text-center nowrap">
                                 @php
                                     $statusPembayaran = $pembelian->status_pembayaran;
                                 @endphp
@@ -200,10 +202,10 @@
                                     <span class="text-warning fw-semibold">Belum Lunas</span>
                                 @endif
                             </td>
-                            <td class="nowrap text-end fw-semibold">
+                            <td class="text-center nowrap fw-semibold">
                                 Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}
                             </td>
-                            <td class="nowrap">
+                            <td class="text-center nowrap">
                                 @php
                                     // Cek apakah ada retur untuk pembelian ini
                                     $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $pembelian->id)->exists();
@@ -225,9 +227,14 @@
                                     </a>
                                     
                                     <!-- Row 2: Jurnal | Retur -->
-                                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'purchase', 'ref_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-primary w-100" title="Lihat Jurnal">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary w-100" 
+                                            title="Lihat Jurnal"
+                                            onclick="loadJournal({{ $pembelian->id }}, '{{ $pembelian->nomor_pembelian }}')"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#journalModal">
                                         Jurnal
-                                    </a>
+                                    </button>
                                     <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-info w-100" title="Proses Retur">
                                         Retur
                                     </a>

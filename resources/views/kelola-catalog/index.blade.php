@@ -66,10 +66,11 @@
                                                     @php
                                                         $coverSrc = '';
                                                         if (!empty($catalogSections['cover']['cover_photo'])) {
+
                                                             $coverSrc = ($company && $company->foto) ? storage_url($company->foto) : '';
                                                         } elseif ($company && $company->foto) {
                                                             $coverSrc = storage_url($company->foto);
-                                                        }
+}
                                                     @endphp
                                                     <img id="coverPreviewImage" src="{{ $coverSrc }}" alt="Preview" class="preview-img">
                                                     <button type="button" class="btn-remove-preview" onclick="removeCoverPreview()" title="Hapus foto">
@@ -180,8 +181,9 @@
                                             <div class="product-card">
                                                 <div class="product-image">
                                                     @if($produk->foto)
+
                                                         <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
-                                                    @else
+@else
                                                         <div class="no-image">
                                                             <i class="fas fa-image"></i>
                                                         </div>
