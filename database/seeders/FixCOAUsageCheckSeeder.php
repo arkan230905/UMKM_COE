@@ -20,7 +20,7 @@ class FixCOAUsageCheckSeeder extends Seeder
         $coaKode = '530';
         
         // Get COA ID for kode 530
-        $coa = DB::table('accounts')
+        $coa = DB::table('coas')
             ->where('kode_akun', $coaKode)
             ->where('user_id', $user_id)
             ->first();

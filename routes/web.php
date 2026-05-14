@@ -2587,6 +2587,16 @@ Route::middleware('auth')->group(function () {
             Route::put('/{produk}', [ProdukController::class, 'update'])->name('update');
             Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
         });
+
+        // Kategori Produk routes
+        Route::prefix('kategori-produk')->name('kategori-produk.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\KategoriProdukController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\KategoriProdukController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\KategoriProdukController::class, 'store'])->name('store');
+            Route::get('/{kategoriProduk}/edit', [\App\Http\Controllers\KategoriProdukController::class, 'edit'])->name('edit');
+            Route::put('/{kategoriProduk}', [\App\Http\Controllers\KategoriProdukController::class, 'update'])->name('update');
+            Route::delete('/{kategoriProduk}', [\App\Http\Controllers\KategoriProdukController::class, 'destroy'])->name('destroy');
+        });
         
         // Kategori Produk routes
         Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
@@ -3022,6 +3032,18 @@ Route::middleware('auth')->group(function () {
             Route::put('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updatePaket'])->name('paket.update');
             Route::delete('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyPaket'])->name('paket.destroy');
             // Ongkir
+            Route::post('/ongkir', [\App\Http\Controllers\PenjualanSettingController::class, 'storeOngkir'])->name('ongkir.store');
+            Route::put('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updateOngkir'])->name('ongkir.update');
+            Route::delete('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyOngkir'])->name('ongkir.destroy');
+        });
+
+        // Penjualan Setting (Paket Menu & Ongkir)
+        Route::prefix('penjualan-setting')->name('penjualan-setting.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\PenjualanSettingController::class, 'index'])->name('index');
+            Route::get('/paket-menu', [\App\Http\Controllers\PenjualanSettingController::class, 'paketMenuPage'])->name('paket-menu');
+            Route::post('/paket', [\App\Http\Controllers\PenjualanSettingController::class, 'storePaket'])->name('paket.store');
+            Route::put('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updatePaket'])->name('paket.update');
+            Route::delete('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyPaket'])->name('paket.destroy');
             Route::post('/ongkir', [\App\Http\Controllers\PenjualanSettingController::class, 'storeOngkir'])->name('ongkir.store');
             Route::put('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updateOngkir'])->name('ongkir.update');
             Route::delete('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyOngkir'])->name('ongkir.destroy');

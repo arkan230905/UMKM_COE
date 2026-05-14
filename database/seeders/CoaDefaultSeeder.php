@@ -90,13 +90,13 @@ class CoaDefaultSeeder extends Seeder
             
             foreach ($defaultCoaData as $coa) {
                 // Check if COA already exists for this company
-                $existingCoa = DB::table('accounts')
+                $existingCoa = DB::table('coas')
                     ->where('user_id', $company->id)
                     ->where('kode_akun', $coa['kode_akun'])
                     ->first();
                 
                 if (!$existingCoa) {
-                    DB::table('accounts')->insert([
+                    DB::table('coas')->insert([
                         'kode_akun' => $coa['kode_akun'],
                         'nama_akun' => $coa['nama_akun'],
                         'tipe_akun' => $coa['tipe_akun'],

@@ -92,14 +92,14 @@ class SyncCOASafeSeeder extends Seeder
         
         // Update COA yang sudah ada dengan data dari DefaultCoaSeeder
         foreach ($defaultCoas as $defaultCoa) {
-            $existingCOA = DB::table('accounts')
+            $existingCOA = DB::table('coas')
                 ->where('user_id', $userId)
                 ->where('kode_akun', $defaultCoa['kode_akun'])
                 ->first();
             
             if ($existingCOA) {
                 // Update COA yang sudah ada
-                DB::table('accounts')
+                DB::table('coas')
                     ->where('id', $existingCOA->id)
                     ->update([
                         'nama_akun'          => $defaultCoa['nama_akun'],
@@ -112,7 +112,7 @@ class SyncCOASafeSeeder extends Seeder
                 Log::info("Updated COA {$defaultCoa['kode_akun']}: {$defaultCoa['nama_akun']}");
             } else {
                 // Insert COA baru
-                DB::table('accounts')->insert([
+                DB::table('coas')->insert([
                     'user_id'            => $userId,
                     'kode_akun'          => $defaultCoa['kode_akun'],
                     'nama_akun'          => $defaultCoa['nama_akun'],
@@ -131,14 +131,14 @@ class SyncCOASafeSeeder extends Seeder
         }
         
         // Verifikasi hasil
-        $finalCount = DB::table('accounts')
+        $finalCount = DB::table('coas')
             ->where('user_id', $userId)
             ->count();
         
         Log::info("Final COA count for user {$userId}: {$finalCount}");
         
         // Tampilkan COA BOP yang sekarang ada
-        $bopCOAs = DB::table('accounts')
+        $bopCOAs = DB::table('coas')
             ->where('user_id', $userId)
             ->where('kode_akun', 'like', '53%')
             ->orderBy('kode_akun')

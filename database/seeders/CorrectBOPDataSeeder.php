@@ -168,7 +168,7 @@ class CorrectBOPDataSeeder extends Seeder
     
     private function getCoaIdByKode($kodeAkun, $user_id)
     {
-        $coa = DB::table('accounts')
+        $coa = DB::table('coas')
             ->where('kode_akun', $kodeAkun)
             ->where('user_id', $user_id)
             ->first();

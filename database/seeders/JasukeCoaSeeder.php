@@ -66,11 +66,11 @@ class JasukeCoaSeeder extends Seeder
         ];
 
         foreach ($coas as $coa) {
-            DB::table('accounts')->updateOrInsert(
-                ['kode_akun' => $coa[1]],
+            DB::table('coas')->updateOrInsert(
+                ['kode_akun' => $coa[1], 'user_id' => 1],
                 [
                     'company_id' => 1,
-                    'user_id' => 1, // TAMBAHKAN INI: Sesuai ID Muhammad Arkan Abiyyu
+                    'user_id' => 1,
                     'nama_akun' => $coa[0],
                     'tipe_akun' => $coa[2],
                     'kategori_akun' => $coa[3],

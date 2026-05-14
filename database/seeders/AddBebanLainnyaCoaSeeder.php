@@ -27,7 +27,7 @@ class AddBebanLainnyaCoaSeeder extends Seeder
         
         foreach ($users as $user) {
             // Check if user already has these COA accounts
-            $existingCodes = DB::table('accounts')
+            $existingCodes = DB::table('coas')
                 ->where('user_id', $user->id)
                 ->whereIn('kode_akun', array_column($bebanLainnyaCoas, 'kode_akun'))
                 ->pluck('kode_akun')
@@ -36,7 +36,7 @@ class AddBebanLainnyaCoaSeeder extends Seeder
             // Add missing COA accounts
             foreach ($bebanLainnyaCoas as $coa) {
                 if (!in_array($coa['kode_akun'], $existingCodes)) {
-                    DB::table('accounts')->insert([
+                    DB::table('coas')->insert([
                         'user_id'            => $user->id,
                         'kode_akun'          => $coa['kode_akun'],
                         'nama_akun'          => $coa['nama_akun'],
