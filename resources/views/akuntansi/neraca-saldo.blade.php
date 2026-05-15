@@ -6,7 +6,7 @@
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h3 class="mb-1">Neraca Saldo</h3>
+      <h3 class="mb-1"><i class="bi bi-file-earmark-spreadsheet"></i> Neraca Saldo</h3>
       <small class="text-muted">Data diambil langsung dari Buku Besar (Journal Lines)</small>
     </div>
     <div class="d-flex gap-2 align-items-end">
@@ -86,9 +86,9 @@
             
             @forelse($coas as $coa)
               @php
-                $data = $totals[$coa->kode_akun] ?? ['debit' => 0, 'kredit' => 0];
-                $debit = $data['debit'] ?? 0;
-                $kredit = $data['kredit'] ?? 0;
+                $data = $totals[$coa->kode_akun] ?? ['saldo_debit' => 0, 'saldo_kredit' => 0];
+                $debit = $data['saldo_debit'] ?? 0;
+                $kredit = $data['saldo_kredit'] ?? 0;
                 
                 // Skip if both debit and kredit are 0
                 if ($debit == 0 && $kredit == 0) {

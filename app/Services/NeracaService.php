@@ -10,8 +10,6 @@ class NeracaService
 {
     /**
      * Generate Laporan Posisi Keuangan (Neraca)
-     * 
-     * ✅ PERBAIKAN: Laba/Rugi Berjalan diambil dari hasil akhir Laporan Laba Rugi periode yang sama
      */
     public function generateLaporanPosisiKeuangan($tanggalAwal = null, $tanggalAkhir = null)
     {
@@ -32,9 +30,8 @@ class NeracaService
         $kewajiban = $this->calculateKewajiban($neracaSaldo);
         $ekuitas = $this->calculateEkuitas($neracaSaldo);
         
-        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi periode yang sama
-        // Gunakan tanggal yang sama dengan periode Laporan Posisi Keuangan
-        $labaRugiBersih = $this->calculateLabaRugiForPeriod($tanggalAwal, $tanggalAkhir);
+        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi
+        $labaRugiBersih = $this->calculateLabaRugi($neracaSaldo);
         
         // Hitung total
         $totalAsetLancar = array_sum(array_column($asetLancar, 'saldo'));
@@ -363,83 +360,40 @@ class NeracaService
     }
     
     /**
-     * ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi
-     * 
-     * LOGIKA YANG BENAR:
-     * 1. Ambil Total Pendapatan (4xxx)
-     * 2. Ambil HPP (5xx dengan nama "Harga Pokok")
-     * 3. Hitung Laba Kotor = Total Pendapatan - HPP
-     * 4. Ambil Total Beban (5xx dan 6xx, excluding HPP)
-     * 5. Hitung Laba/Rugi Bersih = Laba Kotor - Total Beban
-     * 
-     * HASIL:
-     * - Jika positif = Laba Bersih
-     * - Jika negatif = Rugi Bersih
+     * Hitung Laba Rugi
      */
-    private function calculateLabaRugiForPeriod($tanggalAwal, $tanggalAkhir)
+    private function calculateLabaRugi($neracaSaldo)
     {
         // Gunakan TrialBalanceService untuk mendapatkan data lengkap
         $trialBalanceService = app(\App\Services\TrialBalanceService::class);
-        $trialBalance = $trialBalanceService->calculateTrialBalance($tanggalAwal, $tanggalAkhir);
         
-        // ✅ STEP 1: Hitung Total Pendapatan (4xx accounts)
-        $totalPendapatan = 0;
+        // Get the period from the neraca data
+        $periodData = $this->getCurrentPeriod();
+        $trialBalance = $trialBalanceService->calculateTrialBalance(
+            $periodData['tanggal_awal'],
+            $periodData['tanggal_akhir']
+        );
+        
+        // Pendapatan (4xx accounts)
+        $pendapatan = 0;
+        $biaya = 0;
+        
         foreach ($trialBalance['accounts'] as $account) {
             $firstDigit = substr($account['kode_akun'], 0, 1);
+            
             if ($firstDigit == '4') {
                 // Revenue accounts (4xx) - credit normal
-                $totalPendapatan += $account['kredit'];
+                $pendapatan += $account['kredit'];
+            } elseif ($firstDigit == '5') {
+                // Expense accounts (5xx) - debit normal
+                $biaya += $account['debit'];
             }
         }
         
-        // ✅ STEP 2: Hitung HPP (5xx dengan nama "Harga Pokok")
-        $hppAmount = 0;
-        foreach ($trialBalance['accounts'] as $account) {
-            $firstDigit = substr($account['kode_akun'], 0, 1);
-            if ($firstDigit == '5') {
-                // Cek apakah ini akun HPP
-                if (stripos($account['nama_akun'], 'harga pokok') !== false ||
-                    stripos($account['nama_akun'], 'hpp') !== false ||
-                    $account['kode_akun'] === '56' ||
-                    $account['kode_akun'] === '560') {
-                    $hppAmount += $account['debit'];
-                }
-            }
-        }
+        // Laba/Rugi = Pendapatan - Biaya
+        $labaRugi = $pendapatan - $biaya;
         
-        // ✅ STEP 3: Hitung Laba Kotor
-        $labaKotor = $totalPendapatan - $hppAmount;
-        
-        // ✅ STEP 4: Hitung Total Beban (5xx dan 6xx, excluding HPP)
-        $totalBeban = 0;
-        foreach ($trialBalance['accounts'] as $account) {
-            $firstDigit = substr($account['kode_akun'], 0, 1);
-            if (in_array($firstDigit, ['5', '6'])) {
-                // Skip HPP accounts
-                if (stripos($account['nama_akun'], 'harga pokok') !== false ||
-                    stripos($account['nama_akun'], 'hpp') !== false ||
-                    $account['kode_akun'] === '56' ||
-                    $account['kode_akun'] === '560') {
-                    continue;
-                }
-                // Expense accounts - debit normal
-                $totalBeban += $account['debit'];
-            }
-        }
-        
-        // ✅ STEP 5: Hitung Laba/Rugi Bersih = Laba Kotor - Total Beban
-        $labaBersih = $labaKotor - $totalBeban;
-        
-        \Log::info('NeracaService - Calculate Laba/Rugi Bersih', [
-            'periode' => $tanggalAwal . ' - ' . $tanggalAkhir,
-            'total_pendapatan' => $totalPendapatan,
-            'hpp' => $hppAmount,
-            'laba_kotor' => $labaKotor,
-            'total_beban' => $totalBeban,
-            'laba_bersih' => $labaBersih
-        ]);
-        
-        return $labaBersih;
+        return $labaRugi;
     }
     
     /**

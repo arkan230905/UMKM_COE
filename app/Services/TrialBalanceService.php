@@ -184,6 +184,7 @@ class TrialBalanceService
         // 2. Ambil total debit dan kredit sampai tanggal tertentu menggunakan jurnal_umum table
         $journalLines = DB::table('jurnal_umum as ju')
             ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->where(function($q) use ($coa) {
                 $q->where('coas.kode_akun', $coa->kode_akun)
                   ->orWhere('coas.id', $coa->id);
@@ -356,6 +357,7 @@ class TrialBalanceService
         
         $mutasi = DB::table('jurnal_umum as ju')
             ->join('coas', 'ju.coa_id', '=', 'coas.id')
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->where('coas.kode_akun', $coa->kode_akun) // Gunakan kode_akun, bukan coa_id
             ->whereBetween('ju.tanggal', [$startDate, $endDate])
             ->selectRaw('
@@ -373,21 +375,21 @@ class TrialBalanceService
     /**
      * Hitung saldo akhir berdasarkan normal balance akun
      * 
-     * Formula akuntansi:
-     * - Akun Normal Debit (Aset, Beban): Saldo Akhir = Saldo Awal + Debit - Kredit
-     * - Akun Normal Kredit (Kewajiban, Modal, Pendapatan): Saldo Akhir = Saldo Awal - Debit + Kredit
+     * PERBAIKAN FINAL: Gunakan formula UNIVERSAL yang SAMA PERSIS dengan Buku Besar
+     * untuk memastikan konsistensi 100% antara Buku Besar dan Neraca Saldo
+     * 
+     * Formula UNIVERSAL untuk SEMUA akun (sama dengan AkuntansiController::bukuBesar):
+     * Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
+     * 
+     * Tidak ada perbedaan formula antara akun debit normal dan kredit normal.
+     * Semua akun menggunakan formula yang sama seperti di Buku Besar.
      */
     private function calculateSaldoAkhir($coa, $saldoAwal, $totalDebit, $totalKredit)
     {
-        $isDebitNormal = $this->isDebitNormalAccount($coa);
-
-        if ($isDebitNormal) {
-            // Akun normal debit: Saldo Akhir = Saldo Awal + Debit - Kredit
-            return $saldoAwal + $totalDebit - $totalKredit;
-        } else {
-            // Akun normal kredit: Saldo Akhir = Saldo Awal - Debit + Kredit
-            return $saldoAwal - $totalDebit + $totalKredit;
-        }
+        // PERBAIKAN FINAL: Gunakan formula universal yang SAMA PERSIS dengan Buku Besar
+        // Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
+        // Ini memastikan angka Neraca Saldo SAMA PERSIS dengan Buku Besar
+        return $saldoAwal + $totalDebit - $totalKredit;
     }
 
     /**
@@ -439,11 +441,28 @@ class TrialBalanceService
     /**
      * Map saldo akhir ke kolom debit/kredit untuk tampilan neraca saldo
      * 
-     * Aturan tampilan neraca saldo:
-     * - Jika saldo akhir positif dan akun normal debit → tampil di kolom debit
-     * - Jika saldo akhir positif dan akun normal kredit → tampil di kolom kredit
-     * - Jika saldo akhir negatif → tampil di sisi berlawanan (saldo abnormal)
-     * - Jika saldo akhir = 0 → tidak tampil di kedua kolom
+     * LOGIKA PERBAIKAN untuk Neraca Saldo:
+     * 
+     * Karena kita menggunakan formula UNIVERSAL untuk semua akun:
+     * Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
+     * 
+     * Maka interpretasi saldo akhir untuk penempatan di Neraca Saldo:
+     * 
+     * AKUN NORMAL DEBIT (Aset, Beban):
+     * - Saldo Akhir > 0 → Tampil di kolom DEBIT (normal)
+     * - Saldo Akhir < 0 → Tampil di kolom KREDIT dengan nilai absolut (abnormal)
+     * 
+     * AKUN NORMAL KREDIT (Kewajiban, Modal, Pendapatan):
+     * - Saldo Akhir > 0 → Tampil di kolom KREDIT (abnormal - lebih bayar utang)
+     * - Saldo Akhir < 0 → Tampil di kolom KREDIT dengan nilai absolut (normal - ada utang)
+     * 
+     * Contoh Utang Usaha (Normal Kredit):
+     * - Total Debit = 1.490.000, Total Kredit = 1.589.000
+     * - Saldo Akhir = 0 + 1.490.000 - 1.589.000 = -99.000
+     * - Karena negatif dan akun normal kredit → Tampil di KREDIT = 99.000 ✓
+     * 
+     * Neraca Saldo TIDAK BOLEH menampilkan nilai negatif.
+     * Semua nilai harus positif dan ditempatkan di kolom yang tepat.
      */
     private function mapToTrialBalanceColumns($saldoAkhir, $coa)
     {
@@ -451,26 +470,34 @@ class TrialBalanceService
         $kredit = 0;
 
         // Jika saldo = 0, tidak perlu ditampilkan
-        if ($saldoAkhir == 0) {
+        if (abs($saldoAkhir) < 0.01) {
             return ['debit' => 0, 'kredit' => 0];
         }
 
         $isDebitNormal = $this->isDebitNormalAccount($coa);
 
         if ($saldoAkhir > 0) {
-            // Saldo positif - tampil sesuai normal balance
+            // Saldo positif
             if ($isDebitNormal) {
+                // Akun normal debit dengan saldo positif → tampil di DEBIT (normal)
                 $debit = $saldoAkhir;
             } else {
+                // Akun normal kredit dengan saldo positif → tampil di KREDIT (abnormal tapi tetap di kredit)
+                // Ini terjadi jika pembayaran utang melebihi utang yang ada
                 $kredit = $saldoAkhir;
             }
         } else {
-            // Saldo negatif (abnormal) - tampil di sisi berlawanan
+            // Saldo negatif - ambil nilai absolut
             $nilaiAbsolut = abs($saldoAkhir);
+            
             if ($isDebitNormal) {
-                $kredit = $nilaiAbsolut; // Akun debit normal tapi saldo negatif → tampil di kredit
+                // Akun normal debit dengan saldo negatif → tampil di KREDIT (abnormal)
+                // Contoh: Kas minus (overdraft)
+                $kredit = $nilaiAbsolut;
             } else {
-                $debit = $nilaiAbsolut;  // Akun kredit normal tapi saldo negatif → tampil di debit
+                // Akun normal kredit dengan saldo negatif → tampil di KREDIT (normal)
+                // Contoh: Utang Usaha dengan saldo -99.000 → tampil di Kredit 99.000 ✓
+                $kredit = $nilaiAbsolut;
             }
         }
 
