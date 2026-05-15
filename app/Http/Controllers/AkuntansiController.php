@@ -475,7 +475,6 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->get();
 
         // Ambil mutasi periode menggunakan helper yang sama dengan buku besar
-        // Saldo akhir neraca saldo = saldo akhir buku besar (selalu sinkron)
         $mutasiByKodeAkun = $this->getAccountSummary($from, $to);
 
         $totals = [];
@@ -493,31 +492,13 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             $totalDebit  = $mutasiByKodeAkun[$coa->kode_akun]['total_debit']  ?? 0;
             $totalKredit = $mutasiByKodeAkun[$coa->kode_akun]['total_kredit'] ?? 0;
 
-            // Gunakan posisi akun berdasarkan digit pertama kode akun (sama seperti balance sheet)
-            // Akun 1xx, 5xx, 6xx = debit normal
-            // Akun 2xx, 3xx, 4xx = kredit normal
-            $firstDigit = substr($coa->kode_akun, 0, 1);
-            $isDebitNormal = !in_array($firstDigit, ['2', '3', '4']);
-            
-            // Override dengan saldo_normal jika ada dan tidak 'debit' untuk akun 2,3,4
-            $saldoNormal = strtolower($coa->saldo_normal ?? '');
-            if (!empty($saldoNormal)) {
-                // Untuk akun 2,3,4, forced ke credit normal regardless of saldo_normal
-                if (in_array($firstDigit, ['2', '3', '4'])) {
-                    $isDebitNormal = false;
-                } else {
-                    $isDebitNormal = ($saldoNormal === 'debit');
-                }
-            }
+            // PENTING: Gunakan logika yang SAMA dengan buku besar
+            // Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
+            // Ini adalah saldo akhir buku besar yang sebenarnya
+            $saldoAkhirBukuBesar = $saldoAwal + $totalDebit - $totalKredit;
 
-            // Saldo akhir = saldo akhir buku besar untuk akun ini
-            if ($isDebitNormal) {
-                $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
-            } else {
-                $saldoAkhir = $saldoAwal - $totalDebit + $totalKredit;
-            }
-
-            $posisi = $this->posisiNeracaSaldo($saldoAkhir, $coa->tipe_akun);
+            // Tentukan posisi di neraca saldo berdasarkan saldo akhir buku besar
+            $posisi = $this->posisiNeracaSaldo($saldoAkhirBukuBesar, $coa->tipe_akun);
 
             $totals[$coa->kode_akun] = [
                 'saldo_awal'      => $saldoAwal,
@@ -525,9 +506,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
                 'kredit'          => $totalKredit,
                 'saldo_debit'     => $posisi['debit'],
                 'saldo_kredit'    => $posisi['kredit'],
-                'saldo_akhir'     => $saldoAkhir,
-                'saldo_normal'    => $saldoNormal,
-                'is_debit_normal' => $isDebitNormal,
+                'saldo_akhir'     => $saldoAkhirBukuBesar, // Saldo akhir dari buku besar
             ];
         }
 
@@ -620,72 +599,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
     }
 
     /**
-     * ✅ Export Laporan Posisi Keuangan ke PDF
-     */
-    public function laporanPosisiKeuanganPdf(Request $request)
-    {
-        // Gunakan format bulan/tahun seperti neraca saldo untuk konsistensi
-        $bulan = $request->get('bulan', date('m'));
-        $tahun = $request->get('tahun', date('Y'));
-        
-        // Validasi range
-        if ($bulan < 1 || $bulan > 12) {
-            $bulan = date('m');
-        }
-        if ($tahun < 2020 || $tahun > 2030) {
-            $tahun = date('Y');
-        }
-        
-        // Ensure bulan is zero-padded
-        $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
-        
-        // Hitung periode - sama seperti neraca saldo
-        $tanggalAwal = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
-        $tanggalAkhir = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
-
-        // Gunakan NeracaService untuk konsistensi dengan neraca saldo
-        $neracaService = app(\App\Services\NeracaService::class);
-        $neraca = $neracaService->generateLaporanPosisiKeuangan($tanggalAwal, $tanggalAkhir);
-        
-        // ✅ PERBAIKAN: Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
-        $labaRugiData = $this->calculateLabaRugiBersih($tanggalAwal, $tanggalAkhir);
-        $labaRugiBersih = $labaRugiData['laba_bersih'];
-        
-        // Tambahkan data laba/rugi ke neraca
-        $neraca['laba_rugi_berjalan'] = $labaRugiBersih;
-        $neraca['laba_rugi_akun_nama'] = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
-        $neraca['total_ekuitas_with_laba_rugi'] = $neraca['ekuitas']['total'] + $labaRugiBersih;
-        $neraca['total_kewajiban_ekuitas'] = $neraca['kewajiban']['total'] + $neraca['total_ekuitas_with_laba_rugi'];
-        
-        // Update status keseimbangan
-        $neraca['neraca_seimbang'] = abs($neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas']) < 0.01;
-        $neraca['selisih'] = $neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas'];
-
-        // Generate PDF
-        $pdf = Pdf::loadView('akuntansi.laporan-posisi-keuangan-pdf', compact('neraca', 'bulan', 'tahun'))
-            ->setPaper('a4', 'portrait');
-        
-        // Dynamic filename
-        $fileName = 'laporan-posisi-keuangan-' . $tahun . '-' . $bulan . '.pdf';
-        
-        return $pdf->download($fileName);
-    }
-
-    /**
-     * ✅ PERBAIKAN: Hitung Laba/Rugi Bersih untuk periode tertentu
+     * Hitung Laba/Rugi Bersih untuk periode tertentu
      * Digunakan untuk Laporan Posisi Keuangan
-     * 
-     * LOGIKA:
-     * 1. Ambil semua COA dan mutasi periode
-     * 2. Hitung Total Pendapatan (4xxx)
-     * 3. Hitung HPP (5xx dengan nama "Harga Pokok" atau kode 56/560)
-     * 4. Hitung Laba Kotor = Total Pendapatan - HPP
-     * 5. Hitung Total Beban (5xx dan 6xx, excluding HPP)
-     * 6. Hitung Laba/Rugi Bersih = Laba Kotor - Total Beban
-     * 
-     * HASIL AKHIR:
-     * - Jika positif = Laba Bersih
-     * - Jika negatif = Rugi Bersih
      */
     private function calculateLabaRugiBersih($from, $to)
     {
@@ -712,9 +627,6 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             $debit = $m ? (float)$m->total_debit : 0;
             $kredit = $m ? (float)$m->total_kredit : 0;
             
-            // Hitung saldo akhir berdasarkan tipe akun
-            // Pendapatan (4xxx): saldo normal kredit → saldo = kredit - debit
-            // HPP & Beban (5xxx, 6xxx): saldo normal debit → saldo = debit - kredit
             $first = substr($coa->kode_akun, 0, 1);
             $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
             
@@ -724,7 +636,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ];
         }
         
-        // ✅ STEP 1: Hitung Total Pendapatan (4xxx)
+        // Hitung Total Pendapatan (4xxx)
         $totalPendapatan = 0;
         foreach ($coas as $coa) {
             if (substr($coa->kode_akun, 0, 1) === '4') {
@@ -735,7 +647,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             }
         }
         
-        // ✅ STEP 2: Hitung HPP (5xx - Harga Pokok Penjualan)
+        // Hitung HPP (5xx - Harga Pokok Penjualan)
         $hppAmount = 0;
         foreach ($coas as $coa) {
             if (substr($coa->kode_akun, 0, 1) === '5') {
@@ -751,10 +663,10 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             }
         }
         
-        // ✅ STEP 3: Hitung Laba Kotor
+        // Hitung Laba Kotor
         $labaKotor = $totalPendapatan - $hppAmount;
         
-        // ✅ STEP 4: Hitung Total Beban (5xx dan 6xx, excluding HPP)
+        // Hitung Total Beban (5xx dan 6xx, excluding HPP)
         $totalBeban = 0;
         foreach ($coas as $coa) {
             $first = substr($coa->kode_akun, 0, 1);
@@ -774,19 +686,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             }
         }
         
-        // ✅ STEP 5: Hitung Laba/Rugi Bersih = Laba Kotor - Total Beban
-        // Jika positif = Laba Bersih
-        // Jika negatif = Rugi Bersih
+        // Hitung Laba/Rugi Bersih
         $labaBersih = $labaKotor - $totalBeban;
-        
-        \Log::info('Calculate Laba/Rugi Bersih', [
-            'periode' => "$from - $to",
-            'total_pendapatan' => $totalPendapatan,
-            'hpp' => $hppAmount,
-            'laba_kotor' => $labaKotor,
-            'total_beban' => $totalBeban,
-            'laba_bersih' => $labaBersih
-        ]);
         
         return [
             'total_pendapatan' => $totalPendapatan,
