@@ -1913,8 +1913,25 @@ Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
         Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
         Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
         
+        // AJAX Cart Routes
+        Route::post('/cart/ajax/store', [CartController::class, 'storeAjax'])->name('cart.ajax.store');
+        Route::get('/cart/ajax/items', [CartController::class, 'getCartItems'])->name('cart.ajax.items');
+        Route::put('/cart/ajax/{id}', [CartController::class, 'updateAjax'])->name('cart.ajax.update');
+        Route::delete('/cart/ajax/{id}', [CartController::class, 'destroyAjax'])->name('cart.ajax.destroy');
+        
         // Checkout
         Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+        Route::get('/checkout/debug', function() {
+            return view('pelanggan.debug-ongkir');
+        })->name('checkout.debug');
+        Route::post('/checkout/ongkir', [CheckoutController::class, 'getOngkir'])->name('checkout.ongkir');
+        Route::post('/checkout/debug-ongkir', [CheckoutController::class, 'debugOngkir'])->name('checkout.debug-ongkir');
+        Route::post('/checkout/calculate-ongkir', [CheckoutController::class, 'calculateOngkir'])->name('checkout.calculate-ongkir');
+        Route::get('/checkout/address-suggestions', [CheckoutController::class, 'getAddressSuggestions'])->name('checkout.address-suggestions');
+        Route::get('/checkout/provinces', [CheckoutController::class, 'getProvinces'])->name('checkout.provinces');
+        Route::get('/checkout/cities', [CheckoutController::class, 'getCities'])->name('checkout.cities');
+        Route::get('/checkout/districts', [CheckoutController::class, 'getDistricts'])->name('checkout.districts');
+        Route::get('/checkout/sub-districts', [CheckoutController::class, 'getSubDistricts'])->name('checkout.sub-districts');
         Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
         
         // Orders
@@ -3455,42 +3472,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
 
     // ================================================================
     // EMERGENCY FIXES
-    // ================================================================
-    Route::get('fix-pembelian-journals', function() {
-        include 'fix_pembelian_journals.php';
-    });
-
-    Route::get('debug-kas-transactions', function() {
-        include 'debug_kas_transactions.php';
-    });
-
-    Route::get('quick-fix-kas-bank', function() {
-        include 'quick_fix_kas_bank.php';
-    });
-
-    Route::get('fix-purchase-journals', function() {
-        include 'fix_purchase_journals.php';
-    });
-
-    Route::get('analyze-journal-issues', function() {
-        include 'analyze_journal_issues.php';
-    });
-
-    Route::get('comprehensive-cleanup', function() {
-        include 'comprehensive_cleanup.php';
-    });
-
-    Route::get('cleanup-orphan-journals', function() {
-        include 'cleanup_orphan_journals.php';
-    });
-
-    Route::get('check-stock-movements', function() {
-        include 'check_stock_movements.php';
-    });
-
-    Route::get('fix-product-stock', function() {
-        include 'fix_product_stock.php';
-    });
+    // Debug routes removed - all debug files deleted for production
 
     // ================================================================
     // LAPORAN (Admin & Owner Only)

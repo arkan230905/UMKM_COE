@@ -19,60 +19,62 @@
         .auth-container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            max-width: 900px;
+            max-width: 600px;
             width: 90%;
         }
         
         .auth-left {
             background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
             color: white;
-            padding: 3rem;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
         
         .auth-right {
-            padding: 3rem;
+            padding: 1.5rem;
         }
         
         .brand-logo {
-            font-size: 1.6rem;
+            font-size: 1.1rem;
             font-weight: bold;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             text-align: center;
             line-height: 1.3;
             word-break: break-word;
         }
         
         .brand-tagline {
-            font-size: 1.1rem;
+            font-size: 0.75rem;
             opacity: 0.9;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
         }
         
         .feature-list {
             list-style: none;
             padding: 0;
+            font-size: 0.75rem;
         }
         
         .feature-list li {
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
             display: flex;
             align-items: center;
         }
         
         .feature-list i {
-            margin-right: 1rem;
-            font-size: 1.2rem;
+            margin-right: 0.6rem;
+            font-size: 0.85rem;
         }
         
         .nav-tabs {
             border-bottom: 2px solid #e9ecef;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
         
         .nav-tabs .nav-link {
@@ -80,7 +82,8 @@
             border: none;
             border-bottom: 3px solid transparent;
             font-weight: 600;
-            padding: 0.75rem 1.5rem;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
             transition: all 0.3s;
         }
         
@@ -96,10 +99,10 @@
         }
         
         .form-control {
-            border-radius: 10px;
+            border-radius: 6px;
             border: 2px solid #e9ecef;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
             transition: all 0.3s;
         }
         
@@ -111,9 +114,9 @@
         .btn-auth {
             background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
             border: none;
-            border-radius: 10px;
-            padding: 0.75rem 2rem;
-            font-size: 1rem;
+            border-radius: 6px;
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: white;
             transition: all 0.3s;
@@ -136,8 +139,38 @@
             }
             
             .auth-right {
-                padding: 2rem;
+                padding: 1.5rem;
             }
+        }
+        
+        .form-label {
+            font-size: 0.75rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .form-check-label {
+            font-size: 0.75rem;
+        }
+        
+        h3 {
+            font-size: 1.1rem !important;
+        }
+        
+        p.text-muted {
+            font-size: 0.75rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .mb-3 {
+            margin-bottom: 0.6rem !important;
+        }
+        .mb-4 {
+            margin-bottom: 1rem !important;
+        }
+        
+        .btn-outline-secondary {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -431,9 +464,9 @@
                 </div>
 
                 <!-- Contact Information -->
-                <div class="mt-4 text-center">
-                    <button onclick="document.getElementById('waModal').style.display='flex'" style="background:#25D366;border:none;border-radius:50px;padding:0.6rem 1.5rem;color:white;font-weight:600;cursor:pointer;font-size:0.9rem;">
-                        <i class="fab fa-whatsapp me-2"></i> Hubungi kami di WhatsApp
+                <div class="mt-3 text-center">
+                    <button onclick="document.getElementById('waModal').style.display='flex'" style="background:#25D366;border:none;border-radius:50px;padding:0.4rem 1rem;color:white;font-weight:600;cursor:pointer;font-size:0.75rem;">
+                        <i class="fab fa-whatsapp me-1"></i> Hubungi kami di WhatsApp
                     </button>
                 </div>
 

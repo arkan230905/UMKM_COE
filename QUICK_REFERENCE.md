@@ -1,153 +1,188 @@
-# 🚀 QUICK REFERENCE - PUSH & DEPLOY
+# Quick Reference - Customer Website to Owner Dashboard Integration
 
-## ✅ STATUS: READY TO PUSH!
+## 🎯 What Was Fixed
 
-**All Tests**: 13/13 PASSED ✅  
-**Risk Level**: LOW  
-**Confidence**: 98%
+### Problem
+Data dari website pelanggan tidak masuk ke dashboard owner. Penjualan tidak muncul setelah checkout.
+
+### Solution
+Implemented complete order-to-penjualan synchronization with proper multi-owner support.
 
 ---
 
-## 📋 QUICK PUSH COMMANDS
+## 📊 How It Works Now
 
-```bash
-# 1. Add all changes
-git add .
+### Customer Checkout Flow
+```
+1. Customer adds items to cart
+2. Customer clicks "Checkout"
+3. System validates stock
+4. Order created
+5. Stock decremented
+6. Penjualan created for each owner
+7. Payment processed
+8. Owner sees transaction in dashboard
+```
 
-# 2. Commit
-git commit -m "Fix: Multi-tenant critical issues - Registration, BTKL & COA
+### Key Points
+- ✅ Transactions appear **immediately** in owner dashboard
+- ✅ Multi-owner orders handled correctly (separate Penjualan per owner)
+- ✅ Stock display consistent across all pages
+- ✅ Payment status tracked properly
+- ✅ Journals created automatically when payment confirmed
 
-FIXES:
-- BTKL dropdown showing 0 pegawai
-- Registration duplicate COA error
-- Registration no COA created
-- COA tipe Equity to Biaya (513-516)
+---
 
-TESTING: All tests passed ✅ (13/13)"
+## 🔧 Important Implementation Details
 
-# 3. Push
-git push origin main
+### For Developers
+
+#### 1. Always Use `withoutGlobalScopes()` for Cross-Owner Data
+```php
+// ✅ CORRECT - When accessing products from other owners
+$produk = Produk::withoutGlobalScopes()->find($id);
+
+// ❌ WRONG - Will fail for products from other owners
+$produk = Produk::find($id);
+```
+
+#### 2. Use `is_null()` Not `empty()`
+```php
+// ✅ CORRECT - Allows 0 as valid value
+if (is_null($penjualan->user_id)) {
+    $penjualan->user_id = auth()->id();
+}
+
+// ❌ WRONG - Treats 0 as falsy
+if (empty($penjualan->user_id)) {
+    $penjualan->user_id = auth()->id();
+}
+```
+
+#### 3. Use `now()->toDateString()` Not `now()->date()`
+```php
+// ✅ CORRECT
+$tanggal = now()->toDateString();
+
+// ❌ WRONG - date() method doesn't exist on Carbon
+$tanggal = now()->date();
+```
+
+#### 4. Sync Must Be Called AFTER OrderItems Creation
+```php
+// ✅ CORRECT - In CheckoutController after OrderItems created
+OrderItem::create([...]);
+$service = new OrderToSalesService();
+$service->syncOrderToPenjualan($order);
+
+// ❌ WRONG - In OrderObserver::created() before OrderItems exist
+// This will fail because items are not created yet
+```
+
+#### 5. Always Filter by `user_id` for Multi-Tenant
+```php
+// ✅ CORRECT - Multi-tenant isolation
+$penjualans = Penjualan::where('user_id', auth()->id())->get();
+
+// ❌ WRONG - Shows all penjualans from all owners
+$penjualans = Penjualan::all();
 ```
 
 ---
 
-## 🔧 QUICK DEPLOY COMMANDS (VPS)
+## 📁 Key Files to Know
+
+### Controllers
+- `app/Http/Controllers/Pelanggan/CheckoutController.php` - Main checkout flow
+- `app/Http/Controllers/Pelanggan/CartController.php` - Cart management
+- `app/Http/Controllers/Pelanggan/DashboardController.php` - Product listing
+
+### Models
+- `app/Models/Order.php` - Customer orders
+- `app/Models/Penjualan.php` - Owner sales (synced from orders)
+- `app/Models/Produk.php` - Products (multi-owner)
+
+### Services
+- `app/Services/OrderToSalesService.php` - Order to Penjualan conversion
+
+### Observers
+- `app/Observers/OrderObserver.php` - Order event handling
+
+### Middleware
+- `app/Http/Middleware/Authenticate.php` - Authentication with guard support
+
+---
+
+## 🧪 Testing Checklist
+
+### Before Pushing
+- [ ] All PHP files have correct syntax
+- [ ] All migrations are in place
+- [ ] No errors in diagnostics
+
+### After Deployment
+- [ ] Customer can add items to cart
+- [ ] Customer can checkout successfully
+- [ ] Stock decrements correctly
+- [ ] Penjualan appears in owner dashboard immediately
+- [ ] Payment status is correct (paid for kasir, pending for COD)
+- [ ] Stock display is consistent (dashboard = menu)
+- [ ] Multi-owner orders create separate Penjualan per owner
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: "Terjadi kesalahan saat menambahkan ke keranjang"
+**Solution**: Check if Authenticate middleware is loaded in Kernel.php
+
+### Issue: Penjualan tidak muncul setelah checkout
+**Solution**: 
+1. Check logs: `storage/logs/laravel.log`
+2. Verify OrderToSalesService was called
+3. Check Penjualan table for records
+4. Verify user_id matches owner ID
+
+### Issue: Stock tidak berkurang
+**Solution**: 
+1. Check if stock decrement query executed
+2. Verify Produk::withoutGlobalScopes() is used
+3. Check StockMovement table for records
+
+### Issue: Dashboard stok berbeda dengan menu produk
+**Solution**: 
+1. DashboardController should use `stok` column directly
+2. Not calculated from stock_movements
+3. Both should show same value
+
+---
+
+## 📞 Support
+
+For issues or questions:
+1. Check logs: `storage/logs/laravel.log`
+2. Review INTEGRATION_STATUS_REPORT.md
+3. Check DEPLOYMENT_GUIDE.md for detailed setup
+
+---
+
+## 🚀 Deployment Command
 
 ```bash
-# SSH to VPS
-ssh user@your-vps-ip
-
-# Navigate & pull
-cd /path/to/umkm_coe
+# Pull latest changes
 git pull origin main
 
 # Run migrations
-php artisan migrate --force
+php artisan migrate
 
-# Clear & cache
-php artisan optimize:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# Clear cache
+php artisan cache:clear
 
-# Check users
-php check_current_users.php
-
-# Fix if needed
-php fix_user1_coa.php  # Edit user_id first
-
-# Fix COA tipe (if needed)
-php fix_coa_tipe_equity_to_biaya.php
-
-# Cleanup orphaned data (optional)
-php delete_orphaned_coa_auto.php
+# Test checkout flow
+# Verify transactions appear in owner dashboard
 ```
 
 ---
 
-## 🧪 QUICK TEST COMMANDS
-
-```bash
-# Run all tests
-php final_pre_push_test.php
-
-# Check users
-php check_current_users.php
-
-# Test registration
-php test_registration_flow.php
-
-# Check constraints
-php check_coa_constraints.php
-```
-
----
-
-## 📊 WHAT WAS FIXED
-
-1. **BTKL Dropdown** - Added JOIN + user_id filter
-2. **Registration Error** - Fixed COA unique constraint (composite)
-3. **No COA Created** - Event always dispatched
-4. **COA Tipe Wrong** - Fixed 513-516 from Equity to Biaya
-
----
-
-## ✅ VERIFICATION CHECKLIST
-
-After deploy:
-
-- [ ] New user can register
-- [ ] New user gets 51 COAs
-- [ ] BTKL dropdown shows correct count
-- [ ] Multi-tenant isolation works
-- [ ] No errors in logs
-
----
-
-## 📞 QUICK TROUBLESHOOTING
-
-### Registration Error
-```bash
-php check_coa_constraints.php
-```
-
-### No COA Created
-```bash
-php seed_coa_for_user.php  # Edit user_id
-```
-
-### BTKL Shows 0
-```bash
-php check_jabatan_pegawai_data.php
-php fix_jabatan_pegawai_multi_tenant.php
-```
-
----
-
-## 📁 KEY FILES
-
-**Controllers**:
-- `app/Http/Controllers/MasterData/BtklController.php`
-- `app/Http/Controllers/Auth/RegisterController.php`
-
-**Migration**:
-- `database/migrations/2026_05_06_192554_fix_coas_unique_constraint_for_multi_tenant.php`
-
-**Documentation**:
-- `PUSH_TO_GITHUB_NOW.md` - Detailed push guide
-- `FINAL_DEPLOYMENT_GUIDE.md` - Complete deployment guide
-- `RINGKASAN_PERBAIKAN.md` - Indonesian summary
-
----
-
-## 🎯 NEXT STEPS
-
-1. ✅ Run final test: `php final_pre_push_test.php`
-2. ⏳ Push to GitHub (commands above)
-3. ⏳ Monitor Jenkins build
-4. ⏳ Deploy to VPS (commands above)
-5. ⏳ Verify production (checklist above)
-
----
-
-**READY TO PUSH!** 🚀
+Last Updated: May 17, 2026
+Status: ✅ READY FOR PRODUCTION

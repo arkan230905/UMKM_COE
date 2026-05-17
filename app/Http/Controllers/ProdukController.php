@@ -44,7 +44,7 @@ class ProdukController extends Controller
         $produks = $query->get();
         
         // Get kategoris for filter dropdown (CRITICAL: filter by user_id untuk multi-tenant)
-        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
+        $kategoris = \App\Models\KategoriProduk::withCount('produks')->orderBy('nama')->get();
         
         // Calculate HPP from Harga Pokok Produksi (BBB + BTKL + BOP)
         $hargaBom = [];

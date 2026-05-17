@@ -71,6 +71,8 @@ class Order extends Model
             'va_mandiri' => 'Mandiri Virtual Account',
             'cash' => 'Cash',
             'transfer' => 'Transfer Bank',
+            'kasir' => 'Bayar di Kasir (Pick Up)',
+            'cod' => 'COD (Cash On Delivery)',
             default => '-',
         };
     }

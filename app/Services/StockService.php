@@ -765,7 +765,7 @@ class StockService
     {
         try {
             if ($itemType === 'product') {
-                $product = \App\Models\Produk::find($itemId);
+                $product = \App\Models\Produk::withoutGlobalScopes()->find($itemId);
                 if (!$product) {
                     throw new \Exception("Product with ID {$itemId} not found");
                 }

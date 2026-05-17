@@ -19,8 +19,9 @@ class LaporanPenjualanController extends Controller
         $metodePembayaran = $request->get('metode_pembayaran');
         $statusTransaksi = $request->get('status_transaksi');
 
-        // Build query for penjualan - sama seperti di PenjualanController
+        // Build query for penjualan - CRITICAL: Filter by logged-in user (owner)
         $query = Penjualan::with(['produk', 'details.produk', 'returPenjualans.detailReturPenjualans'])
+            ->where('user_id', auth()->id()) // CRITICAL: Multi-tenant isolation
             ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
 
         if ($metodePembayaran) {
@@ -49,6 +50,7 @@ class LaporanPenjualanController extends Controller
     private function calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran = null, $statusTransaksi = null)
     {
         $query = Penjualan::with(['details.produk', 'produk'])
+            ->where('user_id', auth()->id()) // CRITICAL: Multi-tenant isolation
             ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
 
         if ($metodePembayaran) {
@@ -114,6 +116,9 @@ class LaporanPenjualanController extends Controller
     {
         try {
             $returQuery = ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
+                ->whereHas('penjualan', function ($query) {
+                    $query->where('user_id', auth()->id()); // CRITICAL: Multi-tenant isolation
+                })
                 ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
             $returs = $returQuery->get();
 

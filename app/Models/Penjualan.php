@@ -13,11 +13,14 @@ class Penjualan extends Model
     protected $table = 'penjualans';
 
     protected $fillable = [
+        'order_id',  // Link to orders table
         'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_penjualan',
         'produk_id',
         'tanggal',
         'payment_method',
+        'payment_status',  // Track payment confirmation
+        'payment_confirmed_at',  // When payment was confirmed
         'harga_satuan',
         'jumlah',
         'diskon_nominal',
@@ -31,7 +34,13 @@ class Penjualan extends Model
 
     protected $casts = [
         'tanggal' => 'date',
+        'payment_confirmed_at' => 'datetime',
     ];
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
 
     public function getTanggalTransaksiAttribute()
     {
@@ -98,7 +107,8 @@ class Penjualan extends Model
         // Auto-generate nomor penjualan saat creating
         static::creating(function ($penjualan) {
             // CRITICAL: Auto-set user_id untuk multi-tenant isolation
-            if (empty($penjualan->user_id) && auth()->check()) {
+            // ONLY set if user_id is not already explicitly set
+            if (is_null($penjualan->user_id) && auth()->check()) {
                 $penjualan->user_id = auth()->id();
             }
             
@@ -149,39 +159,28 @@ class Penjualan extends Model
             }
         });
         
-        static::created(function ($penjualan) {
-            // Create automatic journal entries
-            try {
-                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
-                \Log::info('Journal created successfully for penjualan', [
-                    'penjualan_id' => $penjualan->id,
-                    'nomor_penjualan' => $penjualan->nomor_penjualan
-                ]);
-            } catch (\Exception $e) {
-                \Log::error('Failed to create journal for penjualan', [
-                    'penjualan_id' => $penjualan->id,
-                    'nomor_penjualan' => $penjualan->nomor_penjualan,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
-        });
+        // CRITICAL: Do NOT create journals automatically on creation
+        // Journals should only be created when payment is confirmed
+        // This prevents creating journals for pending/failed payments
         
         static::updated(function ($penjualan) {
-            // Recreate journal entries if transaction is updated
-            try {
-                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
-                \Log::info('Journal updated successfully for penjualan', [
-                    'penjualan_id' => $penjualan->id,
-                    'nomor_penjualan' => $penjualan->nomor_penjualan
-                ]);
-            } catch (\Exception $e) {
-                \Log::error('Failed to update journal for penjualan', [
-                    'penjualan_id' => $penjualan->id,
-                    'nomor_penjualan' => $penjualan->nomor_penjualan,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
+            // Only create/update journals if payment_status changed to 'paid'
+            if ($penjualan->wasChanged('payment_status') && $penjualan->payment_status === 'paid') {
+                try {
+                    \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                    \Log::info('Journal created successfully for penjualan (payment confirmed)', [
+                        'penjualan_id' => $penjualan->id,
+                        'nomor_penjualan' => $penjualan->nomor_penjualan,
+                        'payment_status' => $penjualan->payment_status
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create journal for penjualan', [
+                        'penjualan_id' => $penjualan->id,
+                        'nomor_penjualan' => $penjualan->nomor_penjualan,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
             }
         });
     }

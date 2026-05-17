@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
     <style>
         body {
             background-color: #f5f5f5;
@@ -78,9 +81,10 @@
         
         .main-content {
             min-height: calc(100vh - 120px);
-            padding-top: 0;
+            padding-top: 2rem;
             padding-bottom: 40px;
-            background-color: #faf8f5;
+            background-color: white;
+            display: block;
         }
         
         .footer {
@@ -115,38 +119,31 @@
                         </a>
                     </li>
                     
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('pelanggan.orders') }}">
-                            <i class="bi bi-box-seam"></i> Pesanan Saya
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('pelanggan.returns.create') }}">
-                            <i class="bi bi-arrow-counterclockwise"></i> Retur
-                        </a>
-                    </li>
-                    
                     
 
                     <li class="nav-item mx-2">
                         <a href="{{ route('pelanggan.cart') }}" class="btn btn-cart">
                             <i class="bi bi-cart3"></i> Keranjang
-                            @if(isset($cartCount) && $cartCount > 0)
-                            <span class="cart-badge">{{ $cartCount }}</span>
-                            @endif
+                            <span id="cart-badge-header" class="cart-badge" style="display: {{ (isset($cartCount) && $cartCount > 0) ? 'block' : 'none' }};">
+                                {{ isset($cartCount) ? $cartCount : 0 }}
+                            </span>
                         </a>
                     </li>
                     
-                    @if(Auth::check())
+                    @if(Auth::guard('pelanggan')->check())
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ Auth::user()->name }}
+                            <i class="bi bi-person-circle"></i> {{ Auth::guard('pelanggan')->user()->name }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                                 <a class="dropdown-item" href="{{ route('pelanggan.orders') }}">
                                     <i class="bi bi-box-seam"></i> Pesanan Saya
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('pelanggan.returns.create') }}">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Retur
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
@@ -161,8 +158,8 @@
                         </ul>
                     </li>
                     @else
-                    <li class="nav-item">
-                        <a href="{{ route('pelanggan.login') }}" class="btn btn-primary btn-sm">
+                    <li class="nav-item ms-1">
+                        <a href="{{ route('pelanggan.login') }}" class="btn btn-outline-light d-flex align-items-center gap-2" style="border-radius: 25px; font-weight: 600; padding: 7px 20px;">
                             <i class="bi bi-box-arrow-in-right"></i> Login
                         </a>
                     </li>
@@ -188,6 +185,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     
     @stack('scripts')
 </body>

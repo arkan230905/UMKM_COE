@@ -12,6 +12,9 @@ class OngkirSetting extends Model
 
     protected $casts = [
         'status' => 'boolean',
+        'jarak_min' => 'float',
+        'jarak_max' => 'float',
+        'harga_ongkir' => 'float',
     ];
 
     public function getJarakLabel(): string

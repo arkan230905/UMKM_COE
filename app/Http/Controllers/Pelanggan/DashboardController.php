@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         $this->middleware(function ($request, $next) {
             // Allow public access, tapi jika sudah login sebagai owner/admin, redirect ke dashboard admin
-            if (auth()->check() && auth()->user()->role !== 'pelanggan') {
+            if (auth('web')->check() && auth('web')->user()->role !== 'pelanggan') {
                 return redirect('/dashboard');
             }
             return $next($request);
@@ -48,26 +48,15 @@ class DashboardController extends Controller
             ->paginate(12)
             ->withQueryString();
         
-        // Hitung stok tersedia dari stock_movements untuk semua produk
+        // Gunakan stok langsung dari kolom produks (bukan dari stock_movements)
+        // Ini memastikan konsistensi dengan menu produk
         $produks->getCollection()->transform(function($p) {
-            $stokMasuk = \Illuminate\Support\Facades\DB::table('stock_movements')
-                ->where('item_type', 'product')
-                ->where('item_id', $p->id)
-                ->where('direction', 'in')
-                ->sum('qty');
-            
-            $stokKeluar = \Illuminate\Support\Facades\DB::table('stock_movements')
-                ->where('item_type', 'product')
-                ->where('item_id', $p->id)
-                ->where('direction', 'out')
-                ->sum('qty');
-            
-            $p->stok_tersedia = max(0, $stokMasuk - $stokKeluar);
+            $p->stok_tersedia = max(0, $p->stok);
             return $p;
         });
 
         $cartCount = 0;
-        $userId = auth()->id();
+        $userId = auth('pelanggan')->id();
         
         if ($userId) {
             $cartCount = Cart::where('user_id', $userId)->sum('qty');
@@ -77,8 +66,12 @@ class DashboardController extends Controller
         // For public access, we need to get all categories (both shared and user-specific)
         // The UserScope will automatically filter by user_id if authenticated
         $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
-            ->whereHas('produks')
-            ->withCount('produks')
+            ->whereHas('produks', function($query) {
+                $query->withoutGlobalScopes();
+            })
+            ->withCount(['produks' => function($query) {
+                $query->withoutGlobalScopes();
+            }])
             ->orderBy('nama')
             ->get();
 
@@ -107,21 +100,9 @@ class DashboardController extends Controller
             if ($result->isEmpty()) {
                 $allProducts = Produk::withoutGlobalScopes()->orderByDesc('created_at')->limit(6)->get();
                 
-                // Hitung stok tersedia dari stock_movements
+                // Gunakan stok langsung dari kolom produks
                 $result = $allProducts->filter(function($p) {
-                    $stokMasuk = \Illuminate\Support\Facades\DB::table('stock_movements')
-                        ->where('item_type', 'product')
-                        ->where('item_id', $p->id)
-                        ->where('direction', 'in')
-                        ->sum('qty');
-                    
-                    $stokKeluar = \Illuminate\Support\Facades\DB::table('stock_movements')
-                        ->where('item_type', 'product')
-                        ->where('item_id', $p->id)
-                        ->where('direction', 'out')
-                        ->sum('qty');
-                    
-                    $p->stok_tersedia = max(0, $stokMasuk - $stokKeluar);
+                    $p->stok_tersedia = max(0, $p->stok);
                     return $p->stok_tersedia > 0; // Hanya tampilkan produk yang ada stoknya
                 });
             }
@@ -130,8 +111,8 @@ class DashboardController extends Controller
 
         $favoriteIds = [];
         $favoriteProduks = collect();
-        if (auth()->check()) {
-            $favoriteIds = Favorite::where('user_id', auth()->id())->pluck('produk_id')->all();
+        if ($userId) {
+            $favoriteIds = Favorite::where('user_id', $userId)->pluck('produk_id')->toArray();
             if (!empty($favoriteIds)) {
                 $favoriteProduks = Produk::withoutGlobalScopes()->whereIn('id', $favoriteIds)->get();
             }

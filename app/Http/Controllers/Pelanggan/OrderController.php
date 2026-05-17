@@ -24,7 +24,11 @@ class OrderController extends Controller
             abort(403);
         }
 
-        $order->load('items.produk');
+        $order->load(['items' => function ($query) {
+            $query->with(['produk' => function ($q) {
+                $q->withoutGlobalScopes();
+            }]);
+        }]);
 
         return view('pelanggan.order-detail', compact('order'));
     }

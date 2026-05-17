@@ -141,7 +141,7 @@
         <a href="{{ route('master-data.produk.index') }}"
                class="kat-all {{ !isset($kategoriFilter) || !$kategoriFilter ? 'active' : '' }}">
                 <span class="kat-icon"><i class="fas fa-th-large"></i></span>
-                <span class="kat-label">Semua Kategori</span>
+                <span class="kat-label">Semua Produk</span>
                 <span class="kat-count">{{ $produks->count() }}</span>
             </a>
             <ul class="kat-list">
