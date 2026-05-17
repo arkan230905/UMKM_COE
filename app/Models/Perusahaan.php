@@ -49,7 +49,10 @@ class Perusahaan extends Model
         'gradient_color_2',
         'gradient_direction',
         'background_image',
-        'background_opacity'
+        'background_opacity',
+        'nama_bank',
+        'nomor_rekening',
+        'nama_pemilik_rekening',
     ];
 
     public function kasirs()
@@ -60,6 +63,14 @@ class Perusahaan extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * Get the owner user of this company
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

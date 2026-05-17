@@ -40,6 +40,8 @@ class User extends Authenticatable
         'role',
         'perusahaan_id',
         'profile_photo',
+        'store_latitude',
+        'store_longitude',
     ];
 
     protected $hidden = [
@@ -145,10 +147,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Get reviews by this user
+     * Get customer addresses for this user
      */
-    public function reviews(): HasMany
+    public function customerAddresses(): HasMany
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(CustomerAddress::class);
     }
 }

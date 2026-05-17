@@ -99,12 +99,21 @@
                             </thead>
                             <tbody>
                                 @foreach($order->items as $item)
+                                @if($item->produk)
                                 <tr>
                                     <td>{{ $item->produk->nama_produk }}</td>
                                     <td>Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
                                     <td>{{ $item->qty }}</td>
                                     <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                                 </tr>
+                                @else
+                                <tr>
+                                    <td><em class="text-muted">Produk tidak ditemukan</em></td>
+                                    <td>Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
+                                    <td>{{ $item->qty }}</td>
+                                    <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                                </tr>
+                                @endif
                                 @endforeach
                             </tbody>
                             <tfoot>

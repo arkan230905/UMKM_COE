@@ -12,11 +12,11 @@ class FavoriteController extends Controller
     public function index()
     {
         $favorites = Favorite::with('produk')
-            ->where('user_id', auth()->id())
+            ->where('user_id', auth('pelanggan')->id())
             ->latest()
             ->get();
 
-        $cartCount = \App\Models\Cart::where('user_id', auth()->id())->sum('qty');
+        $cartCount = \App\Models\Cart::where('user_id', auth('pelanggan')->id())->sum('qty');
 
         return view('pelanggan.favorites', compact('favorites', 'cartCount'));
     }
@@ -27,7 +27,7 @@ class FavoriteController extends Controller
             'produk_id' => ['required', 'exists:produks,id'],
         ]);
 
-        $fav = Favorite::where('user_id', auth()->id())
+        $fav = Favorite::where('user_id', auth('pelanggan')->id())
             ->where('produk_id', $request->produk_id)
             ->first();
 
@@ -37,7 +37,7 @@ class FavoriteController extends Controller
         }
 
         Favorite::create([
-            'user_id' => auth()->id(),
+            'user_id' => auth('pelanggan')->id(),
             'produk_id' => $request->produk_id,
         ]);
 

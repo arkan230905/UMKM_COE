@@ -19,6 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'user.ownership' => \App\Http\Middleware\EnsureUserOwnership::class,
         ]);
+        
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            if ($request->is('pelanggan') || $request->is('pelanggan/*')) {
+                return route('pelanggan.login');
+            }
+            return route('login');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

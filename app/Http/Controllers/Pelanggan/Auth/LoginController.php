@@ -58,7 +58,7 @@ class LoginController extends Controller
                     ->with('success', 'Login berhasil! Produk telah ditambahkan ke keranjang.');
             }
 
-            return redirect()->route($redirect)->with('success', 'Login berhasil!');
+            return redirect()->route($redirect);
         }
 
         return back()->withErrors([

@@ -36,6 +36,8 @@ use App\Observers\PelangganUserObserver;
 use App\Observers\UserObserver;
 use App\Models\Pembelian;
 use App\Observers\PembelianObserver;
+use App\Models\Order;
+use App\Observers\OrderObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -80,6 +82,9 @@ class AppServiceProvider extends ServiceProvider
         
         // Initialize master data untuk user baru
         User::observe(UserObserver::class);
+
+        // Sinkronisasi Order pelanggan ke Penjualan owner
+        Order::observe(OrderObserver::class);
 
         // View composer global untuk semua tampilan (kecuali dashboard)
         View::composer('*', function ($view) {
