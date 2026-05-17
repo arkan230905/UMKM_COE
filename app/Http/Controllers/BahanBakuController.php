@@ -133,20 +133,8 @@ class BahanBakuController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        // IMPORTANT: Create initial stock movement for saldo_awal
-        if (($request->stok ?? 0) > 0) {
-            \App\Models\StockMovement::create([
-                'user_id' => auth()->id(),
-                'item_type' => 'material',
-                'item_id' => $bahanBaku->id,
-                'direction' => 'in',
-                'qty' => $request->stok,
-                'tanggal' => now()->toDateString(),
-                'ref_type' => 'initial_stock',
-                'ref_id' => $bahanBaku->id,
-                'keterangan' => 'Stok awal bahan baku: ' . $bahanBaku->nama_bahan,
-            ]);
-        }
+        // ✅ TIDAK PERLU membuat StockMovement untuk initial stock
+        // Karena stok sudah tersimpan di saldo_awal dan akan langsung terbaca oleh accessor
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
@@ -195,10 +183,9 @@ class BahanBakuController extends Controller
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
         
-        // ✅ PERBAIKAN: Track stock changes to update StockMovement
+        // ✅ PERBAIKAN: Set stok langsung ke saldo_awal
         $oldSaldoAwal = $bahanBaku->saldo_awal;
         $newSaldoAwal = $request->stok ?? 0;
-        $stockDifference = $newSaldoAwal - $oldSaldoAwal;
         
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
@@ -225,28 +212,12 @@ class BahanBakuController extends Controller
         // Save changes
         $bahanBaku->save();
         
-        // ✅ PERBAIKAN: Create StockMovement adjustment if stock changed
-        if (abs($stockDifference) > 0.0001) {
-            \App\Models\StockMovement::create([
-                'user_id' => auth()->id(),
-                'item_type' => 'material',
-                'item_id' => $bahanBaku->id,
-                'direction' => $stockDifference > 0 ? 'in' : 'out',
-                'qty' => abs($stockDifference),
-                'tanggal' => now()->toDateString(),
-                'ref_type' => 'stock_adjustment',
-                'ref_id' => $bahanBaku->id,
-                'keterangan' => 'Penyesuaian stok dari edit bahan baku: ' . $bahanBaku->nama_bahan . ' (dari ' . $oldSaldoAwal . ' ke ' . $newSaldoAwal . ')',
-            ]);
-            
-            \Log::info('Stock adjustment created for BahanBaku', [
-                'id' => $bahanBaku->id,
-                'nama_bahan' => $bahanBaku->nama_bahan,
-                'old_stock' => $oldSaldoAwal,
-                'new_stock' => $newSaldoAwal,
-                'difference' => $stockDifference
-            ]);
-        }
+        \Log::info('Bahan Baku updated successfully', [
+            'id' => $bahanBaku->id,
+            'nama_bahan' => $bahanBaku->nama_bahan,
+            'old_stock' => $oldSaldoAwal,
+            'new_stock' => $newSaldoAwal
+        ]);
 
         // ✅ PERBAIKAN: Disable BomSyncService karena tabel bom_job_costings tidak ada
         // Sync BOM when bahan baku price changes

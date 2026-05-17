@@ -83,7 +83,7 @@
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
                                 <input type="text" name="harga_satuan" id="harga_satuan" class="form-control price-input @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan', $bahanPendukung->harga_satuan) }}" placeholder="0" required>
+                                       value="{{ old('harga_satuan', number_format($bahanPendukung->harga_satuan, 0, ',', '.')) }}" placeholder="0" required>
                                 <input type="hidden" name="harga_satuan_raw" id="harga_satuan_raw" value="{{ $bahanPendukung->harga_satuan }}">
                             </div>
                             @error('harga_satuan')
@@ -110,7 +110,7 @@
                             <label class="form-label">Stok Minimum</label>
                             <div class="input-group">
                                 <input type="text" name="stok_minimum" id="stok_minimum" class="form-control price-input @error('stok_minimum') is-invalid @enderror" 
-                                       value="{{ old('stok_minimum', $bahanPendukung->stok_minimum) }}" placeholder="0">
+                                       value="{{ old('stok_minimum', number_format($bahanPendukung->stok_minimum, 0, ',', '.')) }}" placeholder="0">
                                 <input type="hidden" name="stok_minimum_raw" id="stok_minimum_raw" value="{{ $bahanPendukung->stok_minimum }}">
                                 <span class="input-group-text" id="satuan_utama_display_min"></span>
                             </div>

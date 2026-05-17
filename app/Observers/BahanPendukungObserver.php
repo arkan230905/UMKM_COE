@@ -3,8 +3,9 @@
 namespace App\Observers;
 
 use App\Models\BahanPendukung;
-use App\Models\BomJobBahanPendukung;
-use App\Models\BomJobCosting;
+// ✅ PERBAIKAN: Disable import BomJobBahanPendukung dan BomJobCosting karena tabel bom_job_costings tidak ada
+// use App\Models\BomJobBahanPendukung;
+// use App\Models\BomJobCosting;
 use App\Models\BomDetail;
 use App\Models\Produk;
 use App\Models\StockMovement;

@@ -174,22 +174,8 @@ class BahanPendukungController extends Controller
         // Create bahan pendukung
         $bahanPendukung = BahanPendukung::create($validated);
         
-        // Create initial stock movement if stock > 0
-        if (($request->stok ?? 0) > 0) {
-            \App\Models\StockMovement::create([
-                'item_type' => 'support',
-                'item_id' => $bahanPendukung->id,
-                'tanggal' => now()->format('Y-m-d'),
-                'direction' => 'in',
-                'qty' => $request->stok,
-                'unit' => $bahanPendukung->satuan->nama ?? 'Unit',
-                'unit_cost' => $request->harga_satuan ?? 0,
-                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
-                'ref_type' => 'initial_stock',
-                'ref_id' => 0,
-                'keterangan' => 'Stok awal ' . $request->nama_bahan,
-            ]);
-        }
+        // ✅ TIDAK PERLU membuat StockMovement untuk initial stock
+        // Karena stok sudah tersimpan di saldo_awal dan akan langsung terbaca oleh accessor
 
         return redirect()->route('master-data.bahan-pendukung.index')
             ->with('success', 'Bahan pendukung berhasil ditambahkan');
@@ -300,10 +286,9 @@ class BahanPendukungController extends Controller
             $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
             $validated['coa_hpp_id'] = $request->coa_hpp_id;
             
-            // ✅ PERBAIKAN: Track stock changes to update StockMovement
+            // ✅ PERBAIKAN: Set stok langsung ke saldo_awal
             $oldSaldoAwal = $bahanPendukung->saldo_awal;
             $newSaldoAwal = $request->stok ?? 0;
-            $stockDifference = $newSaldoAwal - $oldSaldoAwal;
             
             // Map stok to saldo_awal
             $validated['saldo_awal'] = $newSaldoAwal;
@@ -311,34 +296,17 @@ class BahanPendukungController extends Controller
             \Log::info('Before update', [
                 'final_data' => $validated,
                 'old_stock' => $oldSaldoAwal,
-                'new_stock' => $newSaldoAwal,
-                'stock_difference' => $stockDifference
+                'new_stock' => $newSaldoAwal
             ]);
             
             $bahanPendukung->update($validated);
             
-            // ✅ PERBAIKAN: Create StockMovement adjustment if stock changed
-            if (abs($stockDifference) > 0.0001) {
-                \App\Models\StockMovement::create([
-                    'user_id' => auth()->id(),
-                    'item_type' => 'material',
-                    'item_id' => $bahanPendukung->id,
-                    'direction' => $stockDifference > 0 ? 'in' : 'out',
-                    'qty' => abs($stockDifference),
-                    'tanggal' => now()->toDateString(),
-                    'ref_type' => 'stock_adjustment',
-                    'ref_id' => $bahanPendukung->id,
-                    'keterangan' => 'Penyesuaian stok dari edit bahan pendukung: ' . $bahanPendukung->nama_bahan . ' (dari ' . $oldSaldoAwal . ' ke ' . $newSaldoAwal . ')',
-                ]);
-                
-                \Log::info('Stock adjustment created for BahanPendukung', [
-                    'id' => $bahanPendukung->id,
-                    'nama_bahan' => $bahanPendukung->nama_bahan,
-                    'old_stock' => $oldSaldoAwal,
-                    'new_stock' => $newSaldoAwal,
-                    'difference' => $stockDifference
-                ]);
-            }
+            \Log::info('BahanPendukung updated successfully', [
+                'id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'old_stock' => $oldSaldoAwal,
+                'new_stock' => $newSaldoAwal
+            ]);
             
             \Log::info('BahanPendukung updated successfully', [
                 'id' => $bahanPendukung->id,
