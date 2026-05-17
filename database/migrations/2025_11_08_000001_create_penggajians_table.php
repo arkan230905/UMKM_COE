@@ -10,7 +10,8 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('penggajians', function (Blueprint $table) {
+        if (!Schema::hasTable('penggajians')) {
+            Schema::create('penggajians', function (Blueprint $table) {
             $table->id();
 
             // 🔒 Multi-tenant isolation
@@ -53,7 +54,8 @@ return new class extends Migration {
             $table->text('catatan')->nullable();
             
             $table->timestamps();
-        });
+            });
+        }
     }
 
     /**
