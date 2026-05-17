@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pegawais', function (Blueprint $table) {
+        if (!Schema::hasTable('pegawais')) {
+            Schema::create('pegawais', function (Blueprint $table) {
             $table->id();
             
             // 🔒 Multi-tenant isolation: Memastikan data antar UMKM tidak bercampur
@@ -50,7 +51,8 @@ return new class extends Migration
             $table->string('nama_rekening')->nullable();
             
             $table->timestamps();
-        });
+            });
+        }
     }
 
     /**

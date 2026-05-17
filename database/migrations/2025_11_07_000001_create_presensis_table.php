@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('presensis', function (Blueprint $table) {
+        if (!Schema::hasTable('presensis')) {
+            Schema::create('presensis', function (Blueprint $table) {
             $table->id();
             
             // 🔒 Multi-tenant isolation (Owner UMKM)
@@ -31,7 +32,8 @@ return new class extends Migration
             $table->text('keterangan')->nullable();
             
             $table->timestamps();
-        });
+            });
+        }
     }
 
     public function down(): void
