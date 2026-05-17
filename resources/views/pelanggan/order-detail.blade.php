@@ -1,181 +1,181 @@
 @extends('layouts.pelanggan')
 
 @section('content')
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-dark">Detail Pesanan #{{ $order->nomor_order }}</h2>
-        <div class="d-flex gap-2">
-            <a href="{{ route('pelanggan.returns.create', ['order_id' => $order->id]) }}" class="btn btn-outline-warning">
-                <i class="bi bi-arrow-counterclockwise"></i> Ajukan Retur
-            </a>
-            <a href="{{ route('pelanggan.orders') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Kembali
-            </a>
+<div style="background: white; padding: 1.5rem 1rem;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.3rem; font-weight: 800; color: #2d3748; margin: 0;">📦 Detail Pesanan #{{ $order->nomor_order }}</h2>
+            <p style="color: #999; margin: 0.3rem 0 0 0; font-size: 0.7rem;">Lihat detail lengkap pesanan Anda</p>
         </div>
-    </div>
 
-    @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
+        @if(session('success'))
+        <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 0.8rem; margin-bottom: 1rem; color: #155724; font-size: 0.7rem;">
+            ✓ {{ session('success') }}
+        </div>
+        @endif
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0 text-dark"><i class="bi bi-info-circle"></i> Informasi Pesanan</h5>
+        <!-- Order Information Card -->
+        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0; margin-bottom: 1rem;">
+            <div style="padding: 1rem; border-bottom: 1px solid #f0f0f0;">
+                <h6 style="font-size: 0.7rem; font-weight: 800; color: #2d3748; margin: 0;">ℹ️ Informasi Pesanan</h6>
+            </div>
+            <div style="padding: 1rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Nomor Pesanan</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #2d3748;">{{ $order->nomor_order }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Tanggal Pesanan</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #2d3748;">{{ $order->created_at->format('d M Y H:i') }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Status Pesanan</div>
+                        <div style="font-size: 0.65rem;">{!! $order->status_badge !!}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Status Pembayaran</div>
+                        <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.6rem; font-weight: 700; background: {{ $order->payment_status === 'paid' ? '#d4edda' : ($order->payment_status === 'failed' ? '#f8d7da' : '#fff3cd') }}; color: {{ $order->payment_status === 'paid' ? '#155724' : ($order->payment_status === 'failed' ? '#721c24' : '#856404') }};">
+                            {{ ucfirst($order->payment_status) }}
+                        </span>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Metode Pembayaran</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #2d3748;">{{ $order->payment_method_label }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Total Pembayaran</div>
+                        <div style="font-size: 0.85rem; font-weight: 800; color: #8b6f47;">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</div>
+                    </div>
+                    @if($order->paid_at)
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Dibayar Pada</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #2d3748;">{{ $order->paid_at->format('d M Y H:i') }}</div>
+                    </div>
+                    @endif
                 </div>
-                <div class="card-body">
-                    <table class="table table-borderless">
-                        <tr>
-                            <td width="200"><strong>Nomor Pesanan:</strong></td>
-                            <td>{{ $order->nomor_order }}</td>
+
+                @if($order->payment_status === 'pending' && $order->snap_token)
+                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
+                    ⚠️ Pesanan Anda menunggu pembayaran
+                </div>
+                <button id="pay-button" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem; margin-top: 0.8rem;">
+                    💳 Bayar Sekarang
+                </button>
+                @endif
+
+                @if($order->payment_status === 'paid')
+                <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #155724; font-size: 0.7rem;">
+                    ✓ Pembayaran berhasil! Pesanan Anda sedang diproses.
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Items Card -->
+        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0; margin-bottom: 1rem;">
+            <div style="padding: 1rem; border-bottom: 1px solid #f0f0f0;">
+                <h6 style="font-size: 0.7rem; font-weight: 800; color: #2d3748; margin: 0;">📦 Item Pesanan</h6>
+            </div>
+            <div style="padding: 1rem; overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.65rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #f0f0f0;">
+                            <th style="text-align: left; padding: 0.4rem; font-weight: 700; color: #2d3748;">Produk</th>
+                            <th style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Harga</th>
+                            <th style="text-align: center; padding: 0.4rem; font-weight: 700; color: #2d3748;">Qty</th>
+                            <th style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Subtotal</th>
                         </tr>
-                        <tr>
-                            <td><strong>Tanggal Pesanan:</strong></td>
-                            <td>{{ $order->created_at->format('d M Y H:i') }}</td>
+                    </thead>
+                    <tbody>
+                        @foreach($order->items as $item)
+                        @if($item->produk)
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 0.4rem; color: #2d3748;">{{ $item->produk->nama_produk }}</td>
+                            <td style="padding: 0.4rem; text-align: right; color: #8b6f47; font-weight: 600;">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
+                            <td style="padding: 0.4rem; text-align: center; color: #2d3748;">{{ $item->qty }}</td>
+                            <td style="padding: 0.4rem; text-align: right; color: #2d3748; font-weight: 600;">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                         </tr>
-                        <tr>
-                            <td><strong>Status Pesanan:</strong></td>
-                            <td>{!! $order->status_badge !!}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Status Pembayaran:</strong></td>
-                            <td>
-                                <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : ($order->payment_status === 'failed' ? 'danger' : 'warning') }}">
-                                    {{ ucfirst($order->payment_status) }}
-                                </span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><strong>Metode Pembayaran:</strong></td>
-                            <td>{{ $order->payment_method_label }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Total Pembayaran:</strong></td>
-                            <td class="fw-bold fs-5 text-primary">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
-                        </tr>
-                        @if($order->paid_at)
-                        <tr>
-                            <td><strong>Dibayar Pada:</strong></td>
-                            <td>{{ $order->paid_at->format('d M Y H:i') }}</td>
+                        @else
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 0.4rem; color: #999; font-style: italic;">Produk tidak ditemukan</td>
+                            <td style="padding: 0.4rem; text-align: right; color: #8b6f47; font-weight: 600;">Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
+                            <td style="padding: 0.4rem; text-align: center; color: #2d3748;">{{ $item->qty }}</td>
+                            <td style="padding: 0.4rem; text-align: right; color: #2d3748; font-weight: 600;">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                         </tr>
                         @endif
-                    </table>
-
-                    @if($order->payment_status === 'pending' && $order->snap_token)
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> Pesanan Anda menunggu pembayaran
-                    </div>
-                    <button id="pay-button" class="btn btn-success w-100 py-3">
-                        <i class="bi bi-credit-card"></i> Bayar Sekarang
-                    </button>
-                    @endif
-
-                    @if($order->payment_status === 'paid')
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> Pembayaran berhasil! Pesanan Anda sedang diproses.
-                    </div>
-                    @endif
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0 text-dark"><i class="bi bi-box-seam"></i> Item Pesanan</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Produk</th>
-                                    <th>Harga</th>
-                                    <th>Qty</th>
-                                    <th>Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($order->items as $item)
-                                @if($item->produk)
-                                <tr>
-                                    <td>{{ $item->produk->nama_produk }}</td>
-                                    <td>Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                                    <td>{{ $item->qty }}</td>
-                                    <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
-                                </tr>
-                                @else
-                                <tr>
-                                    <td><em class="text-muted">Produk tidak ditemukan</em></td>
-                                    <td>Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                                    <td>{{ $item->qty }}</td>
-                                    <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
-                                </tr>
-                                @endif
-                                @endforeach
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-primary">
-                                    <th colspan="3" class="text-end">Total:</th>
-                                    <th>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 2px solid #f0f0f0; background: #f9f9f9;">
+                            <th colspan="3" style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Total:</th>
+                            <th style="text-align: right; padding: 0.4rem; font-weight: 800; color: #8b6f47;">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0 text-dark"><i class="bi bi-geo-alt"></i> Data Pengiriman</h5>
+        <!-- Right Column: Shipping & Timeline -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <!-- Shipping Info Card -->
+            <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0;">
+                <div style="padding: 1rem; border-bottom: 1px solid #f0f0f0;">
+                    <h6 style="font-size: 0.7rem; font-weight: 800; color: #2d3748; margin: 0;">🚚 Data Pengiriman</h6>
                 </div>
-                <div class="card-body">
-                    <p class="mb-2">
-                        <strong class="text-dark">Nama Penerima:</strong><br>
-                        <span class="text-dark">{{ $order->nama_penerima }}</span>
-                    </p>
-                    <p class="mb-2">
-                        <strong class="text-dark">Alamat:</strong><br>
-                        <span class="text-dark">{{ $order->alamat_pengiriman }}</span>
-                    </p>
-                    <p class="mb-2">
-                        <strong class="text-dark">Telepon:</strong><br>
-                        <span class="text-dark">{{ $order->telepon_penerima }}</span>
-                    </p>
+                <div style="padding: 1rem;">
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Nama Penerima</div>
+                        <div style="font-size: 0.75rem; color: #2d3748; font-weight: 600;">{{ $order->nama_penerima }}</div>
+                    </div>
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Alamat</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->alamat_pengiriman }}</div>
+                    </div>
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Telepon</div>
+                        <div style="font-size: 0.75rem; color: #2d3748; font-weight: 600;">{{ $order->telepon_penerima }}</div>
+                    </div>
                     @if($order->catatan)
-                    <p class="mb-0">
-                        <strong class="text-dark">Catatan:</strong><br>
-                        <span class="text-dark">{{ $order->catatan }}</span>
-                    </p>
+                    <div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Catatan</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->catatan }}</div>
+                    </div>
                     @endif
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0 text-dark"><i class="bi bi-clock-history"></i> Timeline</h5>
+            <!-- Timeline Card -->
+            <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0;">
+                <div style="padding: 1rem; border-bottom: 1px solid #f0f0f0;">
+                    <h6 style="font-size: 0.7rem; font-weight: 800; color: #2d3748; margin: 0;">⏱️ Timeline</h6>
                 </div>
-                <div class="card-body">
-                    <div class="timeline">
-                        <div class="timeline-item">
-                            <i class="bi bi-check-circle text-success"></i>
-                            <span class="text-dark">Pesanan Dibuat</span>
-                            <small class="text-muted d-block">{{ $order->created_at->format('d M Y H:i') }}</small>
-                        </div>
-                        @if($order->paid_at)
-                        <div class="timeline-item">
-                            <i class="bi bi-check-circle text-success"></i>
-                            <span class="text-dark">Pembayaran Berhasil</span>
-                            <small class="text-muted d-block">{{ $order->paid_at->format('d M Y H:i') }}</small>
-                        </div>
-                        @endif
+                <div style="padding: 1rem;">
+                    <div style="padding-left: 1.5rem; position: relative; margin-bottom: 0.8rem;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Pesanan Dibuat</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ $order->created_at->format('d M Y H:i') }}</small>
                     </div>
+                    @if($order->paid_at)
+                    <div style="padding-left: 1.5rem; position: relative;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Pembayaran Berhasil</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ $order->paid_at->format('d M Y H:i') }}</small>
+                    </div>
+                    @endif
                 </div>
             </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.5rem; justify-content: center;">
+            <a href="{{ route('pelanggan.returns.create', ['order_id' => $order->id]) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                🔄 Ajukan Retur
+            </a>
+            <a href="{{ route('pelanggan.orders') }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+                ← Kembali ke Pesanan
+            </a>
         </div>
     </div>
 </div>
@@ -204,16 +204,4 @@ document.getElementById('pay-button').addEventListener('click', function () {
 </script>
 @endif
 
-<style>
-.timeline-item {
-    padding-left: 30px;
-    position: relative;
-    padding-bottom: 15px;
-}
-.timeline-item i {
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-</style>
 @endsection

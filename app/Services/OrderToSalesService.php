@@ -124,9 +124,10 @@ class OrderToSalesService
             if (!empty($matches[1])) {
                 $totalOngkir = (int)str_replace('.', '', $matches[1]);
                 // Jika multi-owner, bagi ongkir rata-rata
-                $biayaOngkir = round($totalOngkir / count($order->items->groupBy(function ($item) {
+                $ownerCount = $order->items->groupBy(function ($item) {
                     return $item->produk->user_id;
-                })));
+                })->count();
+                $biayaOngkir = round($totalOngkir / $ownerCount);
             }
         }
 
@@ -179,9 +180,6 @@ class OrderToSalesService
                 'harga' => $item->harga,
             ]);
         }
-
-        // Reload dengan relasi untuk memastikan data lengkap
-        $penjualan = $penjualan->fresh(['details.produk', 'produk', 'order']);
 
         Log::info('OrderToSalesService: Penjualan created successfully', [
             'penjualan_id' => $penjualan->id,

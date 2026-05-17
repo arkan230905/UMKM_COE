@@ -341,4 +341,28 @@ class Produk extends Model
     {
         return $this->belongsTo(Coa::class, 'coa_hpp_id', 'kode_akun');
     }
+
+    /**
+     * Get the reviews for the Produk
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Get the favorites for the Produk
+     */
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+
+    /**
+     * Get average rating
+     */
+    public function getRatingAttribute()
+    {
+        return number_format($this->reviews()->avg('rating') ?? 5.0, 1);
+    }
 }

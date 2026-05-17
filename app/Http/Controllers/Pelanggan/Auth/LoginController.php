@@ -78,4 +78,42 @@ class LoginController extends Controller
 
         return redirect()->route('pelanggan.login')->with('success', 'Anda telah logout.');
     }
+
+    /**
+     * Handle customer registration.
+     */
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|max:20',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        try {
+            // Create new pelanggan user
+            $user = \App\Models\User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => bcrypt($validated['password']),
+                'plain_password' => $validated['password'], // CRITICAL: Store plain password for display
+                'role' => 'pelanggan',
+                'email_verified_at' => now(),
+                // CRITICAL: Set user_id to NULL for pelanggan (they don't belong to any owner initially)
+                // They will be visible to all owners in master data
+                'user_id' => null,
+            ]);
+
+            // Auto-login after registration
+            Auth::guard('pelanggan')->login($user);
+
+            return redirect()->route('pelanggan.dashboard')
+                ->with('success', 'Registrasi berhasil! Selamat datang di toko kami.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal melakukan registrasi: ' . $e->getMessage())
+                ->withInput($request->only('name', 'email', 'phone'));
+        }
+    }
 }

@@ -88,10 +88,137 @@
         }
         
         .footer {
-            background: #2c3e50;
+            background: linear-gradient(135deg, #8b5a2b 0%, #5c3917 100%);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 50px 0 20px 0;
+            margin-top: 60px;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .footer-title {
+            font-weight: 700;
+            font-size: 1.1rem;
             color: white;
-            padding: 20px 0;
-            margin-top: 40px;
+            margin-bottom: 1.2rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .footer-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        /* Toast Notification Styles */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast-notification {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            pointer-events: auto;
+            animation: slideInRight 0.3s ease-out;
+            border-left: 4px solid;
+            font-size: 0.9rem;
+            font-weight: 500;
+            max-width: 350px;
+        }
+
+        .toast-notification.success {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #065f46;
+        }
+
+        .toast-notification.error {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #7f1d1d;
+        }
+
+        .toast-notification.info {
+            border-left-color: #3b82f6;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: #0c2340;
+        }
+
+        .toast-notification.warning {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            color: #78350f;
+        }
+
+        .toast-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .toast-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast-notification.removing {
+            animation: slideOutRight 0.3s ease-in forwards;
         }
     </style>
     
@@ -119,7 +246,11 @@
                         </a>
                     </li>
                     
-                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('pelanggan.favorites') }}">
+                            <i class="bi bi-heart"></i> Favorit
+                        </a>
+                    </li>
 
                     <li class="nav-item mx-2">
                         <a href="{{ route('pelanggan.cart') }}" class="btn btn-cart">
@@ -174,12 +305,53 @@
         @yield('content')
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <!-- Footer -->
     <footer class="footer">
-        <div class="container text-center">
-            @php $footerCompany = \App\Models\Perusahaan::first(); @endphp
-            <p class="mb-0">&copy; {{ date('Y') }} {{ $footerCompany->nama ?? config('app.name') }}. All rights reserved.</p>
-            <small style="color: white;">Belanja mudah, aman, dan terpercaya</small>
+        <div class="container">
+            @php 
+                $footerCompany = \App\Models\Perusahaan::first(); 
+                $waNumber = config('services.whatsapp.number') ?? env('WHATSAPP_NUMBER', '6281234567890');
+                $waLink = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $waNumber) . '?text=' . urlencode('Halo, saya butuh bantuan mengenai layanan e-commerce Anda.');
+            @endphp
+            <div class="row gy-4 mb-4">
+                <div class="col-lg-5 col-md-6">
+                    <h5 class="footer-title">{{ $footerCompany->nama ?? config('app.name') }}</h5>
+                    <p class="mb-3" style="font-size: 0.95rem; line-height: 1.6;">
+                        Platform e-commerce terpercaya untuk UMKM. Kami menyediakan berbagai produk berkualitas langsung dari produsen ke tangan Anda. Belanja mudah, aman, dan terpercaya.
+                    </p>
+                    <div class="d-flex gap-3 mt-4">
+                        <a href="#" class="text-white fs-5 opacity-75 hover-opacity-100 transition"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="text-white fs-5 opacity-75 hover-opacity-100 transition"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-white fs-5 opacity-75 hover-opacity-100 transition"><i class="bi bi-twitter-x"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 offset-lg-1">
+                    <h5 class="footer-title">Tautan Bantuan</h5>
+                    <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 0.95rem;">
+                        <li><a href="{{ route('pelanggan.dashboard') }}" class="footer-link">Beranda</a></li>
+                        <li><a href="{{ route('pelanggan.cart') }}" class="footer-link">Keranjang Belanja</a></li>
+                        <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
+                        <li><a href="#" class="footer-link">Syarat & Ketentuan</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-12">
+                    <h5 class="footer-title">Pusat Bantuan</h5>
+                    <p style="font-size: 0.95rem; margin-bottom: 1rem;">
+                        Butuh bantuan? Silakan hubungi Call Center kami melalui WhatsApp.
+                    </p>
+                    <a href="{{ $waLink }}" target="_blank" class="btn btn-light rounded-pill px-4 py-2 mt-2" style="font-weight: 600; color: #5c3917; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <i class="bi bi-whatsapp fs-5 text-success me-2" style="vertical-align: text-bottom;"></i> Hubungi Kami
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer-bottom text-center">
+                <p class="mb-0" style="font-size: 0.85rem;">&copy; {{ date('Y') }} {{ $footerCompany->nama ?? config('app.name') }}. All rights reserved.</p>
+                <small class="text-white-50 mt-1 d-block">Mendukung pertumbuhan UMKM Indonesia</small>
+            </div>
         </div>
     </footer>
 
@@ -188,6 +360,38 @@
     
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <script>
+        // Toast Notification System
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toastContainer');
+            
+            const icons = {
+                success: '✓',
+                error: '✕',
+                info: 'ℹ',
+                warning: '⚠'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type]}</span>
+                <span>${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    toast.classList.add('removing');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        }
+    </script>
     
     @stack('scripts')
 </body>

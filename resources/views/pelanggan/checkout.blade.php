@@ -2,14 +2,38 @@
 
 @section('content')
 <div class="container py-4">
-    <!-- Header -->
-    <div class="d-flex align-items-center gap-3 mb-4">
-        <div style="width: 50px; height: 50px; border-radius: 50%; background: #fdf5eb; color: #8b5a2b; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-            <i class="bi bi-bag"></i>
+    <!-- Header Title & Steps -->
+    <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill mb-2" style="background: #fdf5eb; color: #8b5a2b; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px;">
+            CHECKOUT <i class="bi bi-credit-card"></i>
         </div>
-        <div>
-            <h3 class="mb-0 text-dark" style="font-weight: 700;">Checkout</h3>
-            <p class="mb-0 text-muted" style="font-size: 0.9rem;">Lengkapi data dan lakukan pembayaran untuk menyelesaikan pesananmu</p>
+        <h4 class="fw-bold text-dark mb-1" style="letter-spacing: -0.5px;">Konfirmasi Pesananmu</h4>
+        <p class="text-muted mb-3" style="font-size: 0.85rem;">Selesaikan detail pengiriman, pilih metode pembayaran, dan pesananmu siap diproses.</p>
+        
+        <div class="d-flex justify-content-center flex-wrap gap-2">
+            <!-- Step 1 (Inactive) -->
+            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded-3 bg-white shadow-sm" style="border: 1px solid #f0f0f0;">
+                <div class="d-flex align-items-center justify-content-center rounded" style="width: 28px; height: 28px; background: #f8f9fa;">
+                    <i class="bi bi-cart text-muted" style="font-size: 0.9rem;"></i>
+                </div>
+                <span class="text-muted" style="font-weight: 600; font-size: 0.85rem;">Keranjang</span>
+            </div>
+            
+            <!-- Step 2 (Active) -->
+            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded-3 bg-white shadow-sm" style="border: 1px solid #8b5a2b;">
+                <div class="d-flex align-items-center justify-content-center rounded" style="width: 28px; height: 28px; background: #fdf5eb;">
+                    <i class="bi bi-truck" style="color: #8b5a2b; font-size: 0.9rem;"></i>
+                </div>
+                <span style="color: #8b5a2b; font-weight: 600; font-size: 0.85rem;">Checkout</span>
+            </div>
+            
+            <!-- Step 3 (Inactive) -->
+            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded-3 bg-white shadow-sm" style="border: 1px solid #f0f0f0;">
+                <div class="d-flex align-items-center justify-content-center rounded" style="width: 28px; height: 28px; background: #f8f9fa;">
+                    <i class="bi bi-receipt text-muted" style="font-size: 0.9rem;"></i>
+                </div>
+                <span class="text-muted" style="font-weight: 600; font-size: 0.85rem;">Pembayaran</span>
+            </div>
         </div>
     </div>
 

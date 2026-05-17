@@ -1902,7 +1902,7 @@ Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
     Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
     
     // Register
-    Route::post('/register', [RegisterController::class, 'registerPelanggan'])->name('register.post');
+    Route::post('/register', [PelangganLoginController::class, 'register'])->name('register.post');
     
     // Protected routes (login required for pelanggan)
     Route::middleware('auth:pelanggan')->group(function () {
@@ -6132,3 +6132,6 @@ Route::get('/debug/fix-btkl-pegawai-assignment', function() {
 
 // Include storage routes
 require_once __DIR__ . '/storage.php';
+
+// Include test dashboard routes
+require_once __DIR__ . '/test-dashboard.php';

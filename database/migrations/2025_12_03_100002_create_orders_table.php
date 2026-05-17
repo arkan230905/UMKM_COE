@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('nomor_order')->unique();
             $table->decimal('total_amount', 15, 2);
             $table->enum('status', ['pending', 'paid', 'processing', 'shipped', 'completed', 'cancelled'])->default('pending');
-            $table->enum('payment_method', ['qris', 'va_bca', 'va_bni', 'va_bri', 'va_mandiri', 'transfer'])->nullable();
+            $table->enum('payment_method', ['qris', 'va_bca', 'va_bni', 'va_bri', 'va_mandiri', 'transfer', 'cod', 'kasir'])->nullable();
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'expired'])->default('pending');
             $table->string('midtrans_order_id')->nullable();
             $table->string('midtrans_transaction_id')->nullable();

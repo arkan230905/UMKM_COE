@@ -12,7 +12,6 @@ class KategoriProduk extends Model
     protected $table = 'kategori_produks';
     protected $fillable = [
         'user_id',
-        'kode_kategori',
         'nama',
         'deskripsi'
     ];

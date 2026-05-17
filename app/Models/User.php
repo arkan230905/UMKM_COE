@@ -37,11 +37,13 @@ class User extends Authenticatable
         'phone',
         'address',
         'password',
+        'plain_password', // CRITICAL: Add plain_password for display purposes
         'role',
         'perusahaan_id',
         'profile_photo',
         'store_latitude',
         'store_longitude',
+        'user_id',  // CRITICAL: Add user_id for multi-tenant isolation
     ];
 
     protected $hidden = [
