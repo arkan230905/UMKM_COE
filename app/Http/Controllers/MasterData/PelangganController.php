@@ -11,13 +11,11 @@ class PelangganController extends Controller
 {
     public function index()
     {
-        // 🔒 SECURITY: Get pelanggan users belonging to current user
-        // For multi-tenant: pelanggan users have user_id pointing to their owner
-        $currentUserId = auth()->id();
-        
-        // EMERGENCY FIX: Direct query without complex logic
+        // 🔒 SECURITY: Get all pelanggan users (user_id = null)
+        // Pelanggan yang terdaftar melalui website akan memiliki user_id = null
+        // Semua owner bisa melihat semua pelanggan yang terdaftar
         $pelanggans = User::where('role', 'pelanggan')
-            ->where('user_id', $currentUserId) // 🔒 CRITICAL: Get pelanggan of current owner
+            ->whereNull('user_id') // Only show pelanggan with user_id = null (registered via website)
             ->withCount('orders')
             ->latest()
             ->paginate(15);
@@ -25,45 +23,29 @@ class PelangganController extends Controller
         return view('master-data.pelanggan.index', compact('pelanggans'));
     }
 
+    /**
+     * Pelanggan hanya bisa ditambah melalui registrasi di website pelanggan
+     * Method create() dan store() dihapus untuk mencegah owner menambah pelanggan manual
+     */
     public function create()
     {
-        return view('master-data.pelanggan.create');
+        // Redirect ke index dengan pesan bahwa pelanggan hanya bisa ditambah melalui registrasi
+        return redirect()->route('master-data.pelanggan.index')
+            ->with('info', 'Pelanggan hanya bisa ditambahkan melalui registrasi di website pelanggan (/pelanggan/login)');
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-
-            'name' => 'required|string|max:255',
-            // 🔒 SECURITY: Add user_id to unique validation for multi-tenant isolation
-            'email' => 'required|email|unique:users,email,NULL,id,user_id,' . auth()->id(),
-            'phone' => 'required|string|max:20',
-'password' => 'required|min:6|confirmed',
-        ]);
-
-        $user = User::create([
-
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'role' => 'pelanggan',
-            'email_verified_at' => now(),
-            'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id for multi-tenant isolation
-]);
-
-        $user->plain_password = $request->password;
-        $user->save();
-
+        // Prevent manual creation - pelanggan hanya bisa ditambah melalui registrasi
         return redirect()->route('master-data.pelanggan.index')
-            ->with('success', 'Pelanggan berhasil ditambahkan!');
+            ->with('error', 'Tidak bisa menambah pelanggan secara manual. Pelanggan hanya bisa ditambahkan melalui registrasi di website pelanggan.');
     }
 
     public function show($id)
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan with user_id = null (registered via website)
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         
         // Load orders jika ada
@@ -76,9 +58,9 @@ class PelangganController extends Controller
 
     public function getPassword($id)
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan with user_id = null
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         
         return response()->json([
@@ -88,9 +70,9 @@ class PelangganController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan with user_id = null
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
 
         $request->validate([
@@ -110,18 +92,18 @@ class PelangganController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan with user_id = null
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         return view('master-data.pelanggan.edit', compact('pelanggan'));
     }
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan with user_id = null
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
 
         $request->validate([
@@ -153,9 +135,9 @@ class PelangganController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan with user_id = null
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user deletion
+            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         
         // Cek apakah pelanggan punya order

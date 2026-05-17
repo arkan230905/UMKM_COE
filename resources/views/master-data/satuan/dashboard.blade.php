@@ -251,9 +251,7 @@
                                         @forelse($satuans as $satuan)
                                             <tr>
                                                 <td>
-                                                    <span class="badge bg-primary">
-                                                        {{ $satuan->kode }}
-                                                    </span>
+                                                    {{ $satuan->kode }}
                                                 </td>
                                                 <td>
                                                     <strong>{{ $satuan->nama }}</strong>
@@ -573,9 +571,7 @@ function saveSatuan() {
             const newRow = `
                 <tr>
                     <td>
-                        <span class="badge bg-primary">
-                            ${kode.toUpperCase()}
-                        </span>
+                        ${kode.toUpperCase()}
                     </td>
                     <td>
                         <strong>${nama}</strong>
@@ -818,7 +814,7 @@ function updateSatuan() {
             // Update the table row
             const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
             if (row) {
-                row.cells[0].innerHTML = `<span class="badge bg-primary">${kode.toUpperCase()}</span>`;
+                row.cells[0].innerHTML = `${kode.toUpperCase()}`;
                 row.cells[1].innerHTML = `<strong>${nama}</strong>`;
             }
             

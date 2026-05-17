@@ -43,6 +43,11 @@ class DashboardController extends Controller
             $produksQuery->where('kategori_id', $kategoriFilter);
         }
 
+        if ($request->ajax() && $request->has('autocomplete')) {
+            $autocompleteProduks = $produksQuery->take(5)->get();
+            return response()->json($autocompleteProduks);
+        }
+
         $produks = $produksQuery
             ->orderBy('nama_produk')
             ->paginate(12)
@@ -96,16 +101,22 @@ class DashboardController extends Controller
                     }
                 }
             }
-            // Fallback jika belum ada penjualan, tampilkan produk terbaru
+            
+            // Fallback: Jika belum ada penjualan, tampilkan produk random dengan stok > 0
             if ($result->isEmpty()) {
-                $allProducts = Produk::withoutGlobalScopes()->orderByDesc('created_at')->limit(6)->get();
+                $allProducts = Produk::withoutGlobalScopes()
+                    ->where('stok', '>', 0)
+                    ->inRandomOrder()
+                    ->limit(6)
+                    ->get();
                 
-                // Gunakan stok langsung dari kolom produks
-                $result = $allProducts->filter(function($p) {
+                $result = $allProducts->map(function($p) {
                     $p->stok_tersedia = max(0, $p->stok);
-                    return $p->stok_tersedia > 0; // Hanya tampilkan produk yang ada stoknya
+                    $p->total_terjual = 0;
+                    return $p;
                 });
             }
+            
             return $result;
         });
 

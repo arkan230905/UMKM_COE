@@ -13,6 +13,7 @@ class ReviewController extends Controller
     {
         $request->validate([
             'order_id' => 'required|exists:orders,id',
+            'produk_id' => 'required|exists:produks,id',
             'rating' => 'required|integer|between:1,5',
             'comment' => 'nullable|string|max:1000',
         ]);
@@ -23,25 +24,37 @@ class ReviewController extends Controller
 
         // Pastikan order selesai atau sudah dibayar
         if (!($order->status === 'completed' || $order->payment_status === 'paid')) {
-            return back()->with('error', 'Review hanya bisa diberikan untuk pesanan yang telah selesai atau dibayar.');
+            return back()->with('error', 'Penilaian hanya bisa diberikan untuk pesanan yang telah selesai atau dibayar.');
+        }
+
+        // Cek apakah produk ada di dalam order
+        $hasProduct = \App\Models\OrderDetail::where('order_id', $order->id)->where('produk_id', $request->produk_id)->exists();
+        if (!$hasProduct) {
+            // coba cari di order_items table / relasi
+            $hasProduct = $order->items()->where('produk_id', $request->produk_id)->exists();
+            if (!$hasProduct) {
+                return back()->with('error', 'Produk tidak ditemukan dalam pesanan Anda.');
+            }
         }
 
         // Cek apakah sudah pernah review
         $existing = Review::where('order_id', $order->id)
             ->where('user_id', auth()->id())
+            ->where('produk_id', $request->produk_id)
             ->first();
 
         if ($existing) {
-            return back()->with('error', 'Anda sudah pernah memberikan review untuk pesanan ini.');
+            return back()->with('error', 'Anda sudah pernah memberikan penilaian untuk produk ini pada pesanan ini.');
         }
 
         Review::create([
             'order_id' => $order->id,
+            'produk_id' => $request->produk_id,
             'user_id' => auth()->id(),
             'rating' => $request->rating,
             'comment' => $request->comment,
         ]);
 
-        return back()->with('success', 'Review berhasil dikirim. Terima kasih!');
+        return back()->with('success', 'Penilaian berhasil dikirim. Terima kasih!');
     }
 }

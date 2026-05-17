@@ -20,9 +20,6 @@
         <h2 class="mb-0">
             <i class="fas fa-users me-2"></i>Pelanggan
         </h2>
-        <a href="{{ route('master-data.pelanggan.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-1"></i> Tambah Pelanggan
-        </a>
     </div>
 
     @if(session('success'))
@@ -38,6 +35,21 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
+
+    @if(session('info'))
+    <div class="alert alert-info alert-dismissible fade show">
+        <i class="fas fa-info-circle me-2"></i>
+        {{ session('info') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
+    <!-- Info Box -->
+    <div class="alert alert-primary mb-4">
+        <i class="fas fa-lightbulb me-2"></i>
+        <strong>Informasi:</strong> Pelanggan hanya dapat ditambahkan melalui proses registrasi di website pelanggan. 
+        Data pelanggan yang terdaftar akan otomatis muncul di sini.
+    </div>
 
     <div class="card">
         <div class="card-header">
@@ -71,18 +83,18 @@
                                             <i class="fas fa-user text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $pelanggan->nama_pelanggan }}</div>
+                                            <div class="fw-semibold">{{ $pelanggan->name }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
 
-                                <td>{{ $pelanggan->telepon ?? '-' }}</td>
-                                <td>{{ $pelanggan->alamat ?? '-' }}</td>
+                                <td>{{ $pelanggan->phone ?? '-' }}</td>
+                                <td>{{ $pelanggan->address ?? '-' }}</td>
 <td>
-                                    @if($pelanggan->password)
+                                    @if($pelanggan->plain_password)
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="password-text" data-password="{{ $pelanggan->password }}">{{ $pelanggan->password }}</span>
+                                            <span class="password-text" data-password="{{ $pelanggan->plain_password }}">{{ $pelanggan->plain_password }}</span>
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-secondary toggle-password" 
                                                     onclick="togglePassword(this)"
@@ -91,7 +103,7 @@
                                             </button>
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-info" 
-                                                    onclick="copyPassword('{{ $pelanggan->password }}')"
+                                                    onclick="copyPassword('{{ $pelanggan->plain_password }}')"
                                                     title="Copy password">
                                                 <i class="fas fa-copy"></i>
                                             </button>
