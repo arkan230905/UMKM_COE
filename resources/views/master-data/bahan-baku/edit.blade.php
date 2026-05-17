@@ -68,12 +68,12 @@
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
                                 <input type="text" name="harga_satuan" id="harga_satuan" class="form-control price-input @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan', $bahanBaku->harga_satuan) }}" placeholder="0" required>
+                                       value="{{ old('harga_satuan', number_format($bahanBaku->harga_satuan, 0, ',', '.')) }}" placeholder="0" required>
                                 <input type="hidden" name="harga_satuan_raw" id="harga_satuan_raw" value="{{ $bahanBaku->harga_satuan }}">
                             </div>
                             <div class="mt-2">
                                 <small class="text-muted">
-                                    Harga Rata-Rata: Rp {{ number_format($bahanBaku->harga_rata_rata, 2, ',', '.') }}
+                                    Harga Rata-Rata: Rp {{ number_format($bahanBaku->harga_rata_rata, 0, ',', '.') }}
                                 </small>
                             </div>
                             @error('harga_satuan')
@@ -100,7 +100,7 @@
                         <div class="mb-3">
                             <label class="form-label">Stok Minimum</label>
                             <input type="text" name="stok_minimum" id="stok_minimum" class="form-control price-input @error('stok_minimum') is-invalid @enderror" 
-                                   value="{{ old('stok_minimum', $bahanBaku->stok_minimum ?? 0) }}" placeholder="0">
+                                   value="{{ old('stok_minimum', number_format($bahanBaku->stok_minimum ?? 0, 0, ',', '.')) }}" placeholder="0">
                             <input type="hidden" name="stok_minimum_raw" id="stok_minimum_raw" value="{{ $bahanBaku->stok_minimum ?? 0 }}">
                             @error('stok_minimum')
                                 <div class="invalid-feedback">{{ $message }}</div>

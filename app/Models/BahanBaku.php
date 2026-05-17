@@ -1272,6 +1272,7 @@ class BahanBaku extends Model
 
     /**
      * Get stok real-time dari stock movements (konsisten dengan laporan stok)
+     * LOGIKA BARU: Stok = saldo_awal + movements dari transaksi (exclude initial_stock dan stock_adjustment)
      */
     public function getStokRealTimeAttribute()
     {
@@ -1279,23 +1280,28 @@ class BahanBaku extends Model
         // Global scope UserScope sudah otomatis apply, tapi kita pastikan dengan explicit filter
         $userId = $this->user_id ?? auth()->id();
         
+        // Hitung stock dari movements (EXCLUDE initial_stock dan stock_adjustment)
         $stockIn = \App\Models\StockMovement::where('item_type', 'material')
             ->where('item_id', $this->id)
             ->where('user_id', $userId)
             ->where('direction', 'in')
+            ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock']) // Exclude manual adjustments dan initial stock
             ->sum('qty');
 
         $stockOut = \App\Models\StockMovement::where('item_type', 'material')
             ->where('item_id', $this->id)
             ->where('user_id', $userId)
             ->where('direction', 'out')
+            ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock']) // Exclude manual adjustments dan initial stock
             ->sum('qty');
 
         $netStockFromMovements = $stockIn - $stockOut;
         
-        // IMPORTANT: Jangan tambahkan saldo_awal karena sudah ada di stock_movements sebagai initial_stock
-        // Semua stok harus dihitung dari stock_movements saja untuk konsistensi
-        return $netStockFromMovements;
+        // ✅ PERBAIKAN BARU: Saldo awal adalah nilai yang di-set manual
+        // Movements hanya untuk transaksi pembelian/produksi, bukan untuk initial stock atau edit manual
+        $saldoAwal = $this->attributes['saldo_awal'] ?? 0;
+        
+        return $saldoAwal + $netStockFromMovements;
     }
 
     /**

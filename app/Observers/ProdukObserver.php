@@ -3,8 +3,9 @@
 namespace App\Observers;
 
 use App\Models\Produk;
-use App\Models\BomJobCosting;
-use App\Services\BomSyncService;
+// ✅ PERBAIKAN: Disable import BomJobCosting dan BomSyncService karena tabel bom_job_costings tidak ada
+// use App\Models\BomJobCosting;
+// use App\Services\BomSyncService;
 use Illuminate\Support\Facades\Log;
 
 class ProdukObserver
