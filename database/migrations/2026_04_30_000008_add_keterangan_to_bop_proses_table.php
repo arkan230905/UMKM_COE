@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('bop_proses', function (Blueprint $table) {
             // Add keterangan column if it doesn't exist
             if (!Schema::hasColumn('bop_proses', 'keterangan')) {
-                $table->text('keterangan')->nullable()->after('bop_per_unit');
+                $table->text('keterangan')->nullable();
                 echo "Added keterangan to bop_proses table\n";
             }
         });

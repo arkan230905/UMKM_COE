@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('jabatans', function (Blueprint $table) {
             // Add target_produk_per_bulan column if it doesn't exist
             if (!Schema::hasColumn('jabatans', 'target_produk_per_bulan')) {
-                $table->integer('target_produk_per_bulan')->default(0)->after('tarif_produk');
+                $table->integer('target_produk_per_bulan')->default(0);
             }
         });
     }

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -13,8 +13,10 @@ return new class extends Migration
     {
         // Make proses_produksi_id nullable for standalone BOP
         Schema::table('bop_proses', function (Blueprint $table) {
-            // Check if column exists and is not nullable
-            $table->unsignedBigInteger('proses_produksi_id')->nullable()->change();
+            // Check if column exists before modifying
+            if (Schema::hasColumn('bop_proses', 'proses_produksi_id')) {
+                $table->unsignedBigInteger('proses_produksi_id')->nullable()->change();
+            }
         });
     }
 
@@ -24,7 +26,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('bop_proses', function (Blueprint $table) {
-            $table->unsignedBigInteger('proses_produksi_id')->nullable(false)->change();
+            if (Schema::hasColumn('bop_proses', 'proses_produksi_id')) {
+                $table->unsignedBigInteger('proses_produksi_id')->nullable(false)->change();
+            }
         });
     }
 };
