@@ -253,7 +253,7 @@
                         @endif
 
                         <!-- Login Form -->
-                        <form method="POST" action="{{ route('pelanggan.login.post') }}">
+                        <form method="POST" action="{{ url("/" . $perusahaan_slug . "/pelanggan/login") }}">
                             @csrf
                             
                             <!-- Hidden fields for redirect -->
@@ -325,7 +325,7 @@
 
                             <!-- Back to Catalog -->
                             <div class="text-center">
-                                <a href="{{ route('pelanggan.dashboard') }}" class="text-decoration-none">
+                                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" class="text-decoration-none">
                                     <i class="fas fa-arrow-left me-1"></i>
                                     Kembali ke Katalog
                                 </a>
@@ -348,7 +348,7 @@
                         @endif
 
                         <!-- Registration Form -->
-                        <form method="POST" action="{{ route('pelanggan.register.post') }}">
+                        <form method="POST" action="{{ url("/" . $perusahaan_slug . "/pelanggan/register") }}">
                             @csrf
 
                             <!-- Name -->

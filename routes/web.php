@@ -1892,7 +1892,8 @@ Route::get('/update-catalog-desc-now', function () {
 });
 
 // Pelanggan E-Commerce Routes - PUBLIC (No Auth Required)
-Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
+// Multi-tenant: {perusahaan_slug} is the company identifier (e.g., pt-arkan-trans-jaya)
+Route::prefix('{perusahaan_slug}/pelanggan')->name('pelanggan.')->middleware('set.perusahaan')->group(function () {
     // Public routes (no login required)
     Route::get('/dashboard', [PelangganDashboardController::class, 'index'])->name('dashboard');
     
@@ -6135,3 +6136,6 @@ require_once __DIR__ . '/storage.php';
 
 // Include test dashboard routes
 require_once __DIR__ . '/test-dashboard.php';
+
+// Include pelanggan fallback routes (redirect dari URL lama ke URL baru)
+require_once __DIR__ . '/pelanggan-fallback.php';

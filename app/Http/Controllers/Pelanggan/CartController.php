@@ -20,7 +20,12 @@ class CartController extends Controller
 
         $total = $carts->sum('subtotal');
 
-        return view('pelanggan.cart', compact('carts', 'total'));
+        // Get perusahaan_slug for URL generation
+        $ownerUser = auth('pelanggan')->user()->owner;
+        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.cart', compact('carts', 'total', 'perusahaan_slug'));
     }
 
     public function store(Request $request)

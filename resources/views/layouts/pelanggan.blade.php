@@ -228,7 +228,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('pelanggan.dashboard') }}">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('dashboard') }}">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height:36px;width:auto;">
                 <img src="{{ asset('images/logo_telkom.png') }}" alt="Telkom" style="height:36px;width:auto;">
                 <img src="{{ asset('images/logo_eadt.png') }}" alt="EADT" style="height:36px;width:auto;">
@@ -241,19 +241,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center justify-content-end">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('pelanggan.dashboard') }}">
+                        <a class="nav-link" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('dashboard') }}">
                             <i class="bi bi-house-door"></i> Beranda
                         </a>
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('pelanggan.favorites') }}">
+                        <a class="nav-link" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('favorites') }}">
                             <i class="bi bi-heart"></i> Favorit
                         </a>
                     </li>
 
                     <li class="nav-item mx-2">
-                        <a href="{{ route('pelanggan.cart') }}" class="btn btn-cart">
+                        <a href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('cart') }}" class="btn btn-cart">
                             <i class="bi bi-cart3"></i> Keranjang
                             <span id="cart-badge-header" class="cart-badge" style="display: {{ (isset($cartCount) && $cartCount > 0) ? 'block' : 'none' }};">
                                 {{ isset($cartCount) ? $cartCount : 0 }}
@@ -268,18 +268,18 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <a class="dropdown-item" href="{{ route('pelanggan.orders') }}">
+                                <a class="dropdown-item" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('orders') }}">
                                     <i class="bi bi-box-seam"></i> Pesanan Saya
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="{{ route('pelanggan.returns.create') }}">
+                                <a class="dropdown-item" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('returns.create') }}">
                                     <i class="bi bi-arrow-counterclockwise"></i> Retur
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form method="POST" action="{{ route('pelanggan.logout') }}">
+                                <form method="POST" action="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('logout') }}">
                                     @csrf
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="bi bi-box-arrow-right"></i> Logout
@@ -290,7 +290,7 @@
                     </li>
                     @else
                     <li class="nav-item ms-1">
-                        <a href="{{ route('pelanggan.login') }}" class="btn btn-outline-light d-flex align-items-center gap-2" style="border-radius: 25px; font-weight: 600; padding: 7px 20px;">
+                        <a href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('login') }}" class="btn btn-outline-light d-flex align-items-center gap-2" style="border-radius: 25px; font-weight: 600; padding: 7px 20px;">
                             <i class="bi bi-box-arrow-in-right"></i> Login
                         </a>
                     </li>
@@ -331,8 +331,8 @@
                 <div class="col-lg-3 col-md-6 offset-lg-1">
                     <h5 class="footer-title">Tautan Bantuan</h5>
                     <ul class="list-unstyled d-flex flex-column gap-2" style="font-size: 0.95rem;">
-                        <li><a href="{{ route('pelanggan.dashboard') }}" class="footer-link">Beranda</a></li>
-                        <li><a href="{{ route('pelanggan.cart') }}" class="footer-link">Keranjang Belanja</a></li>
+                        <li><a href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('dashboard') }}" class="footer-link">Beranda</a></li>
+                        <li><a href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('cart') }}" class="footer-link">Keranjang Belanja</a></li>
                         <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
                         <li><a href="#" class="footer-link">Syarat & Ketentuan</a></li>
                     </ul>

@@ -39,7 +39,13 @@ class FavoriteController extends Controller
 
         $favoriteIds = Favorite::where('user_id', $userId)->pluck('produk_id')->toArray();
 
-        return view('pelanggan.favorites', compact('favoriteProduks', 'cartCount', 'kategoris', 'favoriteIds'));
+        // Get perusahaan_slug for URL generation
+        $user = auth('pelanggan')->user();
+        $ownerUser = $user ? $user->owner : null;
+        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.favorites', compact('favoriteProduks', 'cartCount', 'kategoris', 'favoriteIds', 'perusahaan_slug'));
     }
 
     public function toggle(Request $request)

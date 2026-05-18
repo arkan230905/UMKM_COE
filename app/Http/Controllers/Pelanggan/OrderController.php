@@ -14,7 +14,13 @@ class OrderController extends Controller
             ->latest()
             ->paginate(10);
 
-        return view('pelanggan.orders', compact('orders'));
+        // Get perusahaan_slug for URL generation
+        $user = auth('pelanggan')->user();
+        $ownerUser = $user ? $user->owner : null;
+        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.orders', compact('orders', 'perusahaan_slug'));
     }
 
     public function show(Order $order)
@@ -30,6 +36,12 @@ class OrderController extends Controller
             }]);
         }]);
 
-        return view('pelanggan.order-detail', compact('order'));
+        // Get perusahaan_slug for URL generation
+        $user = auth('pelanggan')->user();
+        $ownerUser = $user ? $user->owner : null;
+        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.order-detail', compact('order', 'perusahaan_slug'));
     }
 }

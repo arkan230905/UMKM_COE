@@ -25,11 +25,20 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
+        // Get perusahaan from middleware
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            return redirect('/')->with('error', 'Perusahaan tidak ditemukan');
+        }
+
         $search = trim($request->input('q', ''));
         $kategoriFilter = $request->input('kategori', '');
 
-        // Ambil SEMUA produk dari master data (tanpa filter stok)
-        $produksQuery = Produk::withoutGlobalScopes()->with('satuan', 'kategori');
+        // Ambil SEMUA produk dari perusahaan ini (tanpa filter stok)
+        $produksQuery = Produk::withoutGlobalScopes()
+            ->where('user_id', $perusahaan->user_id)
+            ->with('satuan', 'kategori');
         
         if ($search !== '') {
             $produksQuery->where(function($q) use ($search) {
@@ -71,17 +80,21 @@ class DashboardController extends Controller
         // For public access, we need to get all categories (both shared and user-specific)
         // The UserScope will automatically filter by user_id if authenticated
         $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
-            ->whereHas('produks', function($query) {
-                $query->withoutGlobalScopes();
+            ->where('user_id', $perusahaan->user_id)
+            ->whereHas('produks', function($query) use ($perusahaan) {
+                $query->withoutGlobalScopes()->where('user_id', $perusahaan->user_id);
             })
-            ->withCount(['produks' => function($query) {
-                $query->withoutGlobalScopes();
+            ->withCount(['produks' => function($query) use ($perusahaan) {
+                $query->withoutGlobalScopes()->where('user_id', $perusahaan->user_id);
             }])
             ->orderBy('nama')
             ->get();
 
-        $bestSellers = Cache::remember('pelanggan_best_sellers_v2', 60, function () {
+        $bestSellers = Cache::remember('pelanggan_best_sellers_v2_' . $perusahaan->id, 60, function () use ($perusahaan) {
             $topAgg = PenjualanDetail::selectRaw('produk_id, SUM(jumlah) as total_terjual')
+                ->whereHas('penjualan', function($query) use ($perusahaan) {
+                    $query->where('user_id', $perusahaan->user_id);
+                })
                 ->groupBy('produk_id')
                 ->orderByDesc('total_terjual')
                 ->limit(6)
@@ -89,7 +102,9 @@ class DashboardController extends Controller
 
             $result = collect();
             if ($topAgg->isNotEmpty()) {
-                $produkMap = Produk::withoutGlobalScopes()->whereIn('id', $topAgg->pluck('produk_id'))
+                $produkMap = Produk::withoutGlobalScopes()
+                    ->where('user_id', $perusahaan->user_id)
+                    ->whereIn('id', $topAgg->pluck('produk_id'))
                     ->get()
                     ->keyBy('id');
 
@@ -105,6 +120,7 @@ class DashboardController extends Controller
             // Fallback: Jika belum ada penjualan, tampilkan produk random dengan stok > 0
             if ($result->isEmpty()) {
                 $allProducts = Produk::withoutGlobalScopes()
+                    ->where('user_id', $perusahaan->user_id)
                     ->where('stok', '>', 0)
                     ->inRandomOrder()
                     ->limit(6)
@@ -125,12 +141,18 @@ class DashboardController extends Controller
         if ($userId) {
             $favoriteIds = Favorite::where('user_id', $userId)->pluck('produk_id')->toArray();
             if (!empty($favoriteIds)) {
-                $favoriteProduks = Produk::withoutGlobalScopes()->whereIn('id', $favoriteIds)->get();
+                $favoriteProduks = Produk::withoutGlobalScopes()
+                    ->where('user_id', $perusahaan->user_id)
+                    ->whereIn('id', $favoriteIds)
+                    ->get();
             }
         }
 
         $whatsappNumber = config('services.whatsapp.number') ?? env('WHATSAPP_NUMBER');
 
-        return view('pelanggan.dashboard', compact('produks', 'cartCount', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber', 'kategoris', 'kategoriFilter'));
+        // Get slug for URL generation in views
+        $perusahaan_slug = $perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode));
+
+        return view('pelanggan.dashboard', compact('produks', 'cartCount', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber', 'kategoris', 'kategoriFilter', 'perusahaan', 'perusahaan_slug'));
     }
 }
