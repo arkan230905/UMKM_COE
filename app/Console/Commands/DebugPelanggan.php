@@ -28,8 +28,8 @@ class DebugPelanggan extends Command
         }
 
         $this->newLine();
-        $this->info('=== PELANGGAN WITH user_id = NULL (Should appear in master data) ===');
-        $nullUserIdPelanggan = User::where('role', 'pelanggan')->whereNull('user_id')->get();
+        $this->info('=== PELANGGAN WITH role=pelanggan (Should appear in master data) ===');
+        $nullUserIdPelanggan = User::where('role', 'pelanggan')->get();
         $this->info('Total: ' . $nullUserIdPelanggan->count());
         $this->newLine();
 
@@ -41,8 +41,8 @@ class DebugPelanggan extends Command
         }
 
         $this->newLine();
-        $this->info('=== PELANGGAN WITH user_id != NULL (Should NOT appear in master data) ===');
-        $withUserIdPelanggan = User::where('role', 'pelanggan')->whereNotNull('user_id')->get();
+        $this->info('=== PELANGGAN WITH role != pelanggan (Should NOT appear in master data) ===');
+        $withUserIdPelanggan = User::where('role', '!=', 'pelanggan')->get();
         $this->info('Total: ' . $withUserIdPelanggan->count());
         $this->newLine();
 

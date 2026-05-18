@@ -49,7 +49,7 @@
         <div class="col-lg-8 mb-4">
             <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
                 <div class="card-body p-4">
-                    <form action="{{ route('pelanggan.checkout.process') }}" method="POST" id="checkoutForm">
+                    <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/checkout/process") }}" method="POST" id="checkoutForm">
                         @csrf
                         
                         <!-- Data Pengiriman -->

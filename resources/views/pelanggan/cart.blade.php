@@ -57,7 +57,7 @@
             <i class="bi bi-cart-x" style="font-size: 4rem; color: #6c757d;"></i>
             <h4 class="mt-3 text-dark">Keranjang Kosong</h4>
             <p class="text-muted">Belum ada produk di keranjang Anda</p>
-            <a href="{{ route('pelanggan.dashboard') }}" class="btn text-white mt-2" style="background: #8b5a2b; border-radius: 50px; padding: 0.5rem 1.5rem; font-weight: 600;">
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" class="btn text-white mt-2" style="background: #8b5a2b; border-radius: 50px; padding: 0.5rem 1.5rem; font-weight: 600;">
                 <i class="bi bi-shop"></i> Mulai Belanja
             </a>
         </div>
@@ -106,7 +106,7 @@
                                     <td style="padding: 1.2rem 0.5rem; border-bottom: 1px solid #f5f5f5;">
                                         <!-- Qty Control inside a pill -->
                                         <div class="d-flex align-items-center justify-content-center" style="background: #fdfaf7; border-radius: 50px; padding: 0.2rem; border: 1px solid #f0e6da;">
-                                            <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline" style="margin: 0;">
+                                            <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/cart/" . $cart->id) }}" method="POST" class="d-inline" style="margin: 0;">
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="qty" value="{{ max(1, $cart->qty - 1) }}">
@@ -115,13 +115,13 @@
                                                 </button>
                                             </form>
 
-                                            <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline" style="margin: 0; width: 40px;">
+                                            <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/cart/" . $cart->id) }}" method="POST" class="d-inline" style="margin: 0; width: 40px;">
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="number" name="qty" value="{{ $cart->qty }}" min="1" max="{{ $cart->produk->stok_tersedia ?? $cart->produk->stok }}" class="form-control text-center p-0" onchange="this.form.submit()" style="border: none; background: transparent; font-size: 0.85rem; font-weight: 600; appearance: textfield; box-shadow: none;">
                                             </form>
 
-                                            <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline" style="margin: 0;">
+                                            <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/cart/" . $cart->id) }}" method="POST" class="d-inline" style="margin: 0;">
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="qty" value="{{ min($cart->produk->stok_tersedia ?? $cart->produk->stok, $cart->qty + 1) }}">
@@ -133,7 +133,7 @@
                                     </td>
                                     <td class="fw-bold" style="padding: 1.2rem 0.5rem; color: #2d3748; border-bottom: 1px solid #f5f5f5;">Rp {{ number_format($cart->subtotal, 0, ',', '.') }}</td>
                                     <td style="padding: 1.2rem 1.5rem; text-align: center; border-bottom: 1px solid #f5f5f5;">
-                                        <form action="{{ route('pelanggan.cart.destroy', $cart) }}" method="POST" class="d-inline" style="margin: 0;">
+                                        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/cart/" . $cart->id) }}" method="POST" class="d-inline" style="margin: 0;">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-sm" style="background: white; border: 1px solid #ff7675; color: #ff7675; border-radius: 6px; padding: 0.3rem 0.6rem;" onclick="return confirm('Hapus item ini dari keranjang?')">
@@ -153,7 +153,7 @@
 
             <!-- Bottom Buttons (Left side actions) -->
             <div class="d-flex justify-content-between align-items-center mt-4">
-                <a href="{{ route('pelanggan.dashboard') }}" class="btn" style="background: #f8f9fa; border: 1px solid #ddd; color: #666; border-radius: 8px; font-size: 0.85rem; padding: 0.5rem 1rem;">
+                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" class="btn" style="background: #f8f9fa; border: 1px solid #ddd; color: #666; border-radius: 8px; font-size: 0.85rem; padding: 0.5rem 1rem;">
                     <i class="bi bi-arrow-left"></i> Lanjut Belanja
                 </a>
             </div>
@@ -165,12 +165,12 @@
                 <div class="card-body p-4">
                     <!-- Action Buttons -->
                     <div class="d-flex flex-column gap-2">
-                        <a href="{{ route('pelanggan.checkout') }}" class="btn w-100 d-flex justify-content-between align-items-center" style="background: #8b5a2b; color: white; border-radius: 8px; padding: 0.8rem 1rem; font-weight: 600;">
+                        <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/checkout") }}" class="btn w-100 d-flex justify-content-between align-items-center" style="background: #8b5a2b; color: white; border-radius: 8px; padding: 0.8rem 1rem; font-weight: 600;">
                             <span>Checkout</span>
                             <i class="bi bi-arrow-right"></i>
                         </a>
                         
-                        <form action="{{ route('pelanggan.cart.clear') }}" method="POST" class="m-0">
+                        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/cart/clear") }}" method="POST" class="m-0">
                             @csrf
                             <button type="submit" class="btn w-100" style="background: white; border: 1px solid #ff7675; color: #ff7675; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.85rem;" onclick="return confirm('Kosongkan semua keranjang?')">
                                 <i class="bi bi-trash"></i> Kosongkan Keranjang

@@ -9,7 +9,7 @@
                 <h2 style="font-size: 1.3rem; font-weight: 800; color: #2d3748; margin: 0;">📦 Pesanan Saya</h2>
                 <p style="color: #999; margin: 0.3rem 0 0 0; font-size: 0.7rem;">Kelola dan pantau semua pesanan Anda</p>
             </div>
-            <a href="{{ route('pelanggan.dashboard') }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                 ← Kembali Belanja
             </a>
         </div>
@@ -20,7 +20,7 @@
             <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">📭</div>
             <h4 style="color: #999; font-size: 0.8rem; margin-bottom: 0.5rem;">Belum Ada Pesanan</h4>
             <p style="color: #bbb; font-size: 0.65rem; margin-bottom: 1rem;">Anda belum memiliki pesanan. Mulai belanja sekarang!</p>
-            <a href="{{ route('pelanggan.dashboard') }}" style="display: inline-block; padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem;">🛍️ Mulai Belanja</a>
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" style="display: inline-block; padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem;">🛍️ Mulai Belanja</a>
         </div>
         @else
         <!-- Orders List -->
@@ -57,11 +57,11 @@
 
                     <!-- Action Buttons -->
                     <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; padding-top: 0.8rem; border-top: 1px solid #f0f0f0;">
-                        <a href="{{ route('pelanggan.orders.show', $order) }}" style="padding: 0.4rem 0.8rem; background: #8b6f47; color: white; border: none; border-radius: 6px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.6rem; cursor: pointer;">
+                        <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/orders/" . $order->id) }}" style="padding: 0.4rem 0.8rem; background: #8b6f47; color: white; border: none; border-radius: 6px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.6rem; cursor: pointer;">
                             👁️ Detail
                         </a>
                         @if($order->payment_status === 'pending')
-                        <a href="{{ route('pelanggan.orders.show', $order) }}" style="padding: 0.4rem 0.8rem; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.6rem; cursor: pointer;">
+                        <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/orders/" . $order->id) }}" style="padding: 0.4rem 0.8rem; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.6rem; cursor: pointer;">
                             💳 Bayar
                         </a>
                         @endif
@@ -90,7 +90,7 @@
 @if($order->status === 'completed' || $order->payment_status === 'paid')
 <div id="reviewModal{{ $order->id }}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 1.5rem; max-width: 400px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-        <form action="{{ route('pelanggan.reviews.store') }}" method="POST">
+        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/reviews") }}" method="POST">
             @csrf
             <input type="hidden" name="order_id" value="{{ $order->id }}">
             

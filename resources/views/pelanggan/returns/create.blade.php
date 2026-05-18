@@ -25,7 +25,7 @@
                 <h6 style="font-size: 0.7rem; font-weight: 800; color: #2d3748; margin: 0;">Pilih Pesanan</h6>
             </div>
             <div style="padding: 0.8rem;">
-                <form method="GET" action="{{ route('pelanggan.returns.create') }}" style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <form method="GET" action="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create") }}" style="display: flex; gap: 0.5rem; align-items: flex-end;">
                     <div style="flex: 1;">
                         <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.3rem;">Pesanan</label>
                         <select name="order_id" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748;" required>
@@ -43,7 +43,7 @@
         </div>
 
         @if($order)
-        <form action="{{ route('pelanggan.returns.store') }}" method="POST">
+        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/returns") }}" method="POST">
             @csrf
             <input type="hidden" name="order_id" value="{{ $order->id }}">
 
@@ -101,7 +101,7 @@
 
             <!-- Submit Button -->
             <div style="display: flex; justify-content: center; gap: 0.5rem;">
-                <a href="{{ route('pelanggan.dashboard') }}" style="padding: 0.5rem 1.2rem; background: #e0e0e0; color: #2d3748; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.65rem; cursor: pointer;">Batal</a>
+                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" style="padding: 0.5rem 1.2rem; background: #e0e0e0; color: #2d3748; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.65rem; cursor: pointer;">Batal</a>
                 <button type="submit" style="padding: 0.5rem 1.2rem; background: #10b981; color: white; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; font-size: 0.65rem;">✓ Ajukan Retur</button>
             </div>
         </form>

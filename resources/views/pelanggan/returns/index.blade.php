@@ -15,7 +15,7 @@
             <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">📭</div>
             <h4 style="color: #999; font-size: 0.8rem; margin-bottom: 0.5rem;">Belum Ada Retur</h4>
             <p style="color: #bbb; font-size: 0.65rem; margin-bottom: 1rem;">Anda belum memiliki pengajuan retur. Jika ada produk yang bermasalah, silakan ajukan retur.</p>
-            <a href="{{ route('pelanggan.returns.create') }}" style="display: inline-block; padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem;">🔄 Ajukan Retur</a>
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create") }}" style="display: inline-block; padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem;">🔄 Ajukan Retur</a>
         </div>
         @else
         <!-- Retur List -->

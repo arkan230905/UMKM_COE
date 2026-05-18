@@ -54,7 +54,10 @@ class CheckoutController extends Controller
         $ownerUser = \App\Models\User::find($ownerId);
         $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
 
-        return view('pelanggan.checkout', compact('carts', 'total', 'perusahaan'));
+        // Get perusahaan_slug for URL generation
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.checkout', compact('carts', 'total', 'perusahaan', 'perusahaan_slug'));
     }
 
     public function getAddressSuggestions(Request $request)

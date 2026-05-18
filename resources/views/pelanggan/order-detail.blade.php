@@ -170,10 +170,10 @@
 
         <!-- Action Buttons -->
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.5rem; justify-content: center;">
-            <a href="{{ route('pelanggan.returns.create', ['order_id' => $order->id]) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create?order_id=" . $order->id) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                 🔄 Ajukan Retur
             </a>
-            <a href="{{ route('pelanggan.orders') }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/orders") }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                 ← Kembali ke Pesanan
             </a>
         </div>

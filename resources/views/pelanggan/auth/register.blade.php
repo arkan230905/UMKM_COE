@@ -38,7 +38,7 @@ body {
                     @endif
 
                     <!-- Registration Form -->
-                    <form method="POST" action="{{ route('pelanggan.register.post') }}">
+                    <form method="POST" action="{{ url("/" . $perusahaan_slug . "/pelanggan/register") }}">
                         @csrf
 
                         <!-- Name -->
@@ -159,7 +159,7 @@ body {
                     <div class="text-center mt-4">
                         <p class="text-muted mb-0">
                             Sudah punya akun?
-                            <a href="{{ route('pelanggan.login') }}" class="text-warning text-decoration-none fw-semibold">
+                            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/login") }}" class="text-warning text-decoration-none fw-semibold">
                                 Login di sini
                             </a>
                         </p>

@@ -21,6 +21,12 @@ class Perusahaan extends Model
             if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();
             }
+            
+            // Auto-generate slug from kode or nama
+            if (empty($model->slug)) {
+                $identifier = $model->kode ?: $model->nama;
+                $model->slug = strtolower(str_replace(' ', '-', trim($identifier)));
+            }
         });
         
         static::updating(function ($model) {
@@ -28,12 +34,19 @@ class Perusahaan extends Model
             if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();
             }
+            
+            // Update slug if nama or kode changed
+            if (empty($model->slug)) {
+                $identifier = $model->kode ?: $model->nama;
+                $model->slug = strtolower(str_replace(' ', '-', trim($identifier)));
+            }
         });
     }
 
     protected $fillable = [
         'user_id',
         'nama', 
+        'slug',
         'alamat', 
         'email', 
         'telepon', 

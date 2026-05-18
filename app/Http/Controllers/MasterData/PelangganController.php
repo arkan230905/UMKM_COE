@@ -11,11 +11,10 @@ class PelangganController extends Controller
 {
     public function index()
     {
-        // 🔒 SECURITY: Get all pelanggan users (user_id = null)
-        // Pelanggan yang terdaftar melalui website akan memiliki user_id = null
+        // 🔒 SECURITY: Get all pelanggan users
+        // Pelanggan yang terdaftar melalui website memiliki role = 'pelanggan'
         // Semua owner bisa melihat semua pelanggan yang terdaftar
         $pelanggans = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan with user_id = null (registered via website)
             ->withCount('orders')
             ->latest()
             ->paginate(15);
@@ -43,9 +42,8 @@ class PelangganController extends Controller
 
     public function show($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null (registered via website)
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         
         // Load orders jika ada
@@ -58,9 +56,8 @@ class PelangganController extends Controller
 
     public function getPassword($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         
         return response()->json([
@@ -70,9 +67,8 @@ class PelangganController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
 
         $request->validate([
@@ -92,18 +88,16 @@ class PelangganController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         return view('master-data.pelanggan.edit', compact('pelanggan'));
     }
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
 
         $request->validate([
@@ -135,9 +129,8 @@ class PelangganController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->findOrFail($id);
         
         // Cek apakah pelanggan punya order

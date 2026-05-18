@@ -25,7 +25,13 @@ class ReturnController extends Controller
             ->latest()
             ->paginate(10);
 
-        return view('pelanggan.returns.index', compact('returs'));
+        // Get perusahaan_slug for URL generation
+        $user = auth('pelanggan')->user();
+        $ownerUser = $user ? $user->owner : null;
+        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.returns.index', compact('returs', 'perusahaan_slug'));
     }
 
     public function create(Request $request)
@@ -39,7 +45,13 @@ class ReturnController extends Controller
             $order = Order::with('items.produk')->where('user_id', auth()->id())->findOrFail($orderId);
         }
 
-        return view('pelanggan.returns.create', compact('orders','order'));
+        // Get perusahaan_slug for URL generation
+        $user = auth('pelanggan')->user();
+        $ownerUser = $user ? $user->owner : null;
+        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+
+        return view('pelanggan.returns.create', compact('orders','order', 'perusahaan_slug'));
     }
 
     public function store(Request $request)
