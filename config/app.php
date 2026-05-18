@@ -166,6 +166,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\FilamentServiceProvider::class, // ✅ Tambahan khusus untuk Filament
+        App\Providers\MiddlewareServiceProvider::class, // ✅ Register custom middleware aliases
 
     ],
 

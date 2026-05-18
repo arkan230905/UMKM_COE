@@ -14,9 +14,8 @@ class UpdatePelangganPlainPassword extends Command
     {
         $this->info('=== UPDATING PELANGGAN PLAIN PASSWORD ===');
         
-        // Get all pelanggan with user_id = null and no plain_password
+        // Get all pelanggan with no plain_password
         $pelanggans = User::where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->whereNull('plain_password')
             ->get();
         

@@ -18,7 +18,7 @@
                         @else
                         <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">📦</div>
                         @endif
-                        <form action="{{ route('pelanggan.favorites.toggle') }}" method="POST" style="position: absolute; top: 4px; right: 4px;" onsubmit="return false;">
+                        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/favorites/toggle") }}" method="POST" style="position: absolute; top: 4px; right: 4px;" onsubmit="return false;">
                             @csrf
                             <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                             <button type="button" onclick="toggleFavorite({{ $produk->id }}); return false;" style="width: 24px; height: 24px; background: white; border: none; border-radius: 50%; cursor: pointer; color: #ff4757; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">♥</button>
@@ -53,7 +53,7 @@
                 <div style="font-size: 2.5rem; margin-bottom: 0.8rem;">💔</div>
                 <h4 style="color: #999; font-size: 0.8rem; margin-bottom: 0.5rem;">Belum ada produk favorit</h4>
                 <p style="color: #bbb; font-size: 0.65rem; margin-bottom: 1rem;">Mulai tambahkan produk favorit Anda dengan mengklik tombol hati di halaman produk</p>
-                <a href="{{ route('pelanggan.dashboard') }}" style="display: inline-block; padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem;">Jelajahi Produk</a>
+                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard") }}" style="display: inline-block; padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem;">Jelajahi Produk</a>
             </div>
         @endif
     </div>
@@ -64,11 +64,11 @@ let isLoggedIn = {{ auth('pelanggan')->check() ? 'true' : 'false' }};
 
 function toggleFavorite(produkId) {
     if (!isLoggedIn) {
-        window.location.href = "{{ route('pelanggan.login') }}";
+        window.location.href = "{{ url("/" . $perusahaan_slug . "/pelanggan/login") }}";
         return;
     }
     
-    fetch("{{ route('pelanggan.favorites.toggle') }}", {
+    fetch("{{ url("/" . $perusahaan_slug . "/pelanggan/favorites/toggle") }}", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -90,11 +90,11 @@ function toggleFavorite(produkId) {
 
 function addToCart(produkId) {
     if (!isLoggedIn) {
-        window.location.href = "{{ route('pelanggan.login') }}";
+        window.location.href = "{{ url("/" . $perusahaan_slug . "/pelanggan/login") }}";
         return;
     }
     
-    fetch("{{ route('pelanggan.cart.ajax.store') }}", {
+    fetch("{{ url("/" . $perusahaan_slug . "/pelanggan/cart/ajax/store") }}", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

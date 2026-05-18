@@ -16,7 +16,7 @@
                 </div>
             </div>
             <div style="flex: 0 1 400px; position: relative;">
-                <form action="{{ route('pelanggan.dashboard') }}" method="GET" id="searchForm">
+                <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard" . ( ? "?" .  : "") . "") }}" method="GET" id="searchForm">
                     <input type="text" id="searchInput" name="q" value="{{ request('q') }}" autocomplete="off" placeholder="Cari produk favoritmu..." style="width: 100%; padding: 0.4rem 1rem; border-radius: 50px; border: 1px solid #eaeaea; background: #fbfbfb; outline: none; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); transition: all 0.3s; font-size: 0.8rem;">
                     <button type="submit" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #888; cursor: pointer;">
                         <i class="bi bi-search"></i>
@@ -47,7 +47,7 @@
                     <a href="#products" style="background: #8b5a2b; color: white; padding: 0.4rem 1.2rem; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: background 0.3s;">
                         <i class="bi bi-bag"></i> Mulai Belanja
                     </a>
-                    <a href="{{ route('pelanggan.cart') }}" style="background: white; color: #8b5a2b; border: 1px solid #8b5a2b; padding: 0.4rem 1.2rem; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: background 0.3s;">
+                    <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/cart" . ( ? "?" .  : "") . "") }}" style="background: white; color: #8b5a2b; border: 1px solid #8b5a2b; padding: 0.4rem 1.2rem; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: background 0.3s;">
                         <i class="bi bi-cart3"></i> Keranjang Saya
                     </a>
                 </div>
@@ -135,12 +135,12 @@
 
         <!-- Category Pills -->
         <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
-            <a href="{{ route('pelanggan.dashboard') }}" style="padding: 0.4rem 1.2rem; border-radius: 50px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.3s; {{ !$kategoriFilter ? 'background: #8b5a2b; color: white;' : 'background: white; color: #555; border: 1px solid #eaeaea;' }}">
+            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard" . ( ? "?" .  : "") . "") }}" style="padding: 0.4rem 1.2rem; border-radius: 50px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.3s; {{ !$kategoriFilter ? 'background: #8b5a2b; color: white;' : 'background: white; color: #555; border: 1px solid #eaeaea;' }}">
                 <i class="bi bi-grid"></i> Semua Produk
             </a>
             @if($kategoris && $kategoris->count() > 0)
                 @foreach($kategoris as $kat)
-                <a href="{{ route('pelanggan.dashboard', ['kategori' => $kat->id]) }}" style="padding: 0.4rem 1.2rem; border-radius: 50px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.4rem; {{ $kategoriFilter == $kat->id ? 'background: #8b5a2b; color: white;' : 'background: white; color: #555; border: 1px solid #eaeaea;' }}">
+                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard" . ('kategori' => $kat->id ? "?" . 'kategori' => $kat->id : "") . "") }}" style="padding: 0.4rem 1.2rem; border-radius: 50px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.4rem; {{ $kategoriFilter == $kat->id ? 'background: #8b5a2b; color: white;' : 'background: white; color: #555; border: 1px solid #eaeaea;' }}">
                     @php
                         $icons = ['MKN' => 'bi-cup-hot', 'MNM' => 'bi-cup-straw', 'SNK' => 'bi-cookie', 'FSH' => 'bi-handbag', 'KRJ' => 'bi-palette', 'KCT' => 'bi-stars', 'LNY' => 'bi-box-seam'];
                         $iconClass = $icons[$kat->kode_kategori] ?? 'bi-tag';
@@ -206,7 +206,7 @@
                                     </button>
                                 </div>
                                 
-                                <form action="{{ route('pelanggan.favorites.toggle') }}" method="POST" style="margin: 0;">
+                                <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/favorites.toggle" . ( ? "?" .  : "") . "") }}" method="POST" style="margin: 0;">
                                     @csrf
                                     <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                                     <button type="submit" style="display: inline-flex; justify-content: center; align-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50px; border: 1px solid {{ in_array($produk->id, $favoriteIds ?? []) ? '#ff4757' : '#eaeaea' }}; background: white; color: {{ in_array($produk->id, $favoriteIds ?? []) ? '#ff4757' : '#888' }}; font-size: 0.9rem; transition: all 0.2s;" onmouseover="this.style.borderColor='#ff4757'; this.style.color='#ff4757';" onmouseout="this.style.borderColor='{{ in_array($produk->id, $favoriteIds ?? []) ? '#ff4757' : '#eaeaea' }}'; this.style.color='{{ in_array($produk->id, $favoriteIds ?? []) ? '#ff4757' : '#888' }}';">
@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             searchTimeout = setTimeout(() => {
-                fetch(`{{ route('pelanggan.dashboard') }}?q=${encodeURIComponent(query)}&autocomplete=1`, {
+                fetch(`{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard" . ( ? "?" .  : "") . "") }}?q=${encodeURIComponent(query)}&autocomplete=1`, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const price = new Intl.NumberFormat('id-ID').format(item.harga_jual);
                             const imgUrl = item.foto ? `/storage/${item.foto}` : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80';
                             html += `
-                                <a href="{{ route('pelanggan.dashboard') }}?q=${encodeURIComponent(item.nama_produk)}" style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; text-decoration: none; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; color: inherit;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='transparent'">
+                                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/dashboard" . ( ? "?" .  : "") . "") }}?q=${encodeURIComponent(item.nama_produk)}" style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; text-decoration: none; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; color: inherit;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='transparent'">
                                     <div style="width: 40px; height: 40px; border-radius: 6px; overflow: hidden; flex-shrink: 0; background: #eee;">
                                         <img src="${imgUrl}" alt="${item.nama_produk}" style="width: 100%; height: 100%; object-fit: cover;">
                                     </div>
@@ -473,3 +473,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
+
+
+
+
+
+
+
+

@@ -183,7 +183,7 @@
                 @endif
 
                 <!-- Login Form -->
-                <form method="POST" action="{{ route('pelanggan.login.post') }}">
+                <form method="POST" action="{{ url("/" . $perusahaan_slug . "/pelanggan/login") }}">
                     @csrf
                     
                     <!-- Hidden fields for redirect -->
@@ -257,7 +257,7 @@
                     <div class="text-center">
                         <p class="mb-0">
                             Belum punya akun? 
-                            <a href="{{ route('pelanggan.register') }}" class="text-decoration-none fw-bold">
+                            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/register") }}" class="text-decoration-none fw-bold">
                                 Daftar sekarang
                             </a>
                         </p>

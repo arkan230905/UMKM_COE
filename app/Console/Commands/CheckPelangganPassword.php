@@ -16,7 +16,6 @@ class CheckPelangganPassword extends Command
         $this->info('=== CHECKING PELANGGAN PASSWORD ===');
         
         $pelanggans = User::where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->get();
         
         foreach ($pelanggans as $p) {

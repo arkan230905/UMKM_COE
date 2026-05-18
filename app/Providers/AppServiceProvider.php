@@ -113,5 +113,8 @@ class AppServiceProvider extends ServiceProvider
 
         // View composer untuk layout pelanggan (cart count)
         View::composer('layouts.pelanggan', \App\Http\View\Composers\CartComposer::class);
+        
+        // View composer untuk perusahaan (multi-tenant)
+        View::composer('layouts.pelanggan', \App\Http\ViewComposers\PerusahaanComposer::class);
     }
 }

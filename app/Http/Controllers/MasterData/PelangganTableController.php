@@ -13,10 +13,9 @@ class PelangganTableController extends Controller
     public function index()
     {
         // 🔒 SECURITY: Get pelanggan users (registered via website)
-        // Pelanggan yang terdaftar melalui website disimpan di tabel users dengan role='pelanggan' dan user_id=null
+        // Pelanggan yang terdaftar melalui website memiliki role='pelanggan'
         // Semua owner bisa melihat semua pelanggan yang terdaftar
         $pelanggans = User::where('role', 'pelanggan')
-            ->whereNull('user_id') // Only show pelanggan registered via website
             ->withCount('orders')
             ->latest()
             ->paginate(15);
@@ -40,9 +39,8 @@ class PelangganTableController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null (registered via website)
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->findOrFail($id);
         
         return view('master-data.pelanggan.edit', compact('pelanggan'));
@@ -50,9 +48,8 @@ class PelangganTableController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->findOrFail($id);
 
         $request->validate([
@@ -84,9 +81,8 @@ class PelangganTableController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->findOrFail($id);
         
         // Cek apakah pelanggan punya order
@@ -102,9 +98,8 @@ class PelangganTableController extends Controller
 
     public function resetPassword($id)
     {
-        // 🔒 SECURITY: Get pelanggan with user_id = null
+        // 🔒 SECURITY: Get pelanggan
         $pelanggan = User::where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->findOrFail($id);
         
         // Reset password to default

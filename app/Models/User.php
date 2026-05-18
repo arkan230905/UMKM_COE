@@ -43,7 +43,6 @@ class User extends Authenticatable
         'profile_photo',
         'store_latitude',
         'store_longitude',
-        'user_id',  // CRITICAL: Add user_id for multi-tenant isolation
     ];
 
     protected $hidden = [

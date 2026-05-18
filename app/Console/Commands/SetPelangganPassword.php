@@ -18,7 +18,6 @@ class SetPelangganPassword extends Command
         
         $pelanggan = User::where('email', $email)
             ->where('role', 'pelanggan')
-            ->whereNull('user_id')
             ->first();
         
         if (!$pelanggan) {

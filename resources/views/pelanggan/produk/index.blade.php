@@ -27,7 +27,7 @@
                         </p>
                     </div>
                     <div class="mt-4">
-                        <form action="{{ route('pelanggan.cart.store') }}" method="POST" class="space-y-3">
+                        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/cart") }}" method="POST" class="space-y-3">
                             @csrf
                             <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                             <div class="flex items-center gap-2">

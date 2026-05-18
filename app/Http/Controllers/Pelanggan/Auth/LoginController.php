@@ -14,16 +14,23 @@ class LoginController extends Controller
      */
     public function showLoginForm(Request $request)
     {
+        // Get perusahaan from middleware
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            return redirect('/')->with('error', 'Perusahaan tidak ditemukan');
+        }
+
         // Hanya redirect ke dashboard jika sudah login sebagai pelanggan
         if (Auth::guard('pelanggan')->check()) {
-            return redirect()->route('pelanggan.dashboard');
+            return redirect()->route('pelanggan.dashboard', ['perusahaan_slug' => perusahaan_slug($perusahaan)]);
         }
 
         // Get redirect URL and product info from query parameters
         $redirect = $request->get('redirect', 'pelanggan.dashboard');
         $productId = $request->get('product');
 
-        return view('pelanggan.auth.login-register', compact('redirect', 'productId'));
+        return view('pelanggan.auth.login-register', compact('redirect', 'productId', 'perusahaan'));
     }
 
     /**
@@ -31,6 +38,13 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
+        // Get perusahaan from middleware
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            return redirect('/')->with('error', 'Perusahaan tidak ditemukan');
+        }
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -54,11 +68,11 @@ class LoginController extends Controller
                 ]);
                 $cartController->store($cartRequest);
                 
-                return redirect()->route('pelanggan.cart')
+                return redirect()->route('pelanggan.cart', ['perusahaan_slug' => perusahaan_slug($perusahaan)])
                     ->with('success', 'Login berhasil! Produk telah ditambahkan ke keranjang.');
             }
 
-            return redirect()->route($redirect);
+            return redirect()->route($redirect, ['perusahaan_slug' => perusahaan_slug($perusahaan)]);
         }
 
         return back()->withErrors([
@@ -71,12 +85,17 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
+        // Get perusahaan before logout
+        $perusahaan = $request->attributes->get('perusahaan');
+        $perusahaanSlug = $perusahaan ? perusahaan_slug($perusahaan) : 'default';
+
         Auth::guard('pelanggan')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('pelanggan.login')->with('success', 'Anda telah logout.');
+        return redirect()->route('pelanggan.login', ['perusahaan_slug' => $perusahaanSlug])
+            ->with('success', 'Anda telah logout.');
     }
 
     /**
@@ -84,6 +103,13 @@ class LoginController extends Controller
      */
     public function register(Request $request)
     {
+        // Get perusahaan from middleware
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            return redirect('/')->with('error', 'Perusahaan tidak ditemukan');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -109,7 +135,7 @@ class LoginController extends Controller
             // Auto-login after registration
             Auth::guard('pelanggan')->login($user);
 
-            return redirect()->route('pelanggan.dashboard')
+            return redirect()->route('pelanggan.dashboard', ['perusahaan_slug' => perusahaan_slug($perusahaan)])
                 ->with('success', 'Registrasi berhasil! Selamat datang di toko kami.');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal melakukan registrasi: ' . $e->getMessage())
