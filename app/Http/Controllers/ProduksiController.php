@@ -1025,9 +1025,12 @@ return response()->json([
     {
         $user_id = $produksi->user_id;
         
-        // VALIDATE: Ensure all required COAs exist before creating journals
-        // This prevents incorrect journal entries with fallback COAs
-        \App\Helpers\ProductionCoaValidator::validateOrThrow($hppData, $user_id);
+        // VALIDATE: Only check required structural COAs (1171, 1172, 1173, 211)
+        // BOP component COAs are optional - use fallback if not found
+        $requiredValidation = \App\Helpers\ProductionCoaValidator::validateRequiredCoas($user_id);
+        if (!$requiredValidation['valid']) {
+            throw new \Exception($requiredValidation['message']);
+        }
         
         $totalBBB = $produksi->total_bahan;
         $totalBTKL = $produksi->total_btkl;
@@ -1119,7 +1122,29 @@ return response()->json([
             foreach ($hppData['bop_komponen'] as $komponen) {
                 $totalKomponen = $komponen['subtotal'] * $qtyProd;
                 if ($totalKomponen > 0) {
-                    $coaId = $this->getCoaIdByKode($komponen['coa_kode']);
+                    // Coba COA spesifik komponen, fallback ke COA BOP umum (530)
+                    $coaKode = $komponen['coa_kode'] ?? null;
+                    $coaId = null;
+                    
+                    if ($coaKode) {
+                        $coaId = $this->getCoaIdByKodeForUser($coaKode, $user_id);
+                    }
+                    
+                    // Fallback: cari COA BOP umum milik user
+                    if (!$coaId) {
+                        $coaId = $this->getCoaIdByKodeForUser('530', $user_id)
+                               ?? $this->getCoaIdByKodeForUser('531', $user_id)
+                               ?? $this->getCoaIdByKodeForUser('532', $user_id)
+                               ?? $this->getCoaIdByKode('530'); // last resort
+                    }
+                    
+                    if (!$coaId) {
+                        \Log::warning("BOP COA not found for komponen {$komponen['nama_komponen']}, skipping journal line", [
+                            'user_id' => $user_id,
+                            'coa_kode' => $coaKode,
+                        ]);
+                        continue;
+                    }
 
                     \App\Models\JurnalUmum::create([
                         'user_id' => $user_id,
@@ -1299,6 +1324,19 @@ return response()->json([
             "COA yang diperlukan untuk produksi: 1171 (WIP BBB), 1172 (WIP BTKL), 1173 (WIP BOP), " .
             "211 (Hutang Gaji), dan COA untuk setiap komponen BOP."
         );
+    }
+
+    /**
+     * Get COA ID by kode for specific user - returns null if not found (no exception)
+     */
+    private function getCoaIdByKodeForUser($kodeAkun, $user_id): ?int
+    {
+        $coa = \App\Models\Coa::where('kode_akun', $kodeAkun)
+            ->where('user_id', $user_id)
+            ->orderByRaw('RPAD(kode_akun, 10, "0"), LENGTH(kode_akun)')
+            ->first();
+
+        return $coa ? $coa->id : null;
     }
 
     /**
