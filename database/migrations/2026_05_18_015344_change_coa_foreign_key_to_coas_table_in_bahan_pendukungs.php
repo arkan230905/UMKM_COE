@@ -11,16 +11,48 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('bahan_pendukungs')) {
+            return;
+        }
+
         Schema::table('bahan_pendukungs', function (Blueprint $table) {
-            // Drop existing foreign keys
-            $table->dropForeign(['coa_pembelian_id']);
-            $table->dropForeign(['coa_persediaan_id']);
-            $table->dropForeign(['coa_hpp_id']);
+            // Drop existing foreign keys if they exist
+            try {
+                $table->dropForeign(['coa_pembelian_id']);
+            } catch (\Exception $e) {
+                // Foreign key doesn't exist, continue
+            }
+            
+            try {
+                $table->dropForeign(['coa_persediaan_id']);
+            } catch (\Exception $e) {
+                // Foreign key doesn't exist, continue
+            }
+            
+            try {
+                $table->dropForeign(['coa_hpp_id']);
+            } catch (\Exception $e) {
+                // Foreign key doesn't exist, continue
+            }
             
             // Add new foreign keys referencing coas table
-            $table->foreign('coa_pembelian_id')->references('kode_akun')->on('coas')->onDelete('set null');
-            $table->foreign('coa_persediaan_id')->references('kode_akun')->on('coas')->onDelete('set null');
-            $table->foreign('coa_hpp_id')->references('kode_akun')->on('coas')->onDelete('set null');
+            try {
+                $table->foreign('coa_pembelian_id')->references('kode_akun')->on('coas')->onDelete('set null');
+            } catch (\Exception $e) {
+                // Foreign key already exists, continue
+            }
+            
+            try {
+                $table->foreign('coa_persediaan_id')->references('kode_akun')->on('coas')->onDelete('set null');
+            } catch (\Exception $e) {
+                // Foreign key already exists, continue
+            }
+            
+            try {
+                $table->foreign('coa_hpp_id')->references('kode_akun')->on('coas')->onDelete('set null');
+            } catch (\Exception $e) {
+                // Foreign key already exists, continue
+            }
         });
     }
 

@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('bop_proses', function (Blueprint $table) {
-            $table->foreignId('produk_id')->nullable()->change();
-        });
+        if (Schema::hasTable('bop_proses') && Schema::hasColumn('bop_proses', 'produk_id')) {
+            Schema::table('bop_proses', function (Blueprint $table) {
+                $table->foreignId('produk_id')->nullable()->change();
+            });
+        }
     }
 
     /**

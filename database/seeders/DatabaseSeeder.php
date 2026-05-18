@@ -9,6 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            UserSeeder::class,
             CompanySeeder::class,
             CoaTemplateSeeder::class,
             JasukeCoaSeeder::class, // Memastikan COA Jasuke masuk terakhir
