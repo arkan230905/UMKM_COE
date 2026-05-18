@@ -100,7 +100,7 @@
                         <div class="col-md-4"><strong>Tunj. Konsumsi:</strong> Rp <span id="pv-tunjangan-konsumsi">0</span></div>
                         <div class="col-md-4"><strong>Asuransi:</strong> Rp <span id="pv-asuransi">0</span></div>
                         <div class="col-md-4"><strong>Gaji Pokok (BTKTL):</strong> Rp <span id="pv-gaji-pokok">0</span></div>
-                        <div class="col-md-4"><strong>Tarif / Jam (BTKL):</strong> Rp <span id="pv-tarif-per-jam">0</span></div>
+                        <div class="col-md-4"><strong>Tarif / Produk:</strong> Rp <span id="pv-tarif-per-jam">0</span></div>
                     </div>
                 </div>
             </div>

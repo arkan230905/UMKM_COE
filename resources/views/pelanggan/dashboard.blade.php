@@ -16,12 +16,15 @@
                 </div>
             </div>
             <div style="flex: 0 1 400px; position: relative;">
-                <form action="{{ route('pelanggan.dashboard') }}" method="GET">
-                    <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari produk favoritmu..." style="width: 100%; padding: 0.4rem 1rem; border-radius: 50px; border: 1px solid #eaeaea; background: #fbfbfb; outline: none; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); transition: all 0.3s; font-size: 0.8rem;">
+                <form action="{{ route('pelanggan.dashboard') }}" method="GET" id="searchForm">
+                    <input type="text" id="searchInput" name="q" value="{{ request('q') }}" autocomplete="off" placeholder="Cari produk favoritmu..." style="width: 100%; padding: 0.4rem 1rem; border-radius: 50px; border: 1px solid #eaeaea; background: #fbfbfb; outline: none; box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); transition: all 0.3s; font-size: 0.8rem;">
                     <button type="submit" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #888; cursor: pointer;">
                         <i class="bi bi-search"></i>
                     </button>
                 </form>
+                <!-- Autocomplete Dropdown -->
+                <div id="searchResults" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: 0.5rem; z-index: 1000; max-height: 350px; overflow-y: auto; border: 1px solid #eaeaea;">
+                </div>
             </div>
         </div>
     </div>
@@ -85,19 +88,37 @@
             <div class="col-lg-6 position-relative text-center">
                 <div style="position: absolute; width: 100%; height: 100%; background: #f0e6d2; border-radius: 50% 50% 40% 60% / 60% 40% 50% 50%; z-index: 0; transform: scale(0.9); right: -5%;"></div>
                 
-                <!-- Floating UMKM Card -->
-                <div style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: white; padding: 0.8rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); z-index: 2; width: 130px; text-align: left;">
-                    <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; color: #8b5a2b; font-size: 0.7rem; font-weight: 600;">
-                        <i class="bi bi-star"></i> UMKM Pilihan
+                <!-- Best Seller Card -->
+                <div style="background: white; border-radius: 20px; padding: 12px; display: inline-flex; gap: 1rem; box-shadow: 0 10px 40px rgba(0,0,0,0.06); border: 2px solid #f8f9fa; position: relative; z-index: 1; width: 100%; max-width: 400px; margin: 0 auto; margin-top: 2rem;">
+                    
+                    <!-- Badge Best Seller -->
+                    <div style="position: absolute; top: -14px; left: 16px; background: #ffe4e6; color: #e11d48; padding: 0.25rem 0.8rem; border-radius: 8px; font-weight: 700; font-size: 0.75rem; border: 1px solid #fecdd3; box-shadow: 0 4px 6px rgba(225, 29, 72, 0.1);">
+                        Best Seller
                     </div>
-                    <div style="font-weight: 700; font-size: 0.9rem; color: #333; margin-bottom: 0.2rem;">100+ Produk</div>
-                    <div style="font-size: 0.6rem; color: #888; margin-bottom: 0.6rem;">Siap Anda Jelajahi</div>
-                    <a href="#products" style="display: inline-block; padding: 0.2rem 0.6rem; border: 1px solid #e0e0e0; border-radius: 50px; font-size: 0.7rem; color: #555; text-decoration: none; width: 100%; text-align: center; transition: all 0.2s;">
-                        Lihat Semua <i class="bi bi-arrow-right"></i>
-                    </a>
+
+                    <!-- Image -->
+                    <div style="width: 140px; height: 140px; border-radius: 12px; overflow: hidden; flex-shrink: 0;">
+                        @php $bestSeller = isset($bestSellers) && $bestSellers->count() > 0 ? $bestSellers->first() : $produks->first(); @endphp
+                        @if($bestSeller && $bestSeller->foto)
+                            <img src="{{ storage_url($bestSeller->foto) }}" alt="Best Seller" style="width: 100%; height: 100%; object-fit: cover;">
+                        @else
+                            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Best Seller" style="width: 100%; height: 100%; object-fit: cover;">
+                        @endif
+                    </div>
+
+                    <!-- Details -->
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: left; padding-right: 0.5rem;">
+                        <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.4rem; line-height: 1.3;">
+                            {{ $bestSeller ? $bestSeller->nama_produk : 'Nasi Ayam Ketumbar' }}
+                        </h3>
+                        <div style="font-size: 1.2rem; font-weight: 800; color: #fb7185; margin-bottom: 0.6rem;">
+                            Rp {{ $bestSeller ? number_format($bestSeller->harga_jual, 0, ',', '.') : '18.606' }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 0.3rem;">
+                            <i class="bi bi-star-fill" style="color: #fbbf24; font-size: 0.85rem;"></i> {{ $bestSeller->rating ?? '5.0' }} &bull; {{ $bestSeller ? ($bestSeller->total_terjual ?? 0) : 0 }} terjual
+                        </div>
+                    </div>
                 </div>
-                
-                <img src="https://images.unsplash.com/photo-1605814562479-0db76ea3b482?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Produk UMKM" style="max-width: 75%; height: 280px; object-fit: cover; border-radius: 20px; position: relative; z-index: 1; box-shadow: 0 20px 40px rgba(139, 90, 43, 0.15);">
                 
                 <!-- Dots decoration -->
                 <div style="position: absolute; top: 10%; right: 10%; width: 60px; height: 60px; background-image: radial-gradient(#d4a574 2px, transparent 2px); background-size: 10px 10px; z-index: 0;"></div>
@@ -163,10 +184,16 @@
                             <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin-bottom: 0.2rem; line-height: 1.3; padding-right: 20px;">
                                 {{ $produk->nama_produk }}
                             </h3>
-                            <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <div style="font-size: 0.8rem; color: #888; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.4rem;">
                                 <span>{{ $produk->kategori->nama ?? 'Kategori' }}</span>
                                 <span style="font-size: 0.4rem;">⚫</span>
                                 <span style="color: {{ $produk->stok_tersedia > 0 ? '#28a745' : '#dc3545' }}">Stok: {{ number_format($produk->stok_tersedia, 0, ',', '.') }}</span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.3rem;">
+                                <i class="bi bi-star-fill" style="color: #fbbf24; font-size: 0.85rem;"></i> {{ $produk->rating ?? '0.0' }} 
+                                @if($produk->reviews && $produk->reviews->count() > 0)
+                                <span class="text-muted">({{ $produk->reviews->count() }} ulasan)</span>
+                                @endif
                             </div>
                             <div style="font-size: 1.1rem; font-weight: 800; color: #8b5a2b; margin-bottom: 1rem;">
                                 Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
@@ -376,5 +403,73 @@ function removeCartItem(produkId) {
         alert('Terjadi kesalahan saat menghapus item');
     });
 }
+// Autocomplete Search logic
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    let searchTimeout;
+
+    if (searchInput && searchResults) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length === 0) {
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                fetch(`{{ route('pelanggan.dashboard') }}?q=${encodeURIComponent(query)}&autocomplete=1`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        let html = '<div style="display: flex; flex-direction: column;">';
+                        data.forEach(item => {
+                            const price = new Intl.NumberFormat('id-ID').format(item.harga_jual);
+                            const imgUrl = item.foto ? `/storage/${item.foto}` : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80';
+                            html += `
+                                <a href="{{ route('pelanggan.dashboard') }}?q=${encodeURIComponent(item.nama_produk)}" style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem 1rem; text-decoration: none; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; color: inherit;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background='transparent'">
+                                    <div style="width: 40px; height: 40px; border-radius: 6px; overflow: hidden; flex-shrink: 0; background: #eee;">
+                                        <img src="${imgUrl}" alt="${item.nama_produk}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; font-size: 0.85rem; color: #333; margin-bottom: 0.1rem;">${item.nama_produk}</div>
+                                        <div style="font-size: 0.75rem; color: #8b5a2b; font-weight: 700;">Rp ${price}</div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+                        html += '</div>';
+                        searchResults.innerHTML = html;
+                        searchResults.style.display = 'block';
+                    } else {
+                        searchResults.innerHTML = '<div style="padding: 1rem; text-align: center; color: #888; font-size: 0.85rem;">Produk tidak ditemukan</div>';
+                        searchResults.style.display = 'block';
+                    }
+                })
+                .catch(error => console.error('Search error:', error));
+            }, 300);
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+        
+        // Show dropdown when clicking input if it has value
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length > 0 && searchResults.innerHTML.trim() !== '') {
+                searchResults.style.display = 'block';
+            }
+        });
+    }
+});
 </script>
 @endsection

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produk;
-use App\Models\BomJobCosting;
+// ✅ PERBAIKAN: Disable import BomJobCosting karena tabel bom_job_costings tidak ada
+// use App\Models\BomJobCosting;
 use App\Models\BiayaBahanBaku;
 use App\Models\Btkl;
 use App\Models\Bop;

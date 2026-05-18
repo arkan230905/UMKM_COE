@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\MasterData;
 
 use App\Http\Controllers\Controller;
-use App\Models\Pelanggan;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -12,147 +12,109 @@ class PelangganTableController extends Controller
 {
     public function index()
     {
-        // 🔒 SECURITY: Get pelanggans belonging to current user with safety check
-        $query = Pelanggan::query();
-        
-        // Check if user_id column exists and filter by it
-        if (Schema::hasColumn('pelanggans', 'user_id')) {
-            $query->where('user_id', auth()->id());
-        } else {
-            // If no user_id column, return empty collection to prevent global data access
-            $pelanggans = collect();
-            return view('master-data.pelanggan.index', compact('pelanggans'));
-        }
-        
-        $pelanggans = $query->latest()->paginate(15);
-        
-        // Debug: Log pelanggan data to check password values
-        \Log::info('Pelanggan data for display:', $pelanggans->map(function($p) {
-            return [
-                'id' => $p->id,
-                'nama_pelanggan' => $p->nama_pelanggan,
-                'password' => $p->password,
-                'user_id' => $p->user_id
-            ];
-        })->toArray());
+        // 🔒 SECURITY: Get pelanggan users (registered via website)
+        // Pelanggan yang terdaftar melalui website disimpan di tabel users dengan role='pelanggan' dan user_id=null
+        // Semua owner bisa melihat semua pelanggan yang terdaftar
+        $pelanggans = User::where('role', 'pelanggan')
+            ->whereNull('user_id') // Only show pelanggan registered via website
+            ->withCount('orders')
+            ->latest()
+            ->paginate(15);
         
         return view('master-data.pelanggan.index', compact('pelanggans'));
     }
 
     public function create()
     {
-        return view('master-data.pelanggan.create');
+        // Redirect ke index dengan pesan bahwa pelanggan hanya bisa ditambah melalui registrasi
+        return redirect()->route('master-data.pelanggan.index')
+            ->with('info', 'Pelanggan hanya bisa ditambahkan melalui registrasi di website pelanggan (/pelanggan/login)');
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nama_pelanggan' => 'required|string|max:255',
-            'email' => 'required|email|unique:pelanggans,email',
-            'telepon' => 'required|string|max:20',
-            'alamat' => 'required|string',
-            'password' => 'required|string|min:6',
-            'keterangan' => 'nullable|string',
-        ]);
-
-        // Prepare data for creation
-        $pelangganData = [
-            'nama_pelanggan' => $validated['nama_pelanggan'],
-            'email' => $validated['email'],
-            'telepon' => $validated['telepon'],
-            'alamat' => $validated['alamat'],
-            'password' => $validated['password'],
-            'keterangan' => $validated['keterangan'] ?? '',
-        ];
-        
-        // Add user_id only if column exists
-        if (Schema::hasColumn('pelanggans', 'user_id')) {
-            $pelangganData['user_id'] = auth()->id(); // CRITICAL: multi-tenant isolation
-        }
-        
-        // Log data before saving for debugging
-        \Log::info('Creating Pelanggan with data:', $pelangganData);
-        
-        // Create pelanggan record
-        $pelanggan = Pelanggan::create($pelangganData);
-        
-        // Log the created pelanggan to verify password was saved
-        \Log::info('Pelanggan created successfully:', [
-            'id' => $pelanggan->id,
-            'nama_pelanggan' => $pelanggan->nama_pelanggan,
-            'password' => $pelanggan->password,
-            'user_id' => $pelanggan->user_id
-        ]);
-
+        // Prevent manual creation - pelanggan hanya bisa ditambah melalui registrasi
         return redirect()->route('master-data.pelanggan.index')
-            ->with('success', 'Pelanggan berhasil ditambahkan.');
+            ->with('error', 'Tidak bisa menambah pelanggan secara manual. Pelanggan hanya bisa ditambahkan melalui registrasi di website pelanggan.');
     }
 
-    public function edit(Pelanggan $pelanggan)
+    public function edit($id)
     {
-        // 🔒 SECURITY: Check if user owns this pelanggan (multi-tenant)
-        if (Schema::hasColumn('pelanggans', 'user_id') && $pelanggan->user_id !== auth()->id()) {
-            return redirect()->route('master-data.pelanggan.index')
-                ->with('error', 'Pelanggan tidak ditemukan atau Anda tidak memiliki akses.');
-        }
+        // 🔒 SECURITY: Get pelanggan with user_id = null (registered via website)
+        $pelanggan = User::where('role', 'pelanggan')
+            ->whereNull('user_id')
+            ->findOrFail($id);
         
         return view('master-data.pelanggan.edit', compact('pelanggan'));
     }
 
-    public function update(Request $request, Pelanggan $pelanggan)
+    public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Check if user owns this pelanggan (multi-tenant)
-        if (Schema::hasColumn('pelanggans', 'user_id') && $pelanggan->user_id !== auth()->id()) {
-            return redirect()->route('master-data.pelanggan.index')
-                ->with('error', 'Pelanggan tidak ditemukan atau Anda tidak memiliki akses.');
-        }
-        
-        $validated = $request->validate([
-            'nama_pelanggan' => 'required|string|max:255',
-            'email' => 'required|email|unique:pelanggans,email,' . $pelanggan->id,
-            'telepon' => 'required|string|max:20',
-            'alamat' => 'required|string',
-            'keterangan' => 'nullable|string',
+        // 🔒 SECURITY: Get pelanggan with user_id = null
+        $pelanggan = User::where('role', 'pelanggan')
+            ->whereNull('user_id')
+            ->findOrFail($id);
+
+        $request->validate([
+            'name'    => 'required|string|max:255',
+            'email'   => 'required|email|unique:users,email,' . $id,
+            'phone'   => 'required|string|max:20',
+            'address' => 'nullable|string',
+            'password' => 'nullable|min:6|confirmed',
         ]);
 
-        $pelanggan->update($validated);
+        $data = [
+            'name'    => $request->name,
+            'email'   => $request->email,
+            'phone'   => $request->phone,
+            'address' => $request->address,
+        ];
+
+        // Update password jika diisi
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+            $data['plain_password'] = $request->password; // CRITICAL: Also update plain password
+        }
+
+        $pelanggan->update($data);
 
         return redirect()->route('master-data.pelanggan.index')
-            ->with('success', 'Pelanggan berhasil diperbarui.');
+            ->with('success', 'Data pelanggan berhasil diupdate!');
     }
 
-    public function destroy(Pelanggan $pelanggan)
+    public function destroy($id)
     {
-        // 🔒 SECURITY: Check if user owns this pelanggan (multi-tenant)
-        if (Schema::hasColumn('pelanggans', 'user_id') && $pelanggan->user_id !== auth()->id()) {
-            return redirect()->route('master-data.pelanggan.index')
-                ->with('error', 'Pelanggan tidak ditemukan atau Anda tidak memiliki akses.');
-        }
+        // 🔒 SECURITY: Get pelanggan with user_id = null
+        $pelanggan = User::where('role', 'pelanggan')
+            ->whereNull('user_id')
+            ->findOrFail($id);
         
+        // Cek apakah pelanggan punya order
+        if ($pelanggan->orders()->count() > 0) {
+            return back()->with('error', 'Tidak bisa menghapus pelanggan yang sudah memiliki pesanan!');
+        }
+
         $pelanggan->delete();
 
         return redirect()->route('master-data.pelanggan.index')
-            ->with('success', 'Pelanggan berhasil dihapus.');
+            ->with('success', 'Data pelanggan berhasil dihapus!');
     }
 
     public function resetPassword($id)
     {
-        // Find pelanggan with safety check
-        $pelanggan = Pelanggan::findOrFail($id);
+        // 🔒 SECURITY: Get pelanggan with user_id = null
+        $pelanggan = User::where('role', 'pelanggan')
+            ->whereNull('user_id')
+            ->findOrFail($id);
         
-        // 🔒 SECURITY: Check if user owns this pelanggan (multi-tenant)
-        if (Schema::hasColumn('pelanggans', 'user_id') && $pelanggan->user_id !== auth()->id()) {
-            return redirect()->route('master-data.pelanggan.index')
-                ->with('error', 'Pelanggan tidak ditemukan atau Anda tidak memiliki akses.');
-        }
-        
-        // Reset password to default (you might want to generate a random password)
-        $newPassword = 'password123'; // Change as needed
-        
-        // Note: Pelanggan table doesn't have password field, so this might be for related user account
-        // You might need to implement password reset logic based on your requirements
+        // Reset password to default
+        $newPassword = 'password123';
+        $pelanggan->update([
+            'password' => Hash::make($newPassword),
+            'plain_password' => $newPassword, // CRITICAL: Also update plain password
+        ]);
         
         return redirect()->route('master-data.pelanggan.index')
-            ->with('success', 'Password pelanggan berhasil direset.');
+            ->with('success', 'Password pelanggan berhasil direset ke: ' . $newPassword);
     }
 }
