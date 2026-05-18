@@ -89,7 +89,7 @@ class BtklController extends Controller
             // Calculate statistics
             $totalProses = $btkls->count();
             $totalBiayaPerProduk = $btkls->sum('biaya_per_produk');
-            $rataRataTarif = $totalProses > 0 ? $btkls->sum('tarif_btkl') / $totalProses : 0;
+            $rataRataTarif = $totalProses > 0 ? $btkls->sum('tarif_per_jam') / $totalProses : 0;
             $rataRataKapasitas = $totalProses > 0 ? $btkls->sum('kapasitas_per_jam') / $totalProses : 0;
             $rataRataBiayaPerUnit = $totalProses > 0 ? $totalBiayaPerProduk / $totalProses : 0;
 
@@ -138,7 +138,6 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             'nama_btkl'        => 'required|string|max:255',
             'jabatan_id'       => 'required|exists:jabatans,id',
             'satuan'           => 'required|in:Jam,Unit,Batch',
-            'kapasitas_per_jam'=> 'required|integer|min:0',
             'deskripsi_proses' => 'nullable|string',
         ]);
 
@@ -162,13 +161,8 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
 
             $btkl = Btkl::create($validated);
 
-            // Calculate biaya BTKL per produk
-            // FIXED: Use $validated instead of $btkl to ensure we get the correct value
-            $biayaBtklPerProduk = 0;
-            if ($validated['kapasitas_per_jam'] > 0) {
-                $biayaBtklPerProduk = $tarifBtkl / $validated['kapasitas_per_jam'];
-            }
-
+            // Create ProsesProduksi record without biaya_per_produk calculation
+            // since user wants to use per-product cost allocation instead
             $prosesProduksi = ProsesProduksi::create([
                 'user_id'         => $userId,
                 'kode_proses'     => $validated['kode_proses'],
@@ -176,10 +170,10 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
                 'deskripsi'       => $validated['deskripsi_proses'] ?? null,
                 'tarif_btkl'      => $tarifBtkl,
                 'satuan_btkl'     => $validated['satuan'],
-                'kapasitas_per_jam'=> $validated['kapasitas_per_jam'],
                 'jabatan_id'      => $validated['jabatan_id'],
                 'btkl_id'         => $btkl->id, // CRITICAL: Link to Btkl record
-                'biaya_btkl_per_produk' => $biayaBtklPerProduk,
+                'kapasitas_per_jam' => 0, // Default value
+                'biaya_btkl_per_produk' => 0, // Set to 0 since using per-product allocation
             ]);
 
             // ✅ PERBAIKAN: Disable BomSyncService karena menyebabkan error dengan tabel kode_proses
@@ -235,7 +229,6 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             'nama_btkl'        => 'required|string|max:255',
             'jabatan_id'       => 'required|exists:jabatans,id',
             'satuan'           => 'required|in:Jam,Unit,Batch',
-            'kapasitas_per_jam'=> 'required|integer|min:0',
             'deskripsi_proses' => 'nullable|string',
         ]);
 
@@ -266,7 +259,7 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
                     'deskripsi'        => $btkl->deskripsi_proses,
                     'tarif_btkl'       => $tarifBtkl,
                     'satuan_btkl'      => $btkl->satuan,
-                    'kapasitas_per_jam'=> $btkl->kapasitas_per_jam,
+                    'kapasitas_per_jam' => 0, // Default value
                 ]);
             }
 

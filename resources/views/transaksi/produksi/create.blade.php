@@ -70,7 +70,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">📈 Jumlah Produksi Per Hari</label>
-                                <input type="number" name="qty_produksi" id="qty_produksi" step="0.01" class="form-control form-control-lg" readonly>
+                                <input type="number" name="qty_produksi" id="qty_produksi" step="1" class="form-control form-control-lg" readonly>
                                 <small class="text-muted">Otomatis dihitung: Produksi Bulanan ÷ Hari Produksi</small>
                             </div>
                         </div>
@@ -247,11 +247,11 @@ function formatRupiah(amount) {
 function calculateDailyProduction() {
     const jumlahBulanan = parseFloat(document.getElementById('jumlah_produksi_bulanan').value) || 0;
     const hariBulanan = parseFloat(document.getElementById('hari_produksi_bulanan').value) || 0;
-    
+
     if (jumlahBulanan > 0 && hariBulanan > 0) {
-        const qtyPerHari = jumlahBulanan / hariBulanan;
-        document.getElementById('qty_produksi').value = qtyPerHari.toFixed(2);
-        
+        const qtyPerHari = Math.floor(jumlahBulanan / hariBulanan);
+        document.getElementById('qty_produksi').value = qtyPerHari;
+
         // Recalculate cost breakdown with new daily quantity
         calculateCostBreakdown();
     } else {
@@ -308,70 +308,25 @@ function calculateCostBreakdown() {
     const btklHtml = currentBomData.btkl.map(btkl => {
         const totalPerProduksi = btkl.harga_per_unit * qty;
         totalBtkl += totalPerProduksi;
-        
-        // Calculate hours needed for production
-        const kapasitasPerJam = btkl.kapasitas_per_jam || 1;
-        const jamDiperlukanExact = qty / kapasitasPerJam;
-        
-        // Round up hours: if < 1 hour = 1 hour, if > 1 hour = round up to next hour
-        const jamDiperlukan = jamDiperlukanExact <= 1 ? 1 : Math.ceil(jamDiperlukanExact);
-        
-        // Add warning if hours required is too high (more than 8 hours)
-        let warningClass = '';
-        let warningText = '';
-        if (jamDiperlukan > 8) {
-            warningClass = 'text-danger';
-            warningText = ' ⚠️ Melebihi jam kerja normal!';
-        } else if (jamDiperlukan > 6) {
-            warningClass = '';
-            warningText = ' ⚠️ Mendekati batas jam kerja';
-        }
-        
+
         return `
             <tr>
                 <td>
                     <strong>${btkl.nama}</strong>
-                    <br><small style="color: #a0826d;">Kapasitas: ${kapasitasPerJam} unit/jam</small>
-                    <br><small class="${warningClass || ''}" style="${!warningClass ? 'color: #a0826d;' : ''}">Jam diperlukan: ${jamDiperlukan} jam${warningText}</small>
                 </td>
                 <td>
                     ${formatRupiah(btkl.harga_per_unit)}
                     <br><small class="text-muted">(${formatRupiah(btkl.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
-                    ${btkl.tarif_per_jam ? `<br><small style="color: #a0826d;">Tarif: ${formatRupiah(btkl.tarif_per_jam)}/jam</small>` : ''}
                 </td>
                 <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
             </tr>
         `;
     }).join('');
-    
+
     if (btklHtml) {
-        // Calculate total hours required with rounding
-        let totalJamDiperlukan = 0;
-        currentBomData.btkl.forEach(btkl => {
-            const kapasitasPerJam = btkl.kapasitas_per_jam || 1;
-            const jamDiperlukanExact = qty / kapasitasPerJam;
-            // Apply same rounding logic: if < 1 hour = 1 hour, if > 1 hour = round up
-            const jamDiperlukan = jamDiperlukanExact <= 1 ? 1 : Math.ceil(jamDiperlukanExact);
-            totalJamDiperlukan += jamDiperlukan;
-        });
-        
-        // Add warning class for total hours
-        let totalHoursClass = 'table-info';
-        let totalHoursWarning = '';
-        if (totalJamDiperlukan > 16) {
-            totalHoursClass = 'table-danger';
-            totalHoursWarning = ' ⚠️ Total jam kerja sangat tinggi!';
-        } else if (totalJamDiperlukan > 12) {
-            totalHoursClass = 'table-warning';
-            totalHoursWarning = ' ⚠️ Total jam kerja tinggi';
-        }
-        
         document.getElementById('btkl-list').innerHTML = btklHtml + `
-            <tr class="${totalHoursClass}">
-                <td colspan="2" class="fw-bold">
-                    Total BTKL
-                    <br><small>Total jam diperlukan: ${totalJamDiperlukan} jam${totalHoursWarning}</small>
-                </td>
+            <tr class="table-warning">
+                <td colspan="2" class="fw-bold">Total BTKL</td>
                 <td class="fw-bold">${formatRupiah(totalBtkl)}</td>
             </tr>
         `;

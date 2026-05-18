@@ -20,6 +20,7 @@ class ProsesProduksi extends Model
         'satuan_btkl',
         'kapasitas_per_jam',
         'jabatan_id',
+        'btkl_id',
         'biaya_btkl_per_produk',
     ];
 

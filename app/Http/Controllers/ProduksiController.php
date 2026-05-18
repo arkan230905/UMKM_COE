@@ -641,14 +641,10 @@ return response()->json([
                 $proses = $hpp->prosesProduksi;
                 if ($proses) {
                     $tarif = $proses->tarif_btkl ?? 0;
-                    $kapasitas = $proses->kapasitas_per_jam ?? 1;
-                    $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
 
                     $breakdown['btkl'][] = [
                         'nama' => $proses->nama_proses ?? 'Proses Produksi',
-                        'harga_per_unit' => $biayaPerProduk,
-                        'kapasitas_per_jam' => $kapasitas,
-                        'tarif_per_jam' => $tarif
+                        'harga_per_unit' => $tarif
                     ];
                 }
             }
@@ -688,21 +684,8 @@ return response()->json([
                                     ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                     : 0;
 
-                                // Determine COA - prioritize bahan pendukung's COA if available
-                                if ($bahanPendukungId) {
-                                    $bahanPendukung = \App\Models\BahanPendukung::find($bahanPendukungId);
-                                    if ($bahanPendukung && $bahanPendukung->coa_persediaan_id) {
-                                        $coa = \App\Models\Coa::where('kode_akun', $bahanPendukung->coa_persediaan_id)->first();
-                                        $coaInfo = [
-                                            'kode' => $bahanPendukung->coa_persediaan_id,
-                                            'nama' => $coa ? $coa->nama_akun : 'Persediaan ' . $namaKomponen
-                                        ];
-                                    } else {
-                                        $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
-                                    }
-                                } else {
-                                    $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
-                                }
+                                // Determine COA - always use BOP expense accounts, not bahan pendukung COA
+                                $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
 
                                 // Add to BOP display array
                                 $breakdown['bop'][] = [
@@ -773,39 +756,48 @@ return response()->json([
     private function determineBopCoaByKeyword($namaKomponen)
     {
         $namaLower = strtolower($namaKomponen);
-        
+
         // Mapping kata kunci ke COA (urutan penting - yang lebih spesifik di atas)
         $mappings = [
             // Listrik
-            ['keywords' => ['listrik', 'electricity', 'power', 'electric'], 'kode' => '531', 'nama' => 'Biaya Listrik'],
-            
+            ['keywords' => ['listrik', 'electricity', 'power', 'electric'], 'kode' => '550', 'nama' => 'BOP - Listrik'],
+
             // Gas/BBM
-            ['keywords' => ['gas', 'bbm', 'bahan bakar', 'fuel', 'lpg', 'bensin', 'solar'], 'kode' => '532', 'nama' => 'Biaya Gas/BBM'],
-            
+            ['keywords' => ['gas', 'bbm', 'bahan bakar', 'fuel', 'lpg', 'bensin', 'solar'], 'kode' => '552', 'nama' => 'BOP - Gas'],
+
+            // Air
+            ['keywords' => ['air', 'water', 'pdam'], 'kode' => '551', 'nama' => 'BOP - Air'],
+
+            // Susu
+            ['keywords' => ['susu', 'milk'], 'kode' => '530', 'nama' => 'BOP - Susu'],
+
+            // Keju
+            ['keywords' => ['keju', 'cheese'], 'kode' => '531', 'nama' => 'BOP - Keju'],
+
+            // Kemasan
+            ['keywords' => ['kemasan', 'packaging', 'packing', 'bungkus', 'plastik', 'kardus', 'box', 'cup', 'gelas'], 'kode' => '532', 'nama' => 'BOP - Kemasan'],
+
             // Penyusutan Mesin
             ['keywords' => ['penyusutan', 'depresiasi', 'depreciation', 'mesin', 'machine', 'equipment'], 'kode' => '533', 'nama' => 'Biaya Penyusutan Mesin'],
-            
+
             // Maintenance/Pemeliharaan
             ['keywords' => ['maintenance', 'pemeliharaan', 'perawatan', 'repair', 'service'], 'kode' => '534', 'nama' => 'Biaya Maintenance'],
-            
+
             // Gaji Mandor/Supervisor
             ['keywords' => ['mandor', 'supervisor', 'gaji', 'salary', 'upah'], 'kode' => '535', 'nama' => 'Gaji Mandor/Supervisor'],
-            
-            // Air & Kebersihan
-            ['keywords' => ['air', 'water', 'pdam', 'kebersihan', 'cleaning', 'sanitasi'], 'kode' => '536', 'nama' => 'Biaya Air & Kebersihan'],
-            
+
+            // Kebersihan
+            ['keywords' => ['kebersihan', 'cleaning', 'sanitasi'], 'kode' => '536', 'nama' => 'Biaya Air & Kebersihan'],
+
             // Sewa
             ['keywords' => ['sewa', 'rent', 'rental', 'lease'], 'kode' => '537', 'nama' => 'Biaya Sewa'],
-            
+
             // Asuransi
             ['keywords' => ['asuransi', 'insurance'], 'kode' => '538', 'nama' => 'Biaya Asuransi'],
-            
-            // Bahan Pendukung Produksi (Susu, Keju, Cup, dll)
-            ['keywords' => ['susu', 'milk', 'keju', 'cheese', 'cup', 'gelas', 'topping', 'coklat', 'chocolate', 'meses', 'sprinkle'], 'kode' => '1151', 'nama' => 'Persediaan Bahan Pendukung'],
-            
-            // Packaging/Kemasan
-            ['keywords' => ['packaging', 'kemasan', 'packing', 'bungkus', 'plastik', 'kardus', 'box'], 'kode' => '539', 'nama' => 'Biaya Packaging'],
-            
+
+            // Topping/Coklat/Meses/Sprinkle (fallback to kemasan)
+            ['keywords' => ['topping', 'coklat', 'chocolate', 'meses', 'sprinkle'], 'kode' => '532', 'nama' => 'BOP - Kemasan'],
+
             // Transportasi
             ['keywords' => ['transport', 'angkut', 'kirim', 'delivery'], 'kode' => '540', 'nama' => 'Biaya Transportasi'],
         ];
@@ -873,15 +865,11 @@ return response()->json([
             $proses = $hpp->prosesProduksi;
             if ($proses) {
                 $tarif = $proses->tarif_btkl ?? 0;
-                $kapasitas = $proses->kapasitas_per_jam ?? 1;
-                $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
 
                 $breakdown['btkl'][] = [
                     'proses_produksi_id' => $proses->id,
                     'nama_proses' => $proses->nama_proses,
-                    'tarif_per_jam' => $tarif,
-                    'kapasitas_per_jam' => $kapasitas,
-                    'subtotal' => $biayaPerProduk,
+                    'subtotal' => $tarif,
                 ];
             }
         }
@@ -1194,8 +1182,18 @@ return response()->json([
             }
 
             if ($totalBOP > 0) {
-                // Create individual journal entries for each BOP component with specific COA
-                $this->createBOPJournalEntries($produksi, $tanggal, $user_id);
+                // KREDIT: Pers. Barang Dalam Proses - BOP
+                \App\Models\JurnalUmum::create([
+                    'user_id' => $user_id,
+                    'coa_id' => $this->getCoaIdByKode('1173'),
+                    'tanggal' => $tanggal,
+                    'keterangan' => 'Transfer WIP BOP ke Barang Jadi',
+                    'debit' => 0,
+                    'kredit' => $totalBOP,
+                    'referensi' => $produksi->id,
+                    'tipe_referensi' => 'produksi_transfer',
+                    'created_by' => $user_id,
+                ]);
             }
         }
     }
@@ -1335,20 +1333,16 @@ return response()->json([
         $hppBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $user_id)
             ->with('prosesProduksi')
             ->get();
-        
+
         foreach ($hppBtkl as $btkl) {
             if ($btkl->prosesProduksi) {
-                // Get tarif from proses_produksis table
-                $tarifPerJam = $btkl->prosesProduksi->tarif_btkl ?? 0;
-                $kapasitasPerJam = $btkl->prosesProduksi->kapasitas_per_jam ?? 1;
-                
-                // Calculate biaya per unit
-                $biayaPerUnit = $kapasitasPerJam > 0 ? $tarifPerJam / $kapasitasPerJam : 0;
-                $totalBiaya = $biayaPerUnit * $produksi->qty_produksi;
-                
+                // Get tarif from proses_produksis table (now represents biaya per produk)
+                $tarifPerProduk = $btkl->prosesProduksi->tarif_btkl ?? 0;
+                $totalBiaya = $tarifPerProduk * $produksi->qty_produksi;
+
                 $breakdown['btkl'][] = [
                     'nama' => $btkl->prosesProduksi->nama_proses,
-                    'biaya_per_unit' => $biayaPerUnit,
+                    'biaya_per_unit' => $tarifPerProduk,
                     'total_biaya' => $totalBiaya
                 ];
             }

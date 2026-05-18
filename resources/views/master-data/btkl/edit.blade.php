@@ -121,21 +121,6 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="kapasitas_per_jam" class="form-label">Kapasitas per Jam <span class="text-danger">*</span></label>
-                        <input type="number" 
-                               name="kapasitas_per_jam" 
-                               id="kapasitas_per_jam" 
-                               class="form-control @error('kapasitas_per_jam') is-invalid @enderror" 
-                               value="{{ old('kapasitas_per_jam', $btkl->kapasitas_per_jam) }}"
-                               min="0"
-                               required>
-                        @error('kapasitas_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="form-text text-muted">Berapa pcs bisa diproduksi per jam</small>
-                    </div>
-
                     <div class="col-md-12">
                         <label for="deskripsi_proses" class="form-label">Deskripsi Proses</label>
                         <textarea name="deskripsi_proses" 
@@ -146,25 +131,6 @@
                         @error('deskripsi_proses')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Biaya Per Produk <span class="text-info">(Otomatis)</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp/pcs</span>
-                            <input type="text" 
-                                   id="biaya_per_produk_display" 
-                                   class="form-control" 
-                                   value="{{ $btkl->biaya_per_produk_formatted }}"
-                                   readonly>
-                        </div>
-                        <small class="form-text text-muted">Dihitung otomatis: Tarif BTKL ÷ Kapasitas/Jam</small>
-                        
-                        <div id="biayaPerProdukDisplay" class="mt-2">
-                            <div class="alert alert-warning py-2">
-                                <span id="biayaPerProdukText">Rp {{ number_format($btkl->tarif_per_jam, 0, ',', '.') }} ÷ {{ $btkl->kapasitas_per_jam }} pcs = Rp {{ $btkl->biaya_per_produk_formatted }}</span>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="col-12">
@@ -192,9 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tarifDisplay = document.getElementById('tarif_per_jam_display');
     const tarifCalculationDisplay = document.getElementById('tarifCalculationDisplay');
     const tarifCalculationText = document.getElementById('tarifCalculationText');
-    const kapasitasInput = document.getElementById('kapasitas_per_jam');
-    const biayaPerProdukDisplay = document.getElementById('biaya_per_produk_display');
-    const biayaPerProdukText = document.getElementById('biayaPerProdukText');
     
     let currentTarifBtkl = {{ $btkl->tarif_per_jam }};
 
@@ -212,23 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
             tarifCalculationDisplay.style.display = 'none';
             currentTarifBtkl = 0;
         }
-        
-        updateBiayaPerProduk();
-    }
-
-    function updateBiayaPerProduk() {
-        const kapasitas = parseInt(kapasitasInput.value) || 0;
-        const tarif = currentTarifBtkl;
-        
-        if (kapasitas > 0 && tarif > 0) {
-            const biayaPerProduk = tarif / kapasitas;
-            biayaPerProdukDisplay.value = formatNumberClean(biayaPerProduk);
-            biayaPerProdukText.textContent = 'Rp ' + formatNumberClean(tarif) + ' / ' + kapasitas + ' pcs = ' + formatRupiahClean(biayaPerProduk);
-            biayaPerProdukDisplay.parentElement.nextElementSibling.style.display = 'block';
-        } else {
-            biayaPerProdukDisplay.value = '0';
-            biayaPerProdukDisplay.parentElement.nextElementSibling.style.display = 'none';
-        }
     }
 
     jabatanSelect.addEventListener('change', function() {
@@ -241,8 +187,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateTarifCalculation(null);
         }
     });
-    
-    kapasitasInput.addEventListener('input', updateBiayaPerProduk);
     
     // Clean number formatting function
     function formatNumberClean(number) {

@@ -174,22 +174,8 @@ class BahanPendukungController extends Controller
         // Create bahan pendukung
         $bahanPendukung = BahanPendukung::create($validated);
         
-        // Create initial stock movement if stock > 0
-        if (($request->stok ?? 0) > 0) {
-            \App\Models\StockMovement::create([
-                'item_type' => 'support',
-                'item_id' => $bahanPendukung->id,
-                'tanggal' => now()->format('Y-m-d'),
-                'direction' => 'in',
-                'qty' => $request->stok,
-                'unit' => $bahanPendukung->satuan->nama ?? 'Unit',
-                'unit_cost' => $request->harga_satuan ?? 0,
-                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
-                'ref_type' => 'initial_stock',
-                'ref_id' => 0,
-                'keterangan' => 'Stok awal ' . $request->nama_bahan,
-            ]);
-        }
+        // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
+        // Do not create stock movement here to avoid duplication
 
         return redirect()->route('master-data.bahan-pendukung.index')
             ->with('success', 'Bahan pendukung berhasil ditambahkan');

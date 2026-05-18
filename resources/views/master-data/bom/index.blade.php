@@ -194,11 +194,9 @@ function getTotalBtkl($produkId) {
     
     foreach ($btkl as $item) {
         if ($item->prosesProduksi) {
+            // Use tarif_btkl directly as biaya per produk
             $tarif = $item->prosesProduksi->tarif_btkl ?? 0;
-            $kapasitas = $item->prosesProduksi->kapasitas_per_jam ?? 1;
-            
-            $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
-            $total += $biayaPerProduk;
+            $total += $tarif;
         }
     }
     return $total;

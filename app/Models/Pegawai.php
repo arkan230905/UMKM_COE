@@ -27,7 +27,8 @@ class Pegawai extends Model
         'kategori_id',
         'kategori',
         'gaji_pokok',
-        'tarif_per_produk', // PERBAIKAN: Mengganti tarif_per_jam
+        'tarif_per_jam',
+        'tarif_per_produk',
         'tunjangan',
         'asuransi',
         'jenis_pegawai',

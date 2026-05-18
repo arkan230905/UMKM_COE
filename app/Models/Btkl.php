@@ -22,7 +22,8 @@ class Btkl extends Model
         'satuan',
         'kapasitas_per_jam',
         'deskripsi_proses',
-        'is_active'
+        'is_active',
+        'biaya_per_produk'
     ];
     
     /**
