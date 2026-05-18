@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('reviews')) {
+            return;
+        }
+
         Schema::table('reviews', function (Blueprint $table) {
             // Check if the unique constraint exists before trying to drop it
             $uniqueExists = \DB::select("SELECT COUNT(*) as count FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'reviews' AND index_name = 'reviews_order_id_user_id_unique'");

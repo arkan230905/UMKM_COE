@@ -13,8 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('kategori_bahan_pendukung', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
-            $table->index('user_id');
+            if (!Schema::hasColumn('kategori_bahan_pendukung', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+                $table->index('user_id');
+            }
         });
 
         // Set existing records to user_id = 1 (default admin)

@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('jurnal_umum', function (Blueprint $table) {
-            $table->string('tipe_referensi')->nullable()->after('kredit');
-            $table->string('referensi')->nullable()->after('tipe_referensi');
-            $table->unsignedBigInteger('created_by')->nullable()->after('referensi');
+            if (!Schema::hasColumn('jurnal_umum', 'tipe_referensi')) {
+                $table->string('tipe_referensi')->nullable()->after('kredit');
+            }
+            if (!Schema::hasColumn('jurnal_umum', 'referensi')) {
+                $table->string('referensi')->nullable()->after('tipe_referensi');
+            }
+            if (!Schema::hasColumn('jurnal_umum', 'created_by')) {
+                $table->unsignedBigInteger('created_by')->nullable()->after('referensi');
+            }
         });
     }
 
