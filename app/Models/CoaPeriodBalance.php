@@ -14,12 +14,16 @@ class CoaPeriodBalance extends Model
         'kode_akun',
         'coa_period_id', // Changed from period_id to coa_period_id
         'saldo_awal',
+        'debit',
+        'credit',
         'saldo_akhir',
         'is_posted',
     ];
 
     protected $casts = [
         'saldo_awal' => 'decimal:2',
+        'debit' => 'decimal:2',
+        'credit' => 'decimal:2',
         'saldo_akhir' => 'decimal:2',
         'is_posted' => 'boolean',
     ];
