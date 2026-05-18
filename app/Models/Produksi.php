@@ -11,6 +11,7 @@ class Produksi extends Model
 
     protected $fillable = [
         'user_id',  // CRITICAL: multi-tenant isolation
+        'pegawai_id',  // Track which employee produced this
         'produk_id',
         'coa_persediaan_barang_jadi_id',
         'tanggal',

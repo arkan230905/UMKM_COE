@@ -68,7 +68,24 @@ class PenggajianController extends Controller
             ->where('user_id', auth()->id())
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
-        return view('transaksi.penggajian.create', compact('pegawais', 'kasbank'));
+        
+        // Log untuk debugging multi-tenant
+        \Log::info('create form loaded', [
+            'user_id' => auth()->id(),
+            'user_name' => auth()->user()->name ?? 'unknown',
+            'pegawais_count' => $pegawais->count(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
+        // Return view dengan cache-busting headers
+        return response()
+            ->view('transaksi.penggajian.create', compact('pegawais', 'kasbank'))
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate, private, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('X-Frame-Options', 'SAMEORIGIN')
+            ->header('X-UA-Compatible', 'IE=edge');
     }
 
     /**
@@ -84,7 +101,120 @@ class PenggajianController extends Controller
             ->where('user_id', auth()->id())
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
-        return view('transaksi.penggajian.create-produk', compact('pegawais', 'kasbank'));
+        
+        // Log untuk debugging multi-tenant
+        \Log::info('createProduk form loaded', [
+            'user_id' => auth()->id(),
+            'user_name' => auth()->user()->name ?? 'unknown',
+            'pegawais_count' => $pegawais->count(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        
+        // Return view dengan cache-busting headers
+        return response()
+            ->view('transaksi.penggajian.create-produk', compact('pegawais', 'kasbank'))
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate, private, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('X-Frame-Options', 'SAMEORIGIN')
+            ->header('X-UA-Compatible', 'IE=edge');
+    }
+
+    /**
+     * API endpoint to get total produksi for a pegawai in a specific month
+     * Mengambil TOTAL BULAN (bukan per hari)
+     */
+    public function getTotalProduksiByMonth($pegawaiId, $bulan, $tahun)
+    {
+        try {
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $pegawai = Pegawai::where('user_id', auth()->id())
+                ->findOrFail($pegawaiId);
+            
+            // Hitung tanggal awal dan akhir bulan
+            $tanggalAwal = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
+            $tanggalAkhir = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
+            
+            // Query produksi berdasarkan bulan, tahun, dan pegawai
+            // Ambil jumlah_produksi_bulanan dari tabel produksis
+            // Ini adalah kolom yang berisi total produksi bulanan (bukan qty harian)
+            $produksi = \App\Models\Produksi::where('user_id', auth()->id())
+                ->where('pegawai_id', $pegawaiId)
+                ->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir])
+                ->orderBy('tanggal', 'desc')
+                ->first();
+            
+            // Jika tidak ada record, return 0
+            if (!$produksi) {
+                \Log::info('getTotalProduksiByMonth - No record found', [
+                    'pegawai_id' => $pegawaiId,
+                    'pegawai_nama' => $pegawai->nama,
+                    'bulan' => $bulan,
+                    'tahun' => $tahun,
+                    'tanggal_awal' => $tanggalAwal->format('Y-m-d'),
+                    'tanggal_akhir' => $tanggalAkhir->format('Y-m-d'),
+                ]);
+                
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'pegawai_id' => $pegawaiId,
+                        'pegawai_nama' => $pegawai->nama,
+                        'bulan' => str_pad($bulan, 2, '0', STR_PAD_LEFT),
+                        'tahun' => $tahun,
+                        'tanggal_awal' => $tanggalAwal->format('Y-m-d'),
+                        'tanggal_akhir' => $tanggalAkhir->format('Y-m-d'),
+                        'total_produksi' => 0,
+                        'jumlah_transaksi' => 0,
+                        'hari_produksi_bulanan' => 0,
+                    ]
+                ]);
+            }
+            
+            // Ambil jumlah_produksi_bulanan dari record
+            $totalProduksi = (int) $produksi->jumlah_produksi_bulanan ?? 0;
+            $hariProduksiBulanan = (int) $produksi->hari_produksi_bulanan ?? 26;
+            
+            \Log::info('getTotalProduksiByMonth', [
+                'pegawai_id' => $pegawaiId,
+                'pegawai_nama' => $pegawai->nama,
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'tanggal_awal' => $tanggalAwal->format('Y-m-d'),
+                'tanggal_akhir' => $tanggalAkhir->format('Y-m-d'),
+                'total_produksi' => $totalProduksi,
+                'hari_produksi_bulanan' => $hariProduksiBulanan,
+            ]);
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'pegawai_id' => $pegawaiId,
+                    'pegawai_nama' => $pegawai->nama,
+                    'bulan' => str_pad($bulan, 2, '0', STR_PAD_LEFT),
+                    'tahun' => $tahun,
+                    'tanggal_awal' => $tanggalAwal->format('Y-m-d'),
+                    'tanggal_akhir' => $tanggalAkhir->format('Y-m-d'),
+                    'total_produksi' => $totalProduksi,
+                    'jumlah_transaksi' => 1,
+                    'hari_produksi_bulanan' => $hariProduksiBulanan,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in getTotalProduksiByMonth', [
+                'pegawai_id' => $pegawaiId,
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 404);
+        }
     }
 
     /**
@@ -93,52 +223,31 @@ class PenggajianController extends Controller
     public function getEmployeeData($pegawaiId)
     {
         try {
-            $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
-            
-            // Debug logging
-            \Log::info('getEmployeeData called', [
-                'pegawai_id' => $pegawaiId,
-                'pegawai_nama' => $pegawai->nama,
-                'jabatan_id' => $pegawai->jabatan_id,
-                'jabatan_relasi_loaded' => $pegawai->relationLoaded('jabatanRelasi'),
-                'jabatan_relasi_value' => $pegawai->jabatanRelasi ? $pegawai->jabatanRelasi->nama : 'NULL',
-            ]);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $pegawai = Pegawai::with('jabatanRelasi')
+                ->where('user_id', auth()->id())
+                ->findOrFail($pegawaiId);
             
             // Get current salary data from qualification (jabatan)
             $jabatan = $pegawai->jabatanRelasi;
             if ($jabatan) {
-                $gajiPokok = $jabatan->gaji_pokok ?? $pegawai->gaji_pokok ?? 0;
-                $tarif = $jabatan->tarif_produk ?? $pegawai->tarif_per_jam ?? 0;
+                $tarif = $jabatan->tarif_produk ?? 0;
                 $tunjanganJabatan = $jabatan->tunjangan ?? 0;
                 $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
                 $asuransi = $jabatan->asuransi ?? 0;
-                
-                \Log::info('Tunjangan dari jabatan', [
-                    'tunjangan_transport' => $tunjanganTransport,
-                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
-                ]);
             } else {
                 // Fallback to pegawai stored values
-                $gajiPokok = $pegawai->gaji_pokok ?? 0;
                 $tarif = $pegawai->tarif_per_jam ?? 0;
                 $tunjanganJabatan = $pegawai->tunjangan_jabatan ?? 0;
                 $tunjanganTransport = $pegawai->tunjangan_transport ?? 0;
                 $tunjanganKonsumsi = $pegawai->tunjangan_konsumsi ?? 0;
                 $asuransi = $pegawai->asuransi ?? 0;
-                
-                \Log::warning('Fallback to pegawai stored values - jabatan is NULL', [
-                    'pegawai_id' => $pegawaiId,
-                    'tunjangan_transport' => $tunjanganTransport,
-                    'tunjangan_konsumsi' => $tunjanganKonsumsi,
-                ]);
             }
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
             
             return response()->json([
-                'jenis' => strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl'),
-                'gaji_pokok' => $gajiPokok,
                 'tarif' => $tarif,
                 'tunjangan_jabatan' => $tunjanganJabatan,
                 'tunjangan_transport' => $tunjanganTransport,
@@ -146,17 +255,18 @@ class PenggajianController extends Controller
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
-                'jabatan_nama' => $pegawai->jabatan_nama ?? 'Staff'
+                'jabatan_nama' => $pegawai->jabatanRelasi?->nama ?? 'Staff'
             ]);
             
         } catch (\Exception $e) {
             \Log::error('Error in getEmployeeData', [
                 'pegawai_id' => $pegawaiId,
+                'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
             ]);
             
             return response()->json([
-                'error' => 'Employee not found',
+                'error' => 'Employee not found or access denied',
                 'message' => $e->getMessage()
             ], 404);
         }
