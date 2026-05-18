@@ -17,8 +17,14 @@ return new class extends Migration
             $table->index('user_id');
         });
 
-        // Set existing records to user_id = 1 (default admin)
-        DB::table('kategori_bahan_pendukung')->whereNull('user_id')->update(['user_id' => 1]);
+        // Set existing records to user_id = 1 (default admin) ONLY if user exists
+        $firstUser = DB::table('users')->first();
+        if ($firstUser) {
+            DB::table('kategori_bahan_pendukung')->whereNull('user_id')->update(['user_id' => $firstUser->id]);
+        } else {
+            // If no users exist, delete orphaned records
+            DB::table('kategori_bahan_pendukung')->whereNull('user_id')->delete();
+        }
     }
 
     /**

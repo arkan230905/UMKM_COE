@@ -11,6 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // SKIP: Tabel accounts tidak digunakan, kita pakai tabel coas
+        // Migrasi ini di-skip untuk menghindari konflik
+        if (Schema::hasTable('accounts')) {
+            return; // Skip jika tabel sudah ada
+        }
+        
+        // Jika tabel belum ada, buat tabel accounts
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
             // Kolom Identitas & Relasi
