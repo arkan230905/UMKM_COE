@@ -17,8 +17,11 @@ return new class extends Migration
             $table->index('user_id');
         });
 
-        // Set existing records to user_id = 1 (default admin)
-        DB::table('kategori_bahan_pendukung')->whereNull('user_id')->update(['user_id' => 1]);
+        // Set existing records to user_id = 1 (default admin) if user exists
+        $adminExists = DB::table('users')->where('id', 1)->exists();
+        if ($adminExists) {
+            DB::table('kategori_bahan_pendukung')->whereNull('user_id')->update(['user_id' => 1]);
+        }
     }
 
     /**
