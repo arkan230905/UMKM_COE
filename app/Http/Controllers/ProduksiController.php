@@ -770,10 +770,10 @@ return response()->json([
             ['keywords' => ['air', 'water', 'pdam'], 'kode' => '551', 'nama' => 'BOP - Air'],
 
             // Susu
-            ['keywords' => ['susu', 'milk'], 'kode' => '530', 'nama' => 'BOP - Susu'],
+            ['keywords' => ['susu', 'milk'], 'kode' => '531', 'nama' => 'BOP - Susu'],
 
             // Keju
-            ['keywords' => ['keju', 'cheese'], 'kode' => '531', 'nama' => 'BOP - Keju'],
+            ['keywords' => ['keju', 'cheese'], 'kode' => '533', 'nama' => 'BOP - Keju'],
 
             // Kemasan
             ['keywords' => ['kemasan', 'packaging', 'packing', 'bungkus', 'plastik', 'kardus', 'box', 'cup', 'gelas'], 'kode' => '532', 'nama' => 'BOP - Kemasan'],
