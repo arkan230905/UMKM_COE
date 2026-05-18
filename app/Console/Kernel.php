@@ -49,6 +49,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\FixPurchaseTotals::class,
         \App\Console\Commands\VerifyPurchaseFix::class,
         \App\Console\Commands\FixBopCoaMapping::class,
+        \App\Console\Commands\FixCoaPeriodBalanceColumn::class,
         \App\Console\Commands\CheckHPPCoaType::class,
         \App\Console\Commands\DebugLabaRugiData::class,
         \App\Console\Commands\DebugRealLabaRugi::class,

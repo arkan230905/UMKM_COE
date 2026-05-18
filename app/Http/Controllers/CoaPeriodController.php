@@ -166,7 +166,7 @@ class CoaPeriodController extends Controller
             ]);
 
             // Update status posting saldo
-            CoaPeriodBalance::where('period_id', $period->id)
+            CoaPeriodBalance::where('coa_period_id', $period->id) // Changed from period_id to coa_period_id
                 ->update(['is_posted' => false]);
 
             DB::commit();
