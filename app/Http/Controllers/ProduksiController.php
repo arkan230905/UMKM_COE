@@ -438,8 +438,8 @@ class ProduksiController extends Controller
     }
 
     /**
-
-* Start production again for completed products using last production data
+     * Start production again for completed products using last production data
+     * Menggunakan data HPP yang sama seperti store() - tidak perlu BomJobCosting
      */
     public function mulaiLagi(Request $request, StockService $stock, JournalService $journal, KonversiProduksiService $konversiService)
     {
@@ -447,85 +447,86 @@ class ProduksiController extends Controller
             'produk_id' => 'required|exists:produks,id',
         ]);
 
-        // Check if product has completed production before
+        $user_id = auth()->id();
+        $produk = Produk::where('user_id', $user_id)->findOrFail($request->produk_id);
+
+        // Ambil data produksi terakhir yang selesai untuk referensi qty
         $lastProduction = Produksi::where('produk_id', $request->produk_id)
-            ->where('status', 'selesai')
+            ->where('user_id', $user_id)
+            ->whereIn('status', ['selesai', 'completed'])
             ->orderBy('tanggal', 'desc')
             ->first();
-            
+
         if (!$lastProduction) {
             return back()->withErrors([
                 'produk_id' => 'Produk ini belum pernah menyelesaikan produksi sebelumnya.',
             ])->withInput();
         }
 
-        // Guard: pastikan produk sudah memiliki BOM dan detail
-        $bom = \App\Models\Bom::where('produk_id', $request->produk_id)
-            ->withCount('details')
-            ->first();
-        if (!$bom || (int)($bom->details_count ?? 0) === 0) {
+        // Guard: pastikan produk sudah memiliki HPP data
+        $hasHppData = \App\Models\HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)
+            ->whereHas('biayaBahanBaku', function($q) use ($produk) {
+                $q->where('produk_id', $produk->id);
+            })
+            ->exists();
+
+        if (!$hasHppData) {
             return back()->withErrors([
-                'bom' => 'Produk belum melewati perhitungan Bill Of Material. Silakan lakukan perhitungan Bill Of Material untuk produk tersebut.',
+                'hpp' => 'Produk belum memiliki data Harga Pokok Produksi. Silakan buat HPP terlebih dahulu.',
             ])->withInput();
         }
 
-        return DB::transaction(function () use ($request, $lastProduction, $stock, $journal, $konversiService) {
-            $produk = Produk::findOrFail($request->produk_id);
-            $tanggal = now()->toDateString(); // Use current date
-
-            // Use data from last production
+        return DB::transaction(function () use ($request, $produk, $user_id, $lastProduction, $journal) {
             $qtyProd = $lastProduction->qty_produksi;
-            $jumlahProduksiBulanan = $lastProduction->jumlah_produksi_bulanan;
-            $hariProduksiBulanan = $lastProduction->hari_produksi_bulanan;
+            $tanggal = now();
 
-            // Create production plan with same data as last production
+            // Gunakan getHppBreakdownForProduction - SAMA PERSIS dengan store()
+            $hppData = $this->getHppBreakdownForProduction($produk->id, $user_id);
+
+            // Hitung total biaya
+            $totalBBB = 0;
+            foreach ($hppData['bbb'] as $bbb) {
+                $totalBBB += $bbb['subtotal'];
+            }
+            $totalBTKL = 0;
+            foreach ($hppData['btkl'] as $btkl) {
+                $totalBTKL += $btkl['subtotal'];
+            }
+            $totalBOP = 0;
+            foreach ($hppData['bop'] as $bop) {
+                $totalBOP += $bop['subtotal'];
+            }
+
+            $totalBahan    = $totalBBB  * $qtyProd;
+            $totalBTKLTotal = $totalBTKL * $qtyProd;
+            $totalBOPTotal  = $totalBOP  * $qtyProd;
+            $totalBiaya    = $totalBahan + $totalBTKLTotal + $totalBOPTotal;
+
+            // Buat record produksi baru
             $produksi = Produksi::create([
-                'produk_id' => $produk->id,
-                'tanggal' => $tanggal,
-                'jumlah_produksi_bulanan' => $jumlahProduksiBulanan,
-                'hari_produksi_bulanan' => $hariProduksiBulanan,
-                'qty_produksi' => $qtyProd,
-                'status' => 'draft',
+                'produk_id'                    => $produk->id,
+                'coa_persediaan_barang_jadi_id' => $lastProduction->coa_persediaan_barang_jadi_id,
+                'tanggal'                      => $tanggal,
+                'jumlah_produksi_bulanan'      => $lastProduction->jumlah_produksi_bulanan,
+                'hari_produksi_bulanan'        => $lastProduction->hari_produksi_bulanan,
+                'qty_produksi'                 => $qtyProd,
+                'total_bahan'                  => $totalBahan,
+                'total_btkl'                   => $totalBTKLTotal,
+                'total_bop'                    => $totalBOPTotal,
+                'total_biaya'                  => $totalBiaya,
+                'status'                       => 'draft',
+                'user_id'                      => $user_id,
             ]);
 
-            // Calculate total costs from BOM data (same as original create method)
-            $bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
-            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
-            
-            // Total Biaya Bahan = Bahan Baku (Bom.details) + Bahan Pendukung (BomJobBahanPendukung)
-            $totalBahanBakuPerUnit = $bom ? $bom->details->sum('total_harga') : 0;
-            $totalBahanPendukungPerUnit = 0;
-            if ($bomJobCosting) {
-                $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('user_id', auth()->id())->where('produk_id', $bomJobCosting->produk_id)->get();
-                foreach ($bahanPendukungDetails as $detail) {
-                    $totalBahanPendukungPerUnit += $detail->subtotal;
-                }
-            }
-            $totalBahanPerUnit = $totalBahanBakuPerUnit + $totalBahanPendukungPerUnit;
-            $totalBahan = $totalBahanPerUnit * $qtyProd;
-            
-            // Total BTKL dan BOP dari BOM Job Costing
-            $totalBTKLPerUnit = 0;
-            $totalBOPPerUnit = 0;
-            
-            if ($bomJobCosting) {
-                $totalBTKLPerUnit = $bomJobCosting->total_btkl ?? 0;
-                $totalBOPPerUnit = $bomJobCosting->total_bop ?? 0;
-            }
-            
-            $totalBTKL = $totalBTKLPerUnit * $qtyProd;
-            $totalBOP = $totalBOPPerUnit * $qtyProd;
-            $totalBiaya = $totalBahan + $totalBTKL + $totalBOP;
+            // Simpan detail produksi (BBB, BTKL, BOP) - sama seperti store()
+            $this->saveProductionDetails($produksi, $hppData, $qtyProd);
 
-            $produksi->update([
-                'total_bahan' => $totalBahan,
-                'total_btkl' => $totalBTKL,
-                'total_bop' => $totalBOP,
-                'total_biaya' => $totalBiaya,
-            ]);
+            // Update total_proses
+            $produksi->total_proses = $produksi->proses()->count();
+            $produksi->save();
 
             return redirect()->route('transaksi.produksi.index')
-                ->with('success', 'Produksi baru untuk ' . $produk->nama_produk . ' berhasil dibuat dengan data yang sama (' . number_format($qtyProd, 2) . ' pcs). Klik "Mulai Produksi" untuk memulai proses.');
+                ->with('success', 'Produksi baru untuk ' . $produk->nama_produk . ' berhasil dibuat (' . number_format($qtyProd, 0, ',', '.') . ' pcs). Klik "Mulai Produksi" untuk memulai proses.');
         });
     }
 

@@ -57,18 +57,8 @@ class ProdukObserver
         }
         
         // Optional: Re-sync BOM data if product details change
-        try {
-            $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
-            
-            if ($bomJobCosting) {
-                // Recalculate to ensure product pricing is updated
-                $bomJobCosting->recalculate();
-                Log::info("ProdukObserver: Recalculated BOM for updated product - {$produk->nama_produk}");
-            }
-            
-        } catch (\Exception $e) {
-            Log::error("ProdukObserver: Failed to recalculate BOM for {$produk->nama_produk} - " . $e->getMessage());
-        }
+        // BomJobCosting class disabled - skip recalculation
+        Log::info("ProdukObserver: Product updated - {$produk->nama_produk}, BOM recalculation skipped");
     }
 
     /**
