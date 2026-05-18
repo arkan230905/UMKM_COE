@@ -135,9 +135,6 @@ class ReturPenjualan extends Model
 
     private function processRefund()
     {
-        // Create journal entry using JournalService
-        \App\Services\JournalService::createJournalFromReturPenjualan($this);
-
         // Add stock back using StockService
         $stockService = app(\App\Services\StockService::class);
         
@@ -176,9 +173,6 @@ class ReturPenjualan extends Model
 
     private function processKredit()
     {
-        // Create journal entry using JournalService
-        \App\Services\JournalService::createJournalFromReturPenjualan($this);
-        
         foreach ($this->detailReturPenjualans as $detail) {
             StockMovement::create([
                 'item_type' => 'product',
@@ -206,19 +200,8 @@ class ReturPenjualan extends Model
             }
         });
         
-        static::created(function ($returPenjualan) {
-            // Create automatic journal entries for all return types except tukar_barang
-            if ($returPenjualan->jenis_retur !== 'tukar_barang') {
-                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
-            }
-        });
-        
-        static::updated(function ($returPenjualan) {
-            // Recreate journal entries if transaction is updated
-            if ($returPenjualan->jenis_retur !== 'tukar_barang') {
-                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
-            }
-        });
+        // NOTE: Journal entries for retur penjualan should be created manually via controller
+        // if needed, as the logic depends on the specific retur type and business rules
         
         static::deleting(function ($returPenjualan) {
             // Delete journal entries when return is deleted

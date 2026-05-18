@@ -159,10 +159,28 @@ class Penjualan extends Model
             }
         });
         
-        // CRITICAL: Do NOT create journals automatically on creation
-        // Journals should only be created when payment is confirmed
-        // This prevents creating journals for pending/failed payments
+        // Create journals when penjualan is created with payment_status = 'paid'
+        static::created(function ($penjualan) {
+            if ($penjualan->payment_status === 'paid') {
+                try {
+                    \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                    \Log::info('Journal created successfully for penjualan (on creation)', [
+                        'penjualan_id' => $penjualan->id,
+                        'nomor_penjualan' => $penjualan->nomor_penjualan,
+                        'payment_status' => $penjualan->payment_status
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create journal for penjualan on creation', [
+                        'penjualan_id' => $penjualan->id,
+                        'nomor_penjualan' => $penjualan->nomor_penjualan,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+        });
         
+        // Also handle updates when payment_status changes to 'paid'
         static::updated(function ($penjualan) {
             // Only create/update journals if payment_status changed to 'paid'
             if ($penjualan->wasChanged('payment_status') && $penjualan->payment_status === 'paid') {
