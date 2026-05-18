@@ -12,11 +12,31 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reviews', function (Blueprint $table) {
-            $table->dropUnique(['order_id', 'user_id']);
+            // Drop foreign key on order_id if it exists (needed before dropping the unique index)
+            try {
+                $table->dropForeign(['order_id']);
+            } catch (\Exception $e) {
+                // Ignore if foreign key doesn't exist
+            }
+
+            // Drop the unique constraint
+            try {
+                $table->dropUnique(['order_id', 'user_id']);
+            } catch (\Exception $e) {
+                // Ignore if unique constraint doesn't exist
+            }
+
             $table->unsignedBigInteger('produk_id')->after('order_id')->nullable();
-            
+
             $table->foreign('produk_id')->references('id')->on('produks')->onDelete('cascade');
-            
+
+            // Re-add foreign key on order_id if it was dropped
+            try {
+                $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            } catch (\Exception $e) {
+                // Ignore if orders table doesn't exist or foreign key fails
+            }
+
             // Re-add unique constraint including produk_id
             $table->unique(['order_id', 'user_id', 'produk_id']);
         });
