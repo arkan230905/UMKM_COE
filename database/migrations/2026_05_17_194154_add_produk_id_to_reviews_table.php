@@ -12,23 +12,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reviews', function (Blueprint $table) {
-            // Drop foreign key on order_id if it exists (needed before dropping the unique index)
-            try {
-                $table->dropForeign(['order_id']);
-            } catch (\Exception $e) {
-                // Ignore if foreign key doesn't exist
-            }
+            // Check if the unique constraint exists before trying to drop it
+            $uniqueExists = \DB::select("SELECT COUNT(*) as count FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'reviews' AND index_name = 'reviews_order_id_user_id_unique'");
+            if ($uniqueExists[0]->count > 0) {
+                // Drop foreign key on order_id if it exists (needed before dropping the unique index)
+                try {
+                    $table->dropForeign(['order_id']);
+                } catch (\Exception $e) {
+                    // Ignore if foreign key doesn't exist
+                }
 
-            // Drop the unique constraint
-            try {
+                // Drop the unique constraint
                 $table->dropUnique(['order_id', 'user_id']);
-            } catch (\Exception $e) {
-                // Ignore if unique constraint doesn't exist
             }
 
-            $table->unsignedBigInteger('produk_id')->after('order_id')->nullable();
-
-            $table->foreign('produk_id')->references('id')->on('produks')->onDelete('cascade');
+            // Check if produk_id column already exists
+            if (!Schema::hasColumn('reviews', 'produk_id')) {
+                $table->unsignedBigInteger('produk_id')->after('order_id')->nullable();
+                $table->foreign('produk_id')->references('id')->on('produks')->onDelete('cascade');
+            }
 
             // Re-add foreign key on order_id if it was dropped
             try {
@@ -37,8 +39,11 @@ return new class extends Migration
                 // Ignore if orders table doesn't exist or foreign key fails
             }
 
-            // Re-add unique constraint including produk_id
-            $table->unique(['order_id', 'user_id', 'produk_id']);
+            // Check if the new unique constraint doesn't exist before adding it
+            $newUniqueExists = \DB::select("SELECT COUNT(*) as count FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'reviews' AND index_name = 'reviews_order_id_user_id_produk_id_unique'");
+            if ($newUniqueExists[0]->count == 0) {
+                $table->unique(['order_id', 'user_id', 'produk_id']);
+            }
         });
     }
 
