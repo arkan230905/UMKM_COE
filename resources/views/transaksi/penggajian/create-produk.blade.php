@@ -42,12 +42,7 @@
                         <select name="pegawai_id" id="pegawai_id" class="form-select @error('pegawai_id') is-invalid @enderror" required onchange="updateTarif()">
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach ($pegawais as $p)
-                                <option value="{{ $p->id }}" 
-                                    data-tarif="{{ $p->jabatanRelasi->tarif_produk ?? 0 }}"
-                                    data-tunjangan-jabatan="{{ $p->jabatanRelasi->tunjangan ?? 0 }}"
-                                    data-tunjangan-transport="{{ $p->jabatanRelasi->tunjangan_transport ?? 0 }}"
-                                    data-tunjangan-konsumsi="{{ $p->jabatanRelasi->tunjangan_konsumsi ?? 0 }}"
-                                    data-bpjs="{{ $p->jabatanRelasi->asuransi ?? 0 }}">
+                                <option value="{{ $p->id }}">
                                     {{ $p->nama }}
                                 </option>
                             @endforeach
@@ -78,7 +73,7 @@
                         @error('tanggal_penggajian')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
-                        <small class="form-text text-muted">Tanggal pelaksanaan pembayaran gaji</small>
+                        <small class="form-text text-muted">Tanggal pelaksanaan pembayaran gaji (untuk dokumentasi dan ekstrak bulan)</small>
                     </div>
                 </div>
 
@@ -105,7 +100,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="rata_rata_hari" class="form-label">Rata-rata / Hari <span class="badge bg-info">referensi</span></label>
+                        <label for="rata_rata_hari" class="form-label">Rata-rata / Hari</label>
                         <div class="input-group">
                             <input type="text" id="rata_rata_hari" class="form-control" readonly value="0">
                             <span class="input-group-text">produk/hari</span>
@@ -116,19 +111,12 @@
                 <!-- SECTION 3: PERHITUNGAN OTOMATIS -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label class="form-label">Total Produk</label>
-                        <div class="input-group">
-                            <input type="text" id="display_total_produk" class="form-control" readonly value="0">
-                            <span class="input-group-text">produk</span>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
                         <label class="form-label">Tarif / Produk</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="text" id="display_tarif" class="form-control" readonly value="0">
+                            <input type="text" id="display_tarif" class="form-control" readonly value="" placeholder="Pilih pegawai terlebih dahulu">
                         </div>
+                        <small class="form-text text-muted d-block mt-1" id="tarif_status"></small>
                     </div>
 
                     <div class="col-md-6">
@@ -250,7 +238,7 @@
 
 <script>
     // Konstanta
-    let TARIF_PRODUK = 729;
+    let TARIF_PRODUK = 0; // Start with 0, not 729
 
     // Format Rupiah
     function formatRupiah(num) {
@@ -265,20 +253,167 @@
         return parseInt(str.replace(/\D/g, '')) || 0;
     }
 
-    // Update Tarif dari pegawai yang dipilih
+    // Clear form state (untuk multi-tenant isolation)
+    function clearFormState() {
+        TARIF_PRODUK = 0;
+        
+        // Clear tarif field
+        document.getElementById('display_tarif').value = '';
+        document.getElementById('display_tarif').placeholder = 'Pilih pegawai terlebih dahulu';
+        document.getElementById('tarif_status').textContent = '';
+        
+        // Clear tunjangan ke default
+        document.getElementById('tunj_jabatan').value = 0;
+        document.getElementById('tunj_transport').value = 150000;
+        document.getElementById('tunj_konsumsi').value = 375000;
+        document.getElementById('bpjs').value = 100000;
+        
+        // Clear calculation fields
+        document.getElementById('display_gaji_mentah').value = '0';
+        document.getElementById('display_gaji_final').value = '0';
+        document.getElementById('display_total_gaji').textContent = 'Rp 0';
+        document.getElementById('rata_rata_hari').value = '0';
+        
+        // Clear pembulatan
+        document.getElementById('aktif_bulat').checked = false;
+        document.getElementById('panel_bulat').style.display = 'none';
+        document.getElementById('info_selisih').style.display = 'none';
+        
+        // Clear hidden input
+        document.getElementById('h-final').value = 0;
+    }
+
+    // Update Tarif dan Total Produk saat pegawai dipilih
     function updateTarif() {
         const select = document.getElementById('pegawai_id');
-        const option = select.options[select.selectedIndex];
+        const pegawaiId = select.value;
+        const tarifField = document.getElementById('display_tarif');
+        const tarifStatus = document.getElementById('tarif_status');
         
-        TARIF_PRODUK = parseInt(option.dataset.tarif) || 729;
+        // Jika pegawai dikosongkan
+        if (!pegawaiId) {
+            TARIF_PRODUK = 0;
+            tarifField.value = '';
+            tarifField.placeholder = 'Pilih pegawai terlebih dahulu';
+            tarifStatus.textContent = '';
+            
+            // Clear tunjangan
+            document.getElementById('tunj_jabatan').value = 0;
+            document.getElementById('tunj_transport').value = 150000;
+            document.getElementById('tunj_konsumsi').value = 375000;
+            document.getElementById('bpjs').value = 100000;
+            
+            // Clear total produk
+            document.getElementById('total_produk').value = 0;
+            
+            hitungOtomatis();
+            return;
+        }
         
-        // Update tunjangan default
-        document.getElementById('tunj_jabatan').value = parseInt(option.dataset.tunjanganJabatan) || 0;
-        document.getElementById('tunj_transport').value = parseInt(option.dataset.tunjanganTransport) || 150000;
-        document.getElementById('tunj_konsumsi').value = parseInt(option.dataset.tunjanganKonsumsi) || 375000;
-        document.getElementById('bpjs').value = parseInt(option.dataset.bpjs) || 100000;
+        console.log('Fetching tarif and total produksi for pegawai:', pegawaiId);
         
-        hitungOtomatis();
+        // Fetch data kualifikasi pegawai dari API
+        fetch(`/api/pegawai/${pegawaiId}/data`)
+            .then(response => {
+                console.log('API Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: Gagal mengambil data pegawai`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response data:', data);
+                
+                // Set tarif dari kualifikasi
+                TARIF_PRODUK = parseInt(data.tarif) || 0;
+                
+                console.log('TARIF_PRODUK set to:', TARIF_PRODUK);
+                
+                if (TARIF_PRODUK > 0) {
+                    tarifField.value = formatRupiah(TARIF_PRODUK);
+                    tarifStatus.textContent = '✓ Tarif dari kualifikasi pegawai: ' + data.jabatan_nama;
+                    tarifStatus.className = 'form-text text-success d-block mt-1';
+                } else {
+                    tarifField.value = '';
+                    tarifStatus.textContent = '⚠ Pegawai tidak memiliki tarif di kualifikasi';
+                    tarifStatus.className = 'form-text text-warning d-block mt-1';
+                }
+                
+                // Update tunjangan dari kualifikasi
+                document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
+                document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
+                document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
+                document.getElementById('bpjs').value = parseInt(data.asuransi) || 100000;
+                
+                // Fetch total produksi untuk bulan ini
+                updateTotalProduk();
+                
+                hitungOtomatis();
+            })
+            .catch(error => {
+                console.error('Error fetching tarif:', error);
+                TARIF_PRODUK = 0;
+                tarifField.value = '';
+                tarifStatus.textContent = '✗ Error: ' + error.message;
+                tarifStatus.className = 'form-text text-danger d-block mt-1';
+                hitungOtomatis();
+            });
+    }
+
+    // Update Total Produk dari produksi bulan ini
+    // PENTING: Ambil dari kolom jumlah_produksi_bulanan di tabel produksis
+    function updateTotalProduk() {
+        const pegawaiId = document.getElementById('pegawai_id').value;
+        const tanggalInput = document.getElementById('tanggal_penggajian').value;
+        const totalProdukField = document.getElementById('total_produk');
+        const hariKerjaField = document.getElementById('hari_kerja');
+        
+        if (!pegawaiId || !tanggalInput) {
+            totalProdukField.value = 0;
+            hariKerjaField.value = 26; // Reset to default
+            return;
+        }
+        
+        // Extract bulan dan tahun dari tanggal penggajian
+        const date = new Date(tanggalInput);
+        const bulan = String(date.getMonth() + 1).padStart(2, '0');
+        const tahun = date.getFullYear();
+        
+        console.log(`Fetching TOTAL PRODUK BULAN untuk pegawai ${pegawaiId}, bulan ${bulan}/${tahun}`);
+        
+        // Fetch total produksi PER BULAN dari kolom jumlah_produksi_bulanan
+        fetch(`/api/pegawai/${pegawaiId}/produksi/${bulan}/${tahun}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Total produksi response:', data);
+                
+                // Ambil total_produksi dari kolom jumlah_produksi_bulanan
+                const totalProduksi = data.data.total_produksi || 0;
+                const hariProduksiBulanan = data.data.hari_produksi_bulanan || 26;
+                
+                if (totalProduksi === 0) {
+                    console.warn('Total produksi adalah 0 - tidak ada data produksi untuk bulan ini');
+                    totalProdukField.value = 0;
+                    hariKerjaField.value = 26;
+                } else {
+                    totalProdukField.value = totalProduksi;
+                    hariKerjaField.value = hariProduksiBulanan;
+                    console.log('Total produksi BULAN set to:', totalProduksi, 'Hari kerja:', hariProduksiBulanan);
+                }
+                
+                hitungOtomatis();
+            })
+            .catch(error => {
+                console.error('Error fetching total produksi:', error);
+                totalProdukField.value = 0;
+                hariKerjaField.value = 26;
+                hitungOtomatis();
+            });
     }
 
     // Toggle Pembulatan
@@ -332,8 +467,6 @@
         const totalGaji = gajiFinal + totalTunjangan - bpjs;
 
         // Update display
-        document.getElementById('display_total_produk').value = formatRupiah(totalProduk);
-        document.getElementById('display_tarif').value = formatRupiah(TARIF_PRODUK);
         document.getElementById('display_gaji_mentah').value = formatRupiah(gajiMentah);
         document.getElementById('display_gaji_final').value = formatRupiah(gajiFinal);
         document.getElementById('display_total_gaji').textContent = 'Rp ' + formatRupiah(totalGaji);
@@ -354,6 +487,12 @@
             return;
         }
 
+        if (TARIF_PRODUK <= 0) {
+            e.preventDefault();
+            alert('Pegawai tidak memiliki tarif di kualifikasi. Harap set tarif terlebih dahulu!');
+            return;
+        }
+
         if (totalProduk <= 0) {
             e.preventDefault();
             alert('Total produk harus lebih dari 0!');
@@ -365,9 +504,107 @@
         document.getElementById('h-final').value = gajiFinal;
     });
 
-    // Initialize
+    // Initialize - CRITICAL untuk multi-tenant isolation
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== FORM INITIALIZATION START ===');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('Current User ID:', document.querySelector('meta[name="user-id"]')?.content || 'unknown');
+        
+        // STEP 1: Clear browser cache/storage
+        try {
+            sessionStorage.clear();
+            localStorage.clear();
+            console.log('✓ Browser storage cleared');
+        } catch (e) {
+            console.warn('Could not clear storage:', e);
+        }
+        
+        // STEP 2: Force clear all form fields
+        const tarifField = document.getElementById('display_tarif');
+        const pegawaiSelect = document.getElementById('pegawai_id');
+        
+        // Clear tarif field dengan force - multiple methods untuk memastikan
+        tarifField.value = '';
+        tarifField.textContent = '';
+        tarifField.innerHTML = '';
+        tarifField.setAttribute('value', '');
+        tarifField.placeholder = 'Pilih pegawai terlebih dahulu';
+        
+        // Remove any inline styles that might show old value
+        tarifField.style.display = '';
+        tarifField.style.visibility = '';
+        
+        // Clear pegawai selection
+        pegawaiSelect.value = '';
+        pegawaiSelect.selectedIndex = 0;
+        
+        console.log('✓ Tarif field cleared:', {
+            value: tarifField.value,
+            placeholder: tarifField.placeholder,
+            innerHTML: tarifField.innerHTML
+        });
+        
+        // STEP 3: Reset TARIF_PRODUK variable
+        TARIF_PRODUK = 0;
+        console.log('✓ TARIF_PRODUK reset to 0');
+        
+        // STEP 4: Clear form state
+        clearFormState();
+        console.log('✓ Form state cleared');
+        
+        // STEP 5: Hitung otomatis dengan state yang sudah di-clear
         hitungOtomatis();
+        console.log('✓ Calculation updated');
+        
+        // STEP 6: Verify final state multiple times
+        const verifyState = function(attempt = 1) {
+            const finalTarifValue = document.getElementById('display_tarif').value;
+            const finalPegawaiValue = document.getElementById('pegawai_id').value;
+            
+            console.log(`=== FINAL STATE VERIFICATION (Attempt ${attempt}) ===`);
+            console.log('Tarif field value:', finalTarifValue);
+            console.log('Pegawai field value:', finalPegawaiValue);
+            console.log('TARIF_PRODUK variable:', TARIF_PRODUK);
+            
+            if (finalTarifValue !== '') {
+                console.error(`⚠ WARNING (Attempt ${attempt}): Tarif field is not empty! Force clearing...`);
+                tarifField.value = '';
+                tarifField.textContent = '';
+                tarifField.innerHTML = '';
+                TARIF_PRODUK = 0;
+                
+                // Retry verification
+                if (attempt < 3) {
+                    setTimeout(() => verifyState(attempt + 1), 50);
+                }
+            } else {
+                console.log('✓ Tarif field is properly cleared');
+            }
+        };
+        
+        // Run verification at multiple intervals
+        verifyState(1);
+        setTimeout(() => verifyState(2), 100);
+        setTimeout(() => verifyState(3), 200);
+        
+        console.log('=== FORM INITIALIZATION COMPLETE ===');
+    });
+
+    // BONUS: Clear state saat window focus (jika user switch tab/window)
+    window.addEventListener('focus', function() {
+        // Verify pegawai selection is still valid
+        const pegawaiId = document.getElementById('pegawai_id').value;
+        const tarifValue = document.getElementById('display_tarif').value;
+        
+        if (!pegawaiId && tarifValue) {
+            // Pegawai tidak dipilih tapi tarif masih ada - clear state
+            console.log('⚠ Inconsistent state detected on focus - clearing');
+            clearFormState();
+            document.getElementById('pegawai_id').value = '';
+            document.getElementById('display_tarif').value = '';
+            TARIF_PRODUK = 0;
+            console.log('✓ Form state cleared on window focus (multi-tenant safety)');
+        }
     });
 </script>
 @endsection
