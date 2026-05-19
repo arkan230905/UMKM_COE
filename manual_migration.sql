@@ -340,3 +340,118 @@ SHOW COLUMNS FROM stock_movements;
 
 SELECT 'Coa_period_balances columns:' as info;
 SHOW COLUMNS FROM coa_period_balances;
+
+
+-- ============================================
+-- 5. Fix foreign keys in pelunasan_utangs
+-- ============================================
+
+-- Fix coa_pelunasan_id foreign key
+ALTER TABLE pelunasan_utangs DROP FOREIGN KEY pelunasan_utangs_coa_pelunasan_id_foreign;
+ALTER TABLE pelunasan_utangs ADD CONSTRAINT pelunasan_utangs_coa_pelunasan_id_foreign 
+  FOREIGN KEY (coa_pelunasan_id) REFERENCES coas(id) ON DELETE SET NULL;
+
+-- Fix akun_kas_id foreign key
+ALTER TABLE pelunasan_utangs DROP FOREIGN KEY pelunasan_utangs_akun_kas_id_foreign;
+ALTER TABLE pelunasan_utangs ADD CONSTRAINT pelunasan_utangs_akun_kas_id_foreign 
+  FOREIGN KEY (akun_kas_id) REFERENCES coas(id) ON DELETE SET NULL;
+
+-- ============================================
+-- 6. Fix other foreign keys to coas
+-- ============================================
+
+-- Fix produks.coa_persediaan_id (if exists)
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE table_schema = DATABASE()
+      AND table_name = 'produks'
+      AND column_name = 'coa_persediaan_id'
+      AND referenced_table_name = 'accounts'
+  ) > 0,
+  'ALTER TABLE produks DROP FOREIGN KEY produks_coa_persediaan_id_foreign;',
+  'SELECT 1;'
+));
+PREPARE alterIfExists FROM @preparedStatement;
+EXECUTE alterIfExists;
+DEALLOCATE PREPARE alterIfExists;
+
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_schema = DATABASE()
+      AND table_name = 'produks'
+      AND column_name = 'coa_persediaan_id'
+  ) > 0,
+  'ALTER TABLE produks ADD CONSTRAINT produks_coa_persediaan_id_foreign FOREIGN KEY (coa_persediaan_id) REFERENCES coas(id) ON DELETE SET NULL;',
+  'SELECT 1;'
+));
+PREPARE alterIfExists FROM @preparedStatement;
+EXECUTE alterIfExists;
+DEALLOCATE PREPARE alterIfExists;
+
+-- Fix asets.coa_id
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE table_schema = DATABASE()
+      AND table_name = 'asets'
+      AND column_name = 'coa_id'
+      AND referenced_table_name = 'accounts'
+  ) > 0,
+  'ALTER TABLE asets DROP FOREIGN KEY asets_coa_id_foreign;',
+  'SELECT 1;'
+));
+PREPARE alterIfExists FROM @preparedStatement;
+EXECUTE alterIfExists;
+DEALLOCATE PREPARE alterIfExists;
+
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_schema = DATABASE()
+      AND table_name = 'asets'
+      AND column_name = 'coa_id'
+  ) > 0,
+  'ALTER TABLE asets ADD CONSTRAINT asets_coa_id_foreign FOREIGN KEY (coa_id) REFERENCES coas(id) ON DELETE SET NULL;',
+  'SELECT 1;'
+));
+PREPARE alterIfExists FROM @preparedStatement;
+EXECUTE alterIfExists;
+DEALLOCATE PREPARE alterIfExists;
+
+-- Fix retur_kompensasis.akun_id
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE table_schema = DATABASE()
+      AND table_name = 'retur_kompensasis'
+      AND column_name = 'akun_id'
+      AND referenced_table_name = 'accounts'
+  ) > 0,
+  'ALTER TABLE retur_kompensasis DROP FOREIGN KEY retur_kompensasis_akun_id_foreign;',
+  'SELECT 1;'
+));
+PREPARE alterIfExists FROM @preparedStatement;
+EXECUTE alterIfExists;
+DEALLOCATE PREPARE alterIfExists;
+
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE table_schema = DATABASE()
+      AND table_name = 'retur_kompensasis'
+      AND column_name = 'akun_id'
+  ) > 0,
+  'ALTER TABLE retur_kompensasis ADD CONSTRAINT retur_kompensasis_akun_id_foreign FOREIGN KEY (akun_id) REFERENCES coas(id) ON DELETE SET NULL;',
+  'SELECT 1;'
+));
+PREPARE alterIfExists FROM @preparedStatement;
+EXECUTE alterIfExists;
+DEALLOCATE PREPARE alterIfExists;
+
+-- ============================================
+-- Final verification
+-- ============================================
+
+SELECT 'Migration completed successfully!' as status;

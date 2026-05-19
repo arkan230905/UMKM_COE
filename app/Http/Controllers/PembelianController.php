@@ -316,7 +316,7 @@ class PembelianController extends Controller
         
         if ($periode) {
             // 2. Cari saldo di CoaPeriodBalance untuk periode tersebut
-            $balance = \App\Models\CoaPeriodBalance::where('coa_period_id', $periode->id) // Changed from period_id to coa_period_id
+            $balance = \App\Models\CoaPeriodBalance::where('period_id', $periode->id)
                 ->where('kode_akun', $akun->kode_akun)
                 ->first();
                 
