@@ -111,7 +111,7 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         @if($produk && $produk->foto)
-                                            <img src="{{ storage_url($produk->foto) }}" 
+                                            <img src="{{ Storage::url($produk->foto) }}" 
                                                  alt="{{ $produk->nama_produk }}" 
                                                  class="rounded me-2"
                                                  style="width: 40px; height: 40px; object-fit: cover;">

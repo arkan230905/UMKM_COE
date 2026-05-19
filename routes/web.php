@@ -2014,6 +2014,9 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function() {
     // Employee data API for penggajian
     Route::get('/api/pegawai/{pegawaiId}/data', [App\Http\Controllers\PenggajianController::class, 'getEmployeeData'])->name('api.pegawai.data');
+    
+    // Total produksi API for penggajian
+    Route::get('/api/pegawai/{pegawaiId}/produksi/{bulan}/{tahun}', [App\Http\Controllers\PenggajianController::class, 'getTotalProduksiByMonth'])->name('api.pegawai.produksi');
 });
 
 // SEMUA ROUTE YANG HANYA BISA DIAKSES SETELAH LOGIN

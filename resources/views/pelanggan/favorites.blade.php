@@ -14,7 +14,7 @@
                 <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0;">
                     <div style="position: relative; height: 100px; background: #f5f5f5; overflow: hidden;">
                         @if($produk->foto)
-                        <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        <img src="{{ Storage::url($produk->foto) }}" alt="{{ $produk->nama_produk }}" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
                         <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">📦</div>
                         @endif

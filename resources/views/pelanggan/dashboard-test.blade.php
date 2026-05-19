@@ -16,7 +16,7 @@
                 <p>Stok: {{ $product->stok }}</p>
                 <p>Terjual: {{ $product->total_terjual ?? 0 }}</p>
                 @if($product->foto)
-                    <img src="{{ storage_url($product->foto) }}" alt="{{ $product->nama_produk }}" style="max-width: 200px; height: auto;">
+                    <img src="{{ Storage::url($product->foto) }}" alt="{{ $product->nama_produk }}" style="max-width: 200px; height: auto;">
                 @endif
             </div>
             @endforeach

@@ -31,7 +31,7 @@ class CoaPeriod extends Model
      */
     public function balances()
     {
-        return $this->hasMany(CoaPeriodBalance::class, 'coa_period_id'); // Changed from period_id to coa_period_id
+        return $this->hasMany(CoaPeriodBalance::class, 'period_id');
     }
 
     /**

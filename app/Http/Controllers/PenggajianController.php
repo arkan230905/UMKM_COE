@@ -231,18 +231,18 @@ class PenggajianController extends Controller
             // Get current salary data from qualification (jabatan)
             $jabatan = $pegawai->jabatanRelasi;
             if ($jabatan) {
-                $tarif = $jabatan->tarif_produk ?? 0;
-                $tunjanganJabatan = $jabatan->tunjangan ?? 0;
-                $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
-                $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
-                $asuransi = $jabatan->asuransi ?? 0;
+                $tarif = (int) ($jabatan->tarif_produk ?? 0);
+                $tunjanganJabatan = (int) ($jabatan->tunjangan ?? 0);
+                $tunjanganTransport = (int) ($jabatan->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (int) ($jabatan->tunjangan_konsumsi ?? 0);
+                $asuransi = (int) ($jabatan->asuransi ?? 0);
             } else {
                 // Fallback to pegawai stored values
-                $tarif = $pegawai->tarif_per_jam ?? 0;
-                $tunjanganJabatan = $pegawai->tunjangan_jabatan ?? 0;
-                $tunjanganTransport = $pegawai->tunjangan_transport ?? 0;
-                $tunjanganKonsumsi = $pegawai->tunjangan_konsumsi ?? 0;
-                $asuransi = $pegawai->asuransi ?? 0;
+                $tarif = (int) ($pegawai->tarif_per_jam ?? 0);
+                $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? 0);
+                $tunjanganTransport = (int) ($pegawai->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (int) ($pegawai->tunjangan_konsumsi ?? 0);
+                $asuransi = (int) ($pegawai->asuransi ?? 0);
             }
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;

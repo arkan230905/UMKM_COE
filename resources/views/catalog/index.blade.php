@@ -372,7 +372,7 @@
                 @if(!empty($catalogPhotos) && $catalogPhotos->count() > 0)
                     @php $firstPhoto = $catalogPhotos->first(); @endphp
                     @if($firstPhoto->foto_path)
-                        <img src="{{ storage_url($firstPhoto->foto_path) }}" alt="Cover">
+                        <img src="{{ Storage::url($firstPhoto->foto_path) }}" alt="Cover">
                     @else
                         <div class="default-cover">
                             <div class="city-silhouette"></div>
@@ -441,7 +441,7 @@
                     <div class="product-item">
                         <div class="product-image">
                             @if($produk->foto_path)
-                                <img src="{{ storage_url($produk->foto_path) }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}'">
+                                <img src="{{ Storage::url($produk->foto_path) }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}'">
                             @else
                                 <img src="{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('images/default-avatar.png') }}'">
                             @endif

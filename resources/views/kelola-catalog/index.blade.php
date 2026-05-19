@@ -67,9 +67,9 @@
                                                         $coverSrc = '';
                                                         if (!empty($catalogSections['cover']['cover_photo'])) {
 
-                                                            $coverSrc = ($company && $company->foto) ? storage_url($company->foto) : '';
+                                                            $coverSrc = ($company && $company->foto) ? Storage::url($company->foto) : '';
                                                         } elseif ($company && $company->foto) {
-                                                            $coverSrc = storage_url($company->foto);
+                                                            $coverSrc = Storage::url($company->foto);
 }
                                                     @endphp
                                                     <img id="coverPreviewImage" src="{{ $coverSrc }}" alt="Preview" class="preview-img">
@@ -182,7 +182,7 @@
                                                 <div class="product-image">
                                                     @if($produk->foto)
 
-                                                        <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
+                                                        <img src="{{ Storage::url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
 @else
                                                         <div class="no-image">
                                                             <i class="fas fa-image"></i>

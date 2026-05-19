@@ -20,7 +20,7 @@ return new class extends Migration
                 $table->foreignId('company_id')->nullable()->constrained('companies')->onDelete('cascade');
                 
                 // 2. Relasi ke Periode
-                $table->foreignId('coa_period_id')->constrained('coa_periods')->onDelete('cascade');
+                $table->foreignId('period_id')->constrained('coa_periods')->onDelete('cascade');
                 
                 /**
                  * 3. Data Akun
@@ -45,13 +45,13 @@ return new class extends Migration
                 // Indexes untuk performa laporan
                 $table->index('user_id');
                 $table->index('company_id');
-                $table->index('coa_period_id');
+                $table->index('period_id');
                 
                 /**
                  * Unique Constraint: 
                  * Mencegah duplikasi saldo untuk akun yang sama di periode yang sama.
                  */
-                $table->unique(['company_id', 'coa_period_id', 'kode_akun'], 'unique_balance_per_company_period');
+                $table->unique(['company_id', 'period_id', 'kode_akun'], 'unique_balance_per_company_period');
             });
         }
     }

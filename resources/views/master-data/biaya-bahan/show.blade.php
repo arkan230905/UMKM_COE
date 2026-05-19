@@ -80,7 +80,7 @@
                 <div class="col-md-4">
                     @if($produk->foto)
                         <div class="text-center">
-                            <img src="{{ storage_url($produk->foto) }}" 
+                            <img src="{{ Storage::url($produk->foto) }}" 
                                  alt="{{ $produk->nama_produk }}" 
                                  class="img-fluid rounded shadow"
                                  style="max-height: 150px;">
