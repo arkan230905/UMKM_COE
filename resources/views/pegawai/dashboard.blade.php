@@ -12,7 +12,7 @@
                     Dashboard Pegawai
                 </h4>
                 <div class="d-flex align-items-center">
-                    <img src="{{ $pegawai->foto_wajah ? storage_url($pegawai->foto_wajah) : '/images/default-avatar.png' }}" 
+                    <img src="{{ $pegawai->foto_wajah ? Storage::url($pegawai->foto_wajah) : '/images/default-avatar.png' }}" 
                          class="rounded-circle me-2" 
                          style="width: 40px; height: 40px; object-fit: cover;">
                     <div>

@@ -40,7 +40,7 @@
         <div class="slider-wrapper">
             @forelse($catalogPhotos as $index => $photo)
             <div class="slide {{ $index == 0 ? 'active' : '' }}">
-                <img src="{{ storage_url($photo->foto) }}" alt="{{ $photo->judul ?: 'Foto Catalog' }}">
+                <img src="{{ Storage::url($photo->foto) }}" alt="{{ $photo->judul ?: 'Foto Catalog' }}">
                 @if($photo->judul || $photo->deskripsi)
                 <div class="slide-overlay">
                     <div class="slide-content">
@@ -59,7 +59,7 @@
             @forelse($produks->take(3) as $index => $produk)
             <div class="slide {{ $index == 0 ? 'active' : '' }}">
                 @if($produk->foto)
-                    <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
+                    <img src="{{ Storage::url($produk->foto) }}" alt="{{ $produk->nama_produk }}">
                 @else
                     <img src="/images/no-image.png" alt="{{ $produk->nama_produk }}">
                 @endif
@@ -112,7 +112,7 @@
                 <div class="row g-4 align-items-center">
                     <div class="col-md-6">
                         @if($company->foto)
-                            <img src="{{ storage_url($company->foto) }}" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
+                            <img src="{{ Storage::url($company->foto) }}" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
                         @else
                             <img src="/images/company-default.jpg" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
                         @endif
@@ -245,7 +245,7 @@
                         <div class="col-md-4">
                             <div class="card-produk">
                                 @if($produk->foto)
-                                    <img src="{{ storage_url($produk->foto) }}">
+                                    <img src="{{ Storage::url($produk->foto) }}">
                                 @else
                                     <img src="/images/no-image.png">
                                 @endif

@@ -15,7 +15,7 @@
                     <div>
                         @if($produk->foto)
                             <div class="mb-3">
-                                <img src="{{ storage_url($produk->foto) }}" alt="Foto Produk" class="w-full h-40 object-cover rounded-md">
+                                <img src="{{ Storage::url($produk->foto) }}" alt="Foto Produk" class="w-full h-40 object-cover rounded-md">
                             </div>
                         @endif
                         <h2 class="text-lg font-semibold text-slate-800 mb-1">{{ $produk->nama_produk }}</h2>

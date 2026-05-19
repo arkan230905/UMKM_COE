@@ -100,7 +100,7 @@
                     <div style="width: 140px; height: 140px; border-radius: 12px; overflow: hidden; flex-shrink: 0;">
                         @php $bestSeller = isset($bestSellers) && $bestSellers->count() > 0 ? $bestSellers->first() : $produks->first(); @endphp
                         @if($bestSeller && $bestSeller->foto)
-                            <img src="{{ storage_url($bestSeller->foto) }}" alt="Best Seller" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="{{ Storage::url($bestSeller->foto) }}" alt="Best Seller" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
                             <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Best Seller" style="width: 100%; height: 100%; object-fit: cover;">
                         @endif
@@ -168,7 +168,7 @@
                         <!-- Image Left -->
                         <div style="width: 130px; height: 130px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: #f5f5f5;">
                             @if($produk->foto)
-                            <img src="{{ storage_url($produk->foto) }}" alt="{{ $produk->nama_produk }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="{{ Storage::url($produk->foto) }}" alt="{{ $produk->nama_produk }}" style="width: 100%; height: 100%; object-fit: cover;">
                             @else
                             <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #ccc;">
                                 <i class="bi bi-image"></i>

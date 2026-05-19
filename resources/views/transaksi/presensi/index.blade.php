@@ -116,7 +116,7 @@
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     @if($presensi->pegawai && $presensi->pegawai->foto)
-                                        <img src="{{ storage_url($presensi->pegawai->foto) }}"
+                                        <img src="{{ Storage::url($presensi->pegawai->foto) }}"
                                              alt="Foto" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #e9ecef;">
                                     @else
                                         <div style="width: 40px; height: 40px; border-radius: 50%; background: #6c757d; display: flex; align-items: center; justify-content: center; border: 2px solid #e9ecef; flex-shrink: 0;">
