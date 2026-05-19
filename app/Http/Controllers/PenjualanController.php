@@ -699,9 +699,10 @@ if ($request->filled('nomor_transaksi')) {
 
                 'user_id' => auth()->id(), // CRITICAL: Set user_id
                 'tanggal' => $tanggal,
-'payment_method' => $request->input('payment_method'),
+                'payment_method' => $request->input('payment_method'),
+                'payment_status' => 'paid', // CRITICAL: Set to paid so boot() method creates journal
+                'payment_confirmed_at' => now(),
                 'coa_id'         => $coaId,
-                'user_id'        => auth()->id(),
                 'jumlah'         => collect($items)->sum('jumlah'),
                 'harga_satuan'   => null,
                 'diskon_nominal' => 0,
@@ -744,21 +745,6 @@ if ($request->filled('nomor_transaksi')) {
                     'bukti_pembayaran' => $path,
                     'catatan_pembayaran' => $request->input('catatan'),
                 ]);
-            }
-            
-            // Create journal entries
-            try {
-                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
-            } catch (\RuntimeException $e) {
-                // Jurnal gagal dibuat karena akun belum tersedia.
-                // Transaksi penjualan tetap tersimpan, tapi user diberitahu.
-                \Log::warning('Jurnal penjualan #' . $penjualan->nomor_penjualan . ' tidak dibuat: ' . $e->getMessage());
-
-                session()->forget('penjualan_payment_data');
-
-                return redirect()->route('transaksi.penjualan.show', $penjualan->id)
-                    ->with('warning_jurnal', $e->getMessage())
-                    ->with('success', 'Penjualan berhasil disimpan, namun jurnal akuntansi belum dapat dibuat.');
             }
             
             // Clear session

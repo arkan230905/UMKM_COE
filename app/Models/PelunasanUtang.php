@@ -42,12 +42,12 @@ class PelunasanUtang extends Model
     
     public function akunKas()
     {
-        return $this->belongsTo(Coa::class, 'akun_kas_id');
+        return $this->belongsTo(Account::class, 'akun_kas_id');
     }
     
     public function coaPelunasan()
     {
-        return $this->belongsTo(Coa::class, 'coa_pelunasan_id');
+        return $this->belongsTo(Account::class, 'coa_pelunasan_id');
     }
     
     public function user()

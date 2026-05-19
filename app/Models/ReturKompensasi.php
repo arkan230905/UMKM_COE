@@ -40,7 +40,7 @@ class ReturKompensasi extends Model
     // Relasi ke akun COA
     public function akun()
     {
-        return $this->belongsTo(Coa::class, 'akun_id');
+        return $this->belongsTo(Account::class, 'akun_id');
     }
 
     // Accessor untuk mendapatkan item kompensasi

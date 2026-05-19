@@ -26,12 +26,12 @@ class PembayaranBeban extends Model
 
     public function coaBeban(): BelongsTo
     {
-        return $this->belongsTo(Coa::class, 'akun_beban_id');
+        return $this->belongsTo(Account::class, 'akun_beban_id');
     }
 
     public function coaKas(): BelongsTo
     {
-        return $this->belongsTo(Coa::class, 'akun_kas_id');
+        return $this->belongsTo(Account::class, 'akun_kas_id');
     }
 
     public function user(): BelongsTo

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Transaksi;
 
 use App\Http\Controllers\Controller;
 use App\Models\PembayaranBeban;
+use App\Models\Account;
 use App\Models\Coa;
 use App\Models\Jurnal;
 use Illuminate\Http\Request;
@@ -109,17 +110,23 @@ class PembayaranBebanController extends Controller
         DB::beginTransaction();
         
         try {
-            // Dapatkan data COA dengan pengecekan yang lebih ketat
-            $beban = Coa::where('kode_akun', $request->kode_akun_beban)->first();
+            // Dapatkan data Account dengan pengecekan yang lebih ketat
+            $beban = Account::where('kode_akun', $request->kode_akun_beban)
+                ->where('user_id', auth()->id())
+                ->first();
             
             // Pilih akun kas berdasarkan metode pembayaran
             if ($request->metode_pembayaran === 'kas') {
-                $kas = Coa::where('kode_akun', '112')->first(); // Kas Tunai
+                $kas = Account::where('kode_akun', '112')
+                    ->where('user_id', auth()->id())
+                    ->first(); // Kas Tunai
             } else {
-                $kas = Coa::where('kode_akun', '111')->first(); // Kas Bank (Transfer)
+                $kas = Account::where('kode_akun', '111')
+                    ->where('user_id', auth()->id())
+                    ->first(); // Kas Bank (Transfer)
             }
             
-            // Validasi COA
+            // Validasi Account
             if (!$beban) {
                 throw new \Exception('Akun beban tidak ditemukan');
             }

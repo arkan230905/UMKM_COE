@@ -45,3 +45,25 @@ if (!function_exists('pelanggan_url')) {
         return PerusahaanHelper::pelangganUrl($path);
     }
 }
+
+
+/**
+ * Generate storage URL for a file
+ * Usage: {{ storage_url('produk/filename.jpg') }}
+ */
+if (!function_exists('storage_url')) {
+    function storage_url(string $path): string
+    {
+        if (empty($path)) {
+            return asset('images/default-avatar.png');
+        }
+        
+        // If path already starts with http, return as is
+        if (str_starts_with($path, 'http')) {
+            return $path;
+        }
+        
+        // Return storage URL
+        return asset('storage/' . $path);
+    }
+}
