@@ -12,7 +12,7 @@ class CoaPeriodBalance extends Model
     protected $fillable = [
         'coa_id',
         'kode_akun',
-        'coa_period_id', // Changed from period_id to coa_period_id
+        'period_id',
         'saldo_awal',
         'debit',
         'credit',
@@ -41,6 +41,6 @@ class CoaPeriodBalance extends Model
      */
     public function period()
     {
-        return $this->belongsTo(CoaPeriod::class, 'coa_period_id'); // Changed from period_id to coa_period_id
+        return $this->belongsTo(CoaPeriod::class, 'period_id');
     }
 }
