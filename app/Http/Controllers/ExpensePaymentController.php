@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Models\ExpensePayment;
+use App\Models\Account;
 use App\Models\Coa;
 use App\Models\Bop;
 use App\Models\BebanOperasional;
@@ -192,14 +193,18 @@ class ExpensePaymentController extends Controller
             }
             
             // Ambil akun beban berdasarkan kode_akun dari dropdown
-            $akunBeban = Coa::where('kode_akun', $request->kode_akun_beban)->first();
+            $akunBeban = Account::where('kode_akun', $request->kode_akun_beban)
+                ->where('user_id', auth()->id())
+                ->first();
             
             if (!$akunBeban) {
                 throw new \Exception('Akun beban tidak ditemukan. Kode akun: ' . $request->kode_akun_beban);
             }
             
             // Ambil akun kas berdasarkan kode_akun dari dropdown
-            $akunKas = Coa::where('kode_akun', $request->kode_akun_kas)->first();
+            $akunKas = Account::where('kode_akun', $request->kode_akun_kas)
+                ->where('user_id', auth()->id())
+                ->first();
             
             if (!$akunKas) {
                 throw new \Exception('Akun kas tidak ditemukan. Kode akun: ' . $request->kode_akun_kas);
