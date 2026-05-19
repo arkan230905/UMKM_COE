@@ -305,26 +305,27 @@
             
             // Clear total produk
             document.getElementById('total_produk').value = 0;
+            document.getElementById('hari_kerja').value = 26;
             
             hitungOtomatis();
             return;
         }
         
-        console.log('Fetching tarif and total produksi for pegawai:', pegawaiId);
+        console.log('=== updateTarif START for pegawai:', pegawaiId);
         
         // Fetch data kualifikasi pegawai dari API
         fetch(`/api/pegawai/${pegawaiId}/data`)
             .then(response => {
-                console.log('API Response status:', response.status);
+                console.log('getEmployeeData Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: Gagal mengambil data pegawai`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('API Response data:', data);
+                console.log('getEmployeeData Response:', data);
                 
-                // Set tarif dari kualifikasi
+                // Set tarif dari kualifikasi - PENTING: convert ke integer
                 TARIF_PRODUK = parseInt(data.tarif) || 0;
                 
                 console.log('TARIF_PRODUK set to:', TARIF_PRODUK);
@@ -339,16 +340,29 @@
                     tarifStatus.className = 'form-text text-warning d-block mt-1';
                 }
                 
-                // Update tunjangan dari kualifikasi
-                document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
-                document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
-                document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                document.getElementById('bpjs').value = parseInt(data.asuransi) || 100000;
+                // Update tunjangan dari kualifikasi - PENTING: convert ke integer
+                const tunjanganJabatan = parseInt(data.tunjangan_jabatan) || 0;
+                const tunjanganTransport = parseInt(data.tunjangan_transport) || 150000;
+                const tunjanganKonsumsi = parseInt(data.tunjangan_konsumsi) || 375000;
+                const asuransi = parseInt(data.asuransi) || 100000;
                 
-                // Fetch total produksi untuk bulan ini
+                console.log('Setting tunjangan:', {
+                    jabatan: tunjanganJabatan,
+                    transport: tunjanganTransport,
+                    konsumsi: tunjanganKonsumsi,
+                    asuransi: asuransi
+                });
+                
+                document.getElementById('tunj_jabatan').value = tunjanganJabatan;
+                document.getElementById('tunj_transport').value = tunjanganTransport;
+                document.getElementById('tunj_konsumsi').value = tunjanganKonsumsi;
+                document.getElementById('bpjs').value = asuransi;
+                
+                // PENTING: Fetch total produksi SETELAH tarif berhasil di-set
+                console.log('Calling updateTotalProduk...');
                 updateTotalProduk();
                 
-                hitungOtomatis();
+                console.log('=== updateTarif END');
             })
             .catch(error => {
                 console.error('Error fetching tarif:', error);
@@ -356,6 +370,11 @@
                 tarifField.value = '';
                 tarifStatus.textContent = '✗ Error: ' + error.message;
                 tarifStatus.className = 'form-text text-danger d-block mt-1';
+                
+                // Clear total produk jika ada error
+                document.getElementById('total_produk').value = 0;
+                document.getElementById('hari_kerja').value = 26;
+                
                 hitungOtomatis();
             });
     }
@@ -368,52 +387,74 @@
         const totalProdukField = document.getElementById('total_produk');
         const hariKerjaField = document.getElementById('hari_kerja');
         
-        if (!pegawaiId || !tanggalInput) {
+        console.log('=== updateTotalProduk START');
+        console.log('pegawaiId:', pegawaiId);
+        console.log('tanggalInput:', tanggalInput);
+        
+        if (!pegawaiId) {
+            console.warn('pegawaiId is empty, resetting fields');
             totalProdukField.value = 0;
-            hariKerjaField.value = 26; // Reset to default
+            hariKerjaField.value = 26;
+            hitungOtomatis();
             return;
         }
         
-        // Extract bulan dan tahun dari tanggal penggajian
-        const date = new Date(tanggalInput);
-        const bulan = String(date.getMonth() + 1).padStart(2, '0');
-        const tahun = date.getFullYear();
-        
-        console.log(`Fetching TOTAL PRODUK BULAN untuk pegawai ${pegawaiId}, bulan ${bulan}/${tahun}`);
-        
-        // Fetch total produksi PER BULAN dari kolom jumlah_produksi_bulanan
-        fetch(`/api/pegawai/${pegawaiId}/produksi/${bulan}/${tahun}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Total produksi response:', data);
-                
-                // Ambil total_produksi dari kolom jumlah_produksi_bulanan
-                const totalProduksi = data.data.total_produksi || 0;
-                const hariProduksiBulanan = data.data.hari_produksi_bulanan || 26;
-                
-                if (totalProduksi === 0) {
-                    console.warn('Total produksi adalah 0 - tidak ada data produksi untuk bulan ini');
+        if (!tanggalInput) {
+            console.warn('tanggalInput is empty, using today date');
+            // Use today's date if not set
+            const today = new Date();
+            const bulan = String(today.getMonth() + 1).padStart(2, '0');
+            const tahun = today.getFullYear();
+        } else {
+            // Extract bulan dan tahun dari tanggal penggajian
+            const date = new Date(tanggalInput);
+            const bulan = String(date.getMonth() + 1).padStart(2, '0');
+            const tahun = date.getFullYear();
+            
+            console.log(`Fetching TOTAL PRODUK BULAN untuk pegawai ${pegawaiId}, bulan ${bulan}/${tahun}`);
+            
+            // Fetch total produksi PER BULAN dari kolom jumlah_produksi_bulanan
+            fetch(`/api/pegawai/${pegawaiId}/produksi/${bulan}/${tahun}`)
+                .then(response => {
+                    console.log('getTotalProduksiByMonth Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('getTotalProduksiByMonth Response:', data);
+                    
+                    // Ambil total_produksi dari kolom jumlah_produksi_bulanan
+                    const totalProduksi = parseInt(data.data.total_produksi) || 0;
+                    const hariProduksiBulanan = parseInt(data.data.hari_produksi_bulanan) || 26;
+                    
+                    console.log('Parsed values:', {
+                        totalProduksi: totalProduksi,
+                        hariProduksiBulanan: hariProduksiBulanan
+                    });
+                    
+                    if (totalProduksi === 0) {
+                        console.warn('Total produksi adalah 0 - tidak ada data produksi untuk bulan ini');
+                        totalProdukField.value = 0;
+                        hariKerjaField.value = 26;
+                    } else {
+                        totalProdukField.value = totalProduksi;
+                        hariKerjaField.value = hariProduksiBulanan;
+                        console.log('✓ Total produksi BULAN set to:', totalProduksi, 'Hari kerja:', hariProduksiBulanan);
+                    }
+                    
+                    hitungOtomatis();
+                    console.log('=== updateTotalProduk END (success)');
+                })
+                .catch(error => {
+                    console.error('Error fetching total produksi:', error);
                     totalProdukField.value = 0;
                     hariKerjaField.value = 26;
-                } else {
-                    totalProdukField.value = totalProduksi;
-                    hariKerjaField.value = hariProduksiBulanan;
-                    console.log('Total produksi BULAN set to:', totalProduksi, 'Hari kerja:', hariProduksiBulanan);
-                }
-                
-                hitungOtomatis();
-            })
-            .catch(error => {
-                console.error('Error fetching total produksi:', error);
-                totalProdukField.value = 0;
-                hariKerjaField.value = 26;
-                hitungOtomatis();
-            });
+                    hitungOtomatis();
+                    console.log('=== updateTotalProduk END (error)');
+                });
+        }
     }
 
     // Toggle Pembulatan
