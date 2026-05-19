@@ -57,8 +57,9 @@ class PembayaranBebanController extends Controller
             // Load beban operasional data - CRITICAL: Filter by user_id for multi-tenant isolation
             $bebanOperasional = \App\Models\BebanOperasional::where('user_id', auth()->id())->with('coa')->get();
             
-            // Ambil akun beban langsung dari tabel COA (kode diawali angka 5)
-            $coaBebans = Coa::where('kode_akun', 'like', '5%')
+            // Ambil akun beban dari tabel Account (kode diawali angka 5) - CRITICAL: Use Account model
+            $coaBebans = Account::where('kode_akun', 'like', '5%')
+                ->where('user_id', auth()->id())
                 ->orderBy('kode_akun')
                 ->get();
                 
@@ -128,7 +129,7 @@ class PembayaranBebanController extends Controller
             
             // Validasi Account
             if (!$beban) {
-                throw new \Exception('Akun beban tidak ditemukan');
+                throw new \Exception('Akun beban dengan kode ' . $request->kode_akun_beban . ' tidak ditemukan di database accounts.');
             }
             
             if (!$kas) {
