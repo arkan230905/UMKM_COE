@@ -353,13 +353,21 @@ class PenggajianController extends Controller
                     'bonus' => $bonus,
                     'potongan' => $potongan,
                     'total_jam_kerja' => 0,
+                    'total_hari_hadir' => 0,
+                    'total_alpha' => 0,
+                    'total_jam' => 0,
                     'total_gaji' => $totalGaji,
                     'status_pembayaran' => 'belum_lunas',
+                    'status_posting' => 'belum_posting',
                     'metode_pembayaran' => $request->metode_pembayaran ?? 'transfer_bank',
                     'total_produk_bulan' => $totalProduk,
                     'tarif_produk' => $tarifProduk,
                     'keterangan' => $request->keterangan ?? null,
                     'user_id' => auth()->id(),
+                    'mode_input' => 'bulanan',
+                    'pembulatan_aktif' => $request->pembulatan_aktif ? 1 : 0,
+                    'pembulatan_step' => $request->pembulatan_step ?? 100000,
+                    'nominal_pembulatan' => 0,
                 ]);
 
                 \Log::info('PRODUK-BASED penggajian created successfully', [

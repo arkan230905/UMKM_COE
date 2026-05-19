@@ -157,6 +157,12 @@ class Penggajian extends Model
         'produk_hari_21_30',
         'total_produk_bulan',
         'tarif_produk',
+        'status_posting',
+        'tanggal_posting',
+        'mode_input',
+        'pembulatan_aktif',
+        'pembulatan_step',
+        'nominal_pembulatan',
     ];
 
     protected $casts = [
