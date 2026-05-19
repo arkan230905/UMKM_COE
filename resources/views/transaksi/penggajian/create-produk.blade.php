@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Tambah Penggajian')
 
@@ -304,8 +304,8 @@
                 } else {
                     TARIF_PRODUK = 0;
                     tarifField.value = 0;
-                    tarifStatus.textContent = '⚠ Pegawai tidak memiliki kualifikasi. Silakan input tarif secara manual.';
-                    tarifStatus.className = 'form-text text-warning d-block mt-1';
+                    tarifStatus.textContent = 'Tarif dari kualifikasi: ' + data.jabatan_nama;
+                    tarifStatus.className = 'form-text text-muted d-block mt-1';
                 }
                 
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
@@ -320,8 +320,8 @@
                 console.error('Error:', error);
                 TARIF_PRODUK = 0;
                 tarifField.value = 0;
-                tarifStatus.textContent = '⚠ Pegawai tidak memiliki kualifikasi. Silakan input tarif secara manual.';
-                tarifStatus.className = 'form-text text-warning d-block mt-1';
+                tarifStatus.textContent = 'Tarif dapat diisi manual jika diperlukan';
+                tarifStatus.className = 'form-text text-muted d-block mt-1';
                 hitungOtomatis();
             });
     }
