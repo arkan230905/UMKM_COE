@@ -111,7 +111,8 @@ class LaporanController extends Controller
         });
         
         $pembelian = $query->paginate(15);
-        $vendors = \App\Models\Vendor::all();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendors = \App\Models\Vendor::where('user_id', auth()->id())->get();
 
         return view('laporan.pembelian.index', compact(
             'pembelian', 

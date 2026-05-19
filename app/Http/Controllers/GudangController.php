@@ -28,6 +28,10 @@ class GudangController extends Controller
      */
     public function dashboard()
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        // Use session('user_id') for gudang staff authentication
+        $userId = session('user_id') ?? session('gudang_id');
+
         $data = [
             'title' => 'Dashboard Gudang',
             'pegawai' => [
@@ -42,10 +46,12 @@ class GudangController extends Controller
                 'kode' => session('perusahaan_kode'),
             ],
             'stats' => [
-                'total_bahan_baku' => BahanBaku::count(),
-                'total_bahan_pendukung' => BahanPendukung::count(),
-                'total_vendor' => Vendor::count(),
-                'total_pembelian_bulan_ini' => Pembelian::whereMonth('tanggal', date('m'))
+                // CRITICAL: Filter by user_id untuk multi-tenant isolation
+                'total_bahan_baku' => BahanBaku::where('user_id', $userId)->count(),
+                'total_bahan_pendukung' => BahanPendukung::where('user_id', $userId)->count(),
+                'total_vendor' => Vendor::where('user_id', $userId)->count(),
+                'total_pembelian_bulan_ini' => Pembelian::where('user_id', $userId)
+                    ->whereMonth('tanggal', date('m'))
                     ->whereYear('tanggal', date('Y'))
                     ->count(),
             ]
@@ -85,7 +91,12 @@ class GudangController extends Controller
      */
     public function vendor()
     {
-        $vendors = Vendor::orderBy('nama_vendor')->paginate(20);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        // Use session('user_id') for gudang staff authentication
+        $userId = session('user_id') ?? session('gudang_id');
+        $vendors = Vendor::where('user_id', $userId)
+            ->orderBy('nama_vendor')
+            ->paginate(20);
         
         return view('gudang.vendor', [
             'title' => 'Vendor',
@@ -113,7 +124,12 @@ class GudangController extends Controller
      */
     public function createPembelian()
     {
-        $vendors = Vendor::orderBy('nama_vendor')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        // Use session('user_id') for gudang staff authentication
+        $userId = session('user_id') ?? session('gudang_id');
+        $vendors = Vendor::where('user_id', $userId)
+            ->orderBy('nama_vendor')
+            ->get();
         $bahanBakus = BahanBaku::with('satuanRelation')->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::orderBy('nama_bahan')->get();
         $satuans = Satuan::orderBy('kode')->get();

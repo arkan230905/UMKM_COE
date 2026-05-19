@@ -21,6 +21,9 @@ class Vendor extends Model
     {
         parent::boot();
         
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
         static::creating(function ($model) {
             if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();

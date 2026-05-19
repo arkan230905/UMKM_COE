@@ -10,7 +10,10 @@ class VendorController extends Controller
 {
     public function index()
     {
-        $vendors = Vendor::latest()->paginate(15);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendors = Vendor::where('user_id', auth()->id())
+            ->latest()
+            ->paginate(15);
         return view('pegawai-pembelian.vendor.index', compact('vendors'));
     }
 
@@ -29,7 +32,7 @@ class VendorController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
 
-        Vendor::create($validated);
+        Vendor::create(array_merge($validated, ['user_id' => auth()->id()]));
 
         return redirect()->route('pegawai-pembelian.vendor.index')
             ->with('success', 'Vendor berhasil ditambahkan!');
@@ -37,13 +40,17 @@ class VendorController extends Controller
 
     public function show($id)
     {
-        $vendor = Vendor::with('pembelians')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendor = Vendor::where('user_id', auth()->id())
+            ->with('pembelians')
+            ->findOrFail($id);
         return view('pegawai-pembelian.vendor.show', compact('vendor'));
     }
 
     public function edit($id)
     {
-        $vendor = Vendor::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendor = Vendor::where('user_id', auth()->id())->findOrFail($id);
         return view('pegawai-pembelian.vendor.edit', compact('vendor'));
     }
 
@@ -57,7 +64,8 @@ class VendorController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
 
-        $vendor = Vendor::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendor = Vendor::where('user_id', auth()->id())->findOrFail($id);
         $vendor->update($validated);
 
         return redirect()->route('pegawai-pembelian.vendor.index')
@@ -66,7 +74,8 @@ class VendorController extends Controller
 
     public function destroy($id)
     {
-        $vendor = Vendor::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendor = Vendor::where('user_id', auth()->id())->findOrFail($id);
         $vendor->delete();
 
         return redirect()->route('pegawai-pembelian.vendor.index')

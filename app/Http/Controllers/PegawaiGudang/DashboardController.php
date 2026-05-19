@@ -27,23 +27,32 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        // Use session('user_id') for gudang staff authentication
+        $userId = session('user_id') ?? session('gudang_id');
+
         // Get stok minimum notifications (with fallback if column doesn't exist)
         try {
-            $stokMinimumBahanBaku = BahanBaku::whereRaw('stok <= COALESCE(stok_minimum, 10)')->get();
+            $stokMinimumBahanBaku = BahanBaku::where('user_id', $userId)
+                ->whereRaw('stok <= COALESCE(stok_minimum, 10)')->get();
         } catch (\Exception $e) {
             // Fallback jika kolom stok_minimum belum ada
-            $stokMinimumBahanBaku = BahanBaku::where('stok', '<=', 10)->get();
+            $stokMinimumBahanBaku = BahanBaku::where('user_id', $userId)
+                ->where('stok', '<=', 10)->get();
         }
-        
+
         try {
-            $stokMinimumBahanPendukung = BahanPendukung::whereRaw('stok <= COALESCE(stok_minimum, 10)')->get();
+            $stokMinimumBahanPendukung = BahanPendukung::where('user_id', $userId)
+                ->whereRaw('stok <= COALESCE(stok_minimum, 10)')->get();
         } catch (\Exception $e) {
             // Fallback jika kolom stok_minimum belum ada
-            $stokMinimumBahanPendukung = BahanPendukung::where('stok', '<=', 10)->get();
+            $stokMinimumBahanPendukung = BahanPendukung::where('user_id', $userId)
+                ->where('stok', '<=', 10)->get();
         }
-        
+
         // Get recent pembelians
-        $recentPembelians = Pembelian::with('vendor')
+        $recentPembelians = Pembelian::where('user_id', $userId)
+            ->with('vendor')
             ->orderBy('tanggal', 'desc')
             ->take(5)
             ->get();
@@ -62,10 +71,13 @@ class DashboardController extends Controller
                 'kode' => session('perusahaan_kode'),
             ],
             'stats' => [
-                'total_bahan_baku' => BahanBaku::count(),
-                'total_bahan_pendukung' => BahanPendukung::count(),
-                'total_vendor' => Vendor::count(),
-                'total_pembelian_bulan_ini' => Pembelian::whereMonth('tanggal', date('m'))
+                // CRITICAL: Filter by user_id untuk multi-tenant isolation
+                // Use session('user_id') for gudang staff authentication
+                'total_bahan_baku' => BahanBaku::where('user_id', session('user_id') ?? session('gudang_id'))->count(),
+                'total_bahan_pendukung' => BahanPendukung::where('user_id', session('user_id') ?? session('gudang_id'))->count(),
+                'total_vendor' => Vendor::where('user_id', session('user_id') ?? session('gudang_id'))->count(),
+                'total_pembelian_bulan_ini' => Pembelian::where('user_id', session('user_id') ?? session('gudang_id'))
+                    ->whereMonth('tanggal', date('m'))
                     ->whereYear('tanggal', date('Y'))
                     ->count(),
             ],

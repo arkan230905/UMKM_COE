@@ -24,7 +24,10 @@ class VendorController extends Controller
      */
     public function index()
     {
-        $vendors = Vendor::orderBy('nama_vendor')->paginate(20);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendors = Vendor::where('user_id', auth()->id())
+            ->orderBy('nama_vendor')
+            ->paginate(20);
         
         return view('pegawai-gudang.vendor.index', [
             'title' => 'Vendor',
