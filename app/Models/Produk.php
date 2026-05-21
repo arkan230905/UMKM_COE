@@ -229,6 +229,10 @@ class Produk extends Model
     /**
      * Get HPP from Harga Pokok Produksi calculation (BBB + BTKL + BOP)
      * This is the MAIN source for HPP calculation
+     * 
+     * FIXED: Now correctly calculates HPP specific to this product by:
+     * 1. Getting BBB selected for this product
+     * 2. Getting BTKL and BOP from proses produksi linked to this product's BOM
      */
     private function getHPPFromHargaPokokProduksi()
     {
@@ -255,30 +259,53 @@ class Produk extends Model
             return 0;
         }
         
-        // Get BTKL (Biaya Tenaga Kerja Langsung)
-        $selectedBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $userId)
-            ->with('prosesProduksi')
-            ->get();
+        // Get BOM for this product to find related processes
+        $bom = \App\Models\Bom::where('produk_id', $this->id)->first();
         
         $totalBtkl = 0;
-        foreach ($selectedBtkl as $btkl) {
-            if ($btkl->prosesProduksi) {
-                $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
-                $kapasitas = $btkl->prosesProduksi->kapasitas_per_jam ?? 1;
-                $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
-                $totalBtkl += $biayaPerProduk;
-            }
-        }
-        
-        // Get BOP (Biaya Overhead Pabrik)
-        $selectedBop = \App\Models\HargaPokokProduksiBop::where('user_id', $userId)
-            ->with('bopProses')
-            ->get();
-        
         $totalBop = 0;
-        foreach ($selectedBop as $bop) {
-            if ($bop->bopProses) {
-                $totalBop += $bop->bopProses->total_bop_per_produk ?? 0;
+        
+        if ($bom) {
+            // Get all proses produksi linked to this BOM
+            $bomProses = $bom->proses()->get();
+            
+            // Get all selected BTKL from Harga Pokok Produksi
+            $selectedBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $userId)
+                ->with('prosesProduksi')
+                ->get();
+            
+            // Get all selected BOP from Harga Pokok Produksi
+            $selectedBop = \App\Models\HargaPokokProduksiBop::where('user_id', $userId)
+                ->with('bopProses')
+                ->get();
+            
+            // Calculate BTKL: sum biaya from proses produksi that are in this BOM
+            foreach ($bomProses as $bomProses) {
+                $prosesProduksiId = $bomProses->proses_produksi_id;
+                
+                // Check if this proses is selected in Harga Pokok Produksi BTKL
+                foreach ($selectedBtkl as $btkl) {
+                    if ($btkl->prosesProduksi && $btkl->prosesProduksi->id == $prosesProduksiId) {
+                        $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
+                        $kapasitas = $btkl->prosesProduksi->kapasitas_per_jam ?? 1;
+                        $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
+                        $totalBtkl += $biayaPerProduk;
+                        break; // Found the selected BTKL for this process
+                    }
+                }
+            }
+            
+            // Calculate BOP: sum biaya from proses produksi that are in this BOM
+            foreach ($bomProses as $bomProses) {
+                $prosesProduksiId = $bomProses->proses_produksi_id;
+                
+                // Check if this proses has BOP configured in Harga Pokok Produksi
+                foreach ($selectedBop as $bop) {
+                    if ($bop->bopProses && $bop->bopProses->proses_produksi_id == $prosesProduksiId) {
+                        $totalBop += $bop->bopProses->total_bop_per_produk ?? 0;
+                        break; // Found the BOP for this process
+                    }
+                }
             }
         }
         
