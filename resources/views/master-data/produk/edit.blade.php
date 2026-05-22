@@ -10,14 +10,8 @@
         @csrf
         @method('PUT')
         @php
-            // Get HPP from BomJobCosting (total biaya harga pokok produksi)
-            $bomJobCosting = $produk->bomJobCosting;
-            $calculatedHPP = 0;
-            
-            if ($bomJobCosting) {
-                // Use total_hpp from BomJobCosting which is the complete HPP calculation
-                $calculatedHPP = $bomJobCosting->total_hpp ?? 0;
-            }
+            // Get HPP from getActualHPP() method which calculates from Harga Pokok Produksi
+            $calculatedHPP = $produk->getActualHPP();
             
             // Auto-populate harga_jual with HPP if harga_jual is empty or 0
             $autoHargaJual = $produk->harga_jual;
