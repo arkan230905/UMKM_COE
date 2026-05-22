@@ -113,7 +113,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end fw-semibold">
-                                    Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
+                                    Rp {{ number_format($bahan->harga_satuan ?? 0, 0, ',', '.') }}
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
