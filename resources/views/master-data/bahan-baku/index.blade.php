@@ -55,16 +55,21 @@
                                     @php
                                         $stokSaatIni = $bahan->stok_real_time ?? 0;
                                         $stokMinimum = $bahan->stok_minimum ?? 0;
+                                        
+                                        // Format stok: hilangkan ,00 jika bilangan bulat
+                                        $stokFormatted = $stokSaatIni == floor($stokSaatIni) 
+                                            ? number_format($stokSaatIni, 0, ',', '.') 
+                                            : number_format($stokSaatIni, 2, ',', '.');
                                     @endphp
                                     
                                     @if($stokSaatIni <= 0)
-                                        <span class="badge bg-danger">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <span class="badge bg-danger">{{ $stokFormatted }}</span>
                                         <small class="text-danger d-block">Habis</small>
                                     @elseif($stokSaatIni <= $stokMinimum)
-                                        <span class="badge bg-warning">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <span class="badge bg-warning">{{ $stokFormatted }}</span>
                                         <small class="text-warning d-block">Hampir Habis</small>
                                     @else
-                                        <span class="badge bg-success">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <span class="badge bg-success">{{ $stokFormatted }}</span>
                                         <small class="text-success d-block">Aman</small>
                                     @endif
                                 </td>
