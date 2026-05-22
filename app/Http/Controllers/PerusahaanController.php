@@ -79,6 +79,9 @@ class PerusahaanController extends Controller
             'alamat' => 'required|string',
             'email' => 'required|email|max:255',
             'telepon' => 'required|string|max:20',
+            'nama_bank' => 'nullable|string|max:255',
+            'nomor_rekening' => 'nullable|string|max:50',
+            'nama_pemilik_rekening' => 'nullable|string|max:255',
         ]);
 
         // Update data ke database
@@ -90,6 +93,9 @@ class PerusahaanController extends Controller
                 'alamat' => $request->alamat,
                 'email' => $request->email,
                 'telepon' => $request->telepon,
+                'nama_bank' => $request->nama_bank,
+                'nomor_rekening' => $request->nomor_rekening,
+                'nama_pemilik_rekening' => $request->nama_pemilik_rekening,
             ]);
         } else {
             // Jika belum ada, buat baru
@@ -98,6 +104,9 @@ class PerusahaanController extends Controller
                 'alamat' => $request->alamat,
                 'email' => $request->email,
                 'telepon' => $request->telepon,
+                'nama_bank' => $request->nama_bank,
+                'nomor_rekening' => $request->nomor_rekening,
+                'nama_pemilik_rekening' => $request->nama_pemilik_rekening,
                 'kode' => Perusahaan::generateKode(),
             ]);
         }
@@ -119,9 +128,7 @@ class PerusahaanController extends Controller
                 
                 foreach ($banks as $bankData) {
                     if (isset($bankData['coa_id'])) {
-                        $coa = \App\Models\Coa::where('id', $bankData['coa_id'])
-                            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-                            ->first();
+                        $coa = \App\Models\Coa::find($bankData['coa_id']);
                         if ($coa) {
                             $coa->update([
                                 'nomor_rekening' => $bankData['nomor_rekening'] ?? null,
@@ -154,9 +161,7 @@ class PerusahaanController extends Controller
         ]);
 
         try {
-            $coa = \App\Models\Coa::where('id', $request->coa_id)
-                ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-                ->first();
+            $coa = \App\Models\Coa::find($request->coa_id);
             if ($coa) {
                 $coa->update([
                     $request->field => $request->value
@@ -172,48 +177,6 @@ class PerusahaanController extends Controller
             return response()->json(['success' => false, 'message' => 'COA tidak ditemukan'], 404);
         } catch (\Exception $e) {
             \Log::error('Error updating bank field: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan'], 500);
-        }
-    }
-
-    // Update single company field via AJAX
-    public function updateCompanyField(Request $request)
-    {
-        // Cek apakah user adalah owner
-        if (auth()->user()->role !== 'owner') {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        $request->validate([
-            'field' => 'required|in:nama,alamat,email,telepon',
-            'value' => 'required|string|max:255',
-        ]);
-
-        try {
-            $perusahaan = Perusahaan::first();
-            
-            if (!$perusahaan) {
-                // Jika belum ada, buat baru
-                $perusahaan = Perusahaan::create([
-                    'nama' => $request->field === 'nama' ? $request->value : 'Nama Perusahaan',
-                    'alamat' => $request->field === 'alamat' ? $request->value : 'Alamat Perusahaan',
-                    'email' => $request->field === 'email' ? $request->value : 'email@perusahaan.com',
-                    'telepon' => $request->field === 'telepon' ? $request->value : '021-1234567',
-                    'kode' => Perusahaan::generateKode(),
-                ]);
-            } else {
-                $perusahaan->update([
-                    $request->field => $request->value
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data berhasil diperbarui',
-                'value' => $request->value
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error updating company field: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan'], 500);
         }
     }

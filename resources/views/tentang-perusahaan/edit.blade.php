@@ -58,6 +58,30 @@
                                     <div class="text-danger small">{{ $message }}</div>
                                 @enderror
                             </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="nama_bank" class="form-label">Nama Bank</label>
+                                <input type="text" class="form-control" id="nama_bank" name="nama_bank" value="{{ old('nama_bank', $dataPerusahaan->nama_bank ?? '') }}" placeholder="Contoh: BCA, Mandiri, BRI">
+                                @error('nama_bank')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="nomor_rekening" class="form-label">Nomor Rekening</label>
+                                <input type="text" class="form-control" id="nomor_rekening" name="nomor_rekening" value="{{ old('nomor_rekening', $dataPerusahaan->nomor_rekening ?? '') }}" placeholder="Contoh: 1234567890">
+                                @error('nomor_rekening')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="nama_pemilik_rekening" class="form-label">Nama Pemilik Rekening</label>
+                                <input type="text" class="form-control" id="nama_pemilik_rekening" name="nama_pemilik_rekening" value="{{ old('nama_pemilik_rekening', $dataPerusahaan->nama_pemilik_rekening ?? '') }}" placeholder="Nama pemilik rekening">
+                                @error('nama_pemilik_rekening')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
                         
                         <div class="row">

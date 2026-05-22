@@ -8,6 +8,11 @@
         <h2 class="mb-0">
             <i class="fas fa-building me-2"></i>Tentang Perusahaan
         </h2>
+        @if(auth()->user()->role === 'owner')
+            <a href="/tentang-perusahaan/edit" class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Edit Data
+            </a>
+        @endif
     </div>
 
     <!-- Info untuk admin bahwa ini adalah view-only -->
@@ -63,130 +68,31 @@
                                     <tbody>
                                         <tr>
                                             <th width="30%" class="bg-light">Nama Perusahaan</th>
-                                            <td class="text-dark fw-bold fs-5">
-                                                @if(auth()->user()->role === 'owner')
-                                                    <div class="editable-company-field" 
-                                                         data-field="nama" 
-                                                         data-value="{{ $dataPerusahaan->nama }}"
-                                                         style="cursor: pointer;">
-                                                        <div class="display-mode d-flex justify-content-between align-items-center">
-                                                            <span class="company-field-text">{{ $dataPerusahaan->nama }}</span>
-                                                            <i class="fas fa-chevron-right text-muted"></i>
-                                                        </div>
-                                                        <div class="edit-mode" style="display: none;">
-                                                            <div class="input-group">
-                                                                <input type="text" 
-                                                                       class="form-control edit-input" 
-                                                                       value="{{ $dataPerusahaan->nama }}"
-                                                                       placeholder="Masukkan nama perusahaan">
-                                                                <button class="btn btn-success btn-sm save-btn" type="button">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                                <button class="btn btn-secondary btn-sm cancel-btn" type="button">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    {{ $dataPerusahaan->nama }}
-                                                @endif
-                                            </td>
+                                            <td class="text-dark fw-bold fs-5">{{ $dataPerusahaan->nama }}</td>
                                         </tr>
                                         <tr>
                                             <th class="bg-light">Alamat</th>
-                                            <td class="text-dark fw-bold fs-5">
-                                                @if(auth()->user()->role === 'owner')
-                                                    <div class="editable-company-field" 
-                                                         data-field="alamat" 
-                                                         data-value="{{ $dataPerusahaan->alamat }}"
-                                                         style="cursor: pointer;">
-                                                        <div class="display-mode d-flex justify-content-between align-items-center">
-                                                            <span class="company-field-text">{{ $dataPerusahaan->alamat }}</span>
-                                                            <i class="fas fa-chevron-right text-muted"></i>
-                                                        </div>
-                                                        <div class="edit-mode" style="display: none;">
-                                                            <div class="input-group">
-                                                                <textarea class="form-control edit-input" 
-                                                                          rows="2"
-                                                                          placeholder="Masukkan alamat perusahaan">{{ $dataPerusahaan->alamat }}</textarea>
-                                                                <button class="btn btn-success btn-sm save-btn" type="button">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                                <button class="btn btn-secondary btn-sm cancel-btn" type="button">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    {{ $dataPerusahaan->alamat }}
-                                                @endif
-                                            </td>
+                                            <td class="text-dark fw-bold fs-5">{{ $dataPerusahaan->alamat }}</td>
                                         </tr>
                                         <tr>
                                             <th class="bg-light">Email</th>
-                                            <td class="text-dark fw-bold fs-5">
-                                                @if(auth()->user()->role === 'owner')
-                                                    <div class="editable-company-field" 
-                                                         data-field="email" 
-                                                         data-value="{{ $dataPerusahaan->email }}"
-                                                         style="cursor: pointer;">
-                                                        <div class="display-mode d-flex justify-content-between align-items-center">
-                                                            <span class="company-field-text">{{ $dataPerusahaan->email }}</span>
-                                                            <i class="fas fa-chevron-right text-muted"></i>
-                                                        </div>
-                                                        <div class="edit-mode" style="display: none;">
-                                                            <div class="input-group">
-                                                                <input type="email" 
-                                                                       class="form-control edit-input" 
-                                                                       value="{{ $dataPerusahaan->email }}"
-                                                                       placeholder="Masukkan email perusahaan">
-                                                                <button class="btn btn-success btn-sm save-btn" type="button">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                                <button class="btn btn-secondary btn-sm cancel-btn" type="button">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    {{ $dataPerusahaan->email }}
-                                                @endif
-                                            </td>
+                                            <td class="text-dark fw-bold fs-5">{{ $dataPerusahaan->email }}</td>
                                         </tr>
                                         <tr>
                                             <th class="bg-light">Telepon</th>
-                                            <td class="text-dark fw-bold fs-5">
-                                                @if(auth()->user()->role === 'owner')
-                                                    <div class="editable-company-field" 
-                                                         data-field="telepon" 
-                                                         data-value="{{ $dataPerusahaan->telepon }}"
-                                                         style="cursor: pointer;">
-                                                        <div class="display-mode d-flex justify-content-between align-items-center">
-                                                            <span class="company-field-text">{{ $dataPerusahaan->telepon }}</span>
-                                                            <i class="fas fa-chevron-right text-muted"></i>
-                                                        </div>
-                                                        <div class="edit-mode" style="display: none;">
-                                                            <div class="input-group">
-                                                                <input type="text" 
-                                                                       class="form-control edit-input" 
-                                                                       value="{{ $dataPerusahaan->telepon }}"
-                                                                       placeholder="Masukkan telepon perusahaan">
-                                                                <button class="btn btn-success btn-sm save-btn" type="button">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                                <button class="btn btn-secondary btn-sm cancel-btn" type="button">
-                                                                    <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    {{ $dataPerusahaan->telepon }}
-                                                @endif
-                                            </td>
+                                            <td class="text-dark fw-bold fs-5">{{ $dataPerusahaan->telepon }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">Nama Bank</th>
+                                            <td class="text-dark fw-bold fs-5">{{ $dataPerusahaan->nama_bank ?? '-' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">Nomor Rekening</th>
+                                            <td class="text-dark fw-bold fs-5 font-monospace">{{ $dataPerusahaan->nomor_rekening ?? '-' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">Nama Pemilik Rekening</th>
+                                            <td class="text-dark fw-bold fs-5">{{ $dataPerusahaan->nama_pemilik_rekening ?? '-' }}</td>
                                         </tr>
                                         @if($dataPerusahaan->kode)
                                             <tr>
@@ -215,7 +121,7 @@
                                                 <strong>Kode Perusahaan:</strong> Digunakan untuk login pegawai dan kasir
                                             </p>
                                             <p class="mb-2">
-                                                <strong>Edit Data:</strong> Klik pada data perusahaan untuk mengedit (khusus Owner)
+                                                <strong>Akses Edit:</strong> Hanya user dengan role Owner yang dapat mengubah data perusahaan
                                             </p>
                                         </div>
                                         <div class="col-md-6">
@@ -250,18 +156,15 @@
             <div class="collapse" id="informasiRekeningCollapse">
                 <div class="card-body">
                     @php
-                        // MASTER SOURCE: Ambil hanya akun bank dari COA (bukan kas tunai)
-                        // Hanya menampilkan akun yang benar-benar bank, bukan kas tunai
+                        // MASTER SOURCE: Ambil semua bank dari COA (Asset accounts yang mengandung kata "bank")
+                        // Query ini juga digunakan di AccountHelper::getBankAccountsForTransfer()
+                        // untuk memastikan konsistensi data di seluruh aplikasi
                         $bankAccounts = collect();
                         try {
-                            $bankAccounts = \App\Models\Coa::where(function($query) {
-                                    $query->where('tipe_akun', 'asset')
-                                          ->orWhere('tipe_akun', 'Aset')
-                                          ->orWhere('tipe_akun', 'ASET');
-                                })
+                            $bankAccounts = \App\Models\Coa::where('tipe_akun', 'asset')
                                 ->where(function($query) {
-                                    // Hanya akun yang mengandung kata "bank"
-                                    $query->where('nama_akun', 'like', '%bank%');
+                                    $query->where('nama_akun', 'like', '%bank%')
+                                          ->orWhere('kode_akun', '111');
                                 })
                                 ->get();
                         } catch (Exception $e) {
@@ -354,13 +257,10 @@
                         </div>
                     @endif
                     
-                    <div class="mt-3 pt-3 border-top border-light">
+                    <div class="mt-3 pt-3 border-top">
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Nama bank diambil otomatis dari COA. Klik data perusahaan, nomor rekening atau atas nama untuk mengedit.
-                            <br>
-                            <i class="fas fa-sync-alt me-1"></i>
-                            Perubahan data di sini akan otomatis tersinkronisasi ke seluruh sistem.
+                            Informasi rekening diambil dari Chart of Accounts (COA) dengan kategori Kas & Bank
                         </small>
                     </div>
                 </div>
@@ -464,45 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Handle inline editing for company fields
-    document.querySelectorAll('.editable-company-field').forEach(function(field) {
-        const displayMode = field.querySelector('.display-mode');
-        const editMode = field.querySelector('.edit-mode');
-        const input = field.querySelector('.edit-input');
-        const saveBtn = field.querySelector('.save-btn');
-        const cancelBtn = field.querySelector('.cancel-btn');
-        const displayText = field.querySelector('.company-field-text');
-        
-        // Click to edit
-        displayMode.addEventListener('click', function() {
-            displayMode.style.display = 'none';
-            editMode.style.display = 'block';
-            input.focus();
-            input.select();
-        });
-        
-        // Cancel edit
-        cancelBtn.addEventListener('click', function() {
-            input.value = field.dataset.value;
-            editMode.style.display = 'none';
-            displayMode.style.display = 'flex';
-        });
-        
-        // Save edit
-        saveBtn.addEventListener('click', function() {
-            saveCompanyField(field, input.value);
-        });
-        
-        // Save on Enter key
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                saveCompanyField(field, input.value);
-            } else if (e.key === 'Escape') {
-                cancelBtn.click();
-            }
-        });
-    });
-    
     function saveBankField(fieldElement, newValue) {
         const coaId = fieldElement.dataset.coaId;
         const fieldName = fieldElement.dataset.field;
@@ -565,74 +426,6 @@ document.addEventListener('DOMContentLoaded', function() {
             editMode.style.display = 'none';
             displayMode.style.display = 'flex';
         });
-    }
-    
-    function saveCompanyField(fieldElement, newValue) {
-        const fieldName = fieldElement.dataset.field;
-        const displayText = fieldElement.querySelector('.company-field-text');
-        const input = fieldElement.querySelector('.edit-input');
-        const saveBtn = fieldElement.querySelector('.save-btn');
-        const displayMode = fieldElement.querySelector('.display-mode');
-        const editMode = fieldElement.querySelector('.edit-mode');
-        
-        // Validation
-        if (newValue.trim() === '') {
-            showToast('error', 'Field tidak boleh kosong');
-            return;
-        }
-        
-        if (fieldName === 'email' && !isValidEmail(newValue)) {
-            showToast('error', 'Format email tidak valid');
-            return;
-        }
-        
-        // Show loading
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        saveBtn.disabled = true;
-        
-        // Send AJAX request
-        fetch('{{ route("tentang-perusahaan.update-company-field") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                field: fieldName,
-                value: newValue
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update display
-                fieldElement.dataset.value = newValue;
-                displayText.textContent = newValue;
-                
-                // Show success message
-                showToast('success', 'Data perusahaan berhasil diperbarui');
-            } else {
-                showToast('error', data.message || 'Terjadi kesalahan');
-                input.value = fieldElement.dataset.value; // Reset value
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('error', 'Terjadi kesalahan jaringan');
-            input.value = fieldElement.dataset.value; // Reset value
-        })
-        .finally(() => {
-            // Reset button and hide edit mode
-            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
-            saveBtn.disabled = false;
-            editMode.style.display = 'none';
-            displayMode.style.display = 'flex';
-        });
-    }
-    
-    function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
     }
     
     function showToast(type, message) {
