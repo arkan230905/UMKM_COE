@@ -291,51 +291,8 @@
                         </div>
                     </div>
                 </div>
-                
-                <hr>
-                
-                <!-- COA Fields - COMPLETELY MANUAL -->
-                <h5 class="mb-3">Akun COA</h5>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">COA Pembelian <span class="text-danger">*</span></label>
-                            <select name="coa_pembelian_id" id="coa_pembelian_id" class="form-select" required>
-                                <option value="">-- Pilih COA Pembelian --</option>
-                                @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">* Wajib diisi</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">COA Persediaan <span class="text-danger">*</span></label>
-                            <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-select" required>
-                                <option value="">-- Pilih COA Persediaan --</option>
-                                @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">* Wajib diisi</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">COA HPP <span class="text-danger">*</span></label>
-                            <select name="coa_hpp_id" id="coa_hpp_id" class="form-select" required>
-                                <option value="">-- Pilih COA HPP --</option>
-                                @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">* Wajib diisi</small>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="row">
+                <div class="row mt-4">
                     <div class="col-md-12">
                         <div class="d-flex justify-content-between">
                             <button type="submit" class="btn btn-primary">
