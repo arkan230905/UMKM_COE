@@ -335,7 +335,7 @@ if ($request->filled('nomor_transaksi')) {
                 ];
             }
             
-            $totalPPN = ($subtotalProduk + $biayaOngkir) * ($ppnPersen / 100);
+            $totalPPN = $subtotalProduk * ($ppnPersen / 100);
             $grandTotal = $subtotalProduk + $biayaOngkir + $totalPPN;
             
             // Resolve coa_id dari sumber_dana
