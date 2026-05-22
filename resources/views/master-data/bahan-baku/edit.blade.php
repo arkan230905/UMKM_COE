@@ -285,57 +285,7 @@
                     </div>
                 </div>
 
-                <hr>
-                
-                <!-- COA Fields -->
-                <h5 class="mb-3">Akun COA</h5>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">COA Pembelian <span class="text-danger">*</span></label>
-                            <select name="coa_pembelian_id" id="coa_pembelian_id" class="form-select" required>
-                                <option value="">-- Pilih COA Pembelian --</option>
-                                @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_pembelian_id', $bahanBaku->coa_pembelian_id) == $coa->kode_akun ? 'selected' : '' }}>
-                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">* Wajib diisi</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">COA Persediaan <span class="text-danger">*</span></label>
-                            <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-select" required>
-                                <option value="">-- Pilih COA Persediaan --</option>
-                                @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_persediaan_id', $bahanBaku->coa_persediaan_id) == $coa->kode_akun ? 'selected' : '' }}>
-                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">* Wajib diisi</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">COA HPP <span class="text-danger">*</span></label>
-                            <select name="coa_hpp_id" id="coa_hpp_id" class="form-select" required>
-                                <option value="">-- Pilih COA HPP --</option>
-                                @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_hpp_id', $bahanBaku->coa_hpp_id) == $coa->kode_akun ? 'selected' : '' }}>
-                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">* Wajib diisi</small>
-                        </div>
-                    </div>
-                </div>
-
-                <hr>
-                <div class="d-flex justify-content-end gap-2">
+                <div class="d-flex justify-content-end gap-2 mt-4">
                     <a href="{{ route('master-data.bahan-baku.index') }}" class="btn btn-secondary">Batal</a>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Update
