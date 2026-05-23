@@ -142,54 +142,6 @@
         </div>
     </div>
 
-    <!-- COA Information Card -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-success text-white">
-            <h6 class="mb-0">
-                <i class="fas fa-book me-2"></i>Akun COA
-            </h6>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="text-center mb-3">
-                        <h6 class="text-success fw-bold">COA Pembelian</h6>
-                        @if($bahanBaku->coaPembelian)
-                            <div class="fw-semibold">{{ $bahanBaku->coaPembelian->nama_akun }}</div>
-                            <small class="text-muted">{{ $bahanBaku->coaPembelian->kode_akun }}</small>
-                        @else
-                            <div class="text-muted">-</div>
-                            <small class="text-muted">Tidak ada COA</small>
-                        @endif
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-center mb-3">
-                        <h6 class="text-info fw-bold">COA Persediaan</h6>
-                        @if($bahanBaku->coaPersediaan)
-                            <div class="fw-semibold">{{ $bahanBaku->coaPersediaan->nama_akun }}</div>
-                            <small class="text-muted">{{ $bahanBaku->coaPersediaan->kode_akun }}</small>
-                        @else
-                            <div class="text-muted">-</div>
-                            <small class="text-muted">Tidak ada COA</small>
-                        @endif
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="text-center mb-3">
-                        <h6 class="text-warning fw-bold">COA HPP</h6>
-                        @if($bahanBaku->coaHpp)
-                            <div class="fw-semibold">{{ $bahanBaku->coaHpp->nama_akun }}</div>
-                            <small class="text-muted">{{ $bahanBaku->coaHpp->kode_akun }}</small>
-                        @else
-                            <div class="text-muted">-</div>
-                            <small class="text-muted">Tidak ada COA</small>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 @push('styles')

@@ -3,15 +3,15 @@
     <div class="card-body">
         <form action="" method="GET" class="row g-3">
             <input type="hidden" name="tab" value="pembelian">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Tanggal Mulai</label>
                 <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Tanggal Selesai</label>
                 <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Vendor</label>
                 <select name="vendor_id" class="form-select">
                     <option value="">Semua Vendor</option>
@@ -22,14 +22,74 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100">
+            <div class="col-md-2">
+                <label class="form-label">Jenis Bahan</label>
+                <select name="jenis_bahan" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="bahan_baku" {{ request('jenis_bahan') == 'bahan_baku' ? 'selected' : '' }}>Bahan Baku</option>
+                    <option value="bahan_pendukung" {{ request('jenis_bahan') == 'bahan_pendukung' ? 'selected' : '' }}>Bahan Pendukung</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Cari Bahan</label>
+                <input type="text" name="search_bahan" class="form-control" placeholder="Cari nama bahan..." value="{{ request('search_bahan') }}">
+            </div>
+            <div class="col-md-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search me-1"></i> Filter
                 </button>
+                <a href="{{ route('laporan.pembelian.index') }}?tab=pembelian" class="btn btn-secondary">
+                    <i class="fas fa-redo me-1"></i> Reset
+                </a>
             </div>
         </form>
     </div>
 </div>
+
+<!-- Filter Summary (shown when filter is active) -->
+@if(request('jenis_bahan') || request('search_bahan'))
+<div class="card mb-4 border-info">
+    <div class="card-header bg-info text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-filter me-2"></i>Hasil Filter Bahan
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-search text-info me-2"></i>
+                    <strong>Filter Aktif:</strong>
+                </div>
+                <ul class="mb-0">
+                    @if(request('search_bahan'))
+                        <li>Nama Bahan: <span class="badge bg-primary">{{ request('search_bahan') }}</span></li>
+                    @endif
+                    @if(request('jenis_bahan'))
+                        <li>Jenis: <span class="badge bg-success">{{ request('jenis_bahan') == 'bahan_baku' ? 'Bahan Baku' : 'Bahan Pendukung' }}</span></li>
+                    @endif
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-3 bg-light">
+                            <div class="text-muted small">Total Qty Dibeli</div>
+                            <h4 class="mb-0 text-primary">{{ number_format($totalQtyBahan ?? 0, 0, ',', '.') }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 bg-light">
+                            <div class="text-muted small">Total Pembelian</div>
+                            <h4 class="mb-0 text-success">Rp {{ number_format($totalPembelianFiltered ?? 0, 0, ',', '.') }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Summary Cards -->
 <div class="row mb-4 summary-grid">
