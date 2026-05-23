@@ -173,32 +173,69 @@
                             <td class="text-center nowrap">{{ $p->vendor->nama_vendor ?? '-' }}</td>
                             <td class="text-center">
                                 @if($p->details && $p->details->count() > 0)
-                                    <div class="small text-center">
-                                        @foreach($p->details as $detail)
-                                            <div class="mb-1 text-center">
-                                                • 
-                                                @if($detail->tipe_item === 'bahan_baku' && $detail->bahanBaku)
-                                                    {{ $detail->bahanBaku->nama_bahan }}
-                                                @elseif($detail->tipe_item === 'bahan_pendukung' && $detail->bahanPendukung)
-                                                    {{ $detail->bahanPendukung->nama_bahan }}
-                                                @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
-                                                    {{ $detail->bahanPendukung->nama_bahan }}
-                                                @elseif($detail->bahan_baku_id && $detail->bahanBaku)
-                                                    {{ $detail->bahanBaku->nama_bahan }}
-                                                @else
-                                                    Item
-                                                @endif
-                                                @php
-                                                    $qty = $detail->jumlah ?? 0;
-                                                    // Remove .00 from whole numbers
-                                                    $qtyFormatted = ($qty == floor($qty)) ? number_format($qty, 0, ',', '.') : number_format($qty, 2, ',', '.');
-                                                @endphp
-                                                <span class="text-muted">- {{ $qtyFormatted }}</span>
-                                                - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
-                                                = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
-                                            </div>
-                                        @endforeach
-                                    </div>
+                                    @php
+                                        // Filter details based on search and jenis_bahan
+                                        $filteredDetails = $p->details;
+                                        
+                                        // Filter by jenis_bahan
+                                        if(request('jenis_bahan')) {
+                                            $filteredDetails = $filteredDetails->filter(function($detail) {
+                                                if(request('jenis_bahan') === 'bahan_baku') {
+                                                    return $detail->tipe_item === 'bahan_baku' || $detail->bahan_baku_id;
+                                                } elseif(request('jenis_bahan') === 'bahan_pendukung') {
+                                                    return $detail->tipe_item === 'bahan_pendukung' || $detail->bahan_pendukung_id;
+                                                }
+                                                return true;
+                                            });
+                                        }
+                                        
+                                        // Filter by search_bahan
+                                        if(request('search_bahan')) {
+                                            $searchBahan = strtolower(request('search_bahan'));
+                                            $filteredDetails = $filteredDetails->filter(function($detail) use ($searchBahan) {
+                                                $namaBahan = '';
+                                                if($detail->bahanBaku) {
+                                                    $namaBahan = strtolower($detail->bahanBaku->nama_bahan);
+                                                } elseif($detail->bahanPendukung) {
+                                                    $namaBahan = strtolower($detail->bahanPendukung->nama_bahan);
+                                                }
+                                                return strpos($namaBahan, $searchBahan) !== false;
+                                            });
+                                        }
+                                    @endphp
+                                    
+                                    @if($filteredDetails->count() > 0)
+                                        <div class="small text-center">
+                                            @foreach($filteredDetails as $detail)
+                                                <div class="mb-1 text-center">
+                                                    • 
+                                                    @if($detail->tipe_item === 'bahan_baku' && $detail->bahanBaku)
+                                                        {{ $detail->bahanBaku->nama_bahan }}
+                                                    @elseif($detail->tipe_item === 'bahan_pendukung' && $detail->bahanPendukung)
+                                                        {{ $detail->bahanPendukung->nama_bahan }}
+                                                    @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
+                                                        {{ $detail->bahanPendukung->nama_bahan }}
+                                                    @elseif($detail->bahan_baku_id && $detail->bahanBaku)
+                                                        {{ $detail->bahanBaku->nama_bahan }}
+                                                    @else
+                                                        Item
+                                                    @endif
+                                                    @php
+                                                        $qty = $detail->jumlah ?? 0;
+                                                        // Remove .00 from whole numbers
+                                                        $qtyFormatted = ($qty == floor($qty)) ? number_format($qty, 0, ',', '.') : number_format($qty, 2, ',', '.');
+                                                    @endphp
+                                                    <span class="text-muted">- {{ $qtyFormatted }}</span>
+                                                    - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
+                                                    = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-filter"></i> Tidak ada item yang sesuai filter
+                                        </span>
+                                    @endif
                                 @else
                                     <span class="badge bg-warning">
                                         <i class="fas fa-exclamation-triangle"></i> Detail tidak tersedia
@@ -210,13 +247,50 @@
                             </td>
                             <td class="text-center">
                                 @php
+                                    // Calculate total based on filtered details
                                     $totalPembelian = 0;
                                     if ($p->details && $p->details->count() > 0) {
-                                        $totalPembelian = $p->details->sum(function($detail) {
-                                            return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-                                        });
+                                        // Use filtered details if filter is active
+                                        if(request('jenis_bahan') || request('search_bahan')) {
+                                            $detailsToSum = $p->details;
+                                            
+                                            // Filter by jenis_bahan
+                                            if(request('jenis_bahan')) {
+                                                $detailsToSum = $detailsToSum->filter(function($detail) {
+                                                    if(request('jenis_bahan') === 'bahan_baku') {
+                                                        return $detail->tipe_item === 'bahan_baku' || $detail->bahan_baku_id;
+                                                    } elseif(request('jenis_bahan') === 'bahan_pendukung') {
+                                                        return $detail->tipe_item === 'bahan_pendukung' || $detail->bahan_pendukung_id;
+                                                    }
+                                                    return true;
+                                                });
+                                            }
+                                            
+                                            // Filter by search_bahan
+                                            if(request('search_bahan')) {
+                                                $searchBahan = strtolower(request('search_bahan'));
+                                                $detailsToSum = $detailsToSum->filter(function($detail) use ($searchBahan) {
+                                                    $namaBahan = '';
+                                                    if($detail->bahanBaku) {
+                                                        $namaBahan = strtolower($detail->bahanBaku->nama_bahan);
+                                                    } elseif($detail->bahanPendukung) {
+                                                        $namaBahan = strtolower($detail->bahanPendukung->nama_bahan);
+                                                    }
+                                                    return strpos($namaBahan, $searchBahan) !== false;
+                                                });
+                                            }
+                                            
+                                            $totalPembelian = $detailsToSum->sum(function($detail) {
+                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                            });
+                                        } else {
+                                            // No filter, show all
+                                            $totalPembelian = $p->details->sum(function($detail) {
+                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                            });
+                                        }
                                     }
-                                    if ($p->total_harga > $totalPembelian) {
+                                    if ($p->total_harga > $totalPembelian && !request('jenis_bahan') && !request('search_bahan')) {
                                         $totalPembelian = $p->total_harga;
                                     }
                                 @endphp
