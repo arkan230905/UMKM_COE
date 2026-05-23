@@ -46,6 +46,30 @@
         margin-bottom: 1.5rem;
     }
     
+    /* Search Bar Styles */
+    .search-wrapper {
+        position: relative;
+    }
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        pointer-events: none;
+    }
+    .search-input {
+        padding-left: 45px;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        height: 45px;
+        transition: all 0.3s;
+    }
+    .search-input:focus {
+        border-color: #8B7355;
+        box-shadow: 0 0 0 0.2rem rgba(139, 115, 85, 0.15);
+    }
+    
     /* Table Styles */
     .table-card {
         background: #fff;
@@ -226,18 +250,23 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Cari</label>
-                        <div class="input-group">
-                            <input type="text" name="search" class="form-control" 
-                                   placeholder="Cari vendor, no. faktur, no. pelunasan..." 
+                        <label class="form-label">Cari Vendor</label>
+                        <div class="search-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" name="search" class="form-control search-input" 
+                                   placeholder="Cari nama vendor..." 
                                    value="{{ request('search') }}">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Filter
-                            </button>
-                            <a href="{{ route('laporan.pelunasan-utang') }}" class="btn btn-secondary">
-                                <i class="fas fa-redo"></i> Reset
-                            </a>
                         </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                        <a href="{{ route('laporan.pelunasan-utang') }}" class="btn btn-secondary">
+                            <i class="fas fa-redo me-1"></i> Reset
+                        </a>
                     </div>
                 </div>
             </form>
