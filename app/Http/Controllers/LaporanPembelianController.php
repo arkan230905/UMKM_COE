@@ -115,6 +115,8 @@ class LaporanPembelianController extends Controller
         
         // Calculate total qty for filtered bahan
         $totalQtyBahan = 0;
+        $totalNominalBahan = 0;
+        
         if ($request->filled('jenis_bahan') || $request->filled('search_bahan')) {
             $detailsQuery = \App\Models\PembelianDetail::query()
                 ->whereHas('pembelian', function($q) use ($user) {
@@ -164,7 +166,14 @@ class LaporanPembelianController extends Controller
                 });
             }
             
-            $totalQtyBahan = $detailsQuery->sum('jumlah');
+            // Get all matching details
+            $matchingDetails = $detailsQuery->get();
+            
+            // Calculate total qty and total nominal from details only
+            $totalQtyBahan = $matchingDetails->sum('jumlah');
+            $totalNominalBahan = $matchingDetails->sum(function($detail) {
+                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+            });
         }
         
         $totalPembelianTunai = Pembelian::where('payment_method', 'cash')
@@ -291,7 +300,8 @@ class LaporanPembelianController extends Controller
             'totalPembelianBelumLunas',
             'purchaseReturns',
             'totalPurchaseReturns',
-            'totalQtyBahan'
+            'totalQtyBahan',
+            'totalNominalBahan'
         ));
     }
     
