@@ -29,6 +29,37 @@ class LaporanPembelianController extends Controller
             $query->where('vendor_id', $request->vendor_id);
         }
         
+        // Filter by jenis bahan (bahan_baku or bahan_pendukung)
+        if ($request->filled('jenis_bahan')) {
+            $jenisBahan = $request->jenis_bahan;
+            $query->whereHas('details', function($q) use ($jenisBahan) {
+                if ($jenisBahan === 'bahan_baku') {
+                    $q->where('tipe_item', 'bahan_baku')
+                      ->orWhereNotNull('bahan_baku_id');
+                } elseif ($jenisBahan === 'bahan_pendukung') {
+                    $q->where('tipe_item', 'bahan_pendukung')
+                      ->orWhereNotNull('bahan_pendukung_id');
+                }
+            });
+        }
+        
+        // Filter by nama bahan (search)
+        if ($request->filled('search_bahan')) {
+            $searchBahan = $request->search_bahan;
+            $query->whereHas('details', function($q) use ($searchBahan) {
+                $q->where(function($subQ) use ($searchBahan) {
+                    // Search in bahan baku
+                    $subQ->whereHas('bahanBaku', function($bahanQ) use ($searchBahan) {
+                        $bahanQ->where('nama_bahan', 'like', '%' . $searchBahan . '%');
+                    })
+                    // Search in bahan pendukung
+                    ->orWhereHas('bahanPendukung', function($bahanQ) use ($searchBahan) {
+                        $bahanQ->where('nama_bahan', 'like', '%' . $searchBahan . '%');
+                    });
+                });
+            });
+        }
+        
         $pembelian = $query->oldest()->paginate(10, ['*'], 'pembelian_page');
         
         // Calculate totals for pembelian
@@ -43,6 +74,34 @@ class LaporanPembelianController extends Controller
             $totalQuery->where('vendor_id', $request->vendor_id);
         }
         
+        // Apply same filters for totals
+        if ($request->filled('jenis_bahan')) {
+            $jenisBahan = $request->jenis_bahan;
+            $totalQuery->whereHas('details', function($q) use ($jenisBahan) {
+                if ($jenisBahan === 'bahan_baku') {
+                    $q->where('tipe_item', 'bahan_baku')
+                      ->orWhereNotNull('bahan_baku_id');
+                } elseif ($jenisBahan === 'bahan_pendukung') {
+                    $q->where('tipe_item', 'bahan_pendukung')
+                      ->orWhereNotNull('bahan_pendukung_id');
+                }
+            });
+        }
+        
+        if ($request->filled('search_bahan')) {
+            $searchBahan = $request->search_bahan;
+            $totalQuery->whereHas('details', function($q) use ($searchBahan) {
+                $q->where(function($subQ) use ($searchBahan) {
+                    $subQ->whereHas('bahanBaku', function($bahanQ) use ($searchBahan) {
+                        $bahanQ->where('nama_bahan', 'like', '%' . $searchBahan . '%');
+                    })
+                    ->orWhereHas('bahanPendukung', function($bahanQ) use ($searchBahan) {
+                        $bahanQ->where('nama_bahan', 'like', '%' . $searchBahan . '%');
+                    });
+                });
+            });
+        }
+        
         $totalPembelianFiltered = $totalQuery->get()->sum(function($p) {
             if ($p->details && $p->details->count() > 0) {
                 $totalPembelian = $p->details->sum(function($detail) {
@@ -53,6 +112,60 @@ class LaporanPembelianController extends Controller
             }
             return $totalPembelian;
         });
+        
+        // Calculate total qty for filtered bahan
+        $totalQtyBahan = 0;
+        if ($request->filled('jenis_bahan') || $request->filled('search_bahan')) {
+            $detailsQuery = \App\Models\PembelianDetail::query()
+                ->whereHas('pembelian', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+            
+            if ($request->filled('start_date')) {
+                $detailsQuery->whereHas('pembelian', function($q) use ($request) {
+                    $q->whereDate('tanggal', '>=', $request->start_date);
+                });
+            }
+            if ($request->filled('end_date')) {
+                $detailsQuery->whereHas('pembelian', function($q) use ($request) {
+                    $q->whereDate('tanggal', '<=', $request->end_date);
+                });
+            }
+            if ($request->filled('vendor_id')) {
+                $detailsQuery->whereHas('pembelian', function($q) use ($request) {
+                    $q->where('vendor_id', $request->vendor_id);
+                });
+            }
+            
+            if ($request->filled('jenis_bahan')) {
+                $jenisBahan = $request->jenis_bahan;
+                if ($jenisBahan === 'bahan_baku') {
+                    $detailsQuery->where(function($q) {
+                        $q->where('tipe_item', 'bahan_baku')
+                          ->orWhereNotNull('bahan_baku_id');
+                    });
+                } elseif ($jenisBahan === 'bahan_pendukung') {
+                    $detailsQuery->where(function($q) {
+                        $q->where('tipe_item', 'bahan_pendukung')
+                          ->orWhereNotNull('bahan_pendukung_id');
+                    });
+                }
+            }
+            
+            if ($request->filled('search_bahan')) {
+                $searchBahan = $request->search_bahan;
+                $detailsQuery->where(function($q) use ($searchBahan) {
+                    $q->whereHas('bahanBaku', function($bahanQ) use ($searchBahan) {
+                        $bahanQ->where('nama_bahan', 'like', '%' . $searchBahan . '%');
+                    })
+                    ->orWhereHas('bahanPendukung', function($bahanQ) use ($searchBahan) {
+                        $bahanQ->where('nama_bahan', 'like', '%' . $searchBahan . '%');
+                    });
+                });
+            }
+            
+            $totalQtyBahan = $detailsQuery->sum('jumlah');
+        }
         
         $totalPembelianTunai = Pembelian::where('payment_method', 'cash')
             ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
@@ -177,7 +290,8 @@ class LaporanPembelianController extends Controller
             'totalPembelianNonTunai',
             'totalPembelianBelumLunas',
             'purchaseReturns',
-            'totalPurchaseReturns'
+            'totalPurchaseReturns',
+            'totalQtyBahan'
         ));
     }
     
