@@ -167,7 +167,7 @@
                 <tbody>
                     @forelse ($pembelian as $index => $p)
                         <tr>
-                            <td class="text-center">{{ $pembelian->firstItem() + $index }}</td>
+                            <td class="text-center">{{ ($pembelian->currentPage() - 1) * $pembelian->perPage() + $index + 1 }}</td>
                             <td class="text-center nowrap"><strong>{{ $p->nomor_pembelian ?? '-' }}</strong></td>
                             <td class="text-center nowrap">{{ optional($p->tanggal)->format('d/m/Y') ?? '-' }}</td>
                             <td class="text-center nowrap">{{ $p->vendor->nama_vendor ?? '-' }}</td>
