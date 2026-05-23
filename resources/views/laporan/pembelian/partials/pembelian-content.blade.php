@@ -80,8 +80,8 @@
                     </div>
                     <div class="col-6">
                         <div class="border rounded p-3 bg-light">
-                            <div class="text-muted small">Total Pembelian</div>
-                            <h4 class="mb-0 text-success">Rp {{ number_format($totalPembelianFiltered ?? 0, 0, ',', '.') }}</h4>
+                            <div class="text-muted small">Total Pembelian Bahan</div>
+                            <h4 class="mb-0 text-success">Rp {{ number_format($totalNominalBahan ?? 0, 0, ',', '.') }}</h4>
                         </div>
                     </div>
                 </div>
