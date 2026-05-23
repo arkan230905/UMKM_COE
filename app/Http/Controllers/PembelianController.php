@@ -1106,8 +1106,8 @@ class PembelianController extends Controller
                 'path' => $buktiFakturPath
             ]);
 
-            return redirect()->route('transaksi.pembelian.show', $pembelian->id)
-                ->with('success', 'Bukti faktur berhasil diupload!');
+            return redirect()->route('transaksi.pembelian.index')
+                ->with('success', 'Bukti faktur berhasil diupload! Data pembelian telah lengkap.');
         }
 
         return back()
