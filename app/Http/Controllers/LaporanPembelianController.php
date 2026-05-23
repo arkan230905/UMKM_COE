@@ -63,7 +63,8 @@ class LaporanPembelianController extends Controller
         $pembelian = $query->oldest()->paginate(10, ['*'], 'pembelian_page');
         
         // Calculate totals for pembelian
-        $totalQuery = Pembelian::query()->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
+        $totalQuery = Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])
+            ->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
         if ($request->filled('start_date')) {
             $totalQuery->whereDate('tanggal', '>=', $request->start_date);
         }
@@ -102,14 +103,56 @@ class LaporanPembelianController extends Controller
             });
         }
         
-        $totalPembelianFiltered = $totalQuery->get()->sum(function($p) {
+        $totalPembelianFiltered = $totalQuery->get()->sum(function($p) use ($request) {
             if ($p->details && $p->details->count() > 0) {
-                $totalPembelian = $p->details->sum(function($detail) {
-                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-                });
+                // Use filtered details if filter is active
+                if($request->filled('jenis_bahan') || $request->filled('search_bahan')) {
+                    $detailsToSum = $p->details;
+                    
+                    // Filter by jenis_bahan
+                    if($request->filled('jenis_bahan')) {
+                        $detailsToSum = $detailsToSum->filter(function($detail) use ($request) {
+                            if($request->jenis_bahan === 'bahan_baku') {
+                                return $detail->tipe_item === 'bahan_baku' || $detail->bahan_baku_id;
+                            } elseif($request->jenis_bahan === 'bahan_pendukung') {
+                                return $detail->tipe_item === 'bahan_pendukung' || $detail->bahan_pendukung_id;
+                            }
+                            return true;
+                        });
+                    }
+                    
+                    // Filter by search_bahan
+                    if($request->filled('search_bahan')) {
+                        $searchBahan = strtolower($request->search_bahan);
+                        $detailsToSum = $detailsToSum->filter(function($detail) use ($searchBahan) {
+                            $namaBahan = '';
+                            if($detail->bahanBaku) {
+                                $namaBahan = strtolower($detail->bahanBaku->nama_bahan);
+                            } elseif($detail->bahanPendukung) {
+                                $namaBahan = strtolower($detail->bahanPendukung->nama_bahan);
+                            }
+                            return strpos($namaBahan, $searchBahan) !== false;
+                        });
+                    }
+                    
+                    $totalPembelian = $detailsToSum->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                } else {
+                    // No filter, show all
+                    $totalPembelian = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
             } else {
                 $totalPembelian = $p->total_harga ?? 0;
             }
+            
+            // Only use p->total_harga if it's greater and no filter is active
+            if ($p->total_harga > $totalPembelian && !$request->filled('jenis_bahan') && !$request->filled('search_bahan')) {
+                $totalPembelian = $p->total_harga;
+            }
+            
             return $totalPembelian;
         });
         
