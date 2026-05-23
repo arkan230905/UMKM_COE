@@ -2,116 +2,6 @@
 
 @section('title', 'Laporan Pelunasan Utang')
 
-@push('styles')
-<style>
-    /* Card Summary Styles */
-    .summary-card {
-        border-radius: 10px;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
-    }
-    .summary-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .summary-card .card-body {
-        padding: 1.5rem;
-    }
-    .summary-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-    }
-    .summary-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0.5rem 0;
-    }
-    .summary-label {
-        font-size: 0.875rem;
-        color: #6c757d;
-        margin: 0;
-    }
-    
-    /* Filter Section */
-    .filter-card {
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Table Styles */
-    .table-card {
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .table thead th {
-        background: linear-gradient(135deg, #8B7355 0%, #6B5344 100%);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 1rem 0.75rem;
-        font-size: 0.875rem;
-    }
-    .table tbody td {
-        padding: 0.875rem 0.75rem;
-        vertical-align: middle;
-    }
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-    
-    /* Badge Styles */
-    .badge-status {
-        padding: 0.5rem 1rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border-radius: 20px;
-    }
-    
-    /* Button Styles */
-    .btn-export {
-        border-radius: 8px;
-        padding: 0.5rem 1.25rem;
-        font-weight: 600;
-        transition: all 0.3s;
-    }
-    .btn-export:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    /* Modal Styles */
-    .modal-header {
-        background: linear-gradient(135deg, #8B7355 0%, #6B5344 100%);
-        color: white;
-        border-radius: 10px 10px 0 0;
-    }
-    .detail-row {
-        padding: 0.75rem 0;
-        border-bottom: 1px solid #e9ecef;
-    }
-    .detail-row:last-child {
-        border-bottom: none;
-    }
-    .detail-label {
-        font-weight: 600;
-        color: #6c757d;
-    }
-    .detail-value {
-        font-weight: 500;
-        color: #212529;
-    }
-</style>
-@endpush
-
 @section('content')
 <div class="container-fluid">
     <!-- Header -->
@@ -122,10 +12,10 @@
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('laporan.export.pelunasan-utang', array_merge(request()->all(), ['export' => 'pdf'])) }}" 
-               class="btn btn-danger btn-export" target="_blank">
+               class="btn btn-danger btn-sm" target="_blank">
                 <i class="fas fa-file-pdf me-2"></i>Export PDF
             </a>
-            <button class="btn btn-success btn-export" onclick="window.print()">
+            <button class="btn btn-success btn-sm" onclick="window.print()">
                 <i class="fas fa-print me-2"></i>Print
             </button>
         </div>
@@ -134,69 +24,45 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="summary-card card">
+            <div class="card bg-primary text-dark">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="summary-icon bg-primary bg-opacity-10 text-primary me-3">
-                            <i class="fas fa-file-invoice"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <p class="summary-label">Total Tagihan</p>
-                            <h4 class="summary-value text-primary">Rp {{ number_format($totalTagihan, 0, ',', '.') }}</h4>
-                        </div>
-                    </div>
+                    <h5 class="card-title text-dark">Total Tagihan</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalTagihan, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Semua Transaksi</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="summary-card card">
+            <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="summary-icon bg-warning bg-opacity-10 text-warning me-3">
-                            <i class="fas fa-undo"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <p class="summary-label">Total Refund</p>
-                            <h4 class="summary-value text-warning">Rp {{ number_format($totalRefund, 0, ',', '.') }}</h4>
-                        </div>
-                    </div>
+                    <h5 class="card-title text-dark">Total Refund</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalRefund, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Pengembalian</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="summary-card card">
+            <div class="card bg-success text-dark">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="summary-icon bg-success bg-opacity-10 text-success me-3">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <p class="summary-label">Total Dibayar</p>
-                            <h4 class="summary-value text-success">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</h4>
-                        </div>
-                    </div>
+                    <h5 class="card-title text-dark">Total Dibayar</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Pembayaran</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="summary-card card">
+            <div class="card bg-info text-dark">
                 <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="summary-icon bg-info bg-opacity-10 text-info me-3">
-                            <i class="fas fa-receipt"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <p class="summary-label">Jumlah Transaksi</p>
-                            <h4 class="summary-value text-info">{{ $jumlahTransaksi }}</h4>
-                        </div>
-                    </div>
+                    <h5 class="card-title text-dark">Jumlah Transaksi</h5>
+                    <h3 class="mb-0 text-dark">{{ $jumlahTransaksi }}</h3>
+                    <small class="text-dark opacity-75">Total Data</small>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Filter Section -->
-    <div class="filter-card card">
+    <div class="card mb-4">
         <div class="card-body">
             <form action="{{ route('laporan.pelunasan-utang') }}" method="GET">
                 <div class="row g-3 align-items-end">
@@ -243,11 +109,11 @@
     </div>
 
     <!-- Table Section -->
-    <div class="table-card card">
+    <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px;">No</th>
                             <th>Tanggal</th>
@@ -287,7 +153,7 @@
                                 @endif
                             </td>
                             <td class="text-center">
-                                <span class="badge badge-status bg-{{ $item->status_class }}">
+                                <span class="badge bg-{{ $item->status_class }}">
                                     {{ $item->status_display }}
                                 </span>
                             </td>
@@ -304,7 +170,7 @@
                         <div class="modal fade" id="detailModal{{ $item->id }}" tabindex="-1">
                             <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
-                                    <div class="modal-header">
+                                    <div class="modal-header bg-primary text-white">
                                         <h5 class="modal-title">
                                             <i class="fas fa-file-invoice me-2"></i>Detail Pelunasan Utang
                                         </h5>
@@ -313,65 +179,65 @@
                                     <div class="modal-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <div class="detail-row">
-                                                    <div class="detail-label">No. Pelunasan</div>
-                                                    <div class="detail-value">{{ $item->kode_transaksi }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">No. Pelunasan</label>
+                                                    <div class="fw-bold">{{ $item->kode_transaksi }}</div>
                                                 </div>
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Tanggal</div>
-                                                    <div class="detail-value">{{ \Carbon\Carbon::parse($item->tanggal)->format('d F Y') }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Tanggal</label>
+                                                    <div class="fw-bold">{{ \Carbon\Carbon::parse($item->tanggal)->format('d F Y') }}</div>
                                                 </div>
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Vendor</div>
-                                                    <div class="detail-value">{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Vendor</label>
+                                                    <div class="fw-bold">{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</div>
                                                 </div>
-                                                <div class="detail-row">
-                                                    <div class="detail-label">No. Faktur</div>
-                                                    <div class="detail-value">{{ $item->pembelian->nomor_faktur ?? $item->pembelian->nomor_pembelian ?? '-' }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">No. Faktur</label>
+                                                    <div class="fw-bold">{{ $item->pembelian->nomor_faktur ?? $item->pembelian->nomor_pembelian ?? '-' }}</div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Total Tagihan</div>
-                                                    <div class="detail-value text-primary fw-bold">Rp {{ number_format($item->total_tagihan, 0, ',', '.') }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Total Tagihan</label>
+                                                    <div class="fw-bold text-primary">Rp {{ number_format($item->total_tagihan, 0, ',', '.') }}</div>
                                                 </div>
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Total Refund</div>
-                                                    <div class="detail-value text-warning fw-bold">Rp {{ number_format($item->total_refund, 0, ',', '.') }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Total Refund</label>
+                                                    <div class="fw-bold text-warning">Rp {{ number_format($item->total_refund, 0, ',', '.') }}</div>
                                                 </div>
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Dibayar</div>
-                                                    <div class="detail-value text-success fw-bold">Rp {{ number_format($item->dibayar_bersih, 0, ',', '.') }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Dibayar</label>
+                                                    <div class="fw-bold text-success">Rp {{ number_format($item->dibayar_bersih, 0, ',', '.') }}</div>
                                                 </div>
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Sisa Utang</div>
-                                                    <div class="detail-value text-danger fw-bold">Rp {{ number_format($item->sisa_utang, 0, ',', '.') }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Sisa Utang</label>
+                                                    <div class="fw-bold text-danger">Rp {{ number_format($item->sisa_utang, 0, ',', '.') }}</div>
                                                 </div>
                                             </div>
                                         </div>
                                         <hr>
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Status</div>
-                                                    <div class="detail-value">
-                                                        <span class="badge badge-status bg-{{ $item->status_class }}">
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Status</label>
+                                                    <div>
+                                                        <span class="badge bg-{{ $item->status_class }}">
                                                             {{ $item->status_display }}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <div class="detail-row">
-                                                    <div class="detail-label">Metode Pembayaran</div>
-                                                    <div class="detail-value">{{ $item->pembelian->payment_method ?? '-' }}</div>
+                                                <div class="mb-3">
+                                                    <label class="text-muted small">Metode Pembayaran</label>
+                                                    <div class="fw-bold">{{ ucfirst($item->pembelian->payment_method ?? '-') }}</div>
                                                 </div>
                                             </div>
                                         </div>
                                         @if($item->keterangan)
-                                        <div class="detail-row">
-                                            <div class="detail-label">Keterangan</div>
-                                            <div class="detail-value">{{ $item->keterangan }}</div>
+                                        <div class="mb-3">
+                                            <label class="text-muted small">Keterangan</label>
+                                            <div class="fw-bold">{{ $item->keterangan }}</div>
                                         </div>
                                         @endif
                                     </div>
