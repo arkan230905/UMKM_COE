@@ -169,6 +169,7 @@
                         $no = 1;
                     @endphp
                     @forelse ($pembelian as $index => $p)
+                        @if(is_object($p) && isset($p->id))
                         <tr>
                             <td class="text-center">{{ $no++ }}</td>
                             <td class="text-center nowrap"><strong>{{ $p->nomor_pembelian ?? '-' }}</strong></td>
@@ -357,6 +358,7 @@
                                 </div>
                             </td>
                         </tr>
+                        @endif
                     @empty
                         <tr>
                             <td colspan="9" class="text-center py-4">
