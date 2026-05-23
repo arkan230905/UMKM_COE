@@ -236,7 +236,7 @@ class LaporanPembelianController extends Controller
             
             $totalNominalBahan = 0;
             foreach ($detailsByPembelian as $pembelianId => $details) {
-                $pembelian = $details->first()->pembelian;
+                $pembelianItem = $details->first()->pembelian;
                 
                 // Calculate subtotal for filtered details
                 $subtotalFiltered = $details->sum(function($detail) {
@@ -244,7 +244,7 @@ class LaporanPembelianController extends Controller
                 });
                 
                 // Calculate proportional PPN if exists
-                if ($pembelian && ($pembelian->ppn_nominal ?? 0) > 0) {
+                if ($pembelianItem && ($pembelianItem->ppn_nominal ?? 0) > 0) {
                     // Get all details subtotal for this pembelian
                     $allDetailsSubtotal = \App\Models\PembelianDetail::where('pembelian_id', $pembelianId)
                         ->get()
@@ -255,7 +255,7 @@ class LaporanPembelianController extends Controller
                     if ($allDetailsSubtotal > 0) {
                         // Calculate proportional PPN
                         $ppnProportion = $subtotalFiltered / $allDetailsSubtotal;
-                        $ppnForFiltered = ($pembelian->ppn_nominal ?? 0) * $ppnProportion;
+                        $ppnForFiltered = ($pembelianItem->ppn_nominal ?? 0) * $ppnProportion;
                         $totalNominalBahan += $subtotalFiltered + $ppnForFiltered;
                     } else {
                         $totalNominalBahan += $subtotalFiltered;
