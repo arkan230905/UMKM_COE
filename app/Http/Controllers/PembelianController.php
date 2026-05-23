@@ -66,7 +66,15 @@ class PembelianController extends Controller
             }
         }
         
-        $pembelians = $query->oldest()->get();
+        // Sorting by nomor_pembelian (No. Transaksi)
+        $sortOrder = $request->get('sort_order', 'desc'); // Default: Terbaru ke Terlama
+        if ($sortOrder === 'asc') {
+            $query->orderBy('nomor_pembelian', 'asc'); // Terlama ke Terbaru
+        } else {
+            $query->orderBy('nomor_pembelian', 'desc'); // Terbaru ke Terlama
+        }
+        
+        $pembelians = $query->get();
         
         // CRITICAL: Filter vendors by user_id
         $vendors = Vendor::where('user_id', auth()->id())
