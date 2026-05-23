@@ -135,22 +135,38 @@ class LaporanPembelianController extends Controller
                         });
                     }
                     
-                    $totalPembelian = $detailsToSum->sum(function($detail) {
+                    $subtotalDetails = $detailsToSum->sum(function($detail) {
                         return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                     });
+                    
+                    // Add PPN proportionally if filter is active
+                    $allDetailsSubtotal = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                    
+                    if ($allDetailsSubtotal > 0 && ($p->ppn_nominal ?? 0) > 0) {
+                        // Calculate proportional PPN for filtered items
+                        $ppnProportion = $subtotalDetails / $allDetailsSubtotal;
+                        $totalPembelian = $subtotalDetails + (($p->ppn_nominal ?? 0) * $ppnProportion);
+                    } else {
+                        $totalPembelian = $subtotalDetails;
+                    }
                 } else {
-                    // No filter, show all
-                    $totalPembelian = $p->details->sum(function($detail) {
+                    // No filter, use total_harga (includes PPN)
+                    $subtotalDetails = $p->details->sum(function($detail) {
                         return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                     });
+                    
+                    // Add PPN
+                    $totalPembelian = $subtotalDetails + ($p->ppn_nominal ?? 0);
+                    
+                    // Use p->total_harga if it's greater (includes biaya_kirim, etc)
+                    if ($p->total_harga > $totalPembelian) {
+                        $totalPembelian = $p->total_harga;
+                    }
                 }
             } else {
                 $totalPembelian = $p->total_harga ?? 0;
-            }
-            
-            // Only use p->total_harga if it's greater and no filter is active
-            if ($p->total_harga > $totalPembelian && !$request->filled('jenis_bahan') && !$request->filled('search_bahan')) {
-                $totalPembelian = $p->total_harga;
             }
             
             return $totalPembelian;
@@ -209,14 +225,45 @@ class LaporanPembelianController extends Controller
                 });
             }
             
-            // Get all matching details
-            $matchingDetails = $detailsQuery->get();
+            // Get all matching details with pembelian relation
+            $matchingDetails = $detailsQuery->with('pembelian')->get();
             
             // Calculate total qty and total nominal from details only
             $totalQtyBahan = $matchingDetails->sum('jumlah');
-            $totalNominalBahan = $matchingDetails->sum(function($detail) {
-                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-            });
+            
+            // Group details by pembelian_id to calculate PPN proportionally
+            $detailsByPembelian = $matchingDetails->groupBy('pembelian_id');
+            
+            $totalNominalBahan = 0;
+            foreach ($detailsByPembelian as $pembelianId => $details) {
+                $pembelian = $details->first()->pembelian;
+                
+                // Calculate subtotal for filtered details
+                $subtotalFiltered = $details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                });
+                
+                // Calculate proportional PPN if exists
+                if ($pembelian && ($pembelian->ppn_nominal ?? 0) > 0) {
+                    // Get all details subtotal for this pembelian
+                    $allDetailsSubtotal = \App\Models\PembelianDetail::where('pembelian_id', $pembelianId)
+                        ->get()
+                        ->sum(function($detail) {
+                            return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                        });
+                    
+                    if ($allDetailsSubtotal > 0) {
+                        // Calculate proportional PPN
+                        $ppnProportion = $subtotalFiltered / $allDetailsSubtotal;
+                        $ppnForFiltered = ($pembelian->ppn_nominal ?? 0) * $ppnProportion;
+                        $totalNominalBahan += $subtotalFiltered + $ppnForFiltered;
+                    } else {
+                        $totalNominalBahan += $subtotalFiltered;
+                    }
+                } else {
+                    $totalNominalBahan += $subtotalFiltered;
+                }
+            }
         }
         
         $totalPembelianTunai = Pembelian::where('payment_method', 'cash')
