@@ -28,7 +28,7 @@ class Pegawai extends Model
         'kategori',
         'gaji_pokok',
         'tarif_per_jam',
-        'tarif_per_produk',
+        'tarif',
         'tunjangan',
         'asuransi',
         'jenis_pegawai',
@@ -65,7 +65,7 @@ class Pegawai extends Model
     
     protected $casts = [
         'gaji_pokok' => 'decimal:2',
-        'tarif_per_produk' => 'decimal:2', // PERBAIKAN: Cast tarif_per_produk
+        'tarif' => 'decimal:2', // PERBAIKAN: Cast tarif
         'tunjangan' => 'decimal:2',
         'asuransi' => 'decimal:2',
     ];
@@ -101,9 +101,9 @@ class Pegawai extends Model
      */
     public function getTarifPerProdukAttribute($value)
     {
-        if ($value > 0) return $value;
+        if (isset($this->attributes['tarif']) && $this->attributes['tarif'] > 0) return $this->attributes['tarif'];
         
-        return $this->jabatanRelasi->tarif_per_produk ?? 0;
+        return $this->jabatanRelasi->tarif_produk ?? 0;
     }
 
     /**
@@ -127,7 +127,7 @@ class Pegawai extends Model
         if (is_object($this->jabatanRelasi)) {
             return $this->jabatanRelasi->tarif_produk ?? 0;
         }
-        return $this->attributes['tarif_per_produk'] ?? 0;
+        return $this->attributes['tarif'] ?? 0;
     }
 
     /**
@@ -151,7 +151,7 @@ class Pegawai extends Model
         if (!is_object($jabatan)) {
             return [
                 'gaji_pokok' => $this->gaji_pokok ?? 0,
-                'tarif_per_produk' => $this->tarif_per_produk ?? 0,
+                'tarif_per_produk' => $this->tarif ?? 0,
                 'tunjangan_jabatan' => $this->tunjangan ?? 0,
                 'tunjangan_transport' => 0,
                 'tunjangan_konsumsi' => 0,
@@ -162,7 +162,7 @@ class Pegawai extends Model
 
         return [
             'gaji_pokok' => $jabatan->gaji_pokok ?? $this->gaji_pokok ?? 0,
-            'tarif_per_produk' => $this->tarif_per_produk ?? 0,
+            'tarif_per_produk' => $this->tarif ?? 0,
             'tunjangan_jabatan' => $jabatan->tunjangan ?? $this->tunjangan ?? 0,
             'tunjangan_transport' => $jabatan->tunjangan_transport ?? 0,
             'tunjangan_konsumsi' => $jabatan->tunjangan_konsumsi ?? 0,
