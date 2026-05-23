@@ -46,30 +46,6 @@
         margin-bottom: 1.5rem;
     }
     
-    /* Search Bar Styles */
-    .search-wrapper {
-        position: relative;
-    }
-    .search-icon {
-        position: absolute;
-        left: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6c757d;
-        pointer-events: none;
-    }
-    .search-input {
-        padding-left: 45px;
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
-        height: 45px;
-        transition: all 0.3s;
-    }
-    .search-input:focus {
-        border-color: #8B7355;
-        box-shadow: 0 0 0 0.2rem rgba(139, 115, 85, 0.15);
-    }
-    
     /* Table Styles */
     .table-card {
         background: #fff;
@@ -223,13 +199,13 @@
     <div class="filter-card card">
         <div class="card-body">
             <form action="{{ route('laporan.pelunasan-utang') }}" method="GET">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label">Bulan</label>
                         <input type="month" name="bulan" class="form-control" 
                                value="{{ request('bulan', now()->format('Y-m')) }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Vendor</label>
                         <select name="vendor_id" class="form-select">
                             <option value="">Semua Vendor</option>
@@ -240,7 +216,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select">
                             <option value="">Semua</option>
@@ -249,23 +225,16 @@
                             <option value="sebagian" {{ request('status') == 'sebagian' ? 'selected' : '' }}>Sebagian</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Cari Vendor</label>
-                        <div class="search-wrapper">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" name="search" class="form-control search-input" 
-                                   placeholder="Cari nama vendor..." 
-                                   value="{{ request('search') }}">
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-filter me-1"></i> Filter
                         </button>
-                        <a href="{{ route('laporan.pelunasan-utang') }}" class="btn btn-secondary">
-                            <i class="fas fa-redo me-1"></i> Reset
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <a href="{{ route('laporan.pelunasan-utang') }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-redo me-1"></i> Reset Filter
                         </a>
                     </div>
                 </div>

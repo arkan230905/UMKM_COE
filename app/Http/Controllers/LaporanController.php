@@ -1584,14 +1584,6 @@ class LaporanController extends Controller
             });
         }
         
-        // Search vendor name only
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('pembelian.vendor', function($q) use ($search) {
-                $q->where('nama_vendor', 'like', '%' . $search . '%');
-            });
-        }
-        
         $query->orderBy('tanggal', 'desc');
 
         // Export PDF
