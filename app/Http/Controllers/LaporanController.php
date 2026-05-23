@@ -1550,90 +1550,76 @@ class LaporanController extends Controller
     // === LAPORAN PELUNASAN UTANG ===
     public function laporanPelunasanUtang(Request $request)
     {
-        // MULTI-TENANT: Query untuk daftar pembelian kredit yang belum lunas
-        $pembelianBelumLunas = \App\Models\Pembelian::with(['vendor', 'details.bahanBaku'])
-            ->where('user_id', auth()->id())
-            ->where('payment_method', 'credit')
-            ->where('status', '!=', 'lunas')
-            ->orderBy('tanggal', 'desc')
-            ->get()
-            ->map(function($pembelian) {
-                // Ambil total dari field total_harga
-                $total = $pembelian->total_harga ?? 0;
-                
-                // Jika total 0, hitung dari detail pembelian
-                if ($total == 0 && $pembelian->details->count() > 0) {
-                    $total = $pembelian->details->sum(function($detail) {
-                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-                    });
-                }
-                
-                // Ambil terbayar dari field terbayar
-                $terbayar = $pembelian->terbayar ?? 0;
-                
-                // Hitung sisa utang
-                $sisa = max(0, $total - $terbayar);
-                
-                // Format daftar item dengan bullet points
-                $pembelian->items = $pembelian->details->map(function($detail) {
-                    if ($detail->bahanBaku) {
-                        $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-                        return sprintf(
-                            '• %s (%s %s) - Rp %s = Rp %s',
-                            $detail->bahanBaku->nama_bahan,
-                            number_format($detail->jumlah, 0, ',', '.'),
-                            $detail->bahanBaku->satuan ?? 'unit',
-                            number_format($detail->harga_satuan, 0, ',', '.'),
-                            number_format($subtotal, 0, ',', '.')
-                        );
-                    }
-                    return '';
-                })->filter()->toArray();
-                
-                // Gabungkan semua item dengan newline
-                $pembelian->items_formatted = implode("\n", $pembelian->items);
-                
-                // Simpan nilai numerik untuk perhitungan
-                $pembelian->total_numerik = $total;
-                $pembelian->terbayar_numerik = $terbayar;
-                $pembelian->sisa_utang_numerik = $sisa;
-                
-                // Format untuk tampilan
-                $pembelian->total_tagihan = 'Rp ' . number_format($total, 0, ',', '.');
-                $pembelian->terbayar = 'Rp ' . number_format($terbayar, 0, ',', '.');
-                $pembelian->sisa_utang = 'Rp ' . number_format($sisa, 0, ',', '.');
-                
-                return $pembelian;
-            })
-            ->filter(function($pembelian) {
-                // Hanya tampilkan yang masih ada sisa utang
-                return $pembelian->sisa_utang_numerik > 0;
-            });
-
-        // MULTI-TENANT: Query untuk riwayat pelunasan - FIXED query
+        // MULTI-TENANT: Query untuk riwayat pelunasan dengan filter
         $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
-            ->where('user_id', auth()->id())
-            ->when($request->bulan, function($q) use ($request) {
-                $bulan = \Carbon\Carbon::parse($request->bulan);
-                return $q->whereYear('tanggal', $bulan->year)
-                       ->whereMonth('tanggal', $bulan->month);
-            })
-            ->orderBy('kode_transaksi', 'asc');
+            ->where('user_id', auth()->id());
+        
+        // Filter bulan
+        if ($request->filled('bulan')) {
+            $bulan = \Carbon\Carbon::parse($request->bulan);
+            $query->whereYear('tanggal', $bulan->year)
+                  ->whereMonth('tanggal', $bulan->month);
+        }
+        
+        // Filter vendor
+        if ($request->filled('vendor_id')) {
+            $query->whereHas('pembelian', function($q) use ($request) {
+                $q->where('vendor_id', $request->vendor_id);
+            });
+        }
+        
+        // Filter status
+        if ($request->filled('status')) {
+            $query->whereHas('pembelian', function($q) use ($request) {
+                if ($request->status === 'lunas') {
+                    $q->where('status', 'lunas');
+                } elseif ($request->status === 'belum_lunas') {
+                    $q->where('status', '!=', 'lunas')
+                      ->whereRaw('(total_harga - COALESCE(terbayar, 0)) > 0');
+                } elseif ($request->status === 'sebagian') {
+                    $q->where('status', '!=', 'lunas')
+                      ->whereRaw('COALESCE(terbayar, 0) > 0')
+                      ->whereRaw('(total_harga - COALESCE(terbayar, 0)) > 0');
+                }
+            });
+        }
+        
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('kode_transaksi', 'like', '%' . $search . '%')
+                  ->orWhereHas('pembelian', function($subQ) use ($search) {
+                      $subQ->where('nomor_faktur', 'like', '%' . $search . '%')
+                           ->orWhere('nomor_pembelian', 'like', '%' . $search . '%')
+                           ->orWhereHas('vendor', function($vendorQ) use ($search) {
+                               $vendorQ->where('nama_vendor', 'like', '%' . $search . '%');
+                           });
+                  });
+            });
+        }
+        
+        $query->orderBy('tanggal', 'desc');
 
+        // Export PDF
         if ($request->has('export') && $request->export == 'pdf') {
             $pelunasanUtang = $query->get()->map(function($item) {
-                // Add calculated fields for display
                 $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+                $item->total_refund = $item->pembelian->total_refund ?? 0;
                 $item->dibayar_bersih = $item->jumlah;
+                $item->sisa_utang = max(0, $item->total_tagihan - $item->total_refund - ($item->pembelian->terbayar ?? 0));
                 return $item;
             });
             
-            $total = $pelunasanUtang->sum('dibayar_bersih');
+            $totalTagihan = $pelunasanUtang->sum('total_tagihan');
+            $totalRefund = $pelunasanUtang->sum('total_refund');
+            $totalDibayar = $pelunasanUtang->sum('dibayar_bersih');
             
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.pdf', [
                 'pelunasanUtang' => $pelunasanUtang,
-                'pembelianBelumLunas' => $pembelianBelumLunas,
-                'total' => $total
+                'totalTagihan' => $totalTagihan,
+                'totalRefund' => $totalRefund,
+                'totalDibayar' => $totalDibayar
             ]);
             return $pdf->download('laporan-pelunasan-utang-' . now()->format('Y-m-d') . '.pdf');
         }
@@ -1643,16 +1629,43 @@ class LaporanController extends Controller
         // Add calculated fields for each item
         $pelunasanUtang->getCollection()->transform(function($item) {
             $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+            $item->total_refund = $item->pembelian->total_refund ?? 0;
             $item->dibayar_bersih = $item->jumlah;
+            $item->sisa_utang = max(0, $item->total_tagihan - $item->total_refund - ($item->pembelian->terbayar ?? 0));
+            
+            // Determine status
+            if ($item->sisa_utang == 0) {
+                $item->status_display = 'Lunas';
+                $item->status_class = 'success';
+            } elseif (($item->pembelian->terbayar ?? 0) > 0) {
+                $item->status_display = 'Sebagian';
+                $item->status_class = 'warning';
+            } else {
+                $item->status_display = 'Belum Lunas';
+                $item->status_class = 'danger';
+            }
+            
             return $item;
         });
         
-        $total = $pelunasanUtang->sum('jumlah'); // Sum of displayed payments
+        // Calculate summary
+        $totalTagihan = $pelunasanUtang->sum('total_tagihan');
+        $totalRefund = $pelunasanUtang->sum('total_refund');
+        $totalDibayar = $pelunasanUtang->sum('dibayar_bersih');
+        $jumlahTransaksi = $pelunasanUtang->total();
+        
+        // Get vendors for filter
+        $vendors = \App\Models\Vendor::where('user_id', auth()->id())
+            ->orderBy('nama_vendor')
+            ->get();
 
         return view('laporan.pelunasan-utang.index', [
             'pelunasanUtang' => $pelunasanUtang,
-            'pembelianBelumLunas' => $pembelianBelumLunas,
-            'total' => $total
+            'totalTagihan' => $totalTagihan,
+            'totalRefund' => $totalRefund,
+            'totalDibayar' => $totalDibayar,
+            'jumlahTransaksi' => $jumlahTransaksi,
+            'vendors' => $vendors
         ]);
     }
 
