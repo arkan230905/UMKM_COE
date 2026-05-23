@@ -16,19 +16,31 @@ class AsetImport implements ToModel, WithHeadingRow, WithValidation
      */
     public function model(array $row)
     {
+        // Generate kode_aset dengan retry agar aman pada import massal (multi-baris)
+        if (!empty($row['kode_aset'])) {
+            $kodeAset = $row['kode_aset'];
+        } else {
+            $attempts = 0;
+            do {
+                $kodeAset = Aset::generateKodeAset();
+                $exists   = Aset::where('kode_aset', $kodeAset)->exists();
+                $attempts++;
+            } while ($exists && $attempts < 10);
+        }
+
         return new Aset([
-            'kode_aset' => $row['kode_aset'] ?? Aset::generateKodeAset(),
-            'nama_aset' => $row['nama_aset'],
-            'kategori' => $row['kategori'],
-            'tanggal_perolehan' => $row['tanggal_perolehan'],
-            'harga_perolehan' => $row['harga_perolehan'],
-            'nilai_sisa' => $row['nilai_sisa'],
-            'umur_ekonomis_tahun' => $row['umur_ekonomis_tahun'],
-            'metode_penyusutan' => $row['metode_penyusutan'] ?? 'garis_lurus',
-            'lokasi' => $row['lokasi'] ?? null,
-            'nomor_serial' => $row['nomor_serial'] ?? null,
-            'status' => $row['status'] ?? 'aktif',
-            'keterangan' => $row['keterangan'] ?? null,
+            'kode_aset'          => $kodeAset,
+            'nama_aset'          => $row['nama_aset'],
+            'kategori'           => $row['kategori'],
+            'tanggal_perolehan'  => $row['tanggal_perolehan'],
+            'harga_perolehan'    => $row['harga_perolehan'],
+            'nilai_sisa'         => $row['nilai_sisa'],
+            'umur_ekonomis_tahun'=> $row['umur_ekonomis_tahun'],
+            'metode_penyusutan'  => $row['metode_penyusutan'] ?? 'garis_lurus',
+            'lokasi'             => $row['lokasi'] ?? null,
+            'nomor_serial'       => $row['nomor_serial'] ?? null,
+            'status'             => $row['status'] ?? 'aktif',
+            'keterangan'         => $row['keterangan'] ?? null,
         ]);
     }
 

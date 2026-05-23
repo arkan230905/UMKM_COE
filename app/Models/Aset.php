@@ -115,14 +115,20 @@ class Aset extends Model
     /**
      * Generate kode aset otomatis
      * Format: AST-YYYYMM-XXXX
-     * MULTI-TENANT: Filter by user_id to prevent duplicate kode across different users
+     * Pencarian dilakukan GLOBAL (tanpa filter user_id) karena kolom kode_aset
+     * memiliki UNIQUE constraint global di database. Jika di-filter per user,
+     * dua user berbeda akan sama-sama menghasilkan kode yang sama (mis. AST-202605-0001)
+     * dan menyebabkan Integrity Constraint Violation.
      */
     public static function generateKodeAset()
     {
         $prefix = 'AST-' . date('Ym') . '-';
+
+        // Cari nomor urut terakhir secara GLOBAL (tidak difilter per user_id)
+        // agar tidak terjadi duplikat pada unique index kode_aset
         $lastAsset = self::where('kode_aset', 'like', $prefix . '%')
-            ->where('user_id', auth()->id())
             ->orderBy('kode_aset', 'desc')
+            ->lockForUpdate()   // hindari race condition pada concurrent insert
             ->first();
 
         $number = $lastAsset ? (int) str_replace($prefix, '', $lastAsset->kode_aset) + 1 : 1;
@@ -144,7 +150,14 @@ class Aset extends Model
             }
             
             if (!$model->kode_aset) {
-                $model->kode_aset = self::generateKodeAset();
+                // Coba hingga 5 kali jika terjadi race condition (kode sudah dipakai)
+                $attempts = 0;
+                do {
+                    $kode = self::generateKodeAset();
+                    $exists = self::where('kode_aset', $kode)->exists();
+                    $attempts++;
+                } while ($exists && $attempts < 5);
+                $model->kode_aset = $kode;
             }
             $model->metode_penyusutan = $model->metode_penyusutan ?? 'garis_lurus';
             $model->nilai_residu = $model->nilai_residu ?? 0;

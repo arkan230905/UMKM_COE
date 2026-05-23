@@ -270,9 +270,15 @@ class AsetController extends Controller
                 }
             }
             
-            // Create the asset
+            // Create the asset — generate kode_aset secara global & aman terhadap race condition
             $aset = new Aset();
-            $aset->kode_aset = Aset::generateKodeAset();
+            $attempts = 0;
+            do {
+                $kodeAset = Aset::generateKodeAset();
+                $exists   = Aset::where('kode_aset', $kodeAset)->exists();
+                $attempts++;
+            } while ($exists && $attempts < 5);
+            $aset->kode_aset = $kodeAset;
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
             $aset->harga_perolehan = $hargaPerolehan;
