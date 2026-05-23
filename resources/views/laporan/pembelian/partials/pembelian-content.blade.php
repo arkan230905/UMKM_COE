@@ -94,11 +94,11 @@
 <!-- Summary Cards -->
 <div class="row mb-4 summary-grid">
     <div class="col">
-        <div class="card bg-primary text-dark">
-            <div class="card-body">
-                <h5 class="card-title text-dark">Total Pembelian</h5>
-                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianFiltered, 0, ',', '.') }}</h3>
-                <small class="text-dark opacity-75">
+        <div class="card bg-primary text-dark h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title text-dark mb-2">Total Pembelian</h5>
+                <h3 class="mb-2 text-dark">Rp {{ number_format($totalPembelianFiltered, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75 mt-auto">
                     @if(request('start_date') && request('end_date'))
                         {{ \Carbon\Carbon::parse(request('start_date'))->format('d/m/Y') }} - {{ \Carbon\Carbon::parse(request('end_date'))->format('d/m/Y') }}
                     @else
@@ -109,38 +109,38 @@
         </div>
     </div>
     <div class="col">
-        <div class="card bg-success text-dark">
-            <div class="card-body">
-                <h5 class="card-title text-dark">Total Pembelian Tunai</h5>
-                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianTunai, 0, ',', '.') }}</h3>
-                <small class="text-dark opacity-75">Pembayaran Cash</small>
+        <div class="card bg-success text-dark h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title text-dark mb-2">Total Pembelian Tunai</h5>
+                <h3 class="mb-2 text-dark">Rp {{ number_format($totalPembelianTunai, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75 mt-auto">Pembayaran Cash</small>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-info text-dark">
-            <div class="card-body">
-                <h5 class="card-title text-dark">Total Pembelian Kredit</h5>
-                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianKredit, 0, ',', '.') }}</h3>
-                <small class="text-dark opacity-75">Pembayaran Kredit</small>
+        <div class="card bg-info text-dark h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title text-dark mb-2">Total Pembelian Kredit</h5>
+                <h3 class="mb-2 text-dark">Rp {{ number_format($totalPembelianKredit, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75 mt-auto">Pembayaran Kredit</small>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-secondary text-dark">
-            <div class="card-body">
-                <h5 class="card-title text-dark">Total Pembelian Non Tunai</h5>
-                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianNonTunai, 0, ',', '.') }}</h3>
-                <small class="text-dark opacity-75">Pembayaran Transfer</small>
+        <div class="card bg-secondary text-dark h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title text-dark mb-2">Total Pembelian Non Tunai</h5>
+                <h3 class="mb-2 text-dark">Rp {{ number_format($totalPembelianNonTunai, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75 mt-auto">Pembayaran Transfer</small>
             </div>
         </div>
     </div>
     <div class="col">
-        <div class="card bg-warning text-dark">
-            <div class="card-body">
-                <h5 class="card-title text-dark">Total Pembelian Belum Lunas</h5>
-                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianBelumLunas, 0, ',', '.') }}</h3>
-                <small class="text-dark opacity-75">Sisa Utang</small>
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title text-dark mb-2">Total Belum Lunas</h5>
+                <h3 class="mb-2 text-dark">Rp {{ number_format($totalPembelianBelumLunas, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75 mt-auto">Sisa Utang</small>
             </div>
         </div>
     </div>
