@@ -280,18 +280,39 @@
                                                 });
                                             }
                                             
-                                            $totalPembelian = $detailsToSum->sum(function($detail) {
+                                            $subtotalDetails = $detailsToSum->sum(function($detail) {
                                                 return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                                             });
+                                            
+                                            // Add PPN proportionally if filter is active
+                                            $allDetailsSubtotal = $p->details->sum(function($detail) {
+                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                            });
+                                            
+                                            if ($allDetailsSubtotal > 0 && ($p->ppn_nominal ?? 0) > 0) {
+                                                // Calculate proportional PPN for filtered items
+                                                $ppnProportion = $subtotalDetails / $allDetailsSubtotal;
+                                                $totalPembelian = $subtotalDetails + (($p->ppn_nominal ?? 0) * $ppnProportion);
+                                            } else {
+                                                $totalPembelian = $subtotalDetails;
+                                            }
                                         } else {
-                                            // No filter, show all
-                                            $totalPembelian = $p->details->sum(function($detail) {
+                                            // No filter, use total_harga from pembelian (includes PPN)
+                                            $subtotalDetails = $p->details->sum(function($detail) {
                                                 return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                                             });
+                                            
+                                            // Add PPN
+                                            $totalPembelian = $subtotalDetails + ($p->ppn_nominal ?? 0);
+                                            
+                                            // Use p->total_harga if it's greater (includes biaya_kirim, etc)
+                                            if ($p->total_harga > $totalPembelian) {
+                                                $totalPembelian = $p->total_harga;
+                                            }
                                         }
-                                    }
-                                    if ($p->total_harga > $totalPembelian && !request('jenis_bahan') && !request('search_bahan')) {
-                                        $totalPembelian = $p->total_harga;
+                                    } else {
+                                        // No details, use total_harga
+                                        $totalPembelian = $p->total_harga ?? 0;
                                     }
                                 @endphp
                                 <strong>Rp {{ number_format($totalPembelian, 0, ',', '.') }}</strong>
