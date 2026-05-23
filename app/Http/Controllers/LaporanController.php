@@ -1584,18 +1584,11 @@ class LaporanController extends Controller
             });
         }
         
-        // Search
+        // Search vendor name only
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('kode_transaksi', 'like', '%' . $search . '%')
-                  ->orWhereHas('pembelian', function($subQ) use ($search) {
-                      $subQ->where('nomor_faktur', 'like', '%' . $search . '%')
-                           ->orWhere('nomor_pembelian', 'like', '%' . $search . '%')
-                           ->orWhereHas('vendor', function($vendorQ) use ($search) {
-                               $vendorQ->where('nama_vendor', 'like', '%' . $search . '%');
-                           });
-                  });
+            $query->whereHas('pembelian.vendor', function($q) use ($search) {
+                $q->where('nama_vendor', 'like', '%' . $search . '%');
             });
         }
         
