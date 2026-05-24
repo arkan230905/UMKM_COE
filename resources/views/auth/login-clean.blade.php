@@ -103,7 +103,6 @@
                     <option value="">-- Pilih Role --</option>
                     <option value="owner" {{ old('login_role') == 'owner' ? 'selected' : '' }}>Owner</option>
                     <option value="admin" {{ old('login_role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                    <option value="pegawai_pembelian" {{ old('login_role') == 'pegawai_pembelian' ? 'selected' : '' }}>Pegawai Gudang</option>
                     <option value="kasir" {{ old('login_role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
                     <option value="presensi" {{ old('login_role') == 'presensi' ? 'selected' : '' }}>Presensi Pegawai</option>
                 </select>
@@ -181,7 +180,7 @@
                     submitBtn.textContent = 'LOGIN';
 
                     // Roles that need kode perusahaan
-                    if (['owner', 'admin', 'pegawai_pembelian', 'kasir'].includes(role)) {
+                    if (['owner', 'admin', 'kasir'].includes(role)) {
                         kodeField.classList.remove('hidden');
                         document.getElementById('kode_perusahaan').setAttribute('required', 'required');
                     }
