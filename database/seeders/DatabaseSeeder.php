@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CompanySeeder::class,
             CoaTemplateSeeder::class,
-            JasukeCoaSeeder::class, // Memastikan COA Jasuke masuk terakhir
+            AyamKetumbarCoaSeeder::class, // Memastikan COA Ayam Ketumbar masuk terakhir
         ]);
     }
 }
