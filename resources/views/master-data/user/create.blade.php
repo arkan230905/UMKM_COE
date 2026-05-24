@@ -60,7 +60,6 @@
                                     <option value="admin">Admin</option>
                                     <option value="owner">Owner</option>
                                     <option value="pelanggan">Pelanggan</option>
-                                    <option value="pegawai_pembelian">Pegawai Gudang</option>
                                     <option value="kasir">Kasir</option>
                                 </select>
                                 @error('role')
