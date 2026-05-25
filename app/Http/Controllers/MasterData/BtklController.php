@@ -153,27 +153,23 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
                 ->where('jabatan_id', $jabatan->id)
                 ->count();
 
-            $tarifPerJam = (float) ($jabatan->tarif ?? 0);
-            $tarifBtkl   = $tarifPerJam * $jumlahPegawai;
+            // Ambil tarif per produk dari jabatan
+            $tarifPerProduk = (float) ($jabatan->tarif_produk ?? 0);
 
-            $validated['tarif_per_jam'] = $tarifBtkl;
-            $validated['user_id']       = $userId;
+            $validated['user_id'] = $userId;
 
             $btkl = Btkl::create($validated);
 
-            // Create ProsesProduksi record without biaya_per_produk calculation
-            // since user wants to use per-product cost allocation instead
+            // Create ProsesProduksi record dengan sistem per produk
             $prosesProduksi = ProsesProduksi::create([
-                'user_id'         => $userId,
-                'kode_proses'     => $validated['kode_proses'],
-                'nama_proses'     => $validated['nama_btkl'],
-                'deskripsi'       => $validated['deskripsi_proses'] ?? null,
-                'tarif_btkl'      => $tarifBtkl,
-                'satuan_btkl'     => $validated['satuan'],
-                'jabatan_id'      => $validated['jabatan_id'],
-                'btkl_id'         => $btkl->id, // CRITICAL: Link to Btkl record
-                'kapasitas_per_jam' => 0, // Default value
-                'biaya_btkl_per_produk' => 0, // Set to 0 since using per-product allocation
+                'user_id'           => $userId,
+                'kode_proses'       => $validated['kode_proses'],
+                'nama_proses'       => $validated['nama_btkl'],
+                'deskripsi'         => $validated['deskripsi_proses'] ?? null,
+                'jabatan_id'        => $validated['jabatan_id'],
+                'tarif_per_produk'  => $tarifPerProduk,
+                'jumlah_pegawai'    => $jumlahPegawai,
+                'btkl_id'           => $btkl->id,
             ]);
 
             // ✅ PERBAIKAN: Disable BomSyncService karena menyebabkan error dengan tabel kode_proses
@@ -182,15 +178,18 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             \Log::info('BTKL created successfully', [
                 'btkl_id' => $btkl->id,
                 'kode_proses' => $validated['kode_proses'],
-                'note' => 'BomSyncService disabled - table kode_proses issue'
+                'tarif_per_produk' => $tarifPerProduk,
+                'jumlah_pegawai' => $jumlahPegawai,
+                'note' => 'Using per-product cost allocation'
             ]);
 
             DB::commit();
 
+            $totalBtkl = $tarifPerProduk * $jumlahPegawai;
             return redirect()
                 ->route('master-data.btkl.index')
-                ->with('success', 'Data BTKL berhasil ditambahkan. Tarif BTKL: Rp ' . number_format($tarifBtkl) .
-                    ' (Tarif Jabatan: Rp ' . number_format($tarifPerJam) . ' × ' . $jumlahPegawai . ' pegawai)');
+                ->with('success', 'Data BTKL berhasil ditambahkan. Total BTKL: Rp ' . number_format($totalBtkl) .
+                    ' (Tarif per Produk: Rp ' . number_format($tarifPerProduk) . ' × ' . $jumlahPegawai . ' pegawai)');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -243,10 +242,8 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
                 ->where('jabatan_id', $jabatan->id)
                 ->count();
 
-            $tarifPerJam = (float) ($jabatan->tarif ?? 0);
-            $tarifBtkl   = $tarifPerJam * $jumlahPegawai;
-
-            $validated['tarif_per_jam'] = $tarifBtkl;
+            // Ambil tarif per produk dari jabatan
+            $tarifPerProduk = (float) ($jabatan->tarif_produk ?? 0);
 
             $btkl = Btkl::findOrFail($id);
             $btkl->update($validated);
@@ -254,12 +251,12 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             $prosesProduksi = ProsesProduksi::where('btkl_id', $btkl->id)->first();
             if ($prosesProduksi) {
                 $prosesProduksi->update([
-                    'kode_proses'      => $btkl->kode_proses,
-                    'nama_proses'      => $btkl->nama_btkl,
-                    'deskripsi'        => $btkl->deskripsi_proses,
-                    'tarif_btkl'       => $tarifBtkl,
-                    'satuan_btkl'      => $btkl->satuan,
-                    'kapasitas_per_jam' => 0, // Default value
+                    'kode_proses'       => $btkl->kode_proses,
+                    'nama_proses'       => $btkl->nama_btkl,
+                    'deskripsi'         => $btkl->deskripsi_proses,
+                    'jabatan_id'        => $btkl->jabatan_id,
+                    'tarif_per_produk'  => $tarifPerProduk,
+                    'jumlah_pegawai'    => $jumlahPegawai,
                 ]);
             }
 
@@ -269,15 +266,18 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             \Log::info('BTKL updated successfully', [
                 'btkl_id' => $btkl->id,
                 'kode_proses' => $btkl->kode_proses,
-                'note' => 'BomSyncService disabled - table kode_proses issue'
+                'tarif_per_produk' => $tarifPerProduk,
+                'jumlah_pegawai' => $jumlahPegawai,
+                'note' => 'Using per-product cost allocation'
             ]);
 
             DB::commit();
 
+            $totalBtkl = $tarifPerProduk * $jumlahPegawai;
             return redirect()
                 ->route('master-data.btkl.index')
-                ->with('success', 'Data BTKL berhasil diperbarui. Tarif BTKL: Rp ' . number_format($tarifBtkl) .
-                    ' (Tarif Jabatan: Rp ' . number_format($tarifPerJam) . ' × ' . $jumlahPegawai . ' pegawai)');
+                ->with('success', 'Data BTKL berhasil diperbarui. Total BTKL: Rp ' . number_format($totalBtkl) .
+                    ' (Tarif per Produk: Rp ' . number_format($tarifPerProduk) . ' × ' . $jumlahPegawai . ' pegawai)');
 
         } catch (\Exception $e) {
             DB::rollBack();

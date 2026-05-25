@@ -35,6 +35,19 @@
 
 ---
 
+### 3. **Tabel Proses Produksi Masih Menggunakan Sistem Per Jam**
+
+**Masalah:**
+- Tabel `proses_produksis` memiliki kolom `tarif_btkl`, `satuan_btkl`, `kapasitas_per_jam`, `biaya_btkl_per_produk`
+- Kolom-kolom ini tidak digunakan lagi karena sudah beralih ke sistem per produk
+- Sekarang menggunakan `tarif_per_produk` dan `jumlah_pegawai`
+
+**Solusi:**
+- ✅ Buat migrasi baru untuk menghapus kolom yang tidak digunakan
+- ✅ Tabel `proses_produksis` sekarang hanya menyimpan data yang relevan
+
+---
+
 ## 📁 File yang Diubah/Dibuat
 
 ### File yang Diubah:
@@ -44,8 +57,9 @@
 
 ### File Baru yang Dibuat:
 1. ✅ `database/migrations/2026_05_25_050411_remove_unused_columns_from_btkls_table.php`
-2. ✅ `PERUBAHAN_COA_DAN_BTKL.md` - Dokumentasi lengkap perubahan
-3. ✅ `RINGKASAN_PERUBAHAN_TERBARU.md` - File ini
+2. ✅ `database/migrations/2026_05_25_070339_remove_unused_columns_from_proses_produksis_table.php`
+3. ✅ `PERUBAHAN_COA_DAN_BTKL.md` - Dokumentasi lengkap perubahan
+4. ✅ `RINGKASAN_PERUBAHAN_TERBARU.md` - File ini
 
 ---
 
@@ -99,6 +113,54 @@ CREATE TABLE btkls (
 **Tarif BTKL sekarang diambil dari:**
 ```sql
 SELECT tarif_produk FROM jabatans WHERE id = btkls.jabatan_id;
+```
+
+---
+
+### Tabel Proses Produksi
+
+**Sebelum:**
+```sql
+CREATE TABLE proses_produksis (
+    id,
+    user_id,
+    kode_proses,
+    nama_proses,
+    deskripsi,
+    tarif_btkl,              -- ❌ Dihapus
+    satuan_btkl,             -- ❌ Dihapus
+    jabatan_id,
+    tarif_per_produk,
+    jumlah_pegawai,
+    btkl_id,
+    kapasitas_per_jam,       -- ❌ Dihapus
+    biaya_btkl_per_produk,   -- ❌ Dihapus
+    timestamps
+);
+```
+
+**Sekarang:**
+```sql
+CREATE TABLE proses_produksis (
+    id,
+    user_id,
+    kode_proses,
+    nama_proses,
+    deskripsi,
+    jabatan_id,
+    tarif_per_produk,        -- ✅ Dari jabatans
+    jumlah_pegawai,          -- ✅ Jumlah pegawai
+    btkl_id,
+    timestamps
+);
+```
+
+**Perhitungan Biaya BTKL:**
+```sql
+-- Total BTKL = tarif_per_produk × jumlah_pegawai
+SELECT 
+    tarif_per_produk * jumlah_pegawai AS total_btkl
+FROM proses_produksis;
 ```
 
 ---
@@ -170,6 +232,13 @@ DESCRIBE btkls;
 
 Pastikan kolom `tarif_per_jam`, `satuan`, `kapasitas_per_jam` **TIDAK ADA**.
 
+### Cek Tabel Proses Produksi:
+```sql
+DESCRIBE proses_produksis;
+```
+
+Pastikan kolom `tarif_btkl`, `satuan_btkl`, `kapasitas_per_jam`, `biaya_btkl_per_produk` **TIDAK ADA**.
+
 ---
 
 ## 📝 Catatan Penting
@@ -180,11 +249,13 @@ Pastikan kolom `tarif_per_jam`, `satuan`, `kapasitas_per_jam` **TIDAK ADA**.
 |-------|-----------|-----------|
 | COA | Tetap menggunakan COA lama | Otomatis COA Ayam Ketumbar |
 | BTKL | Kolom lama dihapus (tidak digunakan) | Struktur baru tanpa kolom tidak terpakai |
+| Proses Produksi | Kolom per jam dihapus | Struktur baru sistem per produk |
 | Tarif BTKL | Dari `jabatans.tarif_produk` | Dari `jabatans.tarif_produk` |
 
 ### Keamanan Data
 
 - ✅ Migrasi BTKL **AMAN** - hanya menghapus kolom yang tidak digunakan
+- ✅ Migrasi Proses Produksi **AMAN** - hanya menghapus kolom yang tidak digunakan
 - ✅ Data user lama **TIDAK TERPENGARUH** - COA mereka tetap ada
 - ✅ Hanya user baru yang otomatis mendapat COA Ayam Ketumbar
 
@@ -192,7 +263,14 @@ Pastikan kolom `tarif_per_jam`, `satuan`, `kapasitas_per_jam` **TIDAK ADA**.
 
 ## 🆘 Troubleshooting
 
-### Error: "Column not found: tarif_per_jam"
+### Error: "Column not found: tarif_per_jam" atau "Column not found: tarif_btkl"
+
+**Solusi:**
+```bash
+php artisan migrate
+```
+
+### Error: "Column not found: satuan_btkl" atau "kapasitas_per_jam"
 
 **Solusi:**
 ```bash
@@ -210,10 +288,14 @@ cat database/seeders/DefaultCoaSeeder.php | grep "Ayam"
 git pull origin main
 ```
 
-### Ingin Rollback Perubahan BTKL
+### Ingin Rollback Perubahan BTKL atau Proses Produksi
 
 ```bash
+# Rollback 1 migrasi terakhir
 php artisan migrate:rollback --step=1
+
+# Rollback 2 migrasi terakhir (BTKL + Proses Produksi)
+php artisan migrate:rollback --step=2
 ```
 
 ---

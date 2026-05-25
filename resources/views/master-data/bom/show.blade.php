@@ -178,7 +178,9 @@
                                 <tbody>
                                     @foreach($selectedBtkl as $index => $btkl)
                                         @php
-                                            $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
+                                            $tarifPerProduk = $btkl->prosesProduksi->tarif_per_produk ?? 0;
+                                            $jumlahPegawai = $btkl->prosesProduksi->jumlah_pegawai ?? 1;
+                                            $tarif = $tarifPerProduk * $jumlahPegawai;
                                         @endphp
                                         <tr>
                                             <td>{{ $index + 1 }}</td>

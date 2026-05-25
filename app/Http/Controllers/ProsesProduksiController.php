@@ -21,8 +21,10 @@ class ProsesProduksiController extends Controller
             ->paginate(10);
         
         $totalProses = $prosesProduksis->count();
-        $totalBiayaPerProduk = $prosesProduksis->sum('biaya_per_produk');
-        $rataRataTarif = $totalProses > 0 ? $prosesProduksis->sum('tarif_btkl') / $totalProses : 0;
+        $totalBiayaPerProduk = $prosesProduksis->sum(function($proses) {
+            return $proses->biaya_per_produk;
+        });
+        $rataRataTarif = $totalProses > 0 ? $prosesProduksis->sum('tarif_per_produk') / $totalProses : 0;
         $rataRataBiayaPerUnit = $totalProses > 0 ? $totalBiayaPerProduk / $totalProses : 0;
 
         $statistics = [
@@ -47,32 +49,32 @@ class ProsesProduksiController extends Controller
             'nama_proses' => 'required|string|max:100',
             'jabatan_id' => 'required|exists:jabatans,id',
             'deskripsi' => 'nullable|string',
-            'tarif_btkl' => 'required|numeric|min:0',
+            'tarif_per_produk' => 'required|numeric|min:0',
+            'jumlah_pegawai' => 'nullable|integer|min:0',
         ]);
 
         try {
             $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())->findOrFail($validated['jabatan_id']);
-            $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
-            $expectedTarifBTKL = $jabatan->tarif * $jumlahPegawai;
             
-            if ($jumlahPegawai === 0) {
-                return back()->withInput()->with('error', 'Jabatan "' . $jabatan->nama . '" belum memiliki pegawai.');
-            }
+            // Gunakan tarif_produk dari jabatan sebagai tarif per produk
+            $tarifPerProduk = $jabatan->tarif_produk ?? $validated['tarif_per_produk'];
+            $jumlahPegawai = $validated['jumlah_pegawai'] ?? 1;
             
-            // Hapus 'satuan_btkl' dan 'kapasitas_per_jam' karena kolom tidak ada di DB
             $createData = [
                 'user_id'               => auth()->id(),
                 'nama_proses'           => $validated['nama_proses'],
                 'deskripsi'             => $validated['deskripsi'] ?? null,
-                'tarif_btkl'            => $expectedTarifBTKL,
+                'tarif_per_produk'      => $tarifPerProduk,
                 'jabatan_id'            => $validated['jabatan_id'],
-                'biaya_btkl_per_produk' => 0,        
+                'jumlah_pegawai'        => $jumlahPegawai,
             ];
 
             $btkl = ProsesProduksi::create($createData);
+            
+            $totalBtkl = $tarifPerProduk * $jumlahPegawai;
 
             return redirect()->route('master-data.btkl.index')
-                ->with('success', 'BTKL berhasil ditambahkan! Tarif: Rp ' . number_format($expectedTarifBTKL, 0, ',', '.') . '/produk');
+                ->with('success', 'BTKL berhasil ditambahkan! Tarif per produk: Rp ' . number_format($tarifPerProduk, 0, ',', '.') . ' × ' . $jumlahPegawai . ' pegawai = Rp ' . number_format($totalBtkl, 0, ',', '.'));
 
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
@@ -87,25 +89,31 @@ class ProsesProduksiController extends Controller
             'nama_proses' => 'required|string|max:100',
             'jabatan_id' => 'required|exists:jabatans,id',
             'deskripsi' => 'nullable|string',
-            'tarif_btkl' => 'required|numeric|min:0',
+            'tarif_per_produk' => 'required|numeric|min:0',
+            'jumlah_pegawai' => 'nullable|integer|min:0',
         ]);
 
         try {
             $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())->findOrFail($validated['jabatan_id']);
-            $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
-            $expectedTarifBTKL = $jabatan->tarif * $jumlahPegawai;
+            
+            // Gunakan tarif_produk dari jabatan sebagai tarif per produk
+            $tarifPerProduk = $jabatan->tarif_produk ?? $validated['tarif_per_produk'];
+            $jumlahPegawai = $validated['jumlah_pegawai'] ?? $prosesProduksi->jumlah_pegawai ?? 1;
             
             $updateData = [
                 'nama_proses'           => $validated['nama_proses'],
                 'deskripsi'             => $validated['deskripsi'] ?? null,
-                'tarif_btkl'            => $expectedTarifBTKL,
+                'tarif_per_produk'      => $tarifPerProduk,
                 'jabatan_id'            => $validated['jabatan_id'],
+                'jumlah_pegawai'        => $jumlahPegawai,
             ];
 
             $prosesProduksi->update($updateData);
+            
+            $totalBtkl = $tarifPerProduk * $jumlahPegawai;
 
             return redirect()->route('master-data.btkl.index')
-                ->with('success', 'BTKL diperbarui! Tarif: Rp ' . number_format($expectedTarifBTKL, 0, ',', '.') . '/produk');
+                ->with('success', 'BTKL diperbarui! Tarif per produk: Rp ' . number_format($tarifPerProduk, 0, ',', '.') . ' × ' . $jumlahPegawai . ' pegawai = Rp ' . number_format($totalBtkl, 0, ',', '.'));
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Gagal memperbarui: ' . $e->getMessage());
         }

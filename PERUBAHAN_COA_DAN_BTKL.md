@@ -1,4 +1,4 @@
-# Perubahan COA dan Tabel BTKL
+# Perubahan COA dan Tabel BTKL & Proses Produksi
 
 ## 📋 Ringkasan Perubahan
 
@@ -12,6 +12,15 @@ Kolom yang tidak digunakan telah dihapus dari tabel `btkls`:
 - ❌ `kapasitas_per_jam` (dihapus)
 
 Sekarang menggunakan **pembebanan per produk** dari tabel `jabatans` (kolom `tarif_produk`).
+
+### 3. **Tabel Proses Produksi Disederhanakan**
+Kolom yang tidak digunakan telah dihapus dari tabel `proses_produksis`:
+- ❌ `tarif_btkl` (dihapus)
+- ❌ `satuan_btkl` (dihapus)
+- ❌ `kapasitas_per_jam` (dihapus)
+- ❌ `biaya_btkl_per_produk` (dihapus)
+
+Sekarang menggunakan **sistem per produk** dengan `tarif_per_produk` dan `jumlah_pegawai`.
 
 ---
 
@@ -105,6 +114,50 @@ Schema::table('btkls', function (Blueprint $table) {
 
 ---
 
+### 3. Tabel Proses Produksi Disederhanakan
+
+**File yang Diubah:**
+- `database/migrations/2026_05_25_070339_remove_unused_columns_from_proses_produksis_table.php`
+
+**Kolom yang Dihapus:**
+```php
+// ❌ Dihapus
+- tarif_btkl
+- satuan_btkl
+- kapasitas_per_jam
+- biaya_btkl_per_produk
+```
+
+**Struktur Tabel Proses Produksi Sekarang:**
+```php
+Schema::table('proses_produksis', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+    $table->string('kode_proses')->unique();
+    $table->string('nama_proses');
+    $table->text('deskripsi')->nullable();
+    $table->foreignId('jabatan_id')->constrained('jabatans')->onDelete('cascade');
+    $table->decimal('tarif_per_produk', 15, 2)->default(0);
+    $table->integer('jumlah_pegawai')->default(0);
+    $table->foreignId('btkl_id')->nullable()->constrained('btkls')->onDelete('cascade');
+    $table->timestamps();
+});
+```
+
+**Alasan Perubahan:**
+- Sistem berubah dari per jam ke per produk
+- Tarif diambil dari `jabatans.tarif_produk`
+- Total BTKL = `tarif_per_produk × jumlah_pegawai`
+- Lebih sederhana dan akurat
+
+**Perhitungan Biaya BTKL:**
+```php
+// Total BTKL untuk proses
+$totalBTKL = $prosesProduksi->tarif_per_produk * $prosesProduksi->jumlah_pegawai;
+```
+
+---
+
 ## 🚀 Langkah untuk Tim
 
 ### Setelah `git pull`:
@@ -174,6 +227,13 @@ DESCRIBE btkls;
 ```
 
 Pastikan kolom `tarif_per_jam`, `satuan`, dan `kapasitas_per_jam` sudah tidak ada.
+
+### Cek Struktur Tabel Proses Produksi:
+```sql
+DESCRIBE proses_produksis;
+```
+
+Pastikan kolom `tarif_btkl`, `satuan_btkl`, `kapasitas_per_jam`, dan `biaya_btkl_per_produk` sudah tidak ada.
 
 ---
 

@@ -106,7 +106,12 @@
                         <td class="text-center">{{ $proses->urutan }}</td>
                         <td>
                             {{ $proses->prosesProduksi->nama_proses ?? '-' }}
-                            <div class="small">(Rp {{ number_format($proses->prosesProduksi->tarif_btkl ?? 0, 0, ',', '.') }}/{{ $proses->satuan_durasi }})</div>
+                            @php
+                                $tarifPerProduk = $proses->prosesProduksi->tarif_per_produk ?? 0;
+                                $jumlahPegawai = $proses->prosesProduksi->jumlah_pegawai ?? 1;
+                                $totalTarif = $tarifPerProduk * $jumlahPegawai;
+                            @endphp
+                            <div class="small">(Rp {{ number_format($totalTarif, 0, ',', '.') }}/{{ $proses->satuan_durasi }})</div>
                         </td>
                         <td class="text-end">{{ number_format($proses->durasi, 2, ',', '.') }}</td>
                         <td class="text-center">{{ $proses->satuan_durasi }}</td>

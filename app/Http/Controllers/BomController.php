@@ -225,8 +225,10 @@ return [
         $total = 0;
         foreach ($selectedBtkl as $btkl) {
             if ($btkl->prosesProduksi) {
-                // Use tarif_btkl directly as biaya per produk
-                $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
+                // Calculate total BTKL: tarif_per_produk × jumlah_pegawai
+                $tarifPerProduk = $btkl->prosesProduksi->tarif_per_produk ?? 0;
+                $jumlahPegawai = $btkl->prosesProduksi->jumlah_pegawai ?? 1;
+                $tarif = $tarifPerProduk * $jumlahPegawai;
                 $total += $tarif;
             }
         }
@@ -277,19 +279,22 @@ return [
     {
         // Optimized query with specific columns only
         $prosesProduksi = \App\Models\ProsesProduksi::where('user_id', auth()->id())
-            ->select('id', 'nama_proses', 'tarif_btkl', 'kode_proses')
+            ->select('id', 'nama_proses', 'tarif_per_produk', 'jumlah_pegawai', 'kode_proses')
             ->get();
             
         // Transform data to include calculated costs
         $transformedData = $prosesProduksi->map(function($item) {
-            $tarif = $item->tarif_btkl ?? 0;
+            $tarifPerProduk = $item->tarif_per_produk ?? 0;
+            $jumlahPegawai = $item->jumlah_pegawai ?? 1;
+            $totalBiaya = $tarifPerProduk * $jumlahPegawai;
             
             return [
                 'id' => $item->id,
                 'nama_proses' => $item->nama_proses ?? 'Proses Produksi',
-                'tarif_per_produk' => $tarif,
-                'biaya_per_produk' => $tarif,
-                'kode_proses' => $item->kode_proses
+                'tarif_per_produk' => $tarifPerProduk,
+                'biaya_per_produk' => $totalBiaya,
+                'kode_proses' => $item->kode_proses,
+                'jumlah_pegawai' => $jumlahPegawai
             ];
         });
             
