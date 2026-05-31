@@ -18,7 +18,9 @@ class DefaultCoaSeeder extends Seeder
         if ($userId === null) {
             $user = DB::table('users')->first();
             if (!$user) {
-                $this->command->error('No users found in database. Please create a user first.');
+                if ($this->command) {
+                    $this->command->error('No users found in database. Please create a user first.');
+                }
                 return;
             }
             $userId = $user->id;
@@ -26,7 +28,9 @@ class DefaultCoaSeeder extends Seeder
 
         // Jangan buat ulang jika sudah ada
         if (DB::table('coas')->where('user_id', $userId)->exists()) {
-            $this->command->info("COA already exists for user ID: {$userId}");
+            if ($this->command) {
+                $this->command->info("COA already exists for user ID: {$userId}");
+            }
             return;
         }
 
