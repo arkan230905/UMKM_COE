@@ -3,6 +3,161 @@
 @section('title', 'Tambah Aset')
 
 @section('content')
+<style>
+/* Custom Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.custom-dropdown-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.custom-dropdown-toggle:hover {
+    border-color: #5C4033;
+}
+
+.custom-dropdown-toggle.active {
+    border-color: #5C4033;
+    box-shadow: 0 0 0 2px rgba(92, 64, 51, 0.15);
+    outline: none;
+}
+
+/* Jenis Aset - samakan dengan Nama Aset */
+#jenis_aset,
+.jenis-aset-dropdown,
+.custom-select-trigger {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+}
+
+#jenis_aset:focus,
+.jenis-aset-dropdown:focus,
+.jenis-aset-dropdown.open,
+.custom-select-trigger:focus,
+.custom-select-trigger.active {
+    border-color: #5C4033;
+    box-shadow: 0 0 0 2px rgba(92, 64, 51, 0.15);
+    outline: none;
+}
+
+#asetForm .form-select:focus,
+#asetForm .form-control:focus {
+    border-color: #5C4033 !important;
+    box-shadow: 0 0 0 2px rgba(92, 64, 51, 0.15) !important;
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    margin-top: 0.125rem;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    background: #ffffff !important;
+}
+
+.custom-dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.custom-dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.custom-dropdown-item i.bi-x-circle {
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.custom-dropdown-item i.bi-x-circle:hover {
+    opacity: 1;
+}
+
+.custom-dropdown-divider {
+    height: 1px;
+    background-color: #dee2e6;
+    margin: 0.5rem 0;
+}
+
+.custom-dropdown-footer {
+    padding: 0.5rem 0.75rem;
+    background: #ffffff !important;
+}
+
+#addNewJenisForm,
+#addNewJenisForm .form-control {
+    background: #ffffff !important;
+}
+
+#addNewJenisForm .form-control {
+    border: 1px solid #ced4da !important;
+    box-shadow: none !important;
+}
+
+#addNewJenisForm .form-control:focus {
+    border-color: #5C4033 !important;
+    box-shadow: 0 0 0 2px rgba(92, 64, 51, 0.15) !important;
+}
+
+/* Button Aset Baru - Custom Styling */
+.btn-aset-baru {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    color: #2C2C2A;
+    border: 0.5px solid #ccc;
+    background: #ffffff;
+    font-weight: 500;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-aset-baru:hover {
+    background: #f5f5f3;
+}
+
+.btn-aset-baru i.ti-plus {
+    color: #2C2C2A;
+    font-size: 14px;
+}
+
+.custom-dropdown-footer .btn-link {
+    text-decoration: none;
+    padding: 0;
+}
+
+.custom-dropdown-footer .btn-link:hover {
+    text-decoration: underline;
+}
+</style>
+
 <div class="container text-dark">
     <h2 class="mb-4 text-dark">Tambah Aset Baru</h2>
 
@@ -35,21 +190,65 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="jenis_aset_id" class="form-label text-dark">Jenis Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-white text-dark @error('jenis_aset_id') is-invalid @enderror" 
-                            id="jenis_aset_id" name="jenis_aset_id" required onchange="loadKategoriAset()">
-                        <option value="" disabled selected>-- Pilih Jenis Aset --</option>
-                        @foreach($jenisAsets as $jenis)
-                            <option value="{{ $jenis->id }}" {{ old('jenis_aset_id') == $jenis->id ? 'selected' : '' }}>
-                                {{ $jenis->nama }}
-                            </option>
-                        @endforeach
-                        <option value="add_new" style="border-top: 1px solid #ccc; font-style: italic; color: #007bff;">
-                            + Tambah Jenis Aset Baru
-                        </option>
-                    </select>
-                    @error('jenis_aset_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                    <label for="jenis_aset" class="form-label text-dark">Jenis Aset <span class="text-danger">*</span></label>
+                    
+                    <!-- Hidden input untuk menyimpan nilai -->
+                    <input type="hidden" id="jenis_aset" name="jenis_aset" value="aset-tetap" required>
+                    
+                    <!-- Custom Dropdown -->
+                    <div class="custom-dropdown" id="customDropdownJenisAset">
+                        <div class="custom-dropdown-toggle jenis-aset-dropdown custom-select-trigger" tabindex="0" onclick="toggleCustomDropdown()">
+                            <span id="selectedJenisAset">Aset Tetap</span>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                        
+                        <div class="custom-dropdown-menu" id="customDropdownMenu" style="display: none;">
+                            <!-- Opsi Aset Tetap (Default, tidak bisa dihapus) -->
+                            <div class="custom-dropdown-item" onclick="selectJenisAset('aset-tetap', 'Aset Tetap')">
+                                Aset Tetap
+                            </div>
+                            
+                            <!-- Opsi Jenis Aset Kustom -->
+                            @foreach($jenisAsetList ?? [] as $jenis)
+                                @if($jenis->nama !== 'Aset Tetap')
+                                    <div class="custom-dropdown-item" id="item-{{ $jenis->id }}" onclick="selectJenisAset('{{ Str::slug($jenis->nama) }}', '{{ $jenis->nama }}')">
+                                        <span>{{ $jenis->nama }}</span>
+                                        <i class="bi bi-x-circle text-danger" onclick="event.stopPropagation(); deleteJenisAset({{ $jenis->id }}, '{{ $jenis->nama }}')"></i>
+                                    </div>
+                                @endif
+                            @endforeach
+                            
+                            <!-- Divider -->
+                            <div class="custom-dropdown-divider"></div>
+                            
+                            <!-- Button Aset Baru -->
+                            <div class="custom-dropdown-footer" id="addNewJenisButton">
+                                <button type="button" class="btn-aset-baru" onclick="showAddJenisForm()">
+                                    <i class="ti ti-plus" style="color: #2C2C2A; font-size: 14px;"></i> Aset Baru
+                                </button>
+                            </div>
+                            
+                            <!-- Inline Form (Hidden by default) -->
+                            <div class="custom-dropdown-footer" id="addNewJenisForm" style="display: none;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="text" id="newJenisNama" class="form-control form-control-sm"
+                                           style="flex: 1;" placeholder="Nama jenis aset baru..."
+                                           onkeypress="if(event.key==='Enter'){event.preventDefault();saveNewJenisInline();}">
+                                    <button type="button"
+                                            style="background: #185FA5; color: #ffffff; border: none; border-radius: 5px; padding: 0.25rem 0.75rem;"
+                                            onclick="saveNewJenisInline()">
+                                        Simpan
+                                    </button>
+                                    <span style="cursor: pointer; color: #6c757d;" onclick="hideAddJenisForm()">
+                                        Batal
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    @error('jenis_aset')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                 </div>
 
@@ -57,7 +256,16 @@
                     <label for="kategori_aset_id" class="form-label text-dark">Kategori Aset <span class="text-danger">*</span></label>
                     <select class="form-select bg-white text-dark @error('kategori_aset_id') is-invalid @enderror" 
                             id="kategori_aset_id" name="kategori_aset_id" required onchange="checkPenyusutan()">
-                        <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
+                        <option value="" disabled selected>-- Pilih Kategori Aset --</option>
+                        @foreach($jenisAsets as $jenis)
+                            <optgroup label="{{ $jenis->nama }}">
+                                @foreach($jenis->kategories as $kategori)
+                                    <option value="{{ $kategori->id }}" {{ old('kategori_aset_id') == $kategori->id ? 'selected' : '' }} data-disusutkan="{{ $kategori->disusutkan ? '1' : '0' }}" data-jenis-nama="{{ $jenis->nama }}">
+                                        {{ $kategori->nama }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
                     </select>
                     @error('kategori_aset_id')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -97,7 +305,7 @@
                 <div id="section_penyusutan" style="display: none;">
                     <div class="alert alert-info mb-3">
                         <i class="bi bi-info-circle me-2"></i>
-                        <strong>Aset ini mengalami penyusutan.</strong> Silakan isi informasi penyusutan di bawah.
+                        <strong id="info_penyusutan_text">Aset ini mengalami penyusutan/amortisasi.</strong> Silakan isi informasi di bawah.
                     </div>
 
                     <div class="row">
@@ -118,11 +326,11 @@
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="umur_manfaat" class="form-label text-dark">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
+                            <label for="umur_manfaat" class="form-label text-dark" id="label_umur_manfaat">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
                             <input type="number" step="1" min="1" class="form-control bg-white text-dark @error('umur_manfaat') is-invalid @enderror" 
                                    id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat') }}" 
                                    oninput="hitungPenyusutan()">
-                            <small class="text-muted">Perkiraan umur ekonomis aset</small>
+                            <small class="text-muted">Perkiraan umur aset</small>
                             @error('umur_manfaat')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -207,7 +415,7 @@
                             
                                                         
                             <!-- Hasil Perhitungan -->
-                            <h6 class="text-dark mb-3" id="hasil_perhitungan_header"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan Penyusutan</h6>
+                            <h6 class="text-dark mb-3" id="hasil_perhitungan_header"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan</h6>
                             <div class="table-responsive" id="hasil_perhitungan_container">
                                 <table class="table table-bordered mb-0 table-light">
                                     <tbody>
@@ -216,11 +424,11 @@
                                             <td class="text-end text-dark" id="nilai_disusutkan_display">Rp 0</td>
                                         </tr>
                                         <tr class="bg-success bg-opacity-25">
-                                            <td class="fw-bold text-dark">Penyusutan Per Tahun</td>
+                                            <td class="fw-bold text-dark" id="label_penyusutan_tahun">Penyusutan Per Tahun</td>
                                             <td class="text-end fw-bold text-success" id="penyusutan_tahunan_display">Rp 0</td>
                                         </tr>
                                         <tr class="bg-info bg-opacity-25">
-                                            <td class="fw-bold text-dark">Penyusutan Per Bulan</td>
+                                            <td class="fw-bold text-dark" id="label_penyusutan_bulan">Penyusutan Per Bulan</td>
                                             <td class="text-end fw-bold text-info" id="penyusutan_bulanan_display">Rp 0</td>
                                         </tr>
                                     </tbody>
@@ -407,38 +615,16 @@ function formatNumber(input) {
     input.value = parts.join('.');
 }
 
-// Load kategori aset berdasarkan jenis yang dipilih
-function loadKategoriAset() {
-    const jenisId = document.getElementById('jenis_aset_id').value;
-    const kategoriSelect = document.getElementById('kategori_aset_id');
-    
-    kategoriSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Aset --</option>';
-    
-    if (jenisId) {
-        const jenis = kategoriData.find(j => j.id == jenisId);
-        if (jenis && jenis.kategories) {
-            jenis.kategories.forEach(kategori => {
-                const option = document.createElement('option');
-                option.value = kategori.id;
-                option.textContent = kategori.nama;
-                option.dataset.disusutkan = kategori.disusutkan ? '1' : '0';
-                option.dataset.jenisNama = jenis.nama;
-                if ('{{ old("kategori_aset_id") }}' == kategori.id) {
-                    option.selected = true;
-                }
-                kategoriSelect.appendChild(option);
-            });
-        }
-    }
-    
-    // Check penyusutan after loading
-    checkPenyusutan();
-}
+// Menghapus loadKategoriAset karena Kategori Aset sudah me-load semua opsi dari server
+
 
 // Check apakah kategori aset yang dipilih disusutkan atau tidak
 function checkPenyusutan() {
-    const kategoriSelect = document.getElementById('kategori_aset_id');
-    const selectedOption = kategoriSelect.options[kategoriSelect.selectedIndex];
+    handleJenisAsetChange(); // Delegasikan ke fungsi handleJenisAsetChange
+}
+
+function handleJenisAsetChange() {
+    const jenis = document.getElementById('jenis_aset').value;
     
     const sectionPenyusutan = document.getElementById('section_penyusutan');
     const alertTidakDisusutkan = document.getElementById('alert_tidak_disusutkan');
@@ -449,56 +635,84 @@ function checkPenyusutan() {
     const umurManfaat = document.getElementById('umur_manfaat');
     const nilaiResidu = document.getElementById('nilai_residu');
     
-    if (selectedOption && selectedOption.value) {
-        const disusutkan = selectedOption.dataset.disusutkan === '1';
-        const jenisNama = selectedOption.dataset.jenisNama || '';
-        const kategoriNama = selectedOption.textContent;
+    const labelUmurManfaat = document.getElementById('label_umur_manfaat');
+    const labelPenyusutanTahun = document.getElementById('label_penyusutan_tahun');
+    const labelPenyusutanBulan = document.getElementById('label_penyusutan_bulan');
+    const infoPenyusutanText = document.getElementById('info_penyusutan_text');
+    
+    if (jenis === 'aset-tetap' || jenis === 'aset-tidak-berwujud') {
+        // Aset DISUSUTKAN/DIAMORTISASI - tampilkan form
+        sectionPenyusutan.style.display = 'block';
+        alertTidakDisusutkan.style.display = 'none';
         
-        if (disusutkan) {
-            // Aset DISUSUTKAN - tampilkan form penyusutan
-            sectionPenyusutan.style.display = 'block';
-            alertTidakDisusutkan.style.display = 'none';
-            
-            // Set required
-            metodePenyusutan.required = true;
-            umurManfaat.required = true;
+        // Set required
+        metodePenyusutan.required = true;
+        umurManfaat.required = true;
+        document.getElementById('accum_depr_coa_id').required = true;
+        document.getElementById('accum_depr_coa_id').parentElement.style.display = 'block';
+        document.getElementById('expense_coa_id').required = true;
+        document.getElementById('expense_coa_id').parentElement.style.display = 'block';
+        
+        if (jenis === 'aset-tetap') {
             nilaiResidu.required = true;
+            document.getElementById('nilai_residu').parentElement.style.display = 'block';
+            labelUmurManfaat.innerHTML = 'Umur Manfaat (tahun) <span class="text-danger">*</span>';
+            labelPenyusutanTahun.innerText = 'Penyusutan Per Tahun';
+            labelPenyusutanBulan.innerText = 'Penyusutan Per Bulan';
+            infoPenyusutanText.innerText = 'Aset ini mengalami penyusutan.';
             
+            // Show saldo menurun option
+            Array.from(metodePenyusutan.options).forEach(opt => {
+                if (opt.value === 'saldo_menurun') opt.style.display = 'block';
+            });
         } else {
-            // Aset TIDAK DISUSUTKAN - sembunyikan form penyusutan
-            sectionPenyusutan.style.display = 'none';
-            alertTidakDisusutkan.style.display = 'block';
-            
-            // Remove required
-            metodePenyusutan.required = false;
-            umurManfaat.required = false;
+            // Aset Tidak Berwujud
             nilaiResidu.required = false;
+            document.getElementById('nilai_residu').parentElement.style.display = 'none';
+            nilaiResidu.value = 0;
+            labelUmurManfaat.innerHTML = 'Umur Ekonomis (tahun) <span class="text-danger">*</span>';
+            labelPenyusutanTahun.innerText = 'Amortisasi Per Tahun';
+            labelPenyusutanBulan.innerText = 'Amortisasi Per Bulan';
+            infoPenyusutanText.innerText = 'Aset ini mengalami amortisasi.';
             
-            // Set nilai default untuk aset yang tidak disusutkan
-            metodePenyusutan.value = '';
-            umurManfaat.value = 0;
-            nilaiResidu.value = '';
-            
-            // Tampilkan alasan
-            let alasan = '';
-            if (jenisNama.includes('Lancar')) {
-                alasan = 'Aset lancar tidak mengalami penyusutan karena bersifat likuid dan akan dikonversi menjadi kas dalam waktu dekat.';
-            } else if (kategoriNama.includes('Tanah')) {
-                alasan = 'Tanah tidak mengalami penyusutan karena memiliki umur manfaat tidak terbatas dan cenderung meningkat nilainya.';
-            } else if (jenisNama.includes('Tak Berwujud')) {
-                alasan = 'Aset tak berwujud tidak disusutkan, tetapi diamortisasi dengan metode yang berbeda.';
-            } else if (jenisNama.includes('Investasi')) {
-                alasan = 'Investasi jangka panjang tidak disusutkan karena nilainya mengikuti nilai pasar.';
-            } else {
-                alasan = 'Aset ini tidak mengalami penyusutan sesuai standar akuntansi.';
-            }
-            alasanTidakDisusutkan.textContent = alasan;
+            // Hide saldo menurun option
+            Array.from(metodePenyusutan.options).forEach(opt => {
+                if (opt.value === 'saldo_menurun') {
+                    opt.style.display = 'none';
+                    if (metodePenyusutan.value === 'saldo_menurun') {
+                        metodePenyusutan.value = 'garis_lurus';
+                    }
+                }
+            });
         }
+        
+    } else if (jenis === 'aset-tidak-tetap') {
+        // Aset TIDAK DISUSUTKAN - sembunyikan form
+        sectionPenyusutan.style.display = 'none';
+        alertTidakDisusutkan.style.display = 'block';
+        
+        // Remove required
+        metodePenyusutan.required = false;
+        umurManfaat.required = false;
+        nilaiResidu.required = false;
+        document.getElementById('accum_depr_coa_id').required = false;
+        document.getElementById('accum_depr_coa_id').parentElement.style.display = 'none';
+        document.getElementById('expense_coa_id').required = false;
+        document.getElementById('expense_coa_id').parentElement.style.display = 'none';
+        
+        // Set nilai default
+        metodePenyusutan.value = '';
+        umurManfaat.value = 0;
+        nilaiResidu.value = '';
+        
+        alasanTidakDisusutkan.textContent = 'Aset Tidak Tetap dicatat sebagai biaya langsung. Tidak ada penyusutan/amortisasi.';
     } else {
-        // Belum ada kategori dipilih
+        // Belum ada jenis dipilih
         sectionPenyusutan.style.display = 'none';
         alertTidakDisusutkan.style.display = 'none';
     }
+    
+    hitungPenyusutan();
 }
 
 // Format angka ke format rupiah Indonesia (dengan titik sebagai pemisah ribuan, tanpa desimal)
@@ -897,404 +1111,17 @@ document.addEventListener('DOMContentLoaded', function() {
         residuInput.value = residuInput.value.replace(/,00/g, '').replace(/,/g, '');
     }
     
-    // Load kategori if jenis already selected
-    if ('{{ old("jenis_aset_id") }}') {
-        loadKategoriAset();
-    }
+
     
     // Calculate initial values
     hitungTotal();
-});
-</script>
-
-<!-- Modal Tambah Jenis Aset -->
-<div class="modal fade" id="modalTambahJenisAset" tabindex="-1" aria-labelledby="modalTambahJenisAsetLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-dark" id="modalTambahJenisAsetLabel">Tambah Jenis Aset Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="formTambahJenisAset">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="nama_jenis_aset" class="form-label text-dark">Nama Jenis Aset <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control bg-white text-dark" id="nama_jenis_aset" name="nama" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Tambah Kategori Aset -->
-<div class="modal fade" id="modalTambahKategoriAset" tabindex="-1" aria-labelledby="modalTambahKategoriAsetLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-dark" id="modalTambahKategoriAsetLabel">Tambah Kategori Aset Baru</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="formTambahKategoriAset">
-                <div class="modal-body">
-                    <input type="hidden" id="jenis_aset_id_modal" name="jenis_aset_id">
-                    
-                    <!-- Show selected jenis aset -->
-                    <div class="alert alert-info mb-3">
-                        <small><strong>Jenis Aset:</strong> <span id="selected_jenis_name">-</span></small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="nama_kategori_aset" class="form-label text-dark">Nama Kategori <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control bg-white text-dark" id="nama_kategori_aset" name="nama" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="disusutkan_kategori" name="disusutkan" checked>
-                            <label class="form-check-label text-dark" for="disusutkan_kategori">
-                                Aset ini mengalami penyusutan
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script>
-// Override loadKategoriAset function to handle "add_new" option
-function loadKategoriAset() {
-    const jenisId = document.getElementById('jenis_aset_id').value;
-    const kategoriSelect = document.getElementById('kategori_aset_id');
     
-    // Check if "add_new" was selected
-    if (jenisId === 'add_new') {
-        // Reset dropdown
-        document.getElementById('jenis_aset_id').value = '';
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('modalTambahJenisAset'));
-        modal.show();
-        return;
+    // Check initial jenis aset
+    if (document.getElementById('jenis_aset').value) {
+        handleJenisAsetChange();
     }
-    
-    kategoriSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Aset --</option>';
-    
-    if (jenisId) {
-        const jenis = kategoriData.find(j => j.id == jenisId);
-        if (jenis && jenis.kategories) {
-            jenis.kategories.forEach(kategori => {
-                const option = document.createElement('option');
-                option.value = kategori.id;
-                option.textContent = kategori.nama;
-                option.dataset.disusutkan = kategori.disusutkan ? '1' : '0';
-                option.dataset.jenisNama = jenis.nama;
-                if ('{{ old("kategori_aset_id") }}' == kategori.id) {
-                    option.selected = true;
-                }
-                kategoriSelect.appendChild(option);
-            });
-            
-            // Add "Tambah Baru" option
-            const addNewOption = document.createElement('option');
-            addNewOption.value = 'add_new';
-            addNewOption.textContent = '+ Tambah Kategori Aset Baru';
-            addNewOption.style.borderTop = '1px solid #ccc';
-            addNewOption.style.fontStyle = 'italic';
-            addNewOption.style.color = '#007bff';
-            kategoriSelect.appendChild(addNewOption);
-        }
-    }
-    
-    // Check penyusutan after loading
-    checkPenyusutan();
-}
-
-// Override checkPenyusutan function to handle "add_new" option
-function checkPenyusutan() {
-    const kategoriSelect = document.getElementById('kategori_aset_id');
-    const selectedValue = kategoriSelect.value;
-    
-    // Check if "add_new" was selected
-    if (selectedValue === 'add_new') {
-        const jenisId = document.getElementById('jenis_aset_id').value;
-        if (!jenisId) {
-            alert('Pilih jenis aset terlebih dahulu');
-            kategoriSelect.value = '';
-            return;
-        }
-        
-        // Reset dropdown
-        kategoriSelect.value = '';
-        // Set jenis aset id in modal and show jenis name
-        document.getElementById('jenis_aset_id_modal').value = jenisId;
-        
-        // Update modal title and show selected jenis
-        const jenisSelect = document.getElementById('jenis_aset_id');
-        const selectedJenis = jenisSelect.options[jenisSelect.selectedIndex];
-        const jenisNama = selectedJenis ? selectedJenis.textContent : '';
-        document.getElementById('modalTambahKategoriAsetLabel').textContent = `Tambah Kategori Aset Baru`;
-        document.getElementById('selected_jenis_name').textContent = jenisNama;
-        
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('modalTambahKategoriAset'));
-        modal.show();
-        return;
-    }
-    
-    const selectedOption = kategoriSelect.options[kategoriSelect.selectedIndex];
-    
-    const sectionPenyusutan = document.getElementById('section_penyusutan');
-    const alertTidakDisusutkan = document.getElementById('alert_tidak_disusutkan');
-    const alasanTidakDisusutkan = document.getElementById('alasan_tidak_disusutkan');
-    
-    // Fields penyusutan
-    const metodePenyusutan = document.getElementById('metode_penyusutan');
-    const umurManfaat = document.getElementById('umur_manfaat');
-    const nilaiResidu = document.getElementById('nilai_residu');
-    
-    if (selectedOption && selectedOption.value) {
-        const disusutkan = selectedOption.dataset.disusutkan === '1';
-        const jenisNama = selectedOption.dataset.jenisNama || '';
-        const kategoriNama = selectedOption.textContent;
-        
-        if (disusutkan) {
-            // Aset DISUSUTKAN - tampilkan form penyusutan
-            sectionPenyusutan.style.display = 'block';
-            alertTidakDisusutkan.style.display = 'none';
-            
-            // Set required
-            metodePenyusutan.required = true;
-            umurManfaat.required = true;
-            nilaiResidu.required = true;
-            
-        } else {
-            // Aset TIDAK DISUSUTKAN - sembunyikan form penyusutan
-            sectionPenyusutan.style.display = 'none';
-            alertTidakDisusutkan.style.display = 'block';
-            
-            // Remove required
-            metodePenyusutan.required = false;
-            umurManfaat.required = false;
-            nilaiResidu.required = false;
-            
-            // Set nilai default untuk aset yang tidak disusutkan
-            metodePenyusutan.value = '';
-            umurManfaat.value = 0;
-            nilaiResidu.value = '';
-            
-            // Tampilkan alasan
-            let alasan = '';
-            if (jenisNama.includes('Lancar')) {
-                alasan = 'Aset lancar tidak mengalami penyusutan karena bersifat likuid dan akan dikonversi menjadi kas dalam waktu dekat.';
-            } else if (kategoriNama.includes('Tanah')) {
-                alasan = 'Tanah tidak mengalami penyusutan karena memiliki umur manfaat tidak terbatas dan cenderung meningkat nilainya.';
-            } else if (jenisNama.includes('Tak Berwujud')) {
-                alasan = 'Aset tak berwujud tidak disusutkan, tetapi diamortisasi dengan metode yang berbeda.';
-            } else if (jenisNama.includes('Investasi')) {
-                alasan = 'Investasi jangka panjang tidak disusutkan karena nilainya mengikuti nilai pasar.';
-            } else {
-                alasan = 'Aset ini tidak mengalami penyusutan sesuai standar akuntansi.';
-            }
-            alasanTidakDisusutkan.textContent = alasan;
-        }
-    } else {
-        // Belum ada kategori dipilih
-        sectionPenyusutan.style.display = 'none';
-        alertTidakDisusutkan.style.display = 'none';
-    }
-}
-
-// Handle form submit for jenis aset
-document.getElementById('formTambahJenisAset').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Menyimpan...';
-    
-    // Clear previous errors
-    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    this.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
-    
-    fetch('/master-data/aset/add-jenis-aset', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok && response.status !== 422) {
-            throw new Error('Server error: ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Add new option to dropdown
-            const jenisSelect = document.getElementById('jenis_aset_id');
-            const addNewOption = jenisSelect.querySelector('option[value="add_new"]');
-            
-            const newOption = document.createElement('option');
-            newOption.value = data.data.id;
-            newOption.textContent = data.data.nama;
-            newOption.selected = true;
-            
-            // Insert before "add_new" option
-            jenisSelect.insertBefore(newOption, addNewOption);
-            
-            // Update kategoriData
-            kategoriData.push({
-                id: data.data.id,
-                nama: data.data.nama,
-                kategories: []
-            });
-            
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('modalTambahJenisAset')).hide();
-            
-            // Reset form
-            this.reset();
-            
-            // Load kategori for new jenis
-            loadKategoriAset();
-            
-            // Show success message
-            alert('Jenis aset berhasil ditambahkan!');
-        } else {
-            // Handle validation errors
-            if (data.errors) {
-                Object.keys(data.errors).forEach(field => {
-                    const input = this.querySelector(`[name="${field}"]`);
-                    const feedback = input.nextElementSibling;
-                    
-                    input.classList.add('is-invalid');
-                    feedback.textContent = data.errors[field][0];
-                });
-            } else {
-                alert('Error: ' + data.message);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyimpan data');
-    })
-    .finally(() => {
-        // Re-enable submit button
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    });
 });
 
-// Handle form submit for kategori aset
-document.getElementById('formTambahKategoriAset').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    
-    // Disable submit button
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Menyimpan...';
-    
-    // Clear previous errors
-    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    this.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
-    
-    fetch('/master-data/aset/add-kategori-aset', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => {
-        if (!response.ok && response.status !== 422) {
-            throw new Error('Server error: ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Add new option to kategori dropdown
-            const kategoriSelect = document.getElementById('kategori_aset_id');
-            const addNewOption = kategoriSelect.querySelector('option[value="add_new"]');
-            
-            const newOption = document.createElement('option');
-            newOption.value = data.data.id;
-            newOption.textContent = data.data.nama;
-            newOption.dataset.disusutkan = data.data.disusutkan ? '1' : '0';
-            newOption.dataset.jenisNama = kategoriData.find(j => j.id == data.data.jenis_aset_id)?.nama || '';
-            newOption.selected = true;
-            
-            // Insert before "add_new" option
-            kategoriSelect.insertBefore(newOption, addNewOption);
-            
-            // Update kategoriData
-            const jenisIndex = kategoriData.findIndex(j => j.id == data.data.jenis_aset_id);
-            if (jenisIndex !== -1) {
-                kategoriData[jenisIndex].kategories.push({
-                    id: data.data.id,
-                    nama: data.data.nama,
-                    disusutkan: data.data.disusutkan
-                });
-            }
-            
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('modalTambahKategoriAset')).hide();
-            
-            // Reset form
-            this.reset();
-            
-            // Check penyusutan for new kategori
-            checkPenyusutan();
-            
-            // Show success message
-            alert('Kategori aset berhasil ditambahkan!');
-        } else {
-            // Handle validation errors
-            if (data.errors) {
-                Object.keys(data.errors).forEach(field => {
-                    const input = this.querySelector(`[name="${field}"]`);
-                    const feedback = input.nextElementSibling;
-                    
-                    input.classList.add('is-invalid');
-                    feedback.textContent = data.errors[field][0];
-                });
-            } else {
-                alert('Error: ' + data.message);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyimpan data');
-    })
-    .finally(() => {
-        // Re-enable submit button
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    });
-});
 
 // Strip formatting before form submission
 document.getElementById('asetForm').addEventListener('submit', function(e) {
@@ -1309,5 +1136,149 @@ document.getElementById('asetForm').addEventListener('submit', function(e) {
         residuInput.value = unformatRupiah(residuInput.value);
     }
 });
+
+// ============================================================================
+// CUSTOM DROPDOWN JENIS ASET - JavaScript Functions
+// ============================================================================
+
+// Toggle custom dropdown
+function toggleCustomDropdown() {
+    const menu = document.getElementById('customDropdownMenu');
+    const toggle = document.querySelector('.custom-dropdown-toggle');
+    
+    if (menu.style.display === 'none') {
+        menu.style.display = 'block';
+        toggle.classList.add('active');
+    } else {
+        menu.style.display = 'none';
+        toggle.classList.remove('active');
+        hideAddJenisForm(); // Reset form jika dropdown ditutup
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('customDropdownJenisAset');
+    if (dropdown && !dropdown.contains(event.target)) {
+        const menu = document.getElementById('customDropdownMenu');
+        const toggle = document.querySelector('.custom-dropdown-toggle');
+        if (menu) menu.style.display = 'none';
+        if (toggle) toggle.classList.remove('active');
+        hideAddJenisForm();
+    }
+});
+
+// Select jenis aset
+function selectJenisAset(value, label) {
+    document.getElementById('jenis_aset').value = value;
+    document.getElementById('selectedJenisAset').textContent = label;
+    toggleCustomDropdown(); // Close dropdown
+    handleJenisAsetChange(); // Trigger existing logic
+}
+
+// Show add jenis form
+function showAddJenisForm() {
+    document.getElementById('addNewJenisButton').style.display = 'none';
+    document.getElementById('addNewJenisForm').style.display = 'block';
+    document.getElementById('newJenisNama').focus();
+}
+
+// Hide add jenis form
+function hideAddJenisForm() {
+    document.getElementById('addNewJenisButton').style.display = 'block';
+    document.getElementById('addNewJenisForm').style.display = 'none';
+    document.getElementById('newJenisNama').value = '';
+}
+
+// Save new jenis aset (inline in dropdown)
+function saveNewJenisInline() {
+    const nama = document.getElementById('newJenisNama').value.trim();
+    
+    if (!nama) {
+        alert('Nama jenis aset tidak boleh kosong');
+        return;
+    }
+    
+    // Kirim AJAX request
+    fetch('{{ route("master-data.jenis-aset.store") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ nama: nama })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Tambahkan opsi baru ke dropdown (sebelum divider)
+            const menu = document.getElementById('customDropdownMenu');
+            const divider = menu.querySelector('.custom-dropdown-divider');
+            
+            const newItem = document.createElement('div');
+            newItem.className = 'custom-dropdown-item';
+            newItem.id = `item-${data.data.id}`;
+            newItem.onclick = function() { selectJenisAset(data.data.slug, data.data.nama); };
+            newItem.innerHTML = `
+                <span>${data.data.nama}</span>
+                <i class="bi bi-x-circle text-danger" onclick="event.stopPropagation(); deleteJenisAset(${data.data.id}, '${data.data.nama}')"></i>
+            `;
+            
+            // Insert before divider
+            menu.insertBefore(newItem, divider);
+            
+            // Select the new item
+            selectJenisAset(data.data.slug, data.data.nama);
+            
+            // Reset form
+            hideAddJenisForm();
+            
+            alert('Jenis aset berhasil ditambahkan!');
+        } else {
+            alert('Gagal menambahkan jenis aset: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyimpan jenis aset');
+    });
+}
+
+// Delete jenis aset
+function deleteJenisAset(id, nama) {
+    if (!confirm(`Hapus jenis aset "${nama}"?\n\nJenis aset ini akan dihapus dan tidak bisa digunakan lagi.`)) {
+        return;
+    }
+    
+    fetch(`{{ url('master-data/jenis-aset') }}/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Hapus item dari dropdown
+            const item = document.getElementById(`item-${id}`);
+            if (item) item.remove();
+            
+            // Jika item yang dihapus sedang terpilih, set ke default
+            const currentValue = document.getElementById('jenis_aset').value;
+            if (currentValue === nama.toLowerCase().replace(/\s+/g, '-')) {
+                selectJenisAset('aset-tetap', 'Aset Tetap');
+            }
+            
+            alert('Jenis aset berhasil dihapus!');
+        } else {
+            alert('Gagal menghapus jenis aset: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menghapus jenis aset');
+    });
+}
 </script>
 @endsection
