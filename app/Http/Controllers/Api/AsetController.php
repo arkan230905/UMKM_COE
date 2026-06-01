@@ -72,19 +72,38 @@ class AsetController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $jenisAset = $request->jenis_aset;
+        $disusutkan = in_array($jenisAset, ['aset-tetap', 'aset-tidak-berwujud']);
+        
+        $rules = [
+            'jenis_aset' => 'required|in:aset-tetap,aset-tidak-tetap,aset-tidak-berwujud',
             'nama_aset' => 'required|string',
             'kategori' => 'required|string',
             'tanggal_perolehan' => 'required|date',
             'harga_perolehan' => 'required|numeric|min:0',
-            'nilai_sisa' => 'required|numeric|min:0',
-            'umur_ekonomis_tahun' => 'required|integer|min:1',
-            'metode_penyusutan' => 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits',
             'coa_id' => 'nullable|exists:coas,id',
             'lokasi' => 'nullable|string',
             'nomor_serial' => 'nullable|string',
             'keterangan' => 'nullable|string',
-        ]);
+        ];
+
+        if ($disusutkan) {
+            $rules['umur_ekonomis_tahun'] = 'required|integer|min:1';
+            $rules['metode_penyusutan'] = 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits';
+            if ($jenisAset === 'aset-tetap') {
+                $rules['nilai_sisa'] = 'required|numeric|min:0';
+            }
+        }
+
+        $validated = $request->validate($rules);
+        
+        if (!$disusutkan) {
+            $validated['nilai_sisa'] = 0;
+            $validated['umur_ekonomis_tahun'] = 0;
+            $validated['metode_penyusutan'] = null;
+        } elseif ($jenisAset === 'aset-tidak-berwujud') {
+            $validated['nilai_sisa'] = 0;
+        }
 
         $aset = Aset::create($validated);
 
@@ -97,18 +116,39 @@ class AsetController extends Controller
      */
     public function update(Request $request, Aset $aset): JsonResponse
     {
-        $validated = $request->validate([
+        $rules = [
+            'jenis_aset' => 'sometimes|in:aset-tetap,aset-tidak-tetap,aset-tidak-berwujud',
             'nama_aset' => 'sometimes|string',
             'kategori' => 'sometimes|string',
             'harga_perolehan' => 'sometimes|numeric|min:0',
-            'nilai_sisa' => 'sometimes|numeric|min:0',
-            'umur_ekonomis_tahun' => 'sometimes|integer|min:1',
-            'metode_penyusutan' => 'sometimes|in:garis_lurus,saldo_menurun,sum_of_years_digits',
             'lokasi' => 'nullable|string',
             'nomor_serial' => 'nullable|string',
             'keterangan' => 'nullable|string',
             'status' => 'sometimes|in:aktif,tidak_aktif,dihapus',
-        ]);
+        ];
+
+        $jenisAset = $request->input('jenis_aset', $aset->jenis_aset);
+        $disusutkan = in_array($jenisAset, ['aset-tetap', 'aset-tidak-berwujud']);
+
+        if ($disusutkan) {
+            $rules['umur_ekonomis_tahun'] = 'sometimes|integer|min:1';
+            $rules['metode_penyusutan'] = 'sometimes|in:garis_lurus,saldo_menurun,sum_of_years_digits';
+            if ($jenisAset === 'aset-tetap') {
+                $rules['nilai_sisa'] = 'sometimes|numeric|min:0';
+            }
+        }
+
+        $validated = $request->validate($rules);
+        
+        if ($request->has('jenis_aset')) {
+            if (!$disusutkan) {
+                $validated['nilai_sisa'] = 0;
+                $validated['umur_ekonomis_tahun'] = 0;
+                $validated['metode_penyusutan'] = null;
+            } elseif ($jenisAset === 'aset-tidak-berwujud') {
+                $validated['nilai_sisa'] = 0;
+            }
+        }
 
         $aset->update($validated);
 

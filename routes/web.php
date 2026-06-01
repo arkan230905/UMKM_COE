@@ -2014,6 +2014,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function() {
     // Employee data API for penggajian
     Route::get('/api/pegawai/{pegawaiId}/data', [App\Http\Controllers\PenggajianController::class, 'getEmployeeData'])->name('api.pegawai.data');
+    Route::get('/api/master-kategori/{nama}', [App\Http\Controllers\PenggajianController::class, 'getMasterKategori'])->name('api.master-kategori.data');
     
     // Total produksi API for penggajian
     Route::get('/api/pegawai/{pegawaiId}/produksi/{bulan}/{tahun}', [App\Http\Controllers\PenggajianController::class, 'getTotalProduksiByMonth'])->name('api.pegawai.produksi');
@@ -2132,6 +2133,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('coa', CoaController::class);
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
+        
+        // Jenis Aset Management (Custom Asset Types Feature)
+        Route::post('jenis-aset', [\App\Http\Controllers\JenisAsetController::class, 'store'])->name('jenis-aset.store');
+        Route::delete('jenis-aset/{id}', [\App\Http\Controllers\JenisAsetController::class, 'destroy'])->name('jenis-aset.destroy');
         
         // Simple AJAX routes for adding jenis and kategori aset
         Route::post('aset/add-jenis-aset', [AsetController::class, 'addJenisAset'])->name('aset.add-jenis-aset');

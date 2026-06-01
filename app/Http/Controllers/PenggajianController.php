@@ -102,6 +102,12 @@ class PenggajianController extends Controller
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+            ->select('nama', 'kategori')
+            ->distinct()
+            ->orderBy('nama')
+            ->get();
+        
         // Log untuk debugging multi-tenant
         \Log::info('createProduk form loaded', [
             'user_id' => auth()->id(),
@@ -112,7 +118,7 @@ class PenggajianController extends Controller
         
         // Return view dengan cache-busting headers
         return response()
-            ->view('transaksi.penggajian.create-produk', compact('pegawais', 'kasbank'))
+            ->view('transaksi.penggajian.create-produk', compact('pegawais', 'kasbank', 'kategoris'))
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate, private, max-age=0')
             ->header('Pragma', 'no-cache')
             ->header('Expires', '0')
@@ -136,11 +142,8 @@ class PenggajianController extends Controller
             $tanggalAwal = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
             $tanggalAkhir = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
             
-            // Query produksi berdasarkan bulan, tahun, dan pegawai
-            // Ambil jumlah_produksi_bulanan dari tabel produksis
-            // Ini adalah kolom yang berisi total produksi bulanan (bukan qty harian)
+            // Query produksi berdasarkan bulan dan tahun (tanpa filter pegawai_id karena produksi untuk seluruh pabrik)
             $produksi = \App\Models\Produksi::where('user_id', auth()->id())
-                ->where('pegawai_id', $pegawaiId)
                 ->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir])
                 ->orderBy('tanggal', 'desc')
                 ->first();
@@ -232,6 +235,7 @@ class PenggajianController extends Controller
             $jabatan = $pegawai->jabatanRelasi;
             if ($jabatan) {
                 $tarif = (int) ($jabatan->tarif_produk ?? 0);
+                $gajiPokok = (int) ($jabatan->gaji_pokok ?? 0);
                 $tunjanganJabatan = (int) ($jabatan->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($jabatan->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($jabatan->tunjangan_konsumsi ?? 0);
@@ -239,6 +243,7 @@ class PenggajianController extends Controller
             } else {
                 // Fallback to pegawai stored values
                 $tarif = (int) ($pegawai->tarif_per_jam ?? 0);
+                $gajiPokok = (int) ($pegawai->gaji_pokok ?? 0);
                 $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? 0);
                 $tunjanganTransport = (int) ($pegawai->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($pegawai->tunjangan_konsumsi ?? 0);
@@ -247,15 +252,25 @@ class PenggajianController extends Controller
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
             
+            $kategoriInternal = 'BTKTL';
+            if ($jabatan) {
+                $kategoriInternal = strtolower($jabatan->kategori) === 'btkl' ? 'BTKL' : 'BTKTL';
+            } else {
+                $jenis = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
+                $kategoriInternal = $jenis === 'btkl' ? 'BTKL' : 'BTKTL';
+            }
+
             return response()->json([
                 'tarif' => $tarif,
+                'gaji_pokok' => $gajiPokok,
                 'tunjangan_jabatan' => $tunjanganJabatan,
                 'tunjangan_transport' => $tunjanganTransport,
                 'tunjangan_konsumsi' => $tunjanganKonsumsi,
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
-                'jabatan_nama' => $pegawai->jabatanRelasi?->nama ?? 'Staff'
+                'jabatan_nama' => $pegawai->jabatanRelasi?->nama ?? 'Staff',
+                'kategori' => $kategoriInternal // Simplified to BTKL or BTKTI
             ]);
             
         } catch (\Exception $e) {
@@ -269,6 +284,40 @@ class PenggajianController extends Controller
                 'error' => 'Employee not found or access denied',
                 'message' => $e->getMessage()
             ], 404);
+        }
+    }
+
+    /**
+     * API endpoint to get master kategori / jabatan info
+     */
+    public function getMasterKategori($nama)
+    {
+        try {
+            $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())
+                ->where('nama', $nama)
+                ->first();
+            
+            if (!$jabatan) {
+                return response()->json([
+                    'error' => 'Kategori tidak ditemukan'
+                ], 404);
+            }
+
+            $isProduksi = strtolower($jabatan->kategori) === 'btkl';
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'nama_kategori' => $jabatan->nama,
+                    'tipe_gaji' => $jabatan->kategori,
+                    'produksi' => $isProduksi
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Gagal memuat kategori',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 

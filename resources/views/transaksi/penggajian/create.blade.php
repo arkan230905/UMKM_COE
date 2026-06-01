@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Tambah Penggajian')
 
@@ -39,7 +39,7 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label for="pegawai_id" class="form-label">Pegawai <span class="text-danger">*</span></label>
-                        <select name="pegawai_id" id="pegawai_id" class="form-select @error('pegawai_id') is-invalid @enderror" required onchange="updateTarif()">
+                        <select name="pegawai_id" id="pegawai_id" class="form-select @error('pegawai_id') is-invalid @enderror" required onchange="handlePegawaiChange()">
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach ($pegawais as $p)
                                 <option value="{{ $p->id }}">
@@ -48,6 +48,19 @@
                             @endforeach
                         </select>
                         @error('pegawai_id')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="kategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select name="kategori" id="kategori" class="form-select @error('kategori') is-invalid @enderror" required onchange="handleKategoriChange()">
+                            <option value="">-- Pilih Kategori --</option>
+                            <option value="BTKL">BTKL (Biaya Tenaga Kerja Langsung)</option>
+                            <option value="BTKTL">BTKTL (Biaya Tenaga Kerja Tidak Langsung)</option>
+                        </select>
+                        <small id="kategori_status" class="form-text mt-1 d-block"></small>
+                        @error('kategori')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
@@ -69,7 +82,7 @@
 
                     <div class="col-md-6">
                         <label for="tanggal_penggajian" class="form-label">Tanggal Penggajian <span class="text-danger">*</span></label>
-                        <input type="date" name="tanggal_penggajian" id="tanggal_penggajian" class="form-control @error('tanggal_penggajian') is-invalid @enderror" required value="{{ date('Y-m-d') }}">
+                        <input type="date" name="tanggal_penggajian" id="tanggal_penggajian" class="form-control @error('tanggal_penggajian') is-invalid @enderror" required value="{{ date('Y-m-d') }}" onchange="handleTanggalChange()">
                         @error('tanggal_penggajian')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
@@ -82,9 +95,10 @@
                     <div class="col-md-6">
                         <label for="total_produk" class="form-label">Total Produk Bulan Ini <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="number" name="total_produk_bulanan" id="total_produk" class="form-control @error('total_produk_bulanan') is-invalid @enderror" value="0" min="0" oninput="hitungOtomatis()" required>
+                            <input type="number" name="total_produk_bulanan" id="total_produk" class="form-control @error('total_produk_bulanan') is-invalid @enderror" value="" min="0" oninput="hitungOtomatis()" required>
                             <span class="input-group-text">produk</span>
                         </div>
+                        <small id="total_produk_status" class="form-text mt-1 d-block"></small>
                         @error('total_produk_bulanan')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
@@ -239,6 +253,8 @@
 <script>
     // Konstanta
     let TARIF_PRODUK = 0;
+    let GAJI_POKOK = 0;
+    let IS_PRODUKSI = false;
 
     // Format Rupiah
     function formatRupiah(num) {
@@ -256,8 +272,17 @@
     // Clear form state
     function clearFormState() {
         TARIF_PRODUK = 0;
+        GAJI_POKOK = 0;
+        IS_PRODUKSI = false;
+        document.getElementById('kategori').value = '';
+        document.getElementById('kategori_status').textContent = '';
         document.getElementById('tarif_produk_input').value = 0;
         document.getElementById('tarif_status').textContent = 'Auto-filled dari kualifikasi, atau input manual jika tidak ada';
+        document.getElementById('tarif_status').className = 'form-text text-muted d-block mt-1';
+        document.getElementById('total_produk').value = '';
+        document.getElementById('total_produk').readOnly = false;
+        document.getElementById('total_produk').style.backgroundColor = '#fff';
+        document.getElementById('total_produk_status').textContent = '';
         document.getElementById('tunj_jabatan').value = 0;
         document.getElementById('tunj_transport').value = 150000;
         document.getElementById('tunj_konsumsi').value = 375000;
@@ -272,11 +297,9 @@
         document.getElementById('h-final').value = 0;
     }
 
-    // Update Tarif saat pegawai dipilih
-    function updateTarif() {
+    // Handle Pegawai Change
+    function handlePegawaiChange() {
         const pegawaiId = document.getElementById('pegawai_id').value;
-        const tarifField = document.getElementById('tarif_produk_input');
-        const tarifStatus = document.getElementById('tarif_status');
         
         if (!pegawaiId) {
             clearFormState();
@@ -294,48 +317,121 @@
             .then(data => {
                 console.log('API Response:', data);
                 
-                const tarifDariKualifikasi = parseInt(data.tarif) || 0;
+                GAJI_POKOK = parseInt(data.gaji_pokok) || 0;
                 
-                if (tarifDariKualifikasi > 0) {
-                    TARIF_PRODUK = tarifDariKualifikasi;
-                    tarifField.value = tarifDariKualifikasi;
-                    tarifStatus.textContent = '✓ Tarif dari kualifikasi: ' + data.jabatan_nama;
-                    tarifStatus.className = 'form-text text-success d-block mt-1';
-                } else {
-                    TARIF_PRODUK = 0;
-                    tarifField.value = 0;
-                    tarifStatus.textContent = 'Tarif dari kualifikasi: ' + data.jabatan_nama;
-                    tarifStatus.className = 'form-text text-muted d-block mt-1';
-                }
-                
+                // Set default tunjangan dan asuransi
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
                 document.getElementById('bpjs').value = parseInt(data.asuransi) || 100000;
                 
-                updateTotalProduk();
-                hitungOtomatis();
+                // Auto-set tarif
+                const tarifField = document.getElementById('tarif_produk_input');
+                const tarifStatus = document.getElementById('tarif_status');
+                const tarifDariKualifikasi = parseInt(data.tarif) || 0;
+                
+                if (tarifDariKualifikasi > 0) {
+                    TARIF_PRODUK = tarifDariKualifikasi;
+                    tarifField.value = tarifDariKualifikasi;
+                    tarifStatus.textContent = '✓ Tarif dari kualifikasi pegawai';
+                    tarifStatus.className = 'form-text text-success d-block mt-1';
+                } else {
+                    TARIF_PRODUK = 0;
+                    tarifField.value = 0;
+                    tarifStatus.textContent = 'Tarif tidak ditemukan (isi manual jika perlu)';
+                    tarifStatus.className = 'form-text text-muted d-block mt-1';
+                }
+
+                // Auto-set kategori
+                const kategoriDropdown = document.getElementById('kategori');
+                if (data.kategori) {
+                    for (let i = 0; i < kategoriDropdown.options.length; i++) {
+                        if (kategoriDropdown.options[i].value === data.kategori) {
+                            kategoriDropdown.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+                
+                // Trigger change to set up Produksi/Gaji Tetap state correctly
+                handleKategoriChange();
             })
             .catch(error => {
-                console.error('Error:', error);
-                TARIF_PRODUK = 0;
-                tarifField.value = 0;
-                tarifStatus.textContent = 'Tarif dapat diisi manual jika diperlukan';
-                tarifStatus.className = 'form-text text-muted d-block mt-1';
+                console.error('Error fetching pegawai:', error);
+                clearFormState();
                 hitungOtomatis();
             });
     }
 
-    // Update Total Produk
+    // Handle Kategori Change
+    function handleKategoriChange() {
+        const kategori = document.getElementById('kategori').value;
+        const totalProdukField = document.getElementById('total_produk');
+        const kategoriStatus = document.getElementById('kategori_status');
+        const totalProdukStatus = document.getElementById('total_produk_status');
+        
+        if (!kategori) {
+            IS_PRODUKSI = false;
+            kategoriStatus.textContent = '';
+            totalProdukStatus.textContent = '';
+            totalProdukField.value = '';
+            totalProdukField.readOnly = false;
+            totalProdukField.style.backgroundColor = '#fff';
+            hitungOtomatis();
+            return;
+        }
+        
+        if (kategori === 'BTKL') {
+            IS_PRODUKSI = true;
+            kategoriStatus.textContent = '✓ Kategori Produksi (BTKL)';
+            kategoriStatus.className = 'form-text text-success d-block mt-1';
+            
+            totalProdukField.readOnly = true;
+            totalProdukField.style.backgroundColor = '#f5f5f5';
+            totalProdukStatus.textContent = '✓ Otomatis dari Transaksi Produksi (readonly)';
+            totalProdukStatus.className = 'form-text text-success d-block mt-1';
+            totalProdukField.placeholder = 'Otomatis dari Transaksi Produksi';
+            
+            updateTotalProduk();
+        } else if (kategori === 'BTKTL') {
+            IS_PRODUKSI = false;
+            kategoriStatus.textContent = '✗ Kategori Gaji Tetap (BTKTL)';
+            kategoriStatus.className = 'form-text text-warning d-block mt-1';
+            
+            totalProdukField.readOnly = false;
+            totalProdukField.style.backgroundColor = '#fff';
+            totalProdukField.value = '';
+            totalProdukStatus.textContent = '⚠ Gaji tetap - Tidak ada produksi (isi 0 jika diperlukan)';
+            totalProdukStatus.className = 'form-text text-warning d-block mt-1';
+            totalProdukField.placeholder = 'Kosong (gaji tetap)';
+            
+            hitungOtomatis();
+        }
+    }
+
+    // Handle Tanggal Change
+    function handleTanggalChange() {
+        if (IS_PRODUKSI) {
+            updateTotalProduk();
+        }
+    }
+
+    // Update Total Produk for Produksi
     function updateTotalProduk() {
         const pegawaiId = document.getElementById('pegawai_id').value;
         const tanggalInput = document.getElementById('tanggal_penggajian').value;
         const totalProdukField = document.getElementById('total_produk');
         const hariKerjaField = document.getElementById('hari_kerja');
         
+        if (!IS_PRODUKSI) {
+            hitungOtomatis();
+            return;
+        }
+        
         if (!pegawaiId || !tanggalInput) {
-            totalProdukField.value = 0;
+            totalProdukField.value = '';
             hariKerjaField.value = 26;
+            hitungOtomatis();
             return;
         }
         
@@ -343,20 +439,26 @@
         const bulan = String(date.getMonth() + 1).padStart(2, '0');
         const tahun = date.getFullYear();
         
-        console.log(`Fetching produksi for pegawai ${pegawaiId}, bulan ${bulan}/${tahun}`);
-        
         fetch(`/api/pegawai/${pegawaiId}/produksi/${bulan}/${tahun}`)
             .then(response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                console.log('Produksi response:', data);
                 const totalProduksi = data.data.total_produksi || 0;
                 const hariProduksiBulanan = data.data.hari_produksi_bulanan || 26;
                 
                 totalProdukField.value = totalProduksi;
                 hariKerjaField.value = hariProduksiBulanan;
+                
+                if (totalProduksi === 0) {
+                    document.getElementById('total_produk_status').textContent = '⚠ Data produksi bulanan kosong/0';
+                    document.getElementById('total_produk_status').className = 'form-text text-warning d-block mt-1';
+                } else {
+                    document.getElementById('total_produk_status').textContent = '✓ Otomatis dari Transaksi Produksi (readonly)';
+                    document.getElementById('total_produk_status').className = 'form-text text-success d-block mt-1';
+                }
+                
                 hitungOtomatis();
             })
             .catch(error => {
@@ -401,7 +503,12 @@
         const rataRataHari = hariKerja > 0 ? Math.round(totalProduk / hariKerja) : 0;
         document.getElementById('rata_rata_hari').value = formatRupiah(rataRataHari);
 
-        const gajiMentah = totalProduk * TARIF_PRODUK;
+        let gajiMentah = 0;
+        if (IS_PRODUKSI) {
+            gajiMentah = totalProduk * TARIF_PRODUK;
+        } else {
+            gajiMentah = GAJI_POKOK;
+        }
 
         let gajiFinal = gajiMentah;
         let selisih = 0;
@@ -424,25 +531,32 @@
     // Form Submit
     document.getElementById('formPenggajian').addEventListener('submit', function(e) {
         const pegawaiId = document.getElementById('pegawai_id').value;
-        const totalProduk = parseInt(document.getElementById('total_produk').value) || 0;
-        const tarifProduk = parseInt(document.getElementById('tarif_produk_input').value) || 0;
-
+        const kategoriId = document.getElementById('kategori').value;
+        const totalProduk = document.getElementById('total_produk').value;
+        
         if (!pegawaiId) {
             e.preventDefault();
             alert('Pilih pegawai terlebih dahulu!');
             return;
         }
-
-        if (tarifProduk <= 0) {
+        
+        if (!kategoriId) {
             e.preventDefault();
-            alert('Tarif produk harus lebih dari 0!');
+            alert('Pilih kategori terlebih dahulu!');
             return;
         }
 
-        if (totalProduk <= 0) {
-            e.preventDefault();
-            alert('Total produk harus lebih dari 0!');
-            return;
+        if (IS_PRODUKSI) {
+            if (!totalProduk || totalProduk <= 0) {
+                e.preventDefault();
+                alert('Untuk kategori Produksi (BTKL), Total Produk harus lebih dari 0. Pastikan data produksi di bulan ini tersedia.');
+                return;
+            }
+        } else {
+            // For Gaji Tetap, if totalProduk is empty string, we set it to 0 so validation passes
+            if (totalProduk === '') {
+                document.getElementById('total_produk').value = 0;
+            }
         }
 
         const gajiFinal = parseRupiah(document.getElementById('display_gaji_final').value);
