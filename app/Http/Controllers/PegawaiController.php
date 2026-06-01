@@ -149,7 +149,7 @@ class PegawaiController extends Controller
             'jenis_pegawai' => strtolower($validated['kategori']),
 
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
-            'tarif' => $jabatan->tarif_produk ?? 0,
+            'tarif_per_produk' => $jabatan->tarif_produk ?? 0,
             'tunjangan' => $jabatan->tunjangan ?? 0,
             'asuransi' => $jabatan->asuransi ?? 0,
 'bank' => $validated['bank'],
@@ -270,7 +270,7 @@ class PegawaiController extends Controller
             'jenis_pegawai' => strtolower($validated['kategori']),
 
             'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
-            'tarif' => $jabatan->tarif_produk ?? 0,
+            'tarif_per_produk' => $jabatan->tarif_produk ?? 0,
             'tunjangan' => $jabatan->tunjangan ?? 0,
             'asuransi' => $jabatan->asuransi ?? 0,
 ];

@@ -141,7 +141,7 @@ class BopTerpaduController extends Controller
 
         if ($availableProses->isEmpty()) {
             return redirect()->route('master-data.bop-terpadu.index')
-                ->with('warning', 'Semua proses BTKL sudah memiliki BOP atau belum memiliki kapasitas per jam.');
+                ->with('warning', 'Semua proses BTKL sudah memiliki BOP.');
         }
 
         return view('master-data.bop-terpadu.create-proses', compact('availableProses'));
@@ -286,10 +286,10 @@ class BopTerpaduController extends Controller
                 ->get()
                 ->map(function($bop) {
                     return [
-                        'nama_proses' => $bop->prosesProduksi->nama_proses,
+                        'nama_proses' => $bop->prosesProduksi->nama_proses ?? 'N/A',
                         'bop_per_jam' => $bop->total_bop_per_jam,
                         'bop_per_unit' => $bop->bop_per_unit,
-                        'kapasitas' => $bop->kapasitas_per_jam
+                        'kapasitas' => $bop->kapasitas_per_jam ?? 0
                     ];
                 });
 
