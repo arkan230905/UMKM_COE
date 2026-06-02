@@ -52,7 +52,6 @@ class HppController extends Controller
 
     /**
      * Halaman detail perhitungan HPP untuk produk tertentu
-     */
     public function show($produkId)
     {
         $produk = Produk::where('id', $produkId)
@@ -77,7 +76,7 @@ class HppController extends Controller
         $bopComponents = [];
         if ($produk->bomJobCosting) {
             $bopComponents = $produk->bomJobCosting->bopSelections()
-                ->with(['bop'])
+                ->with(['bopProses'])
                 ->get();
         }
 
@@ -86,7 +85,8 @@ class HppController extends Controller
         $totalBTKL = $btklComponents->sum(function($item) {
             return $item->jumlah * $item->tarif;
         });
-        $totalBOP = $bopComponents->sum('nominal');
+        // Fixed: BomJobBopSelection has 'subtotal' field, not 'nominal'
+        $totalBOP = $bopComponents->sum('subtotal');
         $totalHPP = $totalBBB + $totalBTKL + $totalBOP;
 
         return view('hpp.show', compact(

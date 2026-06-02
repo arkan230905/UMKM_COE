@@ -119,6 +119,8 @@ class AccountsTableSeeder extends Seeder
         ];
         
         foreach ($accounts as $a) {
+            // Add user_id = 20 (chindi48@gmail.com) so seeded COAs are visible to this user
+            $a['user_id'] = 20;
             Coa::firstOrCreate(['kode_akun'=>$a['kode_akun']], $a);
         }
     }

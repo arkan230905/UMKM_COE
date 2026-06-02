@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\AssetResource\Pages;
 
 use App\Filament\Resources\AssetResource;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ViewRecord;
 
-class ListAssets extends ListRecords
+class ViewAsset extends ViewRecord
 {
     protected static string $resource = AssetResource::class;
 }

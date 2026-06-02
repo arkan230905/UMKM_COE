@@ -51,11 +51,11 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required>
                     <option value="">Pilih tipe</option>
-                    <option value="Asset" {{ old('tipe_akun')==='Asset'?'selected':'' }}>Aset</option>
-                    <option value="Liability" {{ old('tipe_akun')==='Liability'?'selected':'' }}>Kewajiban</option>
-                    <option value="Equity" {{ old('tipe_akun')==='Equity'?'selected':'' }}>Modal</option>
-                    <option value="Revenue" {{ old('tipe_akun')==='Revenue'?'selected':'' }}>Pendapatan</option>
-                    <option value="Expense" {{ old('tipe_akun')==='Expense'?'selected':'' }}>Beban</option>
+                    <option value="Aset" {{ old('tipe_akun')==='Aset'?'selected':'' }}>Aset</option>
+                    <option value="Kewajiban" {{ old('tipe_akun')==='Kewajiban'?'selected':'' }}>Kewajiban</option>
+                    <option value="Modal" {{ old('tipe_akun')==='Modal'?'selected':'' }}>Modal</option>
+                    <option value="Pendapatan" {{ old('tipe_akun')==='Pendapatan'?'selected':'' }}>Pendapatan</option>
+                    <option value="Beban" {{ old('tipe_akun')==='Beban'?'selected':'' }}>Beban</option>
                 </select>
             </div>
 
