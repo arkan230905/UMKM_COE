@@ -52,36 +52,43 @@ class BopProses extends Model
         
         static::saving(function ($model) {
             // Calculate total BOP per produk from komponen_bop JSON
+            // Using proper decimal arithmetic to avoid floating point precision issues
             $totalBopPerProduk = 0;
             
             if ($model->komponen_bop && is_array($model->komponen_bop)) {
                 foreach ($model->komponen_bop as $komponen) {
                     if (isset($komponen['rate_per_produk'])) {
-                        $totalBopPerProduk += floatval($komponen['rate_per_produk']);
+                        // Use round to ensure decimal:2 precision
+                        $totalBopPerProduk += round(floatval($komponen['rate_per_produk']), 2);
                     } elseif (isset($komponen['rate_per_hour'])) {
                         // Fallback for old structure - treat rate_per_hour as rate_per_produk
-                        $totalBopPerProduk += floatval($komponen['rate_per_hour']);
+                        $totalBopPerProduk += round(floatval($komponen['rate_per_hour']), 2);
                     }
                 }
             }
             
+            // Round final total to ensure precision
+            $totalBopPerProduk = round($totalBopPerProduk, 2);
+            
             // Calculate BTKL per produk
             $btklPerProduk = 0;
             if ($model->prosesProduksi && $model->prosesProduksi->kapasitas_per_jam > 0) {
-                $btklPerProduk = floatval($model->prosesProduksi->tarif_btkl) / floatval($model->prosesProduksi->kapasitas_per_jam);
+                $btklPerProduk = round(floatval($model->prosesProduksi->tarif_btkl) / floatval($model->prosesProduksi->kapasitas_per_jam), 2);
             }
             
             // Calculate total biaya per produk (BTKL + BOP)
-            $totalBiayaPerProduk = $btklPerProduk + $totalBopPerProduk;
+            $totalBiayaPerProduk = round($btklPerProduk + $totalBopPerProduk, 2);
             
             // Calculate total BOP per jam (backward compatibility)
             $totalBopPerJam = 
-                floatval($model->listrik_per_jam ?? 0) +
-                floatval($model->gas_bbm_per_jam ?? 0) +
-                floatval($model->penyusutan_mesin_per_jam ?? 0) +
-                floatval($model->maintenance_per_jam ?? 0) +
-                floatval($model->gaji_mandor_per_jam ?? 0) +
-                floatval($model->lain_lain_per_jam ?? 0);
+                round(floatval($model->listrik_per_jam ?? 0), 2) +
+                round(floatval($model->gas_bbm_per_jam ?? 0), 2) +
+                round(floatval($model->penyusutan_mesin_per_jam ?? 0), 2) +
+                round(floatval($model->maintenance_per_jam ?? 0), 2) +
+                round(floatval($model->gaji_mandor_per_jam ?? 0), 2) +
+                round(floatval($model->lain_lain_per_jam ?? 0), 2);
+            
+            $totalBopPerJam = round($totalBopPerJam, 2);
             
             // Set calculated values
             $model->total_bop_per_produk = $totalBopPerProduk;

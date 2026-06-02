@@ -25,9 +25,9 @@ class CreateOpeningBalance extends Command
         foreach ($allCoa as $coa) {
             $saldoAwal = $coa->saldo_awal ?? 0;
             if ($saldoAwal != 0) {
-                if (in_array($coa->tipe_akun, ['Asset'])) {
+                if (in_array($coa->tipe_akun, ['Aset'])) {
                     $totalAssetSaldoAwal += $saldoAwal;
-                } elseif (in_array($coa->tipe_akun, ['Equity'])) {
+                } elseif (in_array($coa->tipe_akun, ['Modal'])) {
                     $totalEquitySaldoAwal += $saldoAwal;
                 }
             }
@@ -53,7 +53,7 @@ class CreateOpeningBalance extends Command
             // Add all asset saldo awal as debit
             foreach ($allCoa as $coa) {
                 $saldoAwal = $coa->saldo_awal ?? 0;
-                if ($saldoAwal > 0 && $coa->tipe_akun === 'Asset') {
+                if ($saldoAwal > 0 && $coa->tipe_akun === 'Aset') {
                     $lines[] = ['code' => $coa->kode_akun, 'debit' => $saldoAwal, 'credit' => 0];
                 }
             }
@@ -61,7 +61,7 @@ class CreateOpeningBalance extends Command
             // Add all equity saldo awal as credit
             foreach ($allCoa as $coa) {
                 $saldoAwal = $coa->saldo_awal ?? 0;
-                if ($saldoAwal > 0 && $coa->tipe_akun === 'Equity') {
+                if ($saldoAwal > 0 && $coa->tipe_akun === 'Modal') {
                     $lines[] = ['code' => $coa->kode_akun, 'debit' => 0, 'credit' => $saldoAwal];
                 }
             }

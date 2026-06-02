@@ -194,20 +194,25 @@ if ($parentCoa) {
             }
         }
 
-        // Normalize tipe_akun: map alias ke nilai enum DB
+        // Normalize tipe_akun: map alias ke nilai Bahasa Indonesia yang konsisten
         $tipeAkunMap = [
-            'ASET'       => 'Asset',
-            'Aset'       => 'Asset',
-            'KEWAJIBAN'  => 'Liability',
-            'Kewajiban'  => 'Liability',
-            'MODAL'      => 'Equity',
-            'Modal'      => 'Equity',
-            'Ekuitas'    => 'Equity',
-            'PENDAPATAN' => 'Revenue',
-            'Pendapatan' => 'Revenue',
-            'BEBAN'      => 'Expense',
-            'Beban'      => 'Expense',
-            'Biaya'      => 'Expense',
+            'ASET'       => 'Aset',
+            'Aset'       => 'Aset',
+            'Asset'      => 'Aset',
+            'KEWAJIBAN'  => 'Kewajiban',
+            'Kewajiban'  => 'Kewajiban',
+            'Liability'  => 'Kewajiban',
+            'MODAL'      => 'Modal',
+            'Modal'      => 'Modal',
+            'Equity'     => 'Modal',
+            'Ekuitas'    => 'Modal',
+            'PENDAPATAN' => 'Pendapatan',
+            'Pendapatan' => 'Pendapatan',
+            'Revenue'    => 'Pendapatan',
+            'BEBAN'      => 'Beban',
+            'Beban'      => 'Beban',
+            'Biaya'      => 'Beban',
+            'Expense'    => 'Beban',
         ];
         if (isset($tipeAkunMap[$request->tipe_akun])) {
             $request->merge(['tipe_akun' => $tipeAkunMap[$request->tipe_akun]]);
@@ -222,7 +227,7 @@ if ($parentCoa) {
 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
+            'tipe_akun' => 'required|in:Aset,Kewajiban,Modal,Pendapatan,Beban',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -233,7 +238,7 @@ if ($parentCoa) {
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
-            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Asset, Liability, Equity, Revenue, Expense',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
         ]);
 
         $coaData = [
@@ -282,20 +287,25 @@ if ($parentCoa) {
 
     public function update(Request $request, Coa $coa)
     {
-        // Normalize tipe_akun: map uppercase/alias ke nilai enum DB
+        // Normalize tipe_akun: map uppercase/alias ke nilai Bahasa Indonesia yang konsisten
         $tipeAkunMap = [
-            'ASET'       => 'Asset',
-            'Aset'       => 'Asset',
-            'KEWAJIBAN'  => 'Liability',
-            'Kewajiban'  => 'Liability',
-            'MODAL'      => 'Equity',
-            'Modal'      => 'Equity',
-            'Ekuitas'    => 'Equity',
-            'PENDAPATAN' => 'Revenue',
-            'Pendapatan' => 'Revenue',
-            'BEBAN'      => 'Expense',
-            'Beban'      => 'Expense',
-            'Biaya'      => 'Expense',
+            'ASET'       => 'Aset',
+            'Aset'       => 'Aset',
+            'Asset'      => 'Aset',
+            'KEWAJIBAN'  => 'Kewajiban',
+            'Kewajiban'  => 'Kewajiban',
+            'Liability'  => 'Kewajiban',
+            'MODAL'      => 'Modal',
+            'Modal'      => 'Modal',
+            'Equity'     => 'Modal',
+            'Ekuitas'    => 'Modal',
+            'PENDAPATAN' => 'Pendapatan',
+            'Pendapatan' => 'Pendapatan',
+            'Revenue'    => 'Pendapatan',
+            'BEBAN'      => 'Beban',
+            'Beban'      => 'Beban',
+            'Biaya'      => 'Beban',
+            'Expense'    => 'Beban',
         ];
         if (isset($tipeAkunMap[$request->tipe_akun])) {
             $request->merge(['tipe_akun' => $tipeAkunMap[$request->tipe_akun]]);
@@ -310,7 +320,7 @@ if ($parentCoa) {
 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
+            'tipe_akun' => 'required|in:Aset,Kewajiban,Modal,Pendapatan,Beban',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -393,7 +403,6 @@ if ($parentCoa) {
         // Cek produks
         $produkCount = \Illuminate\Support\Facades\DB::table('produks')
             ->where('coa_persediaan_id', $coa->id)
-            ->orWhere('coa_hpp_id', $coa->id)
             ->count();
         if ($produkCount > 0) {
             return redirect()->route('master-data.coa.index')

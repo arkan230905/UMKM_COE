@@ -312,15 +312,15 @@ class JournalValidationService
     private function getTipeAkunVariants(string $tipeAkun): array
     {
         $mapping = [
-            'Revenue'   => ['Revenue', 'Pendapatan'],
-            'Pendapatan' => ['Revenue', 'Pendapatan'],
-            'Liability' => ['Liability', 'Kewajiban'],
-            'Kewajiban' => ['Liability', 'Kewajiban'],
-            'Asset'     => ['Asset', 'Aset'],
-            'Aset'      => ['Asset', 'Aset'],
-            'Expense'   => ['Expense', 'Beban', 'Biaya'],
-            'Beban'     => ['Expense', 'Beban', 'Biaya'],
-            'Biaya'     => ['Expense', 'Beban', 'Biaya'],
+            'Revenue'   => ['Pendapatan'],
+            'Pendapatan' => ['Pendapatan'],
+            'Liability' => ['Kewajiban'],
+            'Kewajiban' => ['Kewajiban'],
+            'Asset'     => ['Aset'],
+            'Aset'      => ['Aset'],
+            'Expense'   => ['Beban'],
+            'Beban'     => ['Beban'],
+            'Biaya'     => ['Beban'],
         ];
         
         return $mapping[$tipeAkun] ?? [$tipeAkun];
