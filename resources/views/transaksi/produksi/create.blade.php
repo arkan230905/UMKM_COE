@@ -249,7 +249,7 @@ function calculateDailyProduction() {
     const hariBulanan = parseFloat(document.getElementById('hari_produksi_bulanan').value) || 0;
 
     if (jumlahBulanan > 0 && hariBulanan > 0) {
-        const qtyPerHari = Math.floor(jumlahBulanan / hariBulanan);
+        const qtyPerHari = Math.round(jumlahBulanan / hariBulanan);
         document.getElementById('qty_produksi').value = qtyPerHari;
 
         // Recalculate cost breakdown with new daily quantity

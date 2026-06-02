@@ -687,11 +687,14 @@ return response()->json([
                                     ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                     : 0;
 
-                                // Determine COA - prioritize coa_id from komponen, fallback to keyword matching
-                                $coaId = $komponen['coa_id'] ?? null;
-                                if ($coaId) {
-                                    // Use COA from database
-                                    $coa = \App\Models\Coa::find($coaId);
+                                // Determine COA - prioritize coa_kredit from komponen (kode akun)
+                                $coaKredit = $komponen['coa_kredit'] ?? $komponen['coa_id'] ?? null;
+                                if ($coaKredit) {
+                                    // Use COA from database by kode_akun
+                                    $coa = \App\Models\Coa::where('kode_akun', $coaKredit)
+                                        ->where('user_id', $user_id)
+                                        ->first();
+                                    
                                     if ($coa) {
                                         $coaInfo = [
                                             'kode' => $coa->kode_akun,
@@ -702,7 +705,7 @@ return response()->json([
                                         $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
                                     }
                                 } else {
-                                    // Fallback to keyword matching if no coa_id
+                                    // Fallback to keyword matching if no coa_kredit
                                     $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
                                 }
 
@@ -926,11 +929,14 @@ return response()->json([
                                 ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                 : 0;
 
-                            // Determine COA - prioritize coa_id from komponen, fallback to keyword matching
-                            $coaId = $komponen['coa_id'] ?? null;
-                            if ($coaId) {
-                                // Use COA from database
-                                $coa = \App\Models\Coa::find($coaId);
+                            // Determine COA - prioritize coa_kredit from komponen (kode akun)
+                            $coaKredit = $komponen['coa_kredit'] ?? $komponen['coa_id'] ?? null;
+                            if ($coaKredit) {
+                                // Use COA from database by kode_akun
+                                $coa = \App\Models\Coa::where('kode_akun', $coaKredit)
+                                    ->where('user_id', $user_id)
+                                    ->first();
+                                
                                 if ($coa) {
                                     $coaInfo = [
                                         'kode' => $coa->kode_akun,
@@ -941,7 +947,7 @@ return response()->json([
                                     $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
                                 }
                             } else {
-                                // Fallback to keyword matching if no coa_id
+                                // Fallback to keyword matching if no coa_kredit
                                 $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
                             }
 
@@ -975,13 +981,19 @@ return response()->json([
     {
         // Save BBB details
         foreach ($hppData['bbb'] as $bbb) {
+            $qtyResep = $bbb['jumlah'] * $qtyProd;
+            $hargaSatuan = $bbb['harga_satuan'];
+            
+            // Hitung ulang subtotal untuk menghindari error pembulatan
+            $subtotal = $qtyResep * $hargaSatuan;
+            
             \App\Models\ProduksiDetail::create([
                 'produksi_id' => $produksi->id,
                 'bahan_baku_id' => $bbb['bahan_baku_id'],
-                'qty_resep' => $bbb['jumlah'] * $qtyProd,
+                'qty_resep' => $qtyResep,
                 'satuan_resep' => $bbb['satuan'],
-                'harga_satuan' => $bbb['harga_satuan'],
-                'subtotal' => $bbb['subtotal'] * $qtyProd,
+                'harga_satuan' => $hargaSatuan,
+                'subtotal' => $subtotal,
                 'user_id' => $produksi->user_id,
             ]);
         }
