@@ -63,8 +63,8 @@
                 <div class="col-md-3">
                     <label class="form-label">Urutkan</label>
                     <select name="sort_order" class="form-select">
-                        <option value="desc" {{ request('sort_order', 'desc') == 'desc' ? 'selected' : '' }}>Terbaru ke Terlama</option>
-                        <option value="asc" {{ request('sort_order') == 'asc' ? 'selected' : '' }}>Terlama ke Terbaru</option>
+                        <option value="asc" {{ request('sort_order', 'asc') == 'asc' ? 'selected' : '' }}>Terlama ke Terbaru</option>
+                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Terbaru ke Terlama</option>
                     </select>
                 </div>
                 <div class="col-md-12">
