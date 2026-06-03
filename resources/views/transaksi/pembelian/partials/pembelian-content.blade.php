@@ -30,7 +30,7 @@
                         <option value="">Semua Vendor</option>
                         @foreach($vendors ?? [] as $vendor)
                             <option value="{{ $vendor->id }}" {{ request('vendor_id') == $vendor->id ? 'selected' : '' }}>
-                                {{ $vendor->nama_vendor }}
+                                {{ $vendor->nama_vendor }} ({{ $vendor->kategori }})
                             </option>
                         @endforeach
                     </select>
