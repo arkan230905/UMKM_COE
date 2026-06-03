@@ -16,19 +16,27 @@ class PegawaiDashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $pegawai = Pegawai::where('user_id', $user->id)->first();
+        // ✅ PENTING: Gunakan user relationship untuk pastikan data konsisten
+        $pegawai = $user->pegawai;
 
         if (!$pegawai) {
-            \Log::error('Pegawai not found for user', [
+            \Log::error('❌ CRITICAL: Pegawai not found for user', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
-                'user_role' => $user->role
+                'user_role' => $user->role,
+                'pegawai_id' => $user->pegawai_id,
+                'perusahaan_id' => $user->perusahaan_id,
             ]);
-            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai. Hubungi administrator.');
+            
+            abort(500, '❌ ERROR: Data pegawai tidak ditemukan untuk dashboard. 
+                       User ID: ' . $user->id . ', 
+                       Pegawai ID: ' . $user->pegawai_id . '. 
+                       Kemungkinan bug multi-tenant - hubungi administrator.');
         }
 
         // Get today's attendance
         $todayAttendance = Presensi::where('pegawai_id', $pegawai->id)
+            ->where('user_id', $user->id)
             ->whereDate('tgl_presensi', now())
             ->first();
 
@@ -66,9 +74,15 @@ class PegawaiDashboardController extends Controller
 
         // Get recent attendance (last 7 days)
         $recentAttendance = Presensi::where('pegawai_id', $pegawai->id)
+            ->where('user_id', $user->id)
             ->whereDate('tgl_presensi', '>=', now()->subDays(7))
             ->orderBy('tgl_presensi', 'desc')
             ->get();
+
+        \Log::info('Pegawai dashboard accessed', [
+            'pegawai_id' => $pegawai->id,
+            'pegawai_nama' => $pegawai->nama,
+        ]);
 
         return view('pegawai.dashboard', compact('pegawai', 'stats', 'todayAttendance', 'recentAttendance'));
     }
@@ -82,16 +96,28 @@ class PegawaiDashboardController extends Controller
             $user = Auth::user();
             
             if (!$user) {
-                return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+                abort(401, 'Silakan login terlebih dahulu.');
             }
 
-            $pegawai = Pegawai::withoutGlobalScopes()->where('user_id', $user->id)->first();
+            // ✅ PENTING: Gunakan user relationship
+            $pegawai = $user->pegawai;
 
             if (!$pegawai) {
-                return redirect()->route('pegawai.dashboard')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+                \Log::error('❌ CRITICAL: Pegawai not found for riwayat presensi', [
+                    'user_id' => $user->id,
+                    'pegawai_id' => $user->pegawai_id,
+                    'email' => $user->email,
+                    'perusahaan_id' => $user->perusahaan_id,
+                ]);
+                
+                abort(500, '❌ ERROR: Data pegawai tidak ditemukan untuk riwayat presensi. 
+                           User ID: ' . $user->id . ', 
+                           Pegawai ID: ' . $user->pegawai_id . '. 
+                           Hubungi administrator untuk debugging.');
             }
 
-            $query = Presensi::withoutGlobalScopes()->where('pegawai_id', $pegawai->id);
+            $query = Presensi::where('pegawai_id', $pegawai->id)
+                             ->where('user_id', $user->id);
 
             // Filter by month/year if provided
             if ($request->has('month') && $request->has('year')) {
@@ -101,10 +127,18 @@ class PegawaiDashboardController extends Controller
 
             $attendances = $query->orderBy('tgl_presensi', 'desc')->paginate(20);
 
+            \Log::info('Riwayat presensi accessed', [
+                'pegawai_id' => $pegawai->id,
+                'total_records' => $attendances->total(),
+            ]);
+
             return view('pegawai.riwayat-presensi', compact('pegawai', 'attendances'));
         } catch (\Exception $e) {
-            \Log::error('Error in riwayatPresensi: ' . $e->getMessage());
-            return redirect()->route('pegawai.dashboard')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            \Log::error('Error in riwayatPresensi: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            abort(500, '❌ ERROR: Terjadi kesalahan saat mengambil riwayat presensi: ' . $e->getMessage());
         }
     }
 

@@ -50,6 +50,7 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\RoleMiddleware::class,
         'upload.limits' => \App\Http\Middleware\SetUploadLimits::class,
         'set.perusahaan' => \App\Http\Middleware\SetPerusahaanFromUrl::class,
+        'validate.pegawai.tenant' => \App\Http\Middleware\ValidatePegawaiTenant::class,
     ];
 
     protected $middlewareAliases = [
@@ -66,5 +67,6 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\RoleMiddleware::class,
         'upload.limits' => \App\Http\Middleware\SetUploadLimits::class,
         'set.perusahaan' => \App\Http\Middleware\SetPerusahaanFromUrl::class,
+        'validate.pegawai.tenant' => \App\Http\Middleware\ValidatePegawaiTenant::class,
     ];
 }

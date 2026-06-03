@@ -341,17 +341,22 @@ class BopController extends Controller
             }
 
             // Calculate values from komponen_bop array (per produk)
-            $totalBopPerProduk = $validComponents->sum('rate_per_produk');
+            $totalBopPerProduk = 0;
+            foreach ($validComponents as $component) {
+                $totalBopPerProduk += round((float)$component['rate_per_produk'], 2);
+            }
+            $totalBopPerProduk = round($totalBopPerProduk, 2);
+            
             $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
-            $btklPerProduk = $kapasitasPerJam > 0 ? floatval($prosesProduksi->tarif_btkl) / $kapasitasPerJam : 0;
-            $totalBiayaPerProduk = $btklPerProduk + $totalBopPerProduk;
+            $btklPerProduk = $kapasitasPerJam > 0 ? round((float)$prosesProduksi->tarif_btkl / $kapasitasPerJam, 2) : 0;
+            $totalBiayaPerProduk = round($btklPerProduk + $totalBopPerProduk, 2);
 
             // Prepare component data for storage (all components in JSON)
             $komponenData = [];
             foreach ($validComponents as $komponen) {
                 $komponenData[] = [
                     'component' => $komponen['component'],
-                    'rate_per_produk' => floatval($komponen['rate_per_produk']),
+                    'rate_per_produk' => round((float)$komponen['rate_per_produk'], 2),
                     'description' => $komponen['description'] ?? ''
                 ];
             }
@@ -686,10 +691,10 @@ class BopController extends Controller
             $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
 
             foreach ($komponenNames as $index => $name) {
-                if (!empty(trim($name)) && isset($komponenRates[$index]) && floatval($komponenRates[$index]) > 0) {
+                if (!empty(trim($name)) && isset($komponenRates[$index]) && round((float)$komponenRates[$index], 2) > 0) {
                     $components[] = [
                         'component' => trim($name),
-                        'rate_per_hour' => floatval($komponenRates[$index]),
+                        'rate_per_hour' => round((float)$komponenRates[$index], 2),
                         'description' => $komponenDescs[$index] ?? '',
                         'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
                         'coa_kredit' => $komponenCoaKredits[$index] ?? '510',
@@ -701,8 +706,12 @@ class BopController extends Controller
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
             }
 
-            // Calculate values
-            $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
+            // Calculate values with proper rounding
+            $totalBopPerProduk = 0;
+            foreach ($components as $comp) {
+                $totalBopPerProduk += round((float)$comp['rate_per_hour'], 2);
+            }
+            $totalBopPerProduk = round($totalBopPerProduk, 2);
             $bopPerUnit = $totalBopPerProduk;
 
             // Prepare data for insert
@@ -805,7 +814,7 @@ class BopController extends Controller
             $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
             
             foreach ($validated['komponen_name'] as $index => $name) {
-                $rate = floatval($validated['komponen_rate'][$index] ?? 0);
+                $rate = round((float)($validated['komponen_rate'][$index] ?? 0), 2);
                 $desc = $validated['komponen_desc'][$index] ?? '';
                 
                 if (!empty(trim($name)) && $rate > 0) {
@@ -823,8 +832,12 @@ class BopController extends Controller
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
             }
 
-            // Calculate values - using per-product basis
-            $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
+            // Calculate values with proper rounding - using per-product basis
+            $totalBopPerProduk = 0;
+            foreach ($components as $comp) {
+                $totalBopPerProduk += round((float)$comp['rate_per_hour'], 2);
+            }
+            $totalBopPerProduk = round($totalBopPerProduk, 2);
             
             // BOP per unit is same as total BOP per produk (no division by capacity)
             $bopPerUnit = $totalBopPerProduk;
