@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Tambah Penggajian')
 
@@ -53,6 +53,19 @@
                     </div>
 
                     <div class="col-md-6">
+                        <label for="kategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select name="kategori" id="kategori" class="form-select @error('kategori') is-invalid @enderror" required onchange="handleKategoriChange(this.value)">
+                            <option value="">-- Pilih Kategori --</option>
+                            @if(isset($kategoris))
+                                @foreach ($kategoris as $k)
+                                    <option value="{{ $k->nama }}">{{ $k->nama }} ({{ strtoupper($k->kategori) }})</option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <small id="kategori_status" class="form-text mt-1 d-block"></small>
+                    </div>
+
+                    <div class="col-md-6">
                         <label for="coa_kasbank" class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
                         <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required>
                             <option value="">-- Pilih --</option>
@@ -85,6 +98,7 @@
                             <input type="number" name="total_produk_bulanan" id="total_produk" class="form-control @error('total_produk_bulanan') is-invalid @enderror" value="0" min="0" oninput="hitungOtomatis()" required>
                             <span class="input-group-text">produk</span>
                         </div>
+                        <small id="status_total_produk" class="form-text text-muted d-block mt-1">Otomatis jika Produksi (BTKL), atau isi manual</small>
                         @error('total_produk_bulanan')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
@@ -239,6 +253,7 @@
 <script>
     // Konstanta
     let TARIF_PRODUK = 0;
+    let IS_PRODUKSI = true;
 
     // Format Rupiah
     function formatRupiah(num) {
@@ -256,7 +271,13 @@
     // Clear form state
     function clearFormState() {
         TARIF_PRODUK = 0;
+        IS_PRODUKSI = true;
         document.getElementById('tarif_produk_input').value = 0;
+        document.getElementById('kategori').value = '';
+        document.getElementById('kategori_status').textContent = '';
+        document.getElementById('status_total_produk').textContent = 'Otomatis jika Produksi (BTKL), atau isi manual';
+        document.getElementById('total_produk').readOnly = false;
+        document.getElementById('total_produk').style.backgroundColor = '#fff';
         document.getElementById('tarif_status').textContent = 'Auto-filled dari kualifikasi, atau input manual jika tidak ada';
         document.getElementById('tunj_jabatan').value = 0;
         document.getElementById('tunj_transport').value = 150000;
@@ -308,6 +329,15 @@
                     tarifStatus.className = 'form-text text-muted d-block mt-1';
                 }
                 
+                const selectKategori = document.getElementById('kategori');
+                if (data.kategori && Array.from(selectKategori.options).some(o => o.value === data.kategori)) {
+                    selectKategori.value = data.kategori;
+                    handleKategoriChange(data.kategori, false); // false = jangan fetch tarif ulang karena sudah di atas
+                } else {
+                    selectKategori.value = '';
+                    IS_PRODUKSI = true;
+                }
+                
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
@@ -326,8 +356,55 @@
             });
     }
 
+    // Handle Kategori Change
+    function handleKategoriChange(kategori, fetchTarif = true) {
+        if (!kategori) {
+            IS_PRODUKSI = true;
+            document.getElementById('kategori_status').textContent = '';
+            document.getElementById('total_produk').readOnly = false;
+            document.getElementById('total_produk').style.backgroundColor = '#fff';
+            return;
+        }
+
+        fetch(`/api/master-kategori/${encodeURIComponent(kategori)}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data && data.status === 'success') {
+                    IS_PRODUKSI = data.data.produksi;
+                    const statusText = IS_PRODUKSI ? '✓ Kategori Produksi (BTKL)' : '✗ Kategori Gaji Tetap (BTKTI)';
+                    const color = IS_PRODUKSI ? 'green' : 'orange';
+                    
+                    const statusEl = document.getElementById('kategori_status');
+                    statusEl.textContent = statusText;
+                    statusEl.style.color = color;
+
+                    const totalField = document.getElementById('total_produk');
+                    const statusTotal = document.getElementById('status_total_produk');
+                    
+                    if (IS_PRODUKSI) {
+                        totalField.readOnly = true;
+                        totalField.style.backgroundColor = '#f5f5f5';
+                        statusTotal.textContent = '✓ Otomatis dari Transaksi Produksi (readonly)';
+                        statusTotal.style.color = 'green';
+                        updateTotalProduk(); // Fetch produksi
+                    } else {
+                        totalField.readOnly = false;
+                        totalField.style.backgroundColor = '#fff';
+                        totalField.value = 0;
+                        statusTotal.textContent = '⚠ Gaji tetap - Tidak ada produksi (bisa dikosongkan/edit)';
+                        statusTotal.style.color = 'orange';
+                    }
+                }
+            })
+            .catch(err => console.error('Error checking kategori:', err));
+    }
+
     // Update Total Produk
     function updateTotalProduk() {
+        if (!IS_PRODUKSI) {
+            return;
+        }
+        
         const pegawaiId = document.getElementById('pegawai_id').value;
         const tanggalInput = document.getElementById('tanggal_penggajian').value;
         const totalProdukField = document.getElementById('total_produk');
@@ -439,9 +516,9 @@
             return;
         }
 
-        if (totalProduk <= 0) {
+        if (IS_PRODUKSI && totalProduk <= 0) {
             e.preventDefault();
-            alert('Total produk harus lebih dari 0!');
+            alert('Total produk harus lebih dari 0 untuk kategori Produksi!');
             return;
         }
 

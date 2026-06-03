@@ -133,7 +133,6 @@ class BopTerpaduController extends Controller
         
         // Get available processes that don't have BOP yet
         $availableProses = ProsesProduksi::whereDoesntHave('bopProses')
-            ->where('kapasitas_per_jam', '>', 0)
             ->when($prosesId, function($query, $prosesId) {
                 return $query->where('id', $prosesId);
             })
@@ -142,7 +141,7 @@ class BopTerpaduController extends Controller
 
         if ($availableProses->isEmpty()) {
             return redirect()->route('master-data.bop-terpadu.index')
-                ->with('warning', 'Semua proses BTKL sudah memiliki BOP atau belum memiliki kapasitas per jam.');
+                ->with('warning', 'Semua proses BTKL sudah memiliki BOP.');
         }
 
         return view('master-data.bop-terpadu.create-proses', compact('availableProses'));
@@ -166,12 +165,8 @@ class BopTerpaduController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get BTKL process to validate capacity
+            // Get BTKL process
             $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
-            
-            if ($prosesProduksi->kapasitas_per_jam <= 0) {
-                throw new \Exception('Proses BTKL harus memiliki kapasitas per jam yang valid.');
-            }
 
             // Create BOP Proses (calculations will be done automatically in model)
             BopProses::create($validated);
@@ -267,34 +262,16 @@ class BopTerpaduController extends Controller
     }
 
     /**
-     * Sync kapasitas dari BTKL untuk semua BOP Proses
+     * Sync data from BTKL for all BOP Proses (deprecated)
      */
     public function syncKapasitas()
     {
         try {
-            DB::beginTransaction();
-
-            $bopProses = BopProses::with('prosesProduksi')->get();
-            $updated = 0;
-
-            foreach ($bopProses as $bop) {
-                if ($bop->prosesProduksi && $bop->kapasitas_per_jam != $bop->prosesProduksi->kapasitas_per_jam) {
-                    $bop->update([
-                        'kapasitas_per_jam' => $bop->prosesProduksi->kapasitas_per_jam
-                    ]);
-                    $updated++;
-                }
-            }
-
-            DB::commit();
-
             return redirect()
                 ->route('master-data.bop-terpadu.index')
-                ->with('success', "Berhasil sync kapasitas untuk {$updated} BOP Proses");
-
+                ->with('info', 'Sync kapasitas tidak diperlukan lagi karena sistem sudah menggunakan pembebanan per produk');
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal sync kapasitas: ' . $e->getMessage());
+            return back()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
@@ -309,10 +286,10 @@ class BopTerpaduController extends Controller
                 ->get()
                 ->map(function($bop) {
                     return [
-                        'nama_proses' => $bop->prosesProduksi->nama_proses,
+                        'nama_proses' => $bop->prosesProduksi->nama_proses ?? 'N/A',
                         'bop_per_jam' => $bop->total_bop_per_jam,
                         'bop_per_unit' => $bop->bop_per_unit,
-                        'kapasitas' => $bop->kapasitas_per_jam
+                        'kapasitas' => $bop->kapasitas_per_jam ?? 0
                     ];
                 });
 

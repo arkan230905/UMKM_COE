@@ -22,12 +22,12 @@ class BalanceSaldoAwal extends Command
         foreach ($allCoa as $coa) {
             $saldoAwal = $coa->saldo_awal ?? 0;
             if ($saldoAwal != 0) {
-                if ($coa->tipe_akun === 'Asset') {
+                if ($coa->tipe_akun === 'Aset') {
                     $totalAssetSaldoAwal += $saldoAwal;
-                    $this->info("  Asset {$coa->kode_akun}: Rp " . number_format($saldoAwal, 0, ',', '.'));
-                } elseif ($coa->tipe_akun === 'Equity') {
+                    $this->info("  Aset {$coa->kode_akun}: Rp " . number_format($saldoAwal, 0, ',', '.'));
+                } elseif ($coa->tipe_akun === 'Modal') {
                     $totalEquitySaldoAwal += $saldoAwal;
-                    $this->info("  Equity {$coa->kode_akun}: Rp " . number_format($saldoAwal, 0, ',', '.'));
+                    $this->info("  Modal {$coa->kode_akun}: Rp " . number_format($saldoAwal, 0, ',', '.'));
                 }
             }
         }

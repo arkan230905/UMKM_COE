@@ -14,12 +14,16 @@ class KategoriPegawai extends Model
     protected $fillable = [
         'user_id',
         'nama', 
-        'deskripsi'
+        'deskripsi',
+        'tipe_gaji',
+        'is_produksi'
     ];
 
     protected $casts = [
         'nama' => 'string',
         'deskripsi' => 'string',
+        'tipe_gaji' => 'string',
+        'is_produksi' => 'boolean',
     ];
 
     /**

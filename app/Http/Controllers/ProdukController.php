@@ -80,7 +80,7 @@ class ProdukController extends Controller
         
         // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Aset')
+            ->where('tipe_akun', 'Asset')
             ->where('kode_akun', 'LIKE', '11%')
             ->orderBy('kode_akun')
             ->get();
@@ -163,7 +163,7 @@ class ProdukController extends Controller
         
         // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Aset')
+            ->where('tipe_akun', 'Asset')
             ->where('kode_akun', 'LIKE', '11%')
             ->orderBy('kode_akun')
             ->get();

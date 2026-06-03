@@ -641,7 +641,9 @@ return response()->json([
             foreach ($selectedBtkl as $hpp) {
                 $proses = $hpp->prosesProduksi;
                 if ($proses) {
-                    $tarif = $proses->tarif_btkl ?? 0;
+                    $tarifPerProduk = $proses->tarif_per_produk ?? 0;
+                    $jumlahPegawai = $proses->jumlah_pegawai ?? 1;
+                    $tarif = $tarifPerProduk * $jumlahPegawai;
 
                     $breakdown['btkl'][] = [
                         'nama' => $proses->nama_proses ?? 'Proses Produksi',
@@ -685,8 +687,27 @@ return response()->json([
                                     ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                     : 0;
 
-                                // Determine COA - always use BOP expense accounts, not bahan pendukung COA
-                                $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                // Determine COA - prioritize coa_kredit from komponen (kode akun)
+                                $coaKredit = $komponen['coa_kredit'] ?? $komponen['coa_id'] ?? null;
+                                if ($coaKredit) {
+                                    // Use COA from database by kode_akun
+                                    $coa = \App\Models\Coa::where('kode_akun', $coaKredit)
+                                        ->where('user_id', $user_id)
+                                        ->first();
+                                    
+                                    if ($coa) {
+                                        $coaInfo = [
+                                            'kode' => $coa->kode_akun,
+                                            'nama' => $coa->nama_akun
+                                        ];
+                                    } else {
+                                        // Fallback to keyword matching if COA not found
+                                        $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                    }
+                                } else {
+                                    // Fallback to keyword matching if no coa_kredit
+                                    $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                }
 
                                 // Add to BOP display array
                                 $breakdown['bop'][] = [
@@ -865,7 +886,9 @@ return response()->json([
         foreach ($selectedBtkl as $hpp) {
             $proses = $hpp->prosesProduksi;
             if ($proses) {
-                $tarif = $proses->tarif_btkl ?? 0;
+                $tarifPerProduk = $proses->tarif_per_produk ?? 0;
+                $jumlahPegawai = $proses->jumlah_pegawai ?? 1;
+                $tarif = $tarifPerProduk * $jumlahPegawai;
 
                 $breakdown['btkl'][] = [
                     'proses_produksi_id' => $proses->id,
@@ -906,7 +929,27 @@ return response()->json([
                                 ? ($ratePerHour / $totalRatePerHour) * $totalBopPerProduk 
                                 : 0;
 
-                            $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                            // Determine COA - prioritize coa_kredit from komponen (kode akun)
+                            $coaKredit = $komponen['coa_kredit'] ?? $komponen['coa_id'] ?? null;
+                            if ($coaKredit) {
+                                // Use COA from database by kode_akun
+                                $coa = \App\Models\Coa::where('kode_akun', $coaKredit)
+                                    ->where('user_id', $user_id)
+                                    ->first();
+                                
+                                if ($coa) {
+                                    $coaInfo = [
+                                        'kode' => $coa->kode_akun,
+                                        'nama' => $coa->nama_akun
+                                    ];
+                                } else {
+                                    // Fallback to keyword matching if COA not found
+                                    $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                                }
+                            } else {
+                                // Fallback to keyword matching if no coa_kredit
+                                $coaInfo = $this->determineBopCoaByKeyword($namaKomponen);
+                            }
 
                             $breakdown['bop'][] = [
                                 'bop_proses_id' => $bopProses->id,
@@ -938,13 +981,19 @@ return response()->json([
     {
         // Save BBB details
         foreach ($hppData['bbb'] as $bbb) {
+            $qtyResep = $bbb['jumlah'] * $qtyProd;
+            $hargaSatuan = $bbb['harga_satuan'];
+            
+            // Hitung ulang subtotal untuk menghindari error pembulatan
+            $subtotal = $qtyResep * $hargaSatuan;
+            
             \App\Models\ProduksiDetail::create([
                 'produksi_id' => $produksi->id,
                 'bahan_baku_id' => $bbb['bahan_baku_id'],
-                'qty_resep' => $bbb['jumlah'] * $qtyProd,
+                'qty_resep' => $qtyResep,
                 'satuan_resep' => $bbb['satuan'],
-                'harga_satuan' => $bbb['harga_satuan'],
-                'subtotal' => $bbb['subtotal'] * $qtyProd,
+                'harga_satuan' => $hargaSatuan,
+                'subtotal' => $subtotal,
                 'user_id' => $produksi->user_id,
             ]);
         }
@@ -1375,9 +1424,11 @@ return response()->json([
 
         foreach ($hppBtkl as $btkl) {
             if ($btkl->prosesProduksi) {
-                // Get tarif from proses_produksis table (now represents biaya per produk)
-                $tarifPerProduk = $btkl->prosesProduksi->tarif_btkl ?? 0;
-                $totalBiaya = $tarifPerProduk * $produksi->qty_produksi;
+                // Get tarif from proses_produksis table
+                $tarifPerProduk = $btkl->prosesProduksi->tarif_per_produk ?? 0;
+                $jumlahPegawai = $btkl->prosesProduksi->jumlah_pegawai ?? 1;
+                $tarifTotal = $tarifPerProduk * $jumlahPegawai;
+                $totalBiaya = $tarifTotal * $produksi->qty_produksi;
 
                 $breakdown['btkl'][] = [
                     'nama' => $btkl->prosesProduksi->nama_proses,

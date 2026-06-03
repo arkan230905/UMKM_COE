@@ -33,10 +33,11 @@
                     <tbody>
                         @forelse($btkls as $btkl)
                         @php
-                            // Mengambil jumlah pegawai dari relasi jabatan
-                            $jumlahPegawai = $btkl->jabatan->pegawais->count() ?? 0;
-                            // Rumus: Jumlah Pegawai x Tarif BTKL (Per Produk)
-                            $totalBiayaUnit = $jumlahPegawai * $btkl->tarif_btkl;
+                            // Mengambil jumlah pegawai dari data proses produksi
+                            $jumlahPegawai = $btkl->jumlah_pegawai ?? 0;
+                            $tarifPerProduk = $btkl->tarif_per_produk ?? 0;
+                            // Rumus: Jumlah Pegawai x Tarif Per Produk
+                            $totalBiayaUnit = $jumlahPegawai * $tarifPerProduk;
                         @endphp
                         <tr>
                             <td class="text-center">
@@ -59,14 +60,15 @@
                             </td>
                             <td>
                                 <div class="fw-bold text-success-custom">
-                                    Rp {{ number_format($btkl->tarif_btkl, 0, ',', '.') }}
+                                    Rp {{ number_format($tarifPerProduk, 0, ',', '.') }}
                                 </div>
+                                <small class="text-muted">(Pegawai x Tarif)</small>
                             </td>
                             <td>
                                 <div class="fw-bold text-warning-custom">
                                     Rp {{ number_format($totalBiayaUnit, 0, ',', '.') }}
                                 </div>
-                                <small class="text-muted">Biaya x Pegawai</small>
+                                <small class="text-muted">(Pegawai x Tarif)</small>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex gap-2 justify-content-center">

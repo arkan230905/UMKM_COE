@@ -1,0 +1,106 @@
+========================================
+TEMPLATE PESAN UNTUK TIM
+========================================
+
+📣 PENGUMUMAN PENTING - PERUBAHAN DATABASE
+
+Halo Tim! 👋
+
+Saya baru saja push perubahan penting ke repository:
+
+🔄 PERUBAHAN:
+- COA diganti dari "Jasuke" ke "Ayam Ketumbar"
+- Disesuaikan untuk usaha produksi ayam goreng
+
+⚠️ YANG HARUS DILAKUKAN SETELAH GIT PULL:
+
+1️⃣ Backup database lokal (jika ada data penting)
+
+2️⃣ Jalankan perintah ini:
+   php artisan migrate:fresh --seed
+
+3️⃣ Database akan di-reset dan diisi dengan COA baru
+
+📖 DOKUMENTASI:
+- Panduan Lengkap: PANDUAN_SETUP_COA_AYAM_KETUMBAR.md
+- Panduan Cepat: QUICK_SETUP.md
+
+⏰ ESTIMASI WAKTU: 5-10 menit
+
+❓ Ada pertanyaan? Silakan tanya!
+
+========================================
+
+ATAU VERSI SINGKAT:
+
+🚨 Update Penting!
+
+Setelah git pull, wajib jalankan:
+php artisan migrate:fresh --seed
+
+Database akan di-reset dengan COA Ayam Ketumbar.
+Backup data penting dulu ya!
+
+Baca: QUICK_SETUP.md untuk panduan.
+
+========================================
+
+UNTUK SLACK/DISCORD (dengan formatting):
+
+```
+🚨 **PERHATIAN TIM!** 🚨
+
+**Perubahan:** COA diganti ke Ayam Ketumbar
+
+**Wajib dilakukan setelah `git pull`:**
+1. Backup database lokal
+2. Jalankan: `php artisan migrate:fresh --seed`
+
+📖 **Dokumentasi:** 
+- `PANDUAN_SETUP_COA_AYAM_KETUMBAR.md` (lengkap)
+- `QUICK_SETUP.md` (cepat)
+
+⚠️ Database akan di-reset!
+```
+
+========================================
+
+UNTUK EMAIL:
+
+Subject: [PENTING] Perubahan Database - COA Ayam Ketumbar
+
+Halo Tim,
+
+Saya telah melakukan perubahan penting pada database aplikasi UMKM COE.
+
+PERUBAHAN:
+Chart of Accounts (COA) telah diganti dari "Jasuke" menjadi "Ayam Ketumbar" 
+untuk menyesuaikan dengan kebutuhan usaha produksi ayam goreng.
+
+LANGKAH YANG HARUS DILAKUKAN:
+Setelah melakukan git pull, Anda WAJIB menjalankan:
+
+    php artisan migrate:fresh --seed
+
+Perintah ini akan:
+- Menghapus semua data di database lokal
+- Membuat ulang struktur tabel
+- Mengisi dengan COA Ayam Ketumbar
+
+PENTING:
+⚠️ Backup data lokal Anda terlebih dahulu jika ada data penting
+⚠️ Perubahan ini hanya untuk development/local environment
+⚠️ JANGAN jalankan di production
+
+DOKUMENTASI:
+Saya telah menyiapkan dokumentasi lengkap:
+1. PANDUAN_SETUP_COA_AYAM_KETUMBAR.md - Panduan detail
+2. QUICK_SETUP.md - Panduan cepat
+3. CHECKLIST_SEBELUM_PUSH.md - Checklist untuk developer
+
+Jika ada pertanyaan atau mengalami masalah, silakan hubungi saya.
+
+Terima kasih,
+[Nama Anda]
+
+========================================

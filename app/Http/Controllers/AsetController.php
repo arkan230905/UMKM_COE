@@ -130,13 +130,24 @@ class AsetController extends Controller
      */
     public function create()
     {
-        $jenisAsets = JenisAset::with('kategories')->get();
+        $jenisAsets = JenisAset::with('kategories')
+            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->get();
         $kodeAset = Aset::generateKodeAset();
         $metodePenyusutan = [
             'garis_lurus' => 'Garis Lurus (Straight Line)',
             'saldo_menurun' => 'Saldo Menurun (Declining Balance)',
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
+        
+        // Load jenis aset list for custom asset types feature
+        $jenisAsetList = JenisAset::where(function($query) {
+                $query->where('user_id', auth()->id())
+                      ->orWhereNull('user_id'); // Include default "Aset Tetap"
+            })
+            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->orderBy('nama')
+            ->get();
         
         // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
         $coaAsets = Coa::where('user_id', auth()->id())
@@ -171,7 +182,8 @@ class AsetController extends Controller
             ->get();
         
         return view('master-data.aset.create', compact(
-            'jenisAsets', 
+            'jenisAsets',
+            'jenisAsetList', // Add this for custom asset types
             'kodeAset', 
             'metodePenyusutan',
             'coaAsets',
@@ -185,12 +197,13 @@ class AsetController extends Controller
      */
     public function store(Request $request)
     {
-        // Cek apakah kategori aset disusutkan
-        $kategori = KategoriAset::find($request->kategori_aset_id);
-        $disusutkan = $kategori ? $kategori->disusutkan : true;
+        // REFACTOR: Removed jenis_aset validation - Semua aset adalah aset tetap
+        $jenisAset = 'aset-tetap'; // Hardcoded karena semua aset = aset tetap
+        $disusutkan = true; // Semua aset tetap disusutkan
         
         // Validation rules dasar
         $rules = [
+            // REFACTOR: Removed 'jenis_aset' validation
             'nama_aset' => 'required|string|max:255',
             'kategori_aset_id' => 'required|exists:kategori_asets,id',
             'harga_perolehan' => 'required|numeric|min:0',
@@ -203,9 +216,11 @@ class AsetController extends Controller
             'expense_coa_id' => 'nullable|exists:coas,id',
         ];
         
-        // Tambah validation untuk penyusutan jika aset disusutkan
+        // Tambah validation untuk penyusutan/amortisasi
         if ($disusutkan) {
-            $rules['nilai_residu'] = 'required|numeric|min:0';
+            if ($jenisAset === 'aset-tetap') {
+                $rules['nilai_residu'] = 'required|numeric|min:0';
+            }
             $rules['umur_manfaat'] = 'required|integer|min:1|max:100';
             $rules['metode_penyusutan'] = 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits';
             $rules['tarif_penyusutan'] = 'nullable|numeric|min:0|max:200';
@@ -232,11 +247,11 @@ class AsetController extends Controller
             $penyusutanPerBulan = 0;
             $nilaiResidu = 0;
             $umurManfaat = 0;
-            $metodePenyusutan = null;
+            $metodePenyusutan = 'garis_lurus'; // Default valid enum untuk database
             
-            // Calculate depreciation only if asset is depreciable
+            // Calculate depreciation/amortization only if active
             if ($disusutkan) {
-                $nilaiResidu     = (float) $request->nilai_residu;
+                $nilaiResidu     = $jenisAset === 'aset-tetap' ? (float) $request->nilai_residu : 0;
                 $umurManfaat     = (int) $request->umur_manfaat;
                 $metodePenyusutan = $request->metode_penyusutan;
 
@@ -279,6 +294,7 @@ class AsetController extends Controller
                 $attempts++;
             } while ($exists && $attempts < 5);
             $aset->kode_aset = $kodeAset;
+            $aset->jenis_aset = $jenisAset;
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
             $aset->harga_perolehan = $hargaPerolehan;
@@ -293,10 +309,22 @@ class AsetController extends Controller
             if (Schema::hasColumn('asets', 'tanggal_perolehan')) {
                 $aset->tanggal_perolehan = $request->tanggal_perolehan;
             }
-            $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
-            $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
+            
+            if ($jenisAset === 'aset-tidak-berwujud') {
+                $aset->amortisasi_per_tahun = round($penyusutanPerTahun, 2);
+                $aset->akumulasi_amortisasi = 0;
+                $aset->penyusutan_per_tahun = 0;
+                $aset->penyusutan_per_bulan = 0;
+                $aset->akumulasi_penyusutan = 0;
+            } else {
+                $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
+                $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
+                $aset->akumulasi_penyusutan = 0;
+                $aset->amortisasi_per_tahun = 0;
+                $aset->akumulasi_amortisasi = 0;
+            }
+            
             $aset->nilai_buku = $totalPerolehan;
-            $aset->akumulasi_penyusutan = 0;
             $aset->tanggal_beli = $request->tanggal_beli;
             $aset->tanggal_akuisisi = $request->tanggal_akuisisi ?: $request->tanggal_beli;
             $aset->status = 'aktif';
@@ -533,12 +561,23 @@ class AsetController extends Controller
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diedit.');
         }
         
-        $jenisAsets = JenisAset::with('kategories')->get();
+        $jenisAsets = JenisAset::with('kategories')
+            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->get();
         $metodePenyusutan = [
             'garis_lurus' => 'Garis Lurus (Straight Line)',
             'saldo_menurun' => 'Saldo Menurun (Declining Balance)',
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
+        
+        // Load jenis aset list for custom asset types feature
+        $jenisAsetList = JenisAset::where(function($query) {
+                $query->where('user_id', auth()->id())
+                      ->orWhereNull('user_id'); // Include default "Aset Tetap"
+            })
+            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->orderBy('nama')
+            ->get();
         
         // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
         $coaAsets = Coa::where('user_id', auth()->id())
@@ -605,7 +644,8 @@ class AsetController extends Controller
         
         return view('master-data.aset.edit', compact(
             'aset',
-            'jenisAsets', 
+            'jenisAsets',
+            'jenisAsetList', // Add this for custom asset types
             'metodePenyusutan',
             'coaAsets',
             'coaAkumulasi', 
@@ -709,12 +749,13 @@ class AsetController extends Controller
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diperbarui.');
         }
         
-        // Cek apakah kategori aset disusutkan
-        $kategori = KategoriAset::find($request->kategori_aset_id);
-        $disusutkan = $kategori ? $kategori->disusutkan : true;
+        // REFACTOR: Removed jenis_aset logic - Semua aset adalah aset tetap
+        $jenisAset = 'aset-tetap'; // Hardcoded karena semua aset = aset tetap
+        $disusutkan = true; // Semua aset tetap disusutkan
         
         // Validation rules untuk semua field yang bisa diedit
         $rules = [
+            // REFACTOR: Removed 'jenis_aset' validation
             'nama_aset' => 'required|string|max:255',
             'kategori_aset_id' => 'required|exists:kategori_asets,id',
             'harga_perolehan' => 'required|numeric|min:0',
@@ -729,14 +770,15 @@ class AsetController extends Controller
         
         // Field penyusutan
         if ($disusutkan) {
-            $depreciationRules = [
-                'nilai_residu' => 'required|numeric|min:0',
-                'umur_manfaat' => 'required|integer|min:1|max:100',
-                'metode_penyusutan' => 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits',
-                'tarif_penyusutan' => 'nullable|numeric|min:0|max:200',
-                'bulan_mulai' => 'nullable|integer|min:1|max:12',
-                'tanggal_perolehan' => 'nullable|date',
-            ];
+            $depreciationRules = [];
+            if ($jenisAset === 'aset-tetap') {
+                $depreciationRules['nilai_residu'] = 'required|numeric|min:0';
+            }
+            $depreciationRules['umur_manfaat'] = 'required|integer|min:1|max:100';
+            $depreciationRules['metode_penyusutan'] = 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits';
+            $depreciationRules['tarif_penyusutan'] = 'nullable|numeric|min:0|max:200';
+            $depreciationRules['bulan_mulai'] = 'nullable|integer|min:1|max:12';
+            $depreciationRules['tanggal_perolehan'] = 'nullable|date';
             $rules = array_merge($rules, $depreciationRules);
         }
         
@@ -762,11 +804,11 @@ class AsetController extends Controller
             $penyusutanPerBulan = 0;
             $nilaiResidu = 0;
             $umurManfaat = 0;
-            $metodePenyusutan = null;
+            $metodePenyusutan = 'garis_lurus'; // Default valid enum untuk database
             
             // Calculate depreciation only if asset is depreciable
             if ($disusutkan) {
-                $nilaiResidu      = (float) $request->nilai_residu;
+                $nilaiResidu      = $jenisAset === 'aset-tetap' ? (float) $request->nilai_residu : 0;
                 $umurManfaat      = (int) $request->umur_manfaat;
                 $metodePenyusutan = $request->metode_penyusutan;
 
@@ -795,6 +837,7 @@ class AsetController extends Controller
             }
             
             // Update semua field
+            $aset->jenis_aset = $jenisAset;
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
             $aset->harga_perolehan = $hargaPerolehan;
@@ -814,8 +857,18 @@ class AsetController extends Controller
                 $aset->metode_penyusutan = $metodePenyusutan;
                 $aset->tarif_penyusutan = $request->tarif_penyusutan;
                 $aset->nilai_residu = $nilaiResidu;
-                $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
-                $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
+                
+                if ($jenisAset === 'aset-tidak-berwujud') {
+                    $aset->amortisasi_per_tahun = round($penyusutanPerTahun, 2);
+                    $aset->akumulasi_amortisasi = 0; // Or keep current logic
+                    $aset->penyusutan_per_tahun = 0;
+                    $aset->penyusutan_per_bulan = 0;
+                } else {
+                    $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
+                    $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
+                    $aset->amortisasi_per_tahun = 0;
+                    $aset->akumulasi_amortisasi = 0;
+                }
                 
                 // Update optional fields jika ada
                 if (Schema::hasColumn('asets', 'bulan_mulai')) {

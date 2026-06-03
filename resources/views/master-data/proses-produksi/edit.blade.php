@@ -70,10 +70,10 @@
                                         $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
                                     @endphp
                                     <option value="{{ $jabatan->id }}" 
-                                            data-tarif="{{ $jabatan->tarif }}"
+                                            data-tarif="{{ $jabatan->tarif_produk ?? $jabatan->tarif }}"
                                             data-pegawai-count="{{ $pegawaiCount }}"
                                             {{ old('jabatan_id', $prosesProduksi->jabatan_id) == $jabatan->id ? 'selected' : '' }}>
-                                        {{ $jabatan->nama }} ({{ $pegawaiCount }} pegawai @ Rp {{ number_format($jabatan->tarif, 0, ',', '.') }}/produk)
+                                        {{ $jabatan->nama }} ({{ $pegawaiCount }} pegawai @ Rp {{ number_format($jabatan->tarif_produk ?? $jabatan->tarif, 0, ',', '.') }}/produk)
                                     </option>
                                 @endforeach
                             </select>
@@ -105,8 +105,9 @@
                             <label class="form-label">Total Tarif BTKL <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" name="tarif_btkl" id="tarifBTKL" class="form-control @error('tarif_btkl') is-invalid @enderror bg-light" 
-                                       value="{{ old('tarif_btkl', $prosesProduksi->tarif_btkl) }}" readonly required>
+                                <input type="number" id="tarifBTKLDisplay" class="form-control bg-light" readonly>
+                                <input type="hidden" name="tarif_per_produk" id="tarifPerProduk" value="{{ old('tarif_per_produk', $prosesProduksi->tarif_per_produk ?? 0) }}">
+                                <input type="hidden" name="jumlah_pegawai" id="jumlahPegawaiHidden" value="{{ old('jumlah_pegawai', $prosesProduksi->jumlah_pegawai ?? 0) }}">
                             </div>
                             <small class="text-muted">Otomatis: Pegawai × Tarif Dasar</small>
                         </div>
@@ -147,13 +148,19 @@ function calculateBTKL() {
         
         document.getElementById('jumlahPegawai').value = jumlahPegawai;
         document.getElementById('tarifPerJamJabatan').value = tarifDasar;
-        document.getElementById('tarifBTKL').value = totalBTKL;
+        document.getElementById('tarifBTKLDisplay').value = totalBTKL;
+        
+        // Update hidden inputs untuk dikirim ke controller
+        document.getElementById('tarifPerProduk').value = tarifDasar;
+        document.getElementById('jumlahPegawaiHidden').value = jumlahPegawai;
         
         showCalculationInfo(jumlahPegawai, tarifDasar, totalBTKL);
     } else {
         document.getElementById('jumlahPegawai').value = '';
         document.getElementById('tarifPerJamJabatan').value = '';
-        document.getElementById('tarifBTKL').value = '';
+        document.getElementById('tarifBTKLDisplay').value = '';
+        document.getElementById('tarifPerProduk').value = 0;
+        document.getElementById('jumlahPegawaiHidden').value = 0;
         hideCalculationInfo();
     }
 }
@@ -168,7 +175,7 @@ function showCalculationInfo(jumlahPegawai, tarifDasar, totalBTKL) {
         <strong>Perhitungan:</strong><br>
         ${jumlahPegawai} pegawai × Rp ${formatNumber(tarifDasar)}/produk = <strong>Rp ${formatNumber(totalBTKL)}/produk</strong>
     `;
-    document.getElementById('tarifBTKL').parentNode.parentNode.appendChild(infoDiv);
+    document.getElementById('tarifBTKLDisplay').parentNode.parentNode.appendChild(infoDiv);
 }
 
 function hideCalculationInfo() {

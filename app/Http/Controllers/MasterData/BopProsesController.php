@@ -35,7 +35,6 @@ class BopProsesController extends Controller
     {
         // Get BTKL processes that don't have BOP yet
         $availableProses = ProsesProduksi::whereDoesntHave('bopProses')
-            ->where('kapasitas_per_jam', '>', 0) // Only processes with capacity
             ->orderBy('nama_proses')
             ->get();
 
@@ -65,12 +64,8 @@ class BopProsesController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get BTKL process to validate capacity
+            // Get BTKL process
             $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
-            
-            if ($prosesProduksi->kapasitas_per_jam <= 0) {
-                throw new \Exception('Proses BTKL harus memiliki kapasitas per jam yang valid.');
-            }
 
             // Create BOP Proses (calculations will be done automatically in model)
             BopProses::create($validated);
@@ -182,34 +177,16 @@ class BopProsesController extends Controller
     }
 
     /**
-     * Sync kapasitas dari BTKL untuk semua BOP Proses
+     * Sync data from BTKL for all BOP Proses (deprecated)
      */
     public function syncKapasitas()
     {
         try {
-            DB::beginTransaction();
-
-            $bopProses = BopProses::with('prosesProduksi')->get();
-            $updated = 0;
-
-            foreach ($bopProses as $bop) {
-                if ($bop->prosesProduksi && $bop->kapasitas_per_jam != $bop->prosesProduksi->kapasitas_per_jam) {
-                    $bop->update([
-                        'kapasitas_per_jam' => $bop->prosesProduksi->kapasitas_per_jam
-                    ]);
-                    $updated++;
-                }
-            }
-
-            DB::commit();
-
             return redirect()
                 ->route('master-data.bop-proses.index')
-                ->with('success', "Berhasil sync kapasitas untuk {$updated} BOP Proses");
-
+                ->with('info', 'Sync kapasitas tidak diperlukan lagi karena sistem sudah menggunakan pembebanan per produk');
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal sync kapasitas: ' . $e->getMessage());
+            return back()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 }

@@ -16,18 +16,15 @@ class ProsesProduksi extends Model
         'kode_proses',
         'nama_proses',
         'deskripsi',
-        'tarif_btkl',
-        'satuan_btkl',
-        'kapasitas_per_jam',
         'jabatan_id',
+        'tarif_per_produk',
+        'jumlah_pegawai',
         'btkl_id',
-        'biaya_btkl_per_produk',
     ];
 
     protected $casts = [
-        'tarif_btkl' => 'decimal:2',
-        'biaya_btkl_per_produk' => 'decimal:2',
-        'kapasitas_per_jam' => 'integer',
+        'tarif_per_produk' => 'decimal:2',
+        'jumlah_pegawai' => 'integer',
     ];
 
     /**
@@ -132,21 +129,28 @@ class ProsesProduksi extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('tarif_btkl', '>', 0);
+        return $query->where('tarif_per_produk', '>', 0);
     }
 
     /**
-     * Hitung biaya BTKL per unit produk
-     * Formula: Tarif BTKL per Jam ÷ Kapasitas per Jam
+     * Hitung total BTKL per produk
+     * Formula: Tarif per Produk × Jumlah Pegawai
+     *
+     * @return float
+     */
+    public function getTotalBtklAttribute(): float
+    {
+        return ($this->tarif_per_produk ?? 0) * ($this->jumlah_pegawai ?? 0);
+    }
+
+    /**
+     * Hitung biaya BTKL per unit produk (alias untuk total_btkl)
      *
      * @return float
      */
     public function getBiayaPerProdukAttribute(): float
     {
-        if ($this->kapasitas_per_jam > 0 && $this->tarif_btkl > 0) {
-            return $this->tarif_btkl / $this->kapasitas_per_jam;
-        }
-        return 0;
+        return $this->getTotalBtklAttribute();
     }
 
     /**
@@ -164,15 +168,12 @@ class ProsesProduksi extends Model
     }
 
     /**
-     * Get efisiensi produksi (unit per rupiah)
+     * Get efisiensi produksi (tidak digunakan lagi dalam sistem per produk)
      *
      * @return float
      */
     public function getEfisiensiProduksiAttribute(): float
     {
-        if ($this->tarif_btkl > 0) {
-            return $this->kapasitas_per_jam / $this->tarif_btkl;
-        }
         return 0;
     }
 
@@ -204,14 +205,24 @@ class ProsesProduksi extends Model
     }
 
     /**
-     * Format tarif per jam untuk tampilan
-     * Menggunakan tarif_btkl karena ini adalah tarif total untuk proses
+     * Format tarif per produk untuk tampilan
+     *
+     * @return string
+     */
+    public function getTarifPerProdukFormattedAttribute(): string
+    {
+        return 'Rp ' . number_format($this->tarif_per_produk, 0, ',', '.');
+    }
+
+    /**
+     * Format tarif per jam untuk tampilan (backward compatibility)
+     * Sekarang menampilkan total BTKL
      *
      * @return string
      */
     public function getTarifPerJamFormattedAttribute(): string
     {
-        return 'Rp ' . number_format($this->tarif_btkl, 0, ',', '.');
+        return 'Rp ' . number_format($this->total_btkl, 0, ',', '.');
     }
 
     /**
@@ -225,13 +236,13 @@ class ProsesProduksi extends Model
     }
 
     /**
-     * Get satuan untuk konsistensi dengan model Btkl
+     * Get satuan untuk konsistensi (tidak digunakan lagi, return default)
      *
      * @return string
      */
     public function getSatuanAttribute(): string
     {
-        return $this->satuan_btkl ?? 'Jam';
+        return 'Produk';
     }
 
     /**
@@ -257,24 +268,21 @@ class ProsesProduksi extends Model
                 'is_consistent' => false,
                 'message' => 'Jabatan tidak ditemukan',
                 'expected_tarif' => 0,
-                'current_tarif' => $this->tarif_btkl
+                'current_tarif' => $this->tarif_per_produk
             ];
         }
 
-        $jumlahPegawai = $this->jabatan->pegawais->count();
-        $tarifPerJam = $this->jabatan->tarif_per_jam;
-        $expectedTarif = $tarifPerJam * $jumlahPegawai;
-        
-        $isConsistent = abs($this->tarif_btkl - $expectedTarif) < 0.01; // Toleransi 1 sen
+        $tarifPerProduk = $this->jabatan->tarif_produk ?? 0;
+        $isConsistent = abs($this->tarif_per_produk - $tarifPerProduk) < 0.01; // Toleransi 1 sen
         
         return [
             'is_consistent' => $isConsistent,
-            'message' => $isConsistent ? 'Tarif sesuai dengan kualifikasi' : 'Tarif tidak sesuai dengan kualifikasi pegawai',
-            'expected_tarif' => $expectedTarif,
-            'current_tarif' => $this->tarif_btkl,
-            'jabatan_name' => $this->jabatan->nama,
-            'jumlah_pegawai' => $jumlahPegawai,
-            'tarif_per_jam' => $tarifPerJam
+            'message' => $isConsistent ? 'Tarif sesuai dengan jabatan' : 'Tarif tidak sesuai dengan jabatan',
+            'expected_tarif' => $tarifPerProduk,
+            'current_tarif' => $this->tarif_per_produk,
+            'jabatan_name' => $this->jabatan->nama_jabatan ?? $this->jabatan->nama ?? '-',
+            'jumlah_pegawai' => $this->jumlah_pegawai,
+            'tarif_per_produk' => $tarifPerProduk
         ];
     }
 

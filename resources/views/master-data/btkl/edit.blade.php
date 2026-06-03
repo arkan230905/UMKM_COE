@@ -51,15 +51,15 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="nama_btkl" class="form-label">Nama Proses <span class="text-danger">*</span></label>
+                        <label for="nama_proses" class="form-label">Nama Proses <span class="text-danger">*</span></label>
                         <input type="text" 
-                               name="nama_btkl" 
-                               id="nama_btkl" 
-                               class="form-control @error('nama_btkl') is-invalid @enderror" 
-                               value="{{ old('nama_btkl', $btkl->nama_btkl) }}"
+                               name="nama_proses" 
+                               id="nama_proses" 
+                               class="form-control @error('nama_proses') is-invalid @enderror" 
+                               value="{{ old('nama_proses', $btkl->nama_proses) }}"
                                placeholder="Contoh: Penggorengan Adonan"
                                required>
-                        @error('nama_btkl')
+                        @error('nama_proses')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                         <small class="form-text text-muted">Nama proses produksi (contoh: Penggorengan Adonan, Pencampuran Bahan, dll)</small>
@@ -85,23 +85,30 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Tarif BTKL per Jam <span class="text-info">(Otomatis)</span></label>
+                        <label class="form-label">Tarif BTKL per Produk <span class="text-info">(Otomatis)</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">Rp/jam</span>
+                            <span class="input-group-text">Rp/produk</span>
                             <input type="text" 
-                                   id="tarif_per_jam_display" 
+                                   id="tarif_per_produk_display" 
                                    class="form-control" 
-                                   value="{{ number_format($btkl->tarif_per_jam, 0, ',', '.') }}"
+                                   value="{{ number_format($btkl->tarif_per_produk, 0, ',', '.') }}"
                                    readonly>
+                            <input type="hidden" 
+                                   name="tarif_per_produk" 
+                                   id="tarif_per_produk" 
+                                   value="{{ $btkl->tarif_per_produk }}">
                         </div>
-                        <small class="form-text text-muted">Dihitung otomatis: Tarif Jabatan × Jumlah Pegawai</small>
+                        <small class="form-text text-muted">Dihitung otomatis dari tarif jabatan</small>
                         
                         <div id="tarifCalculationDisplay" class="mt-2">
                             <div class="alert alert-info py-2">
-                                <span id="tarifCalculationText">Rp {{ number_format($btkl->jabatan->tarif ?? 0, 0, ',', '.') }} x {{ $btkl->jabatan->pegawais->count() ?? 0 }} pegawai = Rp {{ number_format($btkl->tarif_per_jam, 0, ',', '.') }}</span>
+                                <span id="tarifCalculationText">Rp {{ number_format($btkl->tarif_per_produk ?? 0, 0, ',', '.') }} per produk × {{ $btkl->jumlah_pegawai ?? 1 }} pegawai = Rp {{ number_format(($btkl->tarif_per_produk ?? 0) * ($btkl->jumlah_pegawai ?? 1), 0, ',', '.') }} total BTKL</span>
                             </div>
                         </div>
                     </div>
+                    
+                    {{-- Jumlah Pegawai (Hidden) --}}
+                    <input type="hidden" name="jumlah_pegawai" id="jumlah_pegawai" value="{{ $btkl->jumlah_pegawai ?? 1 }}">
 
                     <div class="col-md-6">
                         <label for="satuan" class="form-label">Satuan <span class="text-danger">*</span></label>
@@ -122,13 +129,13 @@
                     </div>
 
                     <div class="col-md-12">
-                        <label for="deskripsi_proses" class="form-label">Deskripsi Proses</label>
-                        <textarea name="deskripsi_proses" 
-                                  id="deskripsi_proses" 
-                                  class="form-control @error('deskripsi_proses') is-invalid @enderror" 
+                        <label for="deskripsi" class="form-label">Deskripsi Proses</label>
+                        <textarea name="deskripsi" 
+                                  id="deskripsi" 
+                                  class="form-control @error('deskripsi') is-invalid @enderror" 
                                   rows="3"
-                                  placeholder="Deskripsi detail proses produksi">{{ old('deskripsi_proses', $btkl->deskripsi_proses) }}</textarea>
-                        @error('deskripsi_proses')
+                                  placeholder="Deskripsi detail proses produksi">{{ old('deskripsi', $btkl->deskripsi) }}</textarea>
+                        @error('deskripsi')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -155,25 +162,35 @@ const employeeData = @json($employeeData ?? []);
 
 document.addEventListener('DOMContentLoaded', function() {
     const jabatanSelect = document.getElementById('jabatan_id');
-    const tarifDisplay = document.getElementById('tarif_per_jam_display');
+    const tarifDisplay = document.getElementById('tarif_per_produk_display');
     const tarifCalculationDisplay = document.getElementById('tarifCalculationDisplay');
     const tarifCalculationText = document.getElementById('tarifCalculationText');
     
-    let currentTarifBtkl = {{ $btkl->tarif_per_jam }};
+    let currentTarifPerProduk = {{ $btkl->tarif_per_produk ?? 0 }};
+    let currentJumlahPegawai = {{ $btkl->jumlah_pegawai ?? 1 }};
 
     function updateTarifCalculation(jabatan) {
         if (jabatan) {
-            const jumlahPegawai = jabatan.pegawai_count || 0;
-            const tarifPerJam = jabatan.tarif || 0;
-            currentTarifBtkl = tarifPerJam * jumlahPegawai;
+            const jumlahPegawai = jabatan.pegawai_count || 1;
+            const tarifPerProduk = jabatan.tarif_produk || jabatan.tarif || 0;
+            currentTarifPerProduk = tarifPerProduk;
+            currentJumlahPegawai = jumlahPegawai;
             
-            tarifDisplay.value = currentTarifBtkl.toLocaleString('id-ID');
-            tarifCalculationText.textContent = 'Rp ' + tarifPerJam.toLocaleString('id-ID') + ' x ' + jumlahPegawai + ' pegawai = Rp ' + currentTarifBtkl.toLocaleString('id-ID');
+            const totalBtkl = tarifPerProduk * jumlahPegawai;
+            
+            tarifDisplay.value = tarifPerProduk.toLocaleString('id-ID');
+            document.getElementById('tarif_per_produk').value = tarifPerProduk;
+            document.getElementById('jumlah_pegawai').value = jumlahPegawai;
+            
+            tarifCalculationText.textContent = 'Rp ' + tarifPerProduk.toLocaleString('id-ID') + ' per produk × ' + jumlahPegawai + ' pegawai = Rp ' + totalBtkl.toLocaleString('id-ID') + ' total BTKL';
             tarifCalculationDisplay.style.display = 'block';
         } else {
             tarifDisplay.value = '0';
+            document.getElementById('tarif_per_produk').value = 0;
+            document.getElementById('jumlah_pegawai').value = 1;
             tarifCalculationDisplay.style.display = 'none';
-            currentTarifBtkl = 0;
+            currentTarifPerProduk = 0;
+            currentJumlahPegawai = 1;
         }
     }
 

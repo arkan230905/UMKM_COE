@@ -19,6 +19,7 @@ class Aset extends Model
         'kode_aset',
         'nama_aset',
         'kategori_aset_id',
+        // REFACTOR: Removed 'jenis_aset' - Semua aset adalah aset tetap
         'harga_perolehan',
         'biaya_perolehan',
         'nilai_residu',
@@ -138,6 +139,9 @@ class Aset extends Model
 
     /**
      * Boot method untuk menangani event model
+     * 
+     * REFACTOR: Removed jenis_aset logic - Semua aset adalah aset tetap yang disusutkan
+     * PRESERVED: Logika penyusutan TIDAK DIUBAH
      */
     protected static function boot()
     {
@@ -159,11 +163,14 @@ class Aset extends Model
                 } while ($exists && $attempts < 5);
                 $model->kode_aset = $kode;
             }
+            
+            // REFACTOR: Semua aset adalah aset tetap, jadi selalu disusutkan
             $model->metode_penyusutan = $model->metode_penyusutan ?? 'garis_lurus';
             $model->nilai_residu = $model->nilai_residu ?? 0;
             $model->nilai_buku = ($model->harga_perolehan ?? 0) + ($model->biaya_perolehan ?? 0);
             $model->akumulasi_penyusutan = $model->akumulasi_penyusutan ?? 0;
             $model->status = $model->status ?? 'aktif';
+            
             if (Schema::hasColumn('asets', 'created_by')) {
                 $model->created_by = $model->created_by ?? Auth::id();
             }
@@ -195,6 +202,9 @@ class Aset extends Model
 
     /**
      * Hitung beban penyusutan tahunan
+     * 
+     * PRESERVED: Logika perhitungan TIDAK DIUBAH
+     * REFACTOR: Removed check perluDisusutkan() karena semua aset = aset tetap
      */
     public function hitungBebanPenyusutanTahunan(): float
     {
@@ -248,6 +258,12 @@ class Aset extends Model
     }
 
     /**
+     * REFACTOR: Removed perluDisusutkan(), isAsetTetap(), isAsetTidakTetap(), isAsetTidakBerwujud()
+     * Alasan: Semua aset adalah aset tetap yang perlu disusutkan
+     * Jika perlu cek, langsung return true karena semua aset = aset tetap
+     */
+
+    /**
      * Update nilai buku berdasarkan akumulasi penyusutan
      */
     public function updateNilaiBuku(): void
@@ -284,6 +300,9 @@ class Aset extends Model
 
     /**
      * Hitung akumulasi penyusutan sampai bulan saat ini
+     * 
+     * PRESERVED: Logika perhitungan TIDAK DIUBAH
+     * REFACTOR: Removed check perluDisusutkan() karena semua aset = aset tetap
      */
     public function hitungAkumulasiPenyusutanSaatIni(): float
     {

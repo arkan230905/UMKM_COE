@@ -48,15 +48,16 @@
                     <tbody>
                         @forelse($prosesProduksis as $proses)
                         @php
-                            // Mengambil jumlah pegawai dari relasi jabatan
-                            $jmlPegawai = $proses->jabatan->pegawais->count() ?? 0;
-                            // Rumus baru: Pegawai x Tarif
-                            $totalBiayaUnit = $jmlPegawai * $proses->tarif_btkl;
+                            // Mengambil jumlah pegawai dari data proses produksi
+                            $jmlPegawai = $proses->jumlah_pegawai ?? 0;
+                            $tarifPerProduk = $proses->tarif_per_produk ?? 0;
+                            // Rumus: Jumlah Pegawai x Tarif Per Produk
+                            $totalBiayaUnit = $jmlPegawai * $tarifPerProduk;
                         @endphp
                         <tr>
                             <td class="text-center fw-bold">{{ $proses->kode_proses }}</td>
                             <td>
-                                <div class="fw-bold">{{ $proses->nama_btkl ?? '-' }}</div>
+                                <div class="fw-bold">{{ $proses->nama_proses ?? '-' }}</div>
                                 <small class="text-muted">Proses Produksi</small>
                             </td>
                             <td>
@@ -72,7 +73,7 @@
                             </td>
                             <td>
                                 <div class="fw-bold text-success">
-                                    Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}
+                                    Rp {{ number_format($tarifPerProduk, 0, ',', '.') }}
                                 </div>
                             </td>
                             <td>
@@ -120,7 +121,7 @@
                         <h2 class="mb-0 fw-bold text-warning">
                             @php
                                 $totalAkhir = $prosesProduksis->sum(function($p) {
-                                    return ($p->jabatan->pegawais->count() ?? 0) * $p->tarif_btkl;
+                                    return ($p->jumlah_pegawai ?? 0) * ($p->tarif_per_produk ?? 0);
                                 });
                             @endphp
                             Rp {{ number_format($totalAkhir, 0, ',', '.') }}

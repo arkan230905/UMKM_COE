@@ -80,7 +80,16 @@
                                 <td><code>{{ $coa->kode_akun }}</code></td>
                                 <td>
                                     <span class="badge {{ $coa->tipe_akun == 'Asset' || $coa->tipe_akun == 'Aset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' || $coa->tipe_akun == 'Kewajiban' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' || $coa->tipe_akun == 'Modal' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' || $coa->tipe_akun == 'Pendapatan' ? 'bg-primary' : 'bg-danger'))) }}">
-                                        {{ $coa->tipe_akun }}
+                                        @php
+                                            echo match($coa->tipe_akun) {
+                                                'Asset' => 'Aset',
+                                                'Liability' => 'Kewajiban',
+                                                'Equity' => 'Modal',
+                                                'Revenue' => 'Pendapatan',
+                                                'Expense' => 'Beban',
+                                                default => $coa->tipe_akun,
+                                            };
+                                        @endphp
                                     </span>
                                 </td>
                                 <td class="text-center">
