@@ -67,7 +67,7 @@ class PembelianController extends Controller
         }
         
         // Sorting by nomor_pembelian (No. Transaksi)
-        $sortOrder = $request->get('sort_order', 'desc'); // Default: Terbaru ke Terlama
+        $sortOrder = $request->get('sort_order', 'asc'); // Default: Terlama ke Terbaru
         if ($sortOrder === 'asc') {
             $query->orderBy('nomor_pembelian', 'asc'); // Terlama ke Terbaru
         } else {
