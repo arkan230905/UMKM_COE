@@ -100,7 +100,9 @@
                             @else
                                 @foreach($prosesProduksi as $item)
                                     @php
-                                        $tarif = $item->tarif_btkl ?? 0;
+                                        $tarifPerProduk = $item->tarif_per_produk ?? 0;
+                                        $jumlahPegawai = $item->jumlah_pegawai ?? 1;
+                                        $totalBiaya = $tarifPerProduk * $jumlahPegawai;
                                     @endphp
                                     <div class="col-12 mb-3">
                                         <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #fff3cd 0%, #fef9e7 100%); border-left: 5px solid #ffc107 !important;">
@@ -108,7 +110,7 @@
                                                 <div class="form-check mb-0">
                                                     <input class="form-check-input btkl-checkbox" type="checkbox" 
                                                            name="selected_btkl[]" value="{{ $item->id }}" id="btkl_{{ $item->id }}"
-                                                           data-tarif="{{ $tarif }}"
+                                                           data-tarif="{{ $totalBiaya }}"
                                                            style="transform: scale(1.2); margin-top: 8px;">
                                                     <label class="form-check-label w-100" for="btkl_{{ $item->id }}">
                                                         <div class="row align-items-center">
@@ -125,12 +127,13 @@
                                                             </div>
                                                             <div class="col-md-3 text-center">
                                                                 <small class="text-muted d-block">Tarif/Produk</small>
-                                                                <strong class="text-dark">Rp {{ number_format($tarif, 0, ',', '.') }}</strong>
+                                                                <strong class="text-dark">Rp {{ number_format($tarifPerProduk, 0, ',', '.') }}</strong>
+                                                                <small class="text-muted d-block">× {{ $jumlahPegawai }} pegawai</small>
                                                             </div>
                                                             <div class="col-md-3 text-center">
                                                                 <div class="bg-warning bg-opacity-10 rounded p-2">
                                                                     <small class="text-muted d-block">Biaya/Produk</small>
-                                                                    <h5 class="mb-0 fw-bold text-warning">Rp {{ number_format($tarif, 0, ',', '.') }}</h5>
+                                                                    <h5 class="mb-0 fw-bold text-warning">Rp {{ number_format($totalBiaya, 0, ',', '.') }}</h5>
                                                                 </div>
                                                             </div>
                                                         </div>

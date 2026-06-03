@@ -63,14 +63,18 @@ class BtklApiController extends Controller
                 ], 404);
             }
 
+            $tarifPerProduk = $proses->tarif_per_produk ?? 0;
+            $jumlahPegawai = $proses->jumlah_pegawai ?? 1;
+            $totalTarif = $tarifPerProduk * $jumlahPegawai;
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'id' => $proses->id,
                     'nama_btkl' => $proses->nama_proses,
-                    'tarif_per_jam' => $proses->tarif_btkl,
-                    'kapasitas_per_jam' => $proses->kapasitas_per_jam,
-                    'satuan' => $proses->satuan_btkl ?? 'Jam',
+                    'tarif_per_produk' => $tarifPerProduk,
+                    'jumlah_pegawai' => $jumlahPegawai,
+                    'total_tarif' => $totalTarif,
                     'deskripsi_proses' => $proses->deskripsi,
                     'jabatan_id' => $proses->jabatan_id,
                     'updated_at' => $proses->updated_at->toISOString(),

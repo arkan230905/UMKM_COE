@@ -37,8 +37,8 @@ function hitungTotal() {
     const ppnEl = document.getElementById('ppn_persen');
     const ppnPersen = ppnEl ? (parseFloat(ppnEl.value) || 0) : 0;
 
-    // Calculate: PPN = (Subtotal Produk + Biaya Ongkir) × PPN%
-    const totalPPN   = Math.round((subtotalProduk + ongkir) * ppnPersen / 100);
+    // Calculate: PPN = Subtotal Produk × PPN% (ongkir tidak dikenakan PPN)
+    const totalPPN   = Math.round(subtotalProduk * ppnPersen / 100);
     const totalFinal = subtotalProduk + ongkir + totalPPN;
 
     function fmtIDR(n) { return Math.round(n).toLocaleString('id-ID'); }

@@ -86,7 +86,6 @@
                 <option value="">Pilih Role</option>
                 <option value="owner">Owner</option>
                 <option value="admin">Admin</option>
-                <option value="pegawai_pembelian">Pegawai Gudang</option>
                 <option value="kasir">Kasir</option>
             </select>
         </div>

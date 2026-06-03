@@ -29,8 +29,9 @@ class LoginController extends Controller
         // Get redirect URL and product info from query parameters
         $redirect = $request->get('redirect', 'pelanggan.dashboard');
         $productId = $request->get('product');
+        $perusahaan_slug = perusahaan_slug($perusahaan);
 
-        return view('pelanggan.auth.login-register', compact('redirect', 'productId', 'perusahaan'));
+        return view('pelanggan.auth.login-register', compact('redirect', 'productId', 'perusahaan', 'perusahaan_slug'));
     }
 
     /**

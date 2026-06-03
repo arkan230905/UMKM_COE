@@ -101,32 +101,17 @@ class ReturPenjualan extends Model
         $stockService = app(\App\Services\StockService::class);
         
         foreach ($this->detailReturPenjualans as $detail) {
-            // Get product to get current cost
-            $produk = \App\Models\Produk::find($detail->produk_id);
-            $unitCost = $produk ? $produk->hpp : 0;
-            
-            // Add stock back using StockService
-            $stockService->addLayerWithManualConversion(
+            // Consume/reduce stock for the replacement item
+            $stockService->consume(
                 'product',
                 $detail->produk_id,
                 $detail->qty_retur,
                 'pcs',
-                $unitCost,
-                'retur_penjualan',
+                'retur_penjualan_exchange',
                 $this->id,
-                $this->tanggal
+                $this->tanggal,
+                $this->user_id
             );
-            
-            // Create movement record for tracking
-            StockMovement::create([
-                'item_type' => 'product',
-                'item_id'   => $detail->produk_id,
-                'tanggal'   => $this->tanggal,
-                'direction' => 'in',
-                'qty'       => $detail->qty_retur,
-                'ref_type'  => 'retur_penjualan',
-                'ref_id'    => $this->id,
-            ]);
         }
 
         $this->status = 'selesai';
@@ -143,6 +128,18 @@ class ReturPenjualan extends Model
             $produk = \App\Models\Produk::find($detail->produk_id);
             $unitCost = $produk ? $produk->hpp : 0;
             
+            // Create movement record for tracking first, so StockService skips duplicating it
+            StockMovement::create([
+                'user_id'   => $this->user_id ?? auth()->id(),
+                'item_type' => 'product',
+                'item_id'   => $detail->produk_id,
+                'tanggal'   => $this->tanggal,
+                'direction' => 'in',
+                'qty'       => $detail->qty_retur,
+                'ref_type'  => 'retur_penjualan',
+                'ref_id'    => $this->id,
+            ]);
+            
             // Add stock back using StockService
             $stockService->addLayerWithManualConversion(
                 'product',
@@ -155,16 +152,11 @@ class ReturPenjualan extends Model
                 $this->tanggal
             );
             
-            // Create movement record for tracking
-            StockMovement::create([
-                'item_type' => 'product',
-                'item_id'   => $detail->produk_id,
-                'tanggal'   => $this->tanggal,
-                'direction' => 'in',
-                'qty'       => $detail->qty_retur,
-                'ref_type'  => 'retur_penjualan',
-                'ref_id'    => $this->id,
-            ]);
+            // Increment the product stock for the returned item
+            if ($produk) {
+                $produk->stok = (float)($produk->stok ?? 0) + $detail->qty_retur;
+                $produk->save();
+            }
         }
 
         $this->status = 'lunas';
@@ -173,8 +165,15 @@ class ReturPenjualan extends Model
 
     private function processKredit()
     {
+        $stockService = app(\App\Services\StockService::class);
+        
         foreach ($this->detailReturPenjualans as $detail) {
+            $produk = \App\Models\Produk::find($detail->produk_id);
+            $unitCost = $produk ? $produk->hpp : 0;
+            
+            // Create movement record for tracking first, so StockService skips duplicating it
             StockMovement::create([
+                'user_id'   => $this->user_id ?? auth()->id(),
                 'item_type' => 'product',
                 'item_id'   => $detail->produk_id,
                 'tanggal'   => $this->tanggal,
@@ -183,6 +182,23 @@ class ReturPenjualan extends Model
                 'ref_type'  => 'retur_penjualan',
                 'ref_id'    => $this->id,
             ]);
+            
+            // Add stock back using StockService
+            $stockService->addLayerWithManualConversion(
+                'product',
+                $detail->produk_id,
+                $detail->qty_retur,
+                'pcs',
+                $unitCost,
+                'retur_penjualan',
+                $this->id,
+                $this->tanggal
+            );
+            
+            if ($produk) {
+                $produk->stok = (float)($produk->stok ?? 0) + $detail->qty_retur;
+                $produk->save();
+            }
         }
 
         $this->status = 'belum_dibayar';

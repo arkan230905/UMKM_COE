@@ -493,18 +493,66 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">NO</th>
-                            <th>Nomor Transaksi</th>
-                            <th>Tanggal</th>
-                            <th>Pembayaran</th>
-                            <th>Produk</th>
-                            <th class="text-end">Qty</th>
-                            <th class="text-end">Harga/Satuan</th>
-                            <th class="text-end">HPP</th>
-                            <th class="text-end">Profit</th>
-                            <th class="text-end">Diskon</th>
-                            <th class="text-end">Total</th>
-                            <th>Qty Retur</th>
+                            <th class="text-center" style="width: 50px">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'no', 'sort_dir' => request('sort_by') === 'no' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    NO @if(request('sort_by') === 'no') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nomor_transaksi', 'sort_dir' => request('sort_by') === 'nomor_transaksi' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    No Transaksi @if(request('sort_by') === 'nomor_transaksi') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'tanggal', 'sort_dir' => request('sort_by') === 'tanggal' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Tanggal @if(request('sort_by') === 'tanggal') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'pembayaran', 'sort_dir' => request('sort_by') === 'pembayaran' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Pembayaran @if(request('sort_by') === 'pembayaran') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'pelanggan', 'sort_dir' => request('sort_by') === 'pelanggan' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Pelanggan @if(request('sort_by') === 'pelanggan') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'produk', 'sort_dir' => request('sort_by') === 'produk' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Produk @if(request('sort_by') === 'produk') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th class="text-end">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'qty', 'sort_dir' => request('sort_by') === 'qty' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Qty @if(request('sort_by') === 'qty') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th class="text-end">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'harga', 'sort_dir' => request('sort_by') === 'harga' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Harga/Satuan @if(request('sort_by') === 'harga') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th class="text-end">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'diskon', 'sort_dir' => request('sort_by') === 'diskon' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Diskon @if(request('sort_by') === 'diskon') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th class="text-end">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'ongkir', 'sort_dir' => request('sort_by') === 'ongkir' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Ongkir @if(request('sort_by') === 'ongkir') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th class="text-end">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'total', 'sort_dir' => request('sort_by') === 'total' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Total @if(request('sort_by') === 'total') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
+                            <th>
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'qty_retur', 'sort_dir' => request('sort_by') === 'qty_retur' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                    Qty Retur @if(request('sort_by') === 'qty_retur') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                </a>
+                            </th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -523,6 +571,9 @@
                                             @default Tidak Diketahui
                                         @endswitch
                                     </span>
+                                </td>
+                                <td>
+                                    {{ $penjualan->pelanggan?->nama_pelanggan ?? 'Umum' }}
                                 </td>
                                 @php $detailCount = $penjualan->details->count(); @endphp
                                 <td>
@@ -608,50 +659,6 @@
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
-                                        <div class="multi-hpp">
-                                            @foreach($penjualan->details as $d)
-                                                <div class="hpp-item">Rp {{ number_format($d->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}</div>
-                                            @endforeach
-                                        </div>
-                                    @elseif($detailCount === 1)
-                                        <div class="single-hpp">
-                                            Rp {{ number_format($penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}
-                                        </div>
-                                    @else
-                                        <div class="single-hpp">
-                                            @php
-                                                $hppValue = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
-                                            @endphp
-                                            Rp {{ number_format($hppValue, 0, ',', '.') }}
-                                        </div>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @if($detailCount > 1)
-                                        <div class="multi-profit">
-                                            @foreach($penjualan->details as $d)
-                                                @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah; @endphp
-                                                <div class="profit-item {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
-                                            @endforeach
-                                        </div>
-                                    @elseif($detailCount === 1)
-                                        <div class="single-profit">
-                                            @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
-                                            <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
-                                        </div>
-                                    @else
-                                        <div class="single-profit">
-                                            @php
-                                                $hppValue = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
-                                                $hargaSatuan = $penjualan->harga_satuan ?? 0;
-                                                $margin = ($hargaSatuan - $hppValue) * ($penjualan->jumlah ?? 0);
-                                            @endphp
-                                            <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
-                                        </div>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @if($detailCount > 1)
                                         <div class="multi-discount">
                                             @foreach($penjualan->details as $d)
                                                 @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
@@ -680,6 +687,9 @@
                                             {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                         </div>
                                     @endif
+                                </td>
+                                <td class="text-end">
+                                    Rp {{ number_format($penjualan->biaya_ongkir ?? 0, 0, ',', '.') }}
                                 </td>
                                 <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->grand_total ?? $penjualan->total, 0, ',', '.') }}</strong></td>
                                 <td>

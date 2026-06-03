@@ -127,6 +127,15 @@ select.form-select {
         </div>
     @endif
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(!session('show_upload_section'))
+    <!-- Form Pembelian (hidden after save) -->
     <form action="{{ route('transaksi.pembelian.store') }}" method="POST" enctype="multipart/form-data" onsubmit="debugFormData(this)">
         @csrf
         
@@ -153,18 +162,6 @@ select.form-select {
                     @error('nomor_faktur')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label">Bukti Faktur <span class="text-danger">*</span></label>
-                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,application/pdf" required onchange="previewBuktiFaktur(this)">
-                    <small class="text-muted">Format: JPG, PNG, PDF (Max: 2MB)</small>
-                    @error('bukti_faktur')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
-                    <div id="bukti_faktur_preview" class="mt-2" style="display: none;">
-                        <img id="bukti_faktur_img" src="#" alt="Preview" style="max-width: 200px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
                 </div>
                 
                 <div class="col-md-3">
@@ -584,6 +581,69 @@ select.form-select {
             </button>
         </div>
     </form>
+    @endif
+
+    <!-- Upload Bukti Faktur Section (shown after pembelian is saved) -->
+    @if(session('show_upload_section') && session('pembelian_id'))
+    <div class="form-section" id="upload-bukti-section">
+        <div class="section-header bg-success text-white">
+            <h6 class="mb-0 text-white"><i class="fas fa-check-circle me-2"></i>Pembelian Berhasil Disimpan!</h6>
+        </div>
+        
+        <div class="alert alert-success">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Data pembelian telah tersimpan.</strong> Silakan upload bukti faktur untuk melengkapi data pembelian.
+        </div>
+
+        <!-- Form Upload Bukti Faktur -->
+        <form action="{{ route('transaksi.pembelian.upload-bukti-faktur', session('pembelian_id')) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Upload Bukti Faktur <span class="text-danger">*</span></label>
+                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,application/pdf" required onchange="previewBuktiFaktur(this)">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Format: JPG, PNG, PDF | Maksimal: 2MB
+                    </small>
+                    @error('bukti_faktur')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                    
+                    <div id="bukti_faktur_preview" class="mt-3" style="display: none;">
+                        <p class="small text-muted mb-2">Preview:</p>
+                        <img id="bukti_faktur_img" src="#" alt="Preview" style="max-width: 300px; max-height: 200px; border: 2px solid #dee2e6; border-radius: 8px; padding: 5px;">
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Informasi</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li>Bukti faktur diperlukan untuk kelengkapan data pembelian</li>
+                                <li>File yang diupload akan tersimpan dengan aman</li>
+                                <li>Anda dapat mengganti bukti faktur kapan saja dari halaman detail pembelian</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Lewati (Upload Nanti)
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-upload me-2"></i>Upload Bukti Faktur
+                </button>
+            </div>
+        </form>
+    </div>
+    @endif
 </div>
 
 <script>

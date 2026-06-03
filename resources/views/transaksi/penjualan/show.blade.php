@@ -2,14 +2,267 @@
 
 @section('title', 'Detail Penjualan')
 
+@push('styles')
+<style>
+    /* Theme color styling */
+    .bg-theme-gradient {
+        background: linear-gradient(135deg, var(--brown), var(--brown-light)) !important;
+        color: white;
+    }
+    .text-theme {
+        color: var(--brown) !important;
+    }
+    .text-theme-light {
+        color: var(--brown-light) !important;
+    }
+    
+    /* Modern card styles */
+    .card-modern {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+        overflow: hidden;
+        background-color: #fff;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    .card-modern:hover {
+        box-shadow: 0 10px 35px rgba(0,0,0,0.06);
+    }
+    .card-modern .card-header {
+        border-bottom: 1px solid #f3efea;
+        background-color: #fff;
+        padding: 1.25rem 1.5rem;
+    }
+    .card-modern .card-header-theme {
+        background: linear-gradient(135deg, var(--brown), var(--brown-light)) !important;
+        color: white !important;
+        padding: 1.25rem 1.5rem;
+        border: none;
+    }
+    .card-modern .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Transaction info items */
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        background-color: #faf7f2;
+        border: 1px solid #f1eae1;
+        height: 100%;
+        transition: all 0.2s ease;
+    }
+    .info-item:hover {
+        background-color: #f7ece1;
+        border-color: #e5d7c6;
+    }
+    .info-item-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(92, 61, 46, 0.08);
+        color: var(--brown);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+    .info-item-content {
+        flex-grow: 1;
+    }
+    .info-item-label {
+        font-size: 0.8rem;
+        color: #7c7267;
+        margin-bottom: 2px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .info-item-value {
+        font-size: 0.95rem;
+        color: #3e3327;
+        font-weight: 600;
+    }
+    
+    /* Transaction summary items */
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: background-color 0.2s ease;
+    }
+    .summary-item:hover {
+        background-color: rgba(92, 61, 46, 0.03);
+    }
+    .summary-item-label {
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .grand-total-box {
+        background: linear-gradient(135deg, #fdfaf6, #f5efe6);
+        border: 1px dashed var(--brown-light);
+        border-radius: 12px;
+        padding: 18px;
+        margin-top: 15px;
+        text-align: center;
+    }
+    
+    /* Tabs styling */
+    .nav-tabs-modern {
+        border-bottom: 2px solid #f1eae1;
+        gap: 10px;
+    }
+    .nav-tabs-modern .nav-link {
+        border: none !important;
+        border-bottom: 3px solid transparent !important;
+        color: #8c8276 !important;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 0 !important;
+        transition: all 0.3s ease;
+        background: transparent !important;
+    }
+    .nav-tabs-modern .nav-link:hover {
+        color: var(--brown) !important;
+        border-bottom-color: rgba(92, 61, 46, 0.3) !important;
+    }
+    .nav-tabs-modern .nav-link.active {
+        color: var(--brown) !important;
+        border-bottom-color: var(--brown) !important;
+        font-weight: 700;
+    }
+    
+    /* Table modern styling */
+    .table-modern {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        margin-bottom: 0;
+    }
+    .table-modern th {
+        background-color: #faf7f2;
+        border-bottom: 2px solid #eeddcc !important;
+        color: var(--brown);
+        font-weight: 600;
+        padding: 12px 16px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .table-modern td {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1eae1;
+        color: #4a3e3d;
+    }
+    .table-modern tr:last-child td {
+        border-bottom: none;
+    }
+    .table-modern tbody tr:hover {
+        background-color: #faf9f6;
+    }
+    
+    /* Modern buttons grid */
+    .btn-action-modern {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 15px 10px;
+        border-radius: 12px;
+        border: 1px solid #f1eae1;
+        background-color: #fff;
+        color: #7c7267;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        text-decoration: none !important;
+        font-weight: 600;
+    }
+    .btn-action-modern i {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        transition: transform 0.3s ease;
+    }
+    .btn-action-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(92, 61, 46, 0.1);
+        border-color: var(--brown-light);
+    }
+    
+    /* Theme buttons variants */
+    .btn-action-detail:hover { color: #2e7d32; border-color: #81c784; background-color: #f1f8e9; }
+    .btn-action-edit:hover { color: #f57f17; border-color: #fff176; background-color: #fffde7; }
+    .btn-action-jurnal:hover { color: #1565c0; border-color: #90caf9; background-color: #e3f2fd; }
+    .btn-action-print:hover { color: #37474f; border-color: #b0bec5; background-color: #eceff1; }
+    .btn-action-retur:hover { color: #00838f; border-color: #80deea; background-color: #e0f7fa; }
+    .btn-action-delete:hover { color: #c62828; border-color: #ef9a9a; background-color: #ffebee; }
+
+    /* Custom badges */
+    .badge-theme-success {
+        background-color: rgba(46, 125, 50, 0.1);
+        color: #2e7d32;
+        border: 1px solid rgba(46, 125, 50, 0.2);
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+    }
+    .badge-theme-warning {
+        background-color: rgba(245, 127, 23, 0.1);
+        color: #e65100;
+        border: 1px solid rgba(245, 127, 23, 0.2);
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+    }
+    .badge-theme-danger {
+        background-color: rgba(198, 40, 40, 0.1);
+        color: #c62828;
+        border: 1px solid rgba(198, 40, 40, 0.2);
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+    }
+    
+    /* Layout styling overrides */
+    .btn-back-theme {
+        border: 1px solid var(--brown-light);
+        color: var(--brown);
+        font-weight: 500;
+        border-radius: 8px;
+        padding: 8px 18px;
+        transition: all 0.2s;
+        background-color: #fff;
+        text-decoration: none;
+    }
+    .btn-back-theme:hover {
+        background-color: var(--brown);
+        color: white;
+        border-color: var(--brown);
+    }
+</style>
+@endpush
+
 @section('content')
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="mb-0">
-            <i class="fas fa-eye me-2"></i>Detail Transaksi Penjualan
-        </h3>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-            <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-secondary">
+            <h3 class="mb-1 text-theme fw-bold">
+                <i class="fas fa-eye me-2"></i>Detail Transaksi Penjualan
+            </h3>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                Kelola, tinjau, dan cetak detail transaksi penjualan Anda.
+            </p>
+        </div>
+        <div>
+            <a href="{{ route('transaksi.penjualan.index') }}" class="btn-back-theme">
                 <i class="fas fa-arrow-left me-2"></i>Kembali
             </a>
         </div>
@@ -86,55 +339,107 @@
     @endphp
 
     {{-- Row 1: Informasi Transaksi + Ringkasan --}}
-    <div class="row">
+    <div class="row g-4">
         <div class="col-md-8">
-            <div class="card h-100">
+            <div class="card card-modern h-100">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Transaksi</h5>
+                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-info-circle me-2"></i>Informasi Transaksi</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <strong>Nomor Transaksi:</strong><br>
-                            <span class="text-primary">{{ $penjualan->nomor_penjualan ?? '-' }}</span>
+                            <div class="info-item">
+                                <div class="info-item-icon">
+                                    <i class="fas fa-hashtag"></i>
+                                </div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Nomor Transaksi</div>
+                                    <div class="info-item-value text-theme-light">{{ $penjualan->nomor_penjualan ?? '-' }}</div>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <strong>Tanggal:</strong><br>
-                            {{ optional($penjualan->tanggal)->format('d-m-Y') ?? $penjualan->tanggal }}
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Metode Pembayaran:</strong><br>
-                            <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                @switch($penjualan->payment_method ?? '')
-                                    @case('cash') Tunai @break
-                                    @case('transfer') Transfer Bank @break
-                                    @case('credit') Kredit @break
-                                    @default Tidak Diketahui
-                                @endswitch
-                            </span>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Status Transaksi:</strong><br>
-                            <span class="badge {{ ($penjualan->status ?? 'lunas') === 'lunas' ? 'bg-success' : 'bg-warning' }}">
-                                {{ ucfirst($penjualan->status ?? 'lunas') }}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <strong>Qty Retur:</strong><br>
-                            @php $totalQtyRetur = $penjualan->total_qty_retur ?? 0; @endphp
-                            @if($totalQtyRetur > 0)
-                                <span class="badge bg-danger">{{ (int)$totalQtyRetur }}</span>
-                            @else
-                                <span class="badge bg-success">0</span>
-                            @endif
+                            <div class="info-item">
+                                <div class="info-item-icon">
+                                    <i class="far fa-calendar-alt"></i>
+                                </div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Tanggal</div>
+                                    <div class="info-item-value">
+                                        @if(is_a($penjualan->tanggal, 'Carbon\Carbon'))
+                                            {{ $penjualan->tanggal->isoFormat('D MMMM YYYY') }}
+                                        @else
+                                            {{ \Carbon\Carbon::parse($penjualan->tanggal)->isoFormat('D MMMM YYYY') }}
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <strong>Catatan:</strong><br>
-                            {{ $penjualan->catatan ?? '-' }}
+                            <div class="info-item">
+                                <div class="info-item-icon">
+                                    <i class="fas fa-wallet"></i>
+                                </div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Metode Pembayaran</div>
+                                    <div class="info-item-value">
+                                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'badge-theme-warning' : 'badge-theme-success' }}">
+                                            @switch($penjualan->payment_method ?? '')
+                                                @case('cash') Tunai @break
+                                                @case('transfer') Transfer Bank @break
+                                                @case('credit') Kredit @break
+                                                @default Tidak Diketahui
+                                            @endswitch
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <div class="info-item-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Status Transaksi</div>
+                                    <div class="info-item-value">
+                                        <span class="badge {{ ($penjualan->status ?? 'lunas') === 'lunas' ? 'badge-theme-success' : 'badge-theme-warning' }}">
+                                            {{ ucfirst($penjualan->status ?? 'lunas') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <div class="info-item-icon">
+                                    <i class="fas fa-undo"></i>
+                                </div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Qty Retur</div>
+                                    <div class="info-item-value">
+                                        @php $totalQtyRetur = $penjualan->total_qty_retur ?? 0; @endphp
+                                        @if($totalQtyRetur > 0)
+                                            <span class="badge badge-theme-danger">{{ (int)$totalQtyRetur }}</span>
+                                        @else
+                                            <span class="badge badge-theme-success">0</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <div class="info-item-icon">
+                                    <i class="far fa-comment-dots"></i>
+                                </div>
+                                <div class="info-item-content">
+                                    <div class="info-item-label">Catatan</div>
+                                    <div class="info-item-value text-muted" style="font-weight: 500;">
+                                        {{ $penjualan->catatan ?? '-' }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -142,65 +447,52 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100">
+            <div class="card card-modern h-100">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h5>
+                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h5>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Subtotal Produk:</span>
-                            <strong class="text-primary">Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</strong>
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="summary-item">
+                            <span class="summary-item-label">Subtotal Produk</span>
+                            <strong class="text-theme-light">Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</strong>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Total HPP:</span>
-                            <strong class="text-info">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
+                        <div class="summary-item">
+                            <span class="summary-item-label">Total HPP</span>
+                            <strong class="text-muted">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Total Profit:</span>
+                        <div class="summary-item" style="background-color: rgba(46, 125, 50, 0.04); border-radius: 8px;">
+                            <span class="summary-item-label text-success">Total Profit</span>
                             <strong class="{{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
                         </div>
-                    </div>
-                    
-                    {{-- Additional Costs --}}
-                    @if($biayaOngkir > 0)
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Biaya Ongkir:</span>
+                        
+                        {{-- Additional Costs --}}
+                        @if($biayaOngkir > 0)
+                        <div class="summary-item">
+                            <span class="summary-item-label">Biaya Ongkir</span>
                             <strong class="text-secondary">Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</strong>
                         </div>
-                    </div>
-                    @endif
-                    
-                    @if($biayaPPN > 0)
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Biaya PPN:</span>
-                            <strong class="text-warning">Rp {{ number_format($biayaPPN, 0, ',', '.') }}</strong>
+                        @endif
+                        
+                        @if($biayaPPN > 0)
+                        <div class="summary-item">
+                            <span class="summary-item-label">Biaya PPN (11%)</span>
+                            <strong class="text-warning-theme text-theme-light">Rp {{ number_format($biayaPPN, 0, ',', '.') }}</strong>
                         </div>
-                    </div>
-                    @endif
+                        @endif
 
-                    @if($totalDiskon > 0)
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Total Diskon:</span>
+                        @if($totalDiskon > 0)
+                        <div class="summary-item" style="background-color: rgba(198, 40, 40, 0.04); border-radius: 8px;">
+                            <span class="summary-item-label text-danger">Total Diskon</span>
                             <strong class="text-danger">-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</strong>
                         </div>
+                        @endif
                     </div>
-                    @endif
                     
-                    <hr>
-                    <div class="mb-0">
-                        <div class="d-flex justify-content-between">
-                            <span><strong>Total Penjualan:</strong></span>
-                            <strong class="text-dark fs-5">Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
-                        </div>
-                        <small class="text-muted d-block mt-1">
+                    <div class="grand-total-box">
+                        <small class="text-muted d-block mb-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Total Penjualan</small>
+                        <div class="fw-bold fs-4 text-theme">Rp {{ number_format($grandTotal, 0, ',', '.') }}</div>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
                             *Termasuk PPN, Ongkir & Servis
                         </small>
                     </div>
@@ -213,7 +505,7 @@
     <div class="row mt-4">
         <div class="col-12">
             {{-- Tab Navigation --}}
-            <ul class="nav nav-tabs" id="penjualanTabs" role="tablist">
+            <ul class="nav nav-tabs nav-tabs-modern mb-4" id="penjualanTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="detail-tab" data-bs-toggle="tab" data-bs-target="#detail-pane" type="button" role="tab" aria-controls="detail-pane" aria-selected="true">
                         <i class="fas fa-list me-2"></i>Detail Transaksi
@@ -239,14 +531,14 @@
                 <div class="tab-pane fade show active" id="detail-pane" role="tabpanel" aria-labelledby="detail-tab">
                     <div class="row">
                         <div class="col-md-8">
-                            <div class="card">
+                            <div class="card card-modern mb-4">
                                 <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-box me-2"></i>Detail Produk</h5>
+                                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-box me-2"></i>Detail Produk</h5>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-sm mb-0">
-                                            <thead class="table-light">
+                                        <table class="table table-modern mb-0">
+                                            <thead>
                                                 <tr>
                                                     <th>Produk</th>
                                                     <th class="text-end">Qty</th>
@@ -270,11 +562,11 @@
                                                             $subtotal = $detail->subtotal ?? ($detail->jumlah * $detail->harga_satuan - $diskonNomDetail);
                                                         @endphp
                                                         <tr>
-                                                            <td>{{ $detail->produk->nama_produk ?? '-' }}</td>
+                                                            <td class="fw-semibold">{{ $detail->produk->nama_produk ?? '-' }}</td>
                                                             <td class="text-end">{{ rtrim(rtrim(number_format($detail->jumlah,2,',','.'),'0'),',') }}</td>
                                                             <td class="text-end">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
-                                                            <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                                            <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                                            <td class="text-end text-muted">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                                            <td class="text-end {{ $margin > 0 ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
                                                             @if($totalDiskon > 0)
                                                             <td class="text-end text-danger">
                                                                 @if(($detail->diskon_persen ?? 0) > 0)
@@ -285,7 +577,7 @@
                                                                 @endif
                                                             </td>
                                                             @endif
-                                                            <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                                            <td class="text-end fw-semibold">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                                         </tr>
                                                     @endforeach
                                                 @else
@@ -298,17 +590,17 @@
                                                         $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
                                                     @endphp
                                                     <tr>
-                                                        <td>{{ $penjualan->produk?->nama_produk ?? '-' }}</td>
+                                                        <td class="fw-semibold">{{ $penjualan->produk?->nama_produk ?? '-' }}</td>
                                                         <td class="text-end">{{ rtrim(rtrim(number_format($penjualan->jumlah,2,',','.'),'0'),',') }}</td>
                                                         <td class="text-end">Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}</td>
-                                                        <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                                        <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                                        <td class="text-end text-muted">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                                        <td class="text-end {{ $margin > 0 ? 'text-success fw-semibold' : 'text-danger fw-semibold' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
                                                         @if($totalDiskon > 0)
                                                         <td class="text-end text-danger">
                                                             -Rp {{ number_format($totalDiskon, 0, ',', '.') }}
                                                         </td>
                                                         @endif
-                                                        <td class="text-end">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
+                                                        <td class="text-end fw-semibold">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
                                                     </tr>
                                                 @endif
                                             </tbody>
@@ -317,47 +609,57 @@
                                 </div>
                             </div>
                         </div>
-
+ 
                         <div class="col-md-4">
-                            <div class="card">
+                            <div class="card card-modern mb-4">
                                 <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Aksi</h5>
+                                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-cogs me-2"></i>Aksi Transaksi</h5>
                                 </div>
                                 <div class="card-body">
-                                    {{-- Baris pertama: Detail, Edit, Jurnal --}}
-                                    <div class="mb-4">
-                                        <div class="d-flex gap-2 justify-content-center">
-                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn btn-outline-success btn-sm flex-fill text-center">
-                                                <i class="fas fa-eye d-block mb-1"></i><small>Detail</small>
+                                    <div class="row g-2">
+                                        <div class="col-4">
+                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn-action-modern btn-action-detail">
+                                                <i class="fas fa-eye text-success"></i>
+                                                <small class="mt-1">Detail</small>
                                             </a>
-                                            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-outline-warning btn-sm flex-fill text-center">
-                                                <i class="fas fa-edit d-block mb-1"></i><small>Edit</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-action-modern btn-action-edit">
+                                                <i class="fas fa-edit text-warning"></i>
+                                                <small class="mt-1">Edit</small>
                                             </a>
-                                            <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary btn-sm flex-fill text-center">
-                                                <i class="fas fa-book d-block mb-1"></i><small>Jurnal</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-action-modern btn-action-jurnal">
+                                                <i class="fas fa-book text-primary"></i>
+                                                <small class="mt-1">Jurnal</small>
                                             </a>
+                                        </div>
+                                        <div class="col-4">
+                                            <a href="#" onclick="showStrukTab()" class="btn-action-modern btn-action-print">
+                                                <i class="fas fa-print text-secondary"></i>
+                                                <small class="mt-1">Cetak</small>
+                                            </a>
+                                        </div>
+                                        <div class="col-4">
+                                            <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-action-modern btn-action-retur">
+                                                <i class="fas fa-undo text-info"></i>
+                                                <small class="mt-1">Retur</small>
+                                            </a>
+                                        </div>
+                                        <div class="col-4">
+                                            <button type="button" onclick="confirmDeletePenjualan({{ $penjualan->id }})" class="btn-action-modern btn-action-delete w-100">
+                                                <i class="fas fa-trash text-danger"></i>
+                                                <small class="mt-1">Hapus</small>
+                                            </button>
                                         </div>
                                     </div>
                                     
-                                    {{-- Baris kedua: Cetak, Retur, Hapus --}}
-                                    <div>
-                                        <div class="d-flex gap-2 justify-content-center">
-                                            <a href="#" onclick="showStrukTab()" class="btn btn-outline-secondary btn-sm flex-fill text-center">
-                                                <i class="fas fa-print d-block mb-1"></i><small>Cetak</small>
-                                            </a>
-                                            <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn btn-outline-info btn-sm flex-fill text-center">
-                                                <i class="fas fa-undo d-block mb-1"></i><small>Retur</small>
-                                            </a>
-                                            <button type="button" onclick="confirmDeletePenjualan({{ $penjualan->id }})" class="btn btn-outline-danger btn-sm flex-fill text-center">
-                                                <i class="fas fa-trash d-block mb-1"></i><small>Hapus</small>
-                                            </button>
-                                        </div>
-                                        <!-- Hidden form for delete -->
-                                        <form id="deletePenjualanForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
-                                            @csrf
-                                            @method('DELETE')
-                                        </form>
-                                    </div>
+                                    <!-- Hidden form for delete -->
+                                    <form id="deletePenjualanForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -366,9 +668,9 @@
                     {{-- Bukti Pembayaran Section --}}
                     <div class="row mt-4">
                         <div class="col-12">
-                            <div class="card">
+                            <div class="card card-modern mb-4">
                                 <div class="card-header">
-                                    <h5 class="mb-0"><i class="fas fa-file-image me-2"></i>Bukti Pembayaran</h5>
+                                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-file-image me-2"></i>Bukti Pembayaran</h5>
                                 </div>
                                 <div class="card-body">
                                     @php
@@ -398,7 +700,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="submit" class="btn btn-primary">
+                                            <button type="submit" class="btn btn-back-theme px-4" style="background-color: var(--brown); color: white;">
                                                 <i class="fas fa-upload me-2"></i>Upload Bukti
                                             </button>
                                         </form>
@@ -473,10 +775,10 @@
                 <div class="tab-pane fade" id="struk-pane" role="tabpanel" aria-labelledby="struk-tab">
                     <div class="row justify-content-center">
                         <div class="col-12 col-md-6 col-lg-4">
-                            <div class="card">
+                            <div class="card card-modern mb-4">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Struk Penjualan</h5>
-                                    <button type="button" class="btn btn-primary" onclick="printStruk()">
+                                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-receipt me-2"></i>Struk Penjualan</h5>
+                                    <button type="button" class="btn btn-back-theme" style="background-color: var(--brown); color: white;" onclick="printStruk()">
                                         <i class="fas fa-print me-2"></i>Cetak Struk
                                     </button>
                                 </div>

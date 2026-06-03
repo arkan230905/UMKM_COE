@@ -3023,6 +3023,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [PembelianController::class, 'index'])->name('index');
             Route::get('/create', [PembelianController::class, 'create'])->name('create');
             Route::post('/', [PembelianController::class, 'store'])->name('store');
+            Route::post('/{id}/upload-bukti-faktur', [PembelianController::class, 'uploadBuktiFaktur'])->name('upload-bukti-faktur');
             Route::get('/{pembelian}', [PembelianController::class, 'show'])->name('show');
             Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');

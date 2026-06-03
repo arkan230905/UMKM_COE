@@ -476,7 +476,7 @@
 
             ongkirDisplay.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status"></span> Menghitung...';
             
-            fetch('{{ route("pelanggan.checkout.ongkir") }}', {
+            fetch('{{ route("pelanggan.checkout.ongkir", ["perusahaan_slug" => request()->route("perusahaan_slug")]) }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

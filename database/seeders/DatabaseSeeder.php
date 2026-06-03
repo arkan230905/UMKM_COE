@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,
             CoaTemplateSeeder::class,
             JasukeCoaSeeder::class, // Memastikan COA Jasuke masuk terakhir
+            CoaAyamSeeder::class,   // COA untuk usaha Ayam Crispy
         ]);
     }
 }

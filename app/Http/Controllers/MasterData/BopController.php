@@ -32,8 +32,7 @@ class BopController extends Controller
 
             // 🔒 MULTI-TENANT: Get production processes for logged-in user only
             $prosesProduksis = ProsesProduksi::where('user_id', auth()->id())
-                ->where('kapasitas_per_jam', '>', 0)
-->orderBy('kode_proses')
+                ->orderBy('kode_proses')
                 ->get();
 
             // Prepare BTKL data for auto-fill functionality
@@ -44,13 +43,14 @@ class BopController extends Controller
                     $jabatan = \App\Models\Jabatan::find($proses->jabatan_id);
                 }
                 
-                $tarifBtkl = $proses->tarif_btkl ?? 0;
+                $tarifPerProduk = $proses->tarif_per_produk ?? 0;
+                $jumlahPegawai = $proses->jumlah_pegawai ?? 1;
+                $tarifBtkl = $tarifPerProduk * $jumlahPegawai;
                 
                 $btklData[$proses->id] = [
-                    'kapasitas_per_jam' => $proses->kapasitas_per_jam,
                     'tarif_btkl_per_jam' => $tarifBtkl,
                     'nama_btkl' => $proses->nama_proses,
-                    'jabatan' => $jabatan ? $jabatan->nama_jabatan : 'Tidak diketahui'
+                    'jabatan' => $jabatan ? ($jabatan->nama_jabatan ?? $jabatan->nama) : 'Tidak diketahui'
                 ];
             }
 
@@ -282,9 +282,8 @@ class BopController extends Controller
     {
         $prosesId = $request->get('proses_id');
         
-        // Get all processes with capacity (allow both with and without BOP for editing)
-        $availableProses = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
-            ->when($prosesId, function($query, $prosesId) {
+        // Get all processes (allow both with and without BOP for editing)
+        $availableProses = ProsesProduksi::when($prosesId, function($query, $prosesId) {
                 return $query->where('id', $prosesId);
             })
             ->orderBy('nama_proses')
@@ -292,7 +291,7 @@ class BopController extends Controller
 
         if ($availableProses->isEmpty()) {
             return redirect()->route('master-data.bop.index')
-                ->with('warning', 'Tidak ada proses BTKL dengan kapasitas per jam yang valid.');
+                ->with('warning', 'Tidak ada proses produksi yang tersedia.');
         }
 
         // Get all expense accounts (kode 5) for dynamic BOP components
@@ -318,12 +317,8 @@ class BopController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get BTKL process to validate capacity
+            // Get BTKL process
             $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
-            
-            if ($prosesProduksi->kapasitas_per_jam <= 0) {
-                throw new \Exception('Proses BTKL harus memiliki kapasitas per jam yang valid.');
-            }
 
             // Filter out empty components and validate at least one has rate > 0
             $validComponents = collect($validated['komponen_bop'])->filter(function($component) {
@@ -341,14 +336,18 @@ class BopController extends Controller
             }
 
             // Calculate values from komponen_bop array (per produk)
+            // Use sum but ensure rounding for precision
             $totalBopPerProduk = 0;
             foreach ($validComponents as $component) {
                 $totalBopPerProduk += round((float)$component['rate_per_produk'], 2);
             }
             $totalBopPerProduk = round($totalBopPerProduk, 2);
             
-            $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
-            $btklPerProduk = $kapasitasPerJam > 0 ? round((float)$prosesProduksi->tarif_btkl / $kapasitasPerJam, 2) : 0;
+            // Calculate BTKL per produk - using new method from main
+            $tarifPerProduk = $prosesProduksi->tarif_per_produk ?? 0;
+            $jumlahPegawai = $prosesProduksi->jumlah_pegawai ?? 1;
+            $btklPerProduk = round((float)$tarifPerProduk * $jumlahPegawai, 2);
+            
             $totalBiayaPerProduk = round($btklPerProduk + $totalBopPerProduk, 2);
 
             // Prepare component data for storage (all components in JSON)
@@ -375,7 +374,6 @@ class BopController extends Controller
                     'total_bop_per_produk' => $totalBopPerProduk,
                     'total_biaya_per_produk' => $totalBiayaPerProduk,
                     'bop_per_unit' => $totalBopPerProduk,
-                    'kapasitas_per_jam' => $kapasitasPerJam,
                     'keterangan' => "BOP untuk proses {$prosesProduksi->nama_proses}",
                     'is_active' => true,
                 ]
@@ -517,15 +515,13 @@ class BopController extends Controller
             }
 
             // Calculate values from komponen_bop array
-            $totalBopPerJam = $validComponents->sum('rate_per_hour');
-            $kapasitasPerJam = $bopProses->prosesProduksi->kapasitas_per_jam;
-            $bopPerUnit = $kapasitasPerJam > 0 ? $totalBopPerJam / $kapasitasPerJam : 0;
+            $totalBopPerProduk = $validComponents->sum('rate_per_produk');
+            $bopPerUnit = $totalBopPerProduk;
 
             // Update BOP Proses with JSON data
             $bopProses->update([
                 'komponen_bop' => $validComponents->values()->all(),
-                'total_bop_per_jam' => $totalBopPerJam,
-                'kapasitas_per_jam' => $kapasitasPerJam,
+                'total_bop_per_produk' => $totalBopPerProduk,
                 'bop_per_unit' => $bopPerUnit,
                             ]);
 
@@ -570,34 +566,18 @@ class BopController extends Controller
     }
 
     /**
-     * Sync kapasitas dari BTKL untuk semua BOP Proses
+     * Sync data from BTKL for all BOP Proses (deprecated - no longer needed)
      */
     public function syncKapasitas()
     {
         try {
-            DB::beginTransaction();
-
-            $bopProses = BopProses::with('prosesProduksi')->get();
-            $updated = 0;
-
-            foreach ($bopProses as $bop) {
-                if ($bop->prosesProduksi && $bop->kapasitas_per_jam != $bop->prosesProduksi->kapasitas_per_jam) {
-                    $bop->update([
-                        'kapasitas_per_jam' => $bop->prosesProduksi->kapasitas_per_jam
-                    ]);
-                    $updated++;
-                }
-            }
-
-            DB::commit();
-
+            // This method is deprecated as we no longer use kapasitas_per_jam
             return redirect()
                 ->route('master-data.bop.index')
-                ->with('success', "Berhasil sync kapasitas untuk {$updated} BOP Proses");
+                ->with('info', 'Sync kapasitas tidak diperlukan lagi karena sistem sudah menggunakan pembebanan per produk');
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal sync kapasitas: ' . $e->getMessage());
+            return back()->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
@@ -719,7 +699,6 @@ class BopController extends Controller
                 'nama_bop_proses' => $request->input('nama_bop_proses') ?: 'BOP Proses',
                 'komponen_bop' => $components,
                 'total_bop_per_jam' => $totalBopPerProduk,
-                'kapasitas_per_jam' => 1,
                 'bop_per_unit' => $bopPerUnit,
                 'keterangan' => $request->input('keterangan') ?: "BOP Proses",
                 'is_active' => true,

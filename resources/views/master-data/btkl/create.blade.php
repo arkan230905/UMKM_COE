@@ -42,15 +42,15 @@
 
                     {{-- Nama Proses --}}
                     <div class="col-md-6">
-                        <label for="nama_btkl" class="form-label">Nama Proses <span class="text-danger">*</span></label>
+                        <label for="nama_proses" class="form-label">Nama Proses <span class="text-danger">*</span></label>
                         <input type="text" 
-                               name="nama_btkl" 
-                               id="nama_btkl" 
-                               class="form-control @error('nama_btkl') is-invalid @enderror" 
-                               value="{{ old('nama_btkl') }}" 
+                               name="nama_proses" 
+                               id="nama_proses" 
+                               class="form-control @error('nama_proses') is-invalid @enderror" 
+                               value="{{ old('nama_proses') }}" 
                                placeholder="Contoh: Pengisian Cup Jasuke" 
                                required>
-                        @error('nama_btkl')
+                        @error('nama_proses')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -103,6 +103,10 @@
                                    class="form-control" 
                                    value="0" 
                                    readonly>
+                            <input type="hidden" 
+                                   name="tarif_per_produk" 
+                                   id="tarif_per_produk" 
+                                   value="0">
                         </div>
                         
                         <div id="tarifCalculationDisplay" class="mt-2" style="display: none;">
@@ -112,15 +116,18 @@
                             </div>
                         </div>
                     </div>
+                    
+                    {{-- Jumlah Pegawai (Hidden) --}}
+                    <input type="hidden" name="jumlah_pegawai" id="jumlah_pegawai" value="1">
 
                     {{-- Deskripsi --}}
                     <div class="col-md-12">
-                        <label for="deskripsi_proses" class="form-label">Deskripsi Proses</label>
-                        <textarea name="deskripsi_proses" 
-                                  id="deskripsi_proses" 
-                                  class="form-control @error('deskripsi_proses') is-invalid @enderror" 
+                        <label for="deskripsi" class="form-label">Deskripsi Proses</label>
+                        <textarea name="deskripsi" 
+                                  id="deskripsi" 
+                                  class="form-control @error('deskripsi') is-invalid @enderror" 
                                   rows="3" 
-                                  placeholder="Jelaskan detail aktivitas proses ini">{{ old('deskripsi_proses') }}</textarea>
+                                  placeholder="Jelaskan detail aktivitas proses ini">{{ old('deskripsi') }}</textarea>
                     </div>
 
                     <div class="col-12">
@@ -151,15 +158,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateTarifCalculation(jabatan) {
         if (jabatan) {
-            const jumlahPegawai = jabatan.pegawai_count || 0;
-            const tarifDasar = jabatan.tarif || 0; 
-            const totalTarif = tarifDasar * jumlahPegawai;
+            const jumlahPegawai = jabatan.pegawai_count || 1;
+            const tarifDasar = jabatan.tarif_produk || jabatan.tarif || 0; 
+            const totalTarif = tarifDasar;
             
+            // Update display
             tarifDisplay.value = totalTarif.toLocaleString('id-ID');
-            tarifCalculationText.textContent = 'Kalkulasi: Rp ' + tarifDasar.toLocaleString('id-ID') + ' x ' + jumlahPegawai + ' pegawai = Rp ' + totalTarif.toLocaleString('id-ID') + ' /produk';
+            
+            // Update hidden inputs
+            document.getElementById('tarif_per_produk').value = tarifDasar;
+            document.getElementById('jumlah_pegawai').value = jumlahPegawai;
+            
+            tarifCalculationText.textContent = 'Kalkulasi: Rp ' + tarifDasar.toLocaleString('id-ID') + ' per produk × ' + jumlahPegawai + ' pegawai = Rp ' + (tarifDasar * jumlahPegawai).toLocaleString('id-ID') + ' total BTKL';
             tarifCalculationDisplay.style.display = 'block';
         } else {
             tarifDisplay.value = '0';
+            document.getElementById('tarif_per_produk').value = 0;
+            document.getElementById('jumlah_pegawai').value = 1;
             tarifCalculationDisplay.style.display = 'none';
         }
     }

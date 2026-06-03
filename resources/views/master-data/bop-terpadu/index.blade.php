@@ -82,7 +82,11 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
+                                            @if($proses->bopProses)
+                                                <span class="badge bg-info">{{ $proses->bopProses->kapasitas_per_jam ?? 0 }} unit/jam</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
                                         </td>
                                         <td class="text-end">
                                             @if($proses->bopProses && $proses->bopProses->bop_per_unit > 0)
@@ -92,9 +96,7 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            @if($proses->kapasitas_per_jam <= 0)
-                                                <span class="badge bg-danger">No Capacity</span>
-                                            @elseif($proses->bopProses)
+                                            @if($proses->bopProses)
                                                 <span class="badge bg-success">Active</span>
                                             @else
                                                 <span class="badge bg-secondary">No BOP</span>
@@ -106,11 +108,9 @@
                                                     <i class="fas fa-edit"></i> Edit
                                                 </a>
                                             @else
-                                                @if($proses->kapasitas_per_jam > 0)
-                                                    <a href="{{ route('master-data.bop-terpadu.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success btn-sm" title="Buat BOP">
-                                                        <i class="fas fa-plus"></i> Setup
-                                                    </a>
-                                                @endif
+                                                <a href="{{ route('master-data.bop-terpadu.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success btn-sm" title="Buat BOP">
+                                                    <i class="fas fa-plus"></i> Setup
+                                                </a>
                                             @endif
                                         </td>
                                     </tr>

@@ -15,9 +15,14 @@
                         <small class="text-muted">Atur dan kelola catalog perusahaan Anda</small>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('catalog') }}" target="_blank" class="btn btn-success btn-sm">
+                        <a href="{{ route('catalog') }}" target="_blank" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-external-link-alt me-1"></i>Preview Catalog
                         </a>
+                        @if(isset($company) && !empty($company->slug))
+                        <a href="{{ url($company->slug . '/pelanggan/dashboard') }}" target="_blank" class="btn btn-success btn-sm">
+                            <i class="fas fa-shopping-bag me-1"></i>Lihat Toko Online
+                        </a>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">

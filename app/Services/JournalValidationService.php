@@ -258,12 +258,15 @@ class JournalValidationService
                 });
                 break;
             default: // cash
-                // Cari akun Kas dengan validasi nama
+                // Cari akun Kas dengan validasi nama (bukan bank, bukan kas bank)
                 $q->where(function($q2) {
-                    $q2->where('nama_akun', 'Kas')
-                       ->orWhere('nama_akun', 'like', '%Kas%')
-                       ->orWhere('kode_akun', '112')
-                       ->orWhere('kode_akun', '101');
+                    $q2->where(function($q3) {
+                        $q3->where('nama_akun', 'like', '%Kas%')
+                           ->where('nama_akun', 'not like', '%Bank%');
+                    })
+                    ->orWhere('kode_akun', '112') // Kas
+                    ->orWhere('kode_akun', '113') // Kas Kecil
+                    ->orWhere('kode_akun', '101');
                 });
         }
 

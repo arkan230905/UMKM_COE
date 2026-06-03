@@ -66,7 +66,15 @@ class PembelianController extends Controller
             }
         }
         
-        $pembelians = $query->oldest()->get();
+        // Sorting by nomor_pembelian (No. Transaksi)
+        $sortOrder = $request->get('sort_order', 'asc'); // Default: Terlama ke Terbaru
+        if ($sortOrder === 'asc') {
+            $query->orderBy('nomor_pembelian', 'asc'); // Terlama ke Terbaru
+        } else {
+            $query->orderBy('nomor_pembelian', 'desc'); // Terbaru ke Terlama
+        }
+        
+        $pembelians = $query->get();
         
         // CRITICAL: Filter vendors by user_id
         $vendors = Vendor::where('user_id', auth()->id())
@@ -485,17 +493,12 @@ class PembelianController extends Controller
         $request->validate([
             'vendor_id' => 'required|exists:vendors,id',
             'nomor_faktur' => 'required|string|max:255',
-            'bukti_faktur' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'tanggal' => 'required|date',
             'bank_id' => 'required',
             'jumlah_satuan_utama' => 'nullable|array',
-
         ], [
             'nomor_faktur.required' => 'Nomor faktur pembelian wajib diisi',
-            'bukti_faktur.required' => 'Bukti faktur wajib diupload',
-            'bukti_faktur.mimes' => 'Bukti faktur harus berformat JPG, PNG, atau PDF',
-            'bukti_faktur.max' => 'Ukuran bukti faktur maksimal 2MB',
-]);
+        ]);
         
         // Cek manual apakah ada item yang dipilih
         $hasValidItems = false;
@@ -643,35 +646,15 @@ class PembelianController extends Controller
                     $tipePembelian = $vendor->kategori ?? 'Bahan Baku';
                     
 
-                    // Handle bukti faktur upload (sudah divalidasi di awal)
-                    $buktiFakturPath = null;
-                    if ($request->hasFile('bukti_faktur')) {
-                        $file = $request->file('bukti_faktur');
-                        
-                        // Create directory structure: storage/app/public/bukti_faktur/{user_id}/
-                        $userId = auth()->id();
-                        $directory = "bukti_faktur/{$userId}";
-                        
-                        // Generate unique filename: {timestamp}_{original_name}
-                        $filename = time() . '_' . $file->getClientOriginalName();
-                        
-                        // Store file
-                        $buktiFakturPath = $file->storeAs($directory, $filename, 'public');
-                        
-                        \Log::info('Bukti faktur uploaded', [
-                            'user_id' => $userId,
-                            'filename' => $filename,
-                            'path' => $buktiFakturPath
-                        ]);
-                    }
+                    // Bukti faktur akan diupload setelah pembelian tersimpan
+                    // Tidak perlu handle upload di sini
                     
-// 1. Buat header pembelian
+                    // 1. Buat header pembelian
                     $pembelian = new Pembelian([
                         'vendor_id' => $request->vendor_id,
                         'nomor_faktur' => $request->nomor_faktur,
-
-                        'bukti_faktur' => $buktiFakturPath,  // Save file path
-'tanggal' => $request->tanggal,
+                        'bukti_faktur' => null,  // Will be uploaded later
+                        'tanggal' => $request->tanggal,
                         'subtotal' => $subtotal,
                         'biaya_kirim' => $biayaKirim,
                         'ppn_persen' => $ppnPersen,
@@ -1077,9 +1060,69 @@ class PembelianController extends Controller
                         ->with('warning', 'Data pembelian berhasil disimpan, tetapi jurnal akuntansi belum dapat dibuat: ' . $e->getMessage());
                 }
 
-                return redirect()->route('transaksi.pembelian.index')
-                    ->with('success', 'Data pembelian berhasil disimpan!');
+                return redirect()->route('transaksi.pembelian.create')
+                    ->with('success', 'Data pembelian berhasil disimpan!')
+                    ->with('pembelian_id', $pembelian->id)
+                    ->with('show_upload_section', true);
             });
+    }
+
+    /**
+     * Upload bukti faktur setelah pembelian tersimpan
+     */
+    public function uploadBuktiFaktur(Request $request, $id)
+    {
+        // Validasi file bukti faktur
+        $request->validate([
+            'bukti_faktur' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ], [
+            'bukti_faktur.required' => 'Bukti faktur wajib diupload',
+            'bukti_faktur.mimes' => 'Bukti faktur harus berformat JPG, PNG, atau PDF',
+            'bukti_faktur.max' => 'Ukuran bukti faktur maksimal 2MB',
+        ]);
+
+        // Find pembelian
+        $pembelian = Pembelian::where('user_id', auth()->id())->findOrFail($id);
+
+        // Handle file upload
+        if ($request->hasFile('bukti_faktur')) {
+            // Delete old file if exists
+            if ($pembelian->bukti_faktur && \Storage::disk('public')->exists($pembelian->bukti_faktur)) {
+                \Storage::disk('public')->delete($pembelian->bukti_faktur);
+            }
+
+            $file = $request->file('bukti_faktur');
+            
+            // Create directory structure: storage/app/public/bukti_faktur/{user_id}/
+            $userId = auth()->id();
+            $directory = "bukti_faktur/{$userId}";
+            
+            // Generate unique filename: {timestamp}_{original_name}
+            $filename = time() . '_' . $file->getClientOriginalName();
+            
+            // Store file
+            $buktiFakturPath = $file->storeAs($directory, $filename, 'public');
+            
+            // Update pembelian
+            $pembelian->bukti_faktur = $buktiFakturPath;
+            $pembelian->save();
+            
+            \Log::info('Bukti faktur uploaded', [
+                'pembelian_id' => $id,
+                'user_id' => $userId,
+                'filename' => $filename,
+                'path' => $buktiFakturPath
+            ]);
+
+            return redirect()->route('transaksi.pembelian.index')
+                ->with('success', 'Bukti faktur berhasil diupload! Data pembelian telah lengkap.');
+        }
+
+        return back()
+            ->with('error', 'Gagal mengupload bukti faktur')
+            ->with('pembelian_id', $id)
+            ->with('show_upload_section', true)
+            ->withInput();
     }
 
     /**

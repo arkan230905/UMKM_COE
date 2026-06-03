@@ -46,7 +46,6 @@
                                     <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Admin</option>
                                     <option value="owner" {{ $user->role == 'owner' ? 'selected' : '' }}>Owner</option>
                                     <option value="pelanggan" {{ $user->role == 'pelanggan' ? 'selected' : '' }}>Pelanggan</option>
-                                    <option value="pegawai_pembelian" {{ $user->role == 'pegawai_pembelian' ? 'selected' : '' }}>Pegawai Gudang</option>
                                     <option value="kasir" {{ $user->role == 'kasir' ? 'selected' : '' }}>Kasir</option>
                                 </select>
                                 @error('role')

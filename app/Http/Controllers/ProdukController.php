@@ -269,7 +269,7 @@ class ProdukController extends Controller
         $hargaJualFormatted = $request->input('harga_jual');
         $hargaJual = intval(str_replace('.', '', $hargaJualFormatted));
         
-        // Use calculated HPP from BomJobCosting if available, otherwise use the old HPP
+        // Use calculated HPP from getActualHPP() if available, otherwise use the old HPP
         $hppCalculated = $request->input('hpp_calculated');
         $hppToUse = !empty($hppCalculated) && $hppCalculated > 0 ? $hppCalculated : $request->input('hpp');
         
@@ -277,7 +277,7 @@ class ProdukController extends Controller
         \Log::info('ProdukController::update - Debug harga_jual and HPP');
         \Log::info('Raw harga_jual from form: ' . $hargaJualFormatted);
         \Log::info('Parsed harga_jual: ' . $hargaJual);
-        \Log::info('HPP calculated (from BomJobCosting): ' . $hppCalculated);
+        \Log::info('HPP calculated (from getActualHPP): ' . $hppCalculated);
         \Log::info('HPP old (from produk): ' . $request->input('hpp'));
         \Log::info('HPP to use: ' . $hppToUse);
 
@@ -287,6 +287,7 @@ class ProdukController extends Controller
             'coa_persediaan_id' => $request->input('coa_persediaan_id'),
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
+            'harga_pokok' => $hppToUse,  // FIXED: Update harga_pokok dengan HPP yang dihitung
             'btkl_per_unit' => $request->input('btkl_per_unit'),
         ];
 

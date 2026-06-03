@@ -108,7 +108,6 @@
                                         </div>
                                         <div>
                                             <div class="fw-semibold">{{ $item->kode_transaksi }}</div>
-                                            <small class="text-muted">ID: {{ $item->id }}</small>
                                         </div>
                                     </div>
                                 </td>

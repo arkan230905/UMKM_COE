@@ -6,7 +6,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: center;">
             <div>
                 <div style="color: #8b6f47; font-weight: 600; font-size: 0.55rem; margin-bottom: 0.2rem;">👋 Selamat Datang!</div>
-                <h1 style="font-size: 1rem; font-weight: 800; color: #2d3748; margin-bottom: 0.2rem;">Selamat Datang di<br><span style="color: #8b6f47;">UMKM COE</span></h1>
+                <h1 style="font-size: 1rem; font-weight: 800; color: #2d3748; margin-bottom: 0.2rem;">Selamat Datang di<br><span style="color: #8b6f47;">{{ $perusahaan->nama }}</span></h1>
                 <p style="font-size: 0.6rem; color: #666; margin-bottom: 0.6rem;">Temukan produk berkualitas terbaik dengan harga terjangkau. Belanja sekarang dan nikmati pengalaman berbelanja yang menyenangkan!</p>
                 <div style="margin-bottom: 0.6rem;">
                     <div style="display: flex; align-items: center; background: white; border-radius: 50px; padding: 0.25rem 0.6rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
@@ -212,7 +212,7 @@
                         <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/favorites/toggle") }}" method="POST" style="position: absolute; top: 4px; right: 4px;" onsubmit="return false;">
                             @csrf
                             <input type="hidden" name="produk_id" value="{{ $produk->id }}">
-                            <button type="button" onclick="toggleFavorite({{ $produk->id }}); return false;" style="width: 24px; height: 24px; background: white; border: none; border-radius: 50%; cursor: pointer; color: @if(in_array($produk->id, $favoriteIds))#ff4757@else#8b6f47@endif; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">@if(in_array($produk->id, $favoriteIds))♥@else♡@endif</button>
+                            <button type="button" onclick="toggleFavorite({{ $produk->id }}); return false;" style="width: 24px; height: 24px; background: white; border: none; border-radius: 50%; cursor: pointer; color: {{ in_array($produk->id, $favoriteIds) ? '#ff4757' : '#8b6f47' }}; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">{{ in_array($produk->id, $favoriteIds) ? '♥' : '♡' }}</button>
                         </form>
                     </div>
                     <div style="padding: 0.5rem;">

@@ -46,7 +46,6 @@
                         <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
                         <option value="pelanggan" {{ request('role') == 'pelanggan' ? 'selected' : '' }}>Pelanggan</option>
-                        <option value="pegawai_pembelian" {{ request('role') == 'pegawai_pembelian' ? 'selected' : '' }}>Pegawai Gudang</option>
                         <option value="kasir" {{ request('role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
                     </select>
                 </div>

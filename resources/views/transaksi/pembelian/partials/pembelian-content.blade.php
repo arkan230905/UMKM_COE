@@ -30,7 +30,7 @@
                         <option value="">Semua Vendor</option>
                         @foreach($vendors ?? [] as $vendor)
                             <option value="{{ $vendor->id }}" {{ request('vendor_id') == $vendor->id ? 'selected' : '' }}>
-                                {{ $vendor->nama_vendor }}
+                                {{ $vendor->nama_vendor }} ({{ $vendor->kategori }})
                             </option>
                         @endforeach
                     </select>
@@ -60,6 +60,13 @@
                         <option value="belum_lunas" {{ request('status_pembayaran') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label">Urutkan</label>
+                    <select name="sort_order" class="form-select">
+                        <option value="asc" {{ request('sort_order', 'asc') == 'asc' ? 'selected' : '' }}>Terlama ke Terbaru</option>
+                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Terbaru ke Terlama</option>
+                    </select>
+                </div>
                 <div class="col-md-12">
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
@@ -82,7 +89,7 @@
             <div class="d-flex align-items-center">
                 <i class="fas fa-list me-2"></i>
                 <span>Riwayat Pembelian</span>
-                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'payment_method', 'status', 'status_pembayaran']))
+                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'payment_method', 'status', 'status_pembayaran', 'sort_order']))
                     <small class="text-muted ms-3">(Filter Aktif)</small>
                 @endif
             </div>

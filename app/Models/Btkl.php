@@ -18,12 +18,8 @@ class Btkl extends Model
         'kode_proses',
         'nama_btkl',
         'jabatan_id',
-        'tarif_per_jam',
-        'satuan',
-        'kapasitas_per_jam',
         'deskripsi_proses',
         'is_active',
-        'biaya_per_produk'
     ];
     
     /**
@@ -49,8 +45,6 @@ class Btkl extends Model
     }
 
     protected $casts = [
-        'tarif_per_jam' => 'decimal:2',
-        'kapasitas_per_jam' => 'integer',
         'is_active' => 'boolean'
     ];
 
@@ -71,13 +65,34 @@ class Btkl extends Model
     }
 
     /**
-     * Format tarif per jam
+     * Get tarif per produk dari jabatan
+     *
+     * @return float
+     */
+    public function getTarifPerProdukAttribute()
+    {
+        return $this->jabatan ? ($this->jabatan->tarif_produk ?? 0) : 0;
+    }
+
+    /**
+     * Format tarif per produk
+     *
+     * @return string
+     */
+    public function getTarifPerProdukFormattedAttribute()
+    {
+        return 'Rp ' . number_format($this->tarif_per_produk, 0, ',', '.');
+    }
+
+    /**
+     * Format tarif per jam (backward compatibility)
+     * Sekarang menampilkan tarif per produk
      *
      * @return string
      */
     public function getTarifPerJamFormattedAttribute()
     {
-        return 'Rp ' . number_format($this->tarif_per_jam, 0, ',', '.');
+        return $this->getTarifPerProdukFormattedAttribute();
     }
 
     /**
@@ -87,31 +102,28 @@ class Btkl extends Model
      */
     public function getNamaTenagaKerjaAttribute()
     {
-        return $this->jabatan ? $this->jabatan->nama : '-';
+        return $this->jabatan ? ($this->jabatan->nama_jabatan ?? $this->jabatan->nama ?? '-') : '-';
     }
 
     /**
-     * Get nama proses (alias untuk jabatan nama)
+     * Get nama proses (alias untuk nama_btkl)
      *
      * @return string
      */
     public function getNamaProsesAttribute()
     {
-        return $this->jabatan ? $this->jabatan->nama : '-';
+        return $this->nama_btkl ?? '-';
     }
 
     /**
-     * Calculate biaya per produk automatically
-     * Formula: Tarif BTKL ÷ Kapasitas per Jam
+     * Get biaya per produk dari proses produksi terkait
      *
      * @return float
      */
     public function getBiayaPerProdukAttribute()
     {
-        if ($this->kapasitas_per_jam > 0) {
-            return $this->tarif_per_jam / $this->kapasitas_per_jam;
-        }
-        return 0;
+        $proses = ProsesProduksi::where('btkl_id', $this->id)->first();
+        return $proses ? $proses->total_btkl : 0;
     }
 
     /**
@@ -126,7 +138,6 @@ class Btkl extends Model
 
     /**
      * Check if tarif is consistent with jabatan
-     * For compatibility with view
      *
      * @return bool
      */
@@ -136,22 +147,25 @@ class Btkl extends Model
             return false;
         }
 
-        $jumlahPegawai = $this->jabatan->pegawais->count();
-        $tarifPerJam = $this->jabatan->tarif ?? 0;
-        $expectedTarif = $tarifPerJam * $jumlahPegawai;
+        $proses = ProsesProduksi::where('btkl_id', $this->id)->first();
+        if (!$proses) {
+            return true; // Belum ada proses, dianggap konsisten
+        }
+
+        $expectedTarif = $this->jabatan->tarif_produk ?? 0;
         
         // Toleransi 1 rupiah
-        return abs($this->tarif_per_jam - $expectedTarif) < 1;
+        return abs($proses->tarif_per_produk - $expectedTarif) < 1;
     }
 
     /**
-     * Get satuan for compatibility with view
+     * Get satuan (tidak digunakan lagi, return default)
      *
      * @return string
      */
     public function getSatuanAttribute()
     {
-        return $this->attributes['satuan'] ?? 'Jam';
+        return 'Produk';
     }
 
     /**
@@ -165,12 +179,22 @@ class Btkl extends Model
     }
 
     /**
-     * Get tarif_btkl for compatibility (alias for tarif_per_jam)
+     * Get tarif_btkl for compatibility (alias for tarif_per_produk)
      *
      * @return float
      */
     public function getTarifBtklAttribute()
     {
-        return $this->tarif_per_jam;
+        return $this->tarif_per_produk;
+    }
+
+    /**
+     * Get tarif_per_jam for compatibility (alias for tarif_per_produk)
+     *
+     * @return float
+     */
+    public function getTarifPerJamAttribute()
+    {
+        return $this->tarif_per_produk;
     }
 }
