@@ -319,11 +319,25 @@ class JournalService
             ? round($subtotalGross)
             : round($subtotalNet);
 
+        // Get product name(s) for the memo
+        $productNames = [];
+        if ($penjualan->details && $penjualan->details->count() > 0) {
+            foreach ($penjualan->details as $d) {
+                if ($d->produk) {
+                    $productNames[] = $d->produk->nama_produk;
+                }
+            }
+        } elseif ($penjualan->produk) {
+            $productNames[] = $penjualan->produk->nama_produk;
+        }
+        $productNamesStr = implode(', ', array_unique($productNames));
+        $penjualanMemo = 'Pendapatan penjualan - ' . ($productNamesStr ?: 'produk');
+
         $lines[] = [
             'code'   => $penjualanCoa->kode_akun,
             'debit'  => 0,
             'credit' => $nilaiPenjualan,
-            'memo'   => 'Pendapatan penjualan produk',
+            'memo'   => $penjualanMemo,
         ];
 
         // ── KREDIT: PPN Keluaran ─────────────────────────────────────────────

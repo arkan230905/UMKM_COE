@@ -1,9 +1,12 @@
+@php
+    $perusahaan_slug = $perusahaan_slug ?? (isset($perusahaan) ? perusahaan_slug($perusahaan) : (request()->route() ? request()->route('perusahaan_slug') : null));
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Pelanggan - {{ \App\Models\Perusahaan::first()->nama ?? 'Toko Kami' }}</title>
+    <title>Login Pelanggan - {{ (request()->attributes->get('perusahaan') ?? \App\Models\Perusahaan::find(session('perusahaan_id')) ?? \App\Models\Perusahaan::first())->nama ?? 'Toko Kami' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -129,7 +132,7 @@
             <div class="col-md-5 login-left">
                 <div class="brand-logo">
                     <i class="fas fa-shopping-bag me-2"></i>
-                    {{ \App\Models\Perusahaan::first()->nama ?? 'Toko Kami' }}
+                    {{ (request()->attributes->get('perusahaan') ?? \App\Models\Perusahaan::find(session('perusahaan_id')) ?? \App\Models\Perusahaan::first())->nama ?? 'Toko Kami' }}
                 </div>
                 <div class="brand-tagline">
                     Temukan produk berkualitas terbaik untuk kebutuhan Anda

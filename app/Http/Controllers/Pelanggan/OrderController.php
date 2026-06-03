@@ -15,15 +15,13 @@ class OrderController extends Controller
             ->paginate(10);
 
         // Get perusahaan_slug for URL generation
-        $user = auth('pelanggan')->user();
-        $ownerUser = $user ? $user->owner : null;
-        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
-        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+        $perusahaan = current_perusahaan();
+        $perusahaan_slug = perusahaan_slug($perusahaan);
 
         return view('pelanggan.orders', compact('orders', 'perusahaan_slug'));
     }
 
-    public function show(Order $order)
+    public function show($perusahaan_slug, Order $order)
     {
         // Cek ownership
         if ($order->user_id !== auth()->id()) {
@@ -37,10 +35,8 @@ class OrderController extends Controller
         }]);
 
         // Get perusahaan_slug for URL generation
-        $user = auth('pelanggan')->user();
-        $ownerUser = $user ? $user->owner : null;
-        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
-        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+        $perusahaan = current_perusahaan();
+        $perusahaan_slug = perusahaan_slug($perusahaan);
 
         return view('pelanggan.order-detail', compact('order', 'perusahaan_slug'));
     }

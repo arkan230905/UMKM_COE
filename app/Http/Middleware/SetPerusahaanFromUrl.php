@@ -34,6 +34,28 @@ class SetPerusahaanFromUrl
             return response('Perusahaan tidak ditemukan', 404);
         }
         
+        // If logged in as owner/admin under web guard, force redirect to their own company's slug
+        if (auth('web')->check()) {
+            $user = auth('web')->user();
+            if ($user && $user->perusahaan_id && $user->perusahaan_id != $perusahaan->id) {
+                $ownPerusahaan = Perusahaan::find($user->perusahaan_id);
+                if ($ownPerusahaan) {
+                    $slug = \App\Helpers\PerusahaanHelper::getSlug($ownPerusahaan);
+                    $currentPath = $request->getPathInfo();
+                    $segments = explode('/', ltrim($currentPath, '/'));
+                    if (count($segments) > 0) {
+                        $segments[0] = $slug;
+                        $newPath = '/' . implode('/', $segments);
+                        $queryString = $request->getQueryString();
+                        if ($queryString) {
+                            $newPath .= '?' . $queryString;
+                        }
+                        return redirect($newPath);
+                    }
+                }
+            }
+        }
+        
         // Store perusahaan in request for use in controllers
         $request->attributes->add(['perusahaan' => $perusahaan]);
         

@@ -95,7 +95,7 @@ document.getElementById('debugForm').addEventListener('submit', async function(e
     document.getElementById('error').style.display = 'none';
     
     try {
-        const response = await fetch('{{ route("pelanggan.checkout.debug-ongkir") }}', {
+        const response = await fetch('{{ route("pelanggan.checkout.debug-ongkir", ["perusahaan_slug" => request()->route("perusahaan_slug")]) }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

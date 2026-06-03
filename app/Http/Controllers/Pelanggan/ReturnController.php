@@ -26,10 +26,8 @@ class ReturnController extends Controller
             ->paginate(10);
 
         // Get perusahaan_slug for URL generation
-        $user = auth('pelanggan')->user();
-        $ownerUser = $user ? $user->owner : null;
-        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
-        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+        $perusahaan = current_perusahaan();
+        $perusahaan_slug = perusahaan_slug($perusahaan);
 
         return view('pelanggan.returns.index', compact('returs', 'perusahaan_slug'));
     }
@@ -46,10 +44,8 @@ class ReturnController extends Controller
         }
 
         // Get perusahaan_slug for URL generation
-        $user = auth('pelanggan')->user();
-        $ownerUser = $user ? $user->owner : null;
-        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
-        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+        $perusahaan = current_perusahaan();
+        $perusahaan_slug = perusahaan_slug($perusahaan);
 
         return view('pelanggan.returns.create', compact('orders','order', 'perusahaan_slug'));
     }

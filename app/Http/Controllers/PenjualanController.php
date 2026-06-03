@@ -19,11 +19,11 @@ class PenjualanController extends Controller
     {
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $query = Penjualan::with(['produk','details'])
+        $query = Penjualan::with(['produk', 'details', 'returs', 'pelanggan'])
             ->where('user_id', auth()->id());
         
         // Filter by nomor transaksi
-if ($request->filled('nomor_transaksi')) {
+        if ($request->filled('nomor_transaksi')) {
             $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
         }
         if ($request->filled('tanggal_mulai')) {
@@ -36,8 +36,56 @@ if ($request->filled('nomor_transaksi')) {
             $query->where('payment_method', $request->payment_method);
         }
 
+        $penjualans = $query->get();
         
-        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
+        $sortBy = $request->get('sort_by', 'tanggal');
+        $sortDir = $request->get('sort_dir', 'desc');
+        $isDesc = $sortDir === 'desc';
+        
+        if ($sortBy === 'no') {
+            $penjualans = $penjualans->sortBy(fn($p) => $p->id, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'nomor_transaksi') {
+            $penjualans = $penjualans->sortBy(fn($p) => $p->nomor_penjualan, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'tanggal') {
+            $penjualans = $penjualans->sortBy(fn($p) => $p->tanggal, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'pembayaran') {
+            $penjualans = $penjualans->sortBy(fn($p) => $p->payment_method, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'pelanggan') {
+            $penjualans = $penjualans->sortBy(fn($p) => $p->pelanggan?->nama_pelanggan ?? 'Umum', SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'produk') {
+            $penjualans = $penjualans->sortBy(function($p) {
+                if ($p->details->count() > 0) {
+                    return $p->details->first()->produk?->nama_produk ?? '';
+                }
+                return $p->produk?->nama_produk ?? '';
+            }, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'qty') {
+            $penjualans = $penjualans->sortBy(function($p) {
+                if ($p->details->count() > 0) {
+                    return $p->details->sum('jumlah');
+                }
+                return $p->jumlah ?? 0;
+            }, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'harga') {
+            $penjualans = $penjualans->sortBy(function($p) {
+                if ($p->details->count() > 0) {
+                    return $p->details->first()->harga_satuan ?? 0;
+                }
+                return $p->harga_satuan ?? 0;
+            }, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'diskon') {
+            $penjualans = $penjualans->sortBy(function($p) {
+                return (float)($p->diskon_nominal ?? 0);
+            }, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'ongkir') {
+            $penjualans = $penjualans->sortBy(fn($p) => (float)($p->biaya_ongkir ?? 0), SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'total') {
+            $penjualans = $penjualans->sortBy(fn($p) => (float)($p->grand_total ?? $p->total), SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'qty_retur') {
+            $penjualans = $penjualans->sortBy(fn($p) => (float)($p->total_qty_retur), SORT_REGULAR, $isDesc);
+        } else {
+            $penjualans = $penjualans->sortBy(fn($p) => $p->tanggal, SORT_REGULAR, true);
+        }
         
         // Hitung ringkasan penjualan HARI INI saja
         $today = now()->format('Y-m-d');
@@ -335,7 +383,7 @@ if ($request->filled('nomor_transaksi')) {
                 ];
             }
             
-            $totalPPN = ($subtotalProduk + $biayaOngkir) * ($ppnPersen / 100);
+            $totalPPN = $subtotalProduk * ($ppnPersen / 100);
             $grandTotal = $subtotalProduk + $biayaOngkir + $totalPPN;
             
             // Resolve coa_id dari sumber_dana
@@ -710,6 +758,7 @@ if ($request->filled('nomor_transaksi')) {
                 'biaya_ongkir'   => $paymentData['biaya_ongkir'] ?? 0,
                 'biaya_ppn'      => $paymentData['total_ppn'] ?? 0,
                 'grand_total'    => $paymentData['total'] ?? 0,
+                'catatan_pembayaran' => $request->input('catatan'),
             ]);
             
             // Create detail items

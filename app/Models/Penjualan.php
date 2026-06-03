@@ -30,6 +30,7 @@ class Penjualan extends Model
         'grand_total',
         'bukti_pembayaran',
         'catatan_pembayaran',
+        'catatan',
     ];
 
     protected $casts = [
@@ -57,6 +58,11 @@ class Penjualan extends Model
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'produk_id');
+    }
+
+    public function pelanggan()
+    {
+        return $this->belongsTo(Pelanggan::class, 'pelanggan_id');
     }
 
     public function details()
@@ -121,8 +127,8 @@ class Penjualan extends Model
                 $attempt = 0;
                 
                 do {
-                    // Cari nomor terakhir GLOBAL (semua tanggal) untuk urutan berurutan
-                    $lastNumber = static::where('nomor_penjualan', 'like', 'SJ-%')
+                    // Cari nomor terakhir untuk tanggal hari ini agar urutan direset per hari
+                    $lastNumber = static::where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
                         ->orderBy('nomor_penjualan', 'desc')
                         ->value('nomor_penjualan');
                     
@@ -238,5 +244,15 @@ class Penjualan extends Model
         
         // If we get here, something is seriously wrong
         throw new \Exception('Unable to generate unique nomor penjualan after ' . $maxAttempts . ' attempts');
+    }
+
+    public function getCatatanAttribute()
+    {
+        return $this->catatan_pembayaran;
+    }
+
+    public function setCatatanAttribute($value)
+    {
+        $this->attributes['catatan_pembayaran'] = $value;
     }
 }

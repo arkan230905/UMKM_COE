@@ -1,7 +1,8 @@
 @extends('layouts.catalog')
 
 @php
-    $namaPerusahaan = \App\Models\Perusahaan::first()->nama ?? 'Toko Kami';
+    $namaPerusahaan = (request()->attributes->get('perusahaan') ?? \App\Models\Perusahaan::find(session('perusahaan_id')) ?? \App\Models\Perusahaan::first())->nama ?? 'Toko Kami';
+    $perusahaan_slug = $perusahaan_slug ?? (isset($perusahaan) ? perusahaan_slug($perusahaan) : (request()->route() ? request()->route('perusahaan_slug') : null));
 @endphp
 
 @section('title', 'Daftar Pelanggan - ' . $namaPerusahaan)
