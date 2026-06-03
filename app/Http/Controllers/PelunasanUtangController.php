@@ -43,7 +43,7 @@ class PelunasanUtangController extends Controller
             $query->where('status', $request->status);
         }
         
-        $pelunasanUtang = $query->orderBy('tanggal', 'desc')->paginate(15);
+        $pelunasanUtang = $query->orderBy('kode_transaksi', 'asc')->paginate(15);
         
         // Get vendors for dropdown - CRITICAL: Filter by user_id
         $vendors = \App\Models\Vendor::where('user_id', auth()->id())

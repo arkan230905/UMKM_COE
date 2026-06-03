@@ -3,232 +3,230 @@
 @section('title', 'Detail Pelunasan Utang: ' . $pelunasanUtang->kode_transaksi)
 
 @section('content')
-<div class="main-content">
-    <section class="section">
-        <div class="section-header">
-            <h1>Detail Pelunasan Utang: {{ $pelunasanUtang->kode_transaksi }}</h1>
-            <div class="section-header-breadcrumb">
-                <div class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></div>
-                <div class="breadcrumb-item"><a href="{{ route('transaksi.pelunasan-utang.index') }}">Pelunasan Utang</a></div>
-                <div class="breadcrumb-item active">Detail</div>
-            </div>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-file-invoice-dollar me-2"></i>Detail Pelunasan Utang
+        </h2>
+        <div>
+            <a href="{{ route('transaksi.pelunasan-utang.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Kembali
+            </a>
+            <button onclick="window.print()" class="btn btn-warning">
+                <i class="fas fa-print me-2"></i>Cetak
+            </button>
         </div>
+    </div>
 
-        <div class="section-body">
-            <div class="invoice">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div class="invoice-title">
-                            <h2>Pelunasan Utang</h2>
-                            <div class="invoice-number">No. {{ $pelunasanUtang->kode_transaksi }}</div>
-                        </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <address>
-                                    <strong>Vendor:</strong><br>
-                                    {{ $pelunasanUtang->pembelian->vendor->nama_vendor }}<br>
-                                    {{ $pelunasanUtang->pembelian->vendor->alamat }}<br>
-                                    {{ $pelunasanUtang->pembelian->vendor->telepon }}
-                                </address>
-                            </div>
-                            <div class="col-md-6 text-md-right">
-                                <address>
-                                    <strong>Tanggal:</strong> {{ $pelunasanUtang->tanggal->format('d/m/Y') }}<br>
-                                    <strong>Status:</strong> {!! $pelunasanUtang->status_badge !!}
-                                </address>
-                            </div>
-                        </div>
-                    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Pelunasan Utang</h4>
+                    <div class="mt-2">No. {{ $pelunasanUtang->kode_transaksi }}</div>
                 </div>
-
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="section-title">Detail Pembelian</div>
-                        <div class="card">
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered">
-                                        <tr>
-                                            <th width="5%">NO</th>
-                                            <th>Item</th>
-                                            <th class="text-right">Harga Satuan</th>
-                                            <th class="text-right">Subtotal</th>
-                                        </tr>
-                                        @foreach($pelunasanUtang->pembelian->pembelianDetails as $index => $detail)
-                                        <tr>
-                                            <td>{{ $index + 1 }}</td>
-                                            <td>
-                                                @if($detail->bahanBaku)
-                                                    {{ $detail->bahanBaku->nama_bahan }}
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'unit' }} × 
-                                                        Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
-                                                    </small>
-                                                @elseif($detail->bahanPendukung)
-                                                    {{ $detail->bahanPendukung->nama_bahan }}
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'unit' }} × 
-                                                        Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
-                                                    </small>
-                                                @else
-                                                    Item {{ $index + 1 }}
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        {{ number_format($detail->jumlah, 0, ',', '.') }} unit × 
-                                                        Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
-                                                    </small>
-                                                @endif
-                                            </td>
-                                            <td class="text-right">
-                                                {{ $detail->harga_satuan ? 'Rp ' . number_format($detail->harga_satuan, 0, ',', '.') : '-' }}
-                                            </td>
-                                            <td class="text-right">
-                                                {{ $detail->subtotal ? 'Rp ' . number_format($detail->subtotal, 0, ',', '.') : '-' }}
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                        <tr>
-                                            <td colspan="3" class="text-right"><strong>Total Pembelian</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->total_harga, 0, ',', '.') }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="text-right"><strong>Sudah Dibayar</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->terbayar, 0, ',', '.') }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="text-right"><strong>Sisa Utang</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran + $pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
-                                        </tr>
-                                        <tr class="table-primary">
-                                            <td colspan="3" class="text-right"><strong>Jumlah Pelunasan Ini</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
-                                        </tr>
-                                        <tr class="table-success">
-                                            <td colspan="3" class="text-right"><strong>Sisa Utang Setelah Pelunasan</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran, 0, ',', '.') }}</strong></td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Vendor:</h6>
+                            <p class="mb-1"><strong>{{ $pelunasanUtang->pembelian->vendor->nama_vendor }}</strong></p>
+                            <p class="mb-1">{{ $pelunasanUtang->pembelian->vendor->alamat }}</p>
+                            <p class="mb-0">{{ $pelunasanUtang->pembelian->vendor->telepon }}</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-2"><strong>Tanggal:</strong> {{ $pelunasanUtang->tanggal->format('d/m/Y') }}</p>
+                            <p class="mb-0"><strong>Status:</strong> {!! $pelunasanUtang->status_badge !!}</p>
                         </div>
                     </div>
-                </div>
 
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h4>Informasi Pembayaran</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="section-title">Akun Kas</div>
-                                <p class="section-lead">
-                                    <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama_akun }}
-                                </p>
-                                
-                                @if($pelunasanUtang->coaPelunasan)
-                                <div class="section-title mt-4">COA Pelunasan</div>
-                                <p class="section-lead">
-                                    <strong>{{ $pelunasanUtang->coaPelunasan->kode_akun }}</strong> - {{ $pelunasanUtang->coaPelunasan->nama_akun }}
-                                </p>
-                                @endif
-                                
-                                <div class="section-title mt-4">Tanggal Pembayaran</div>
-                                <p class="section-lead">{{ $pelunasanUtang->tanggal->format('d F Y') }}</p>
-                                
-                                @if($pelunasanUtang->keterangan)
-                                <div class="section-title">Keterangan</div>
-                                <p class="section-lead">{{ $pelunasanUtang->keterangan }}</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="section-title">Jurnal</div>
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Akun</th>
-                                        <th class="text-right">Debit</th>
-                                        <th class="text-right">Kredit</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($pelunasanUtang->jurnals as $jurnal)
-                                    <tr>
-                                        <td>{{ $jurnal->coa->kode_akun }} - {{ $jurnal->coa->nama }}</td>
-                                        <td class="text-right">{{ $jurnal->debit ? format_rupiah($jurnal->debit) : '-' }}</td>
-                                        <td class="text-right">{{ $jurnal->kredit ? format_rupiah($jurnal->kredit) : '-' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                    <hr>
 
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="section-title">Informasi Tambahan</div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="text-muted">Dibuat oleh: {{ $pelunasanUtang->user->name }}</p>
-                                <p class="text-muted">Dibuat pada: {{ $pelunasanUtang->created_at->format('d/m/Y H:i') }}</p>
-                            </div>
-                            <div class="col-md-6 text-md-right">
-                                @if($pelunasanUtang->updated_at->gt($pelunasanUtang->created_at))
-                                    <p class="text-muted">Diperbarui pada: {{ $pelunasanUtang->updated_at->format('d/m/Y H:i') }}</p>
-                                @endif
-                                @if($pelunasanUtang->deleted_at)
-                                    <p class="text-muted">Dihapus pada: {{ $pelunasanUtang->deleted_at->format('d/m/Y H:i') }}</p>
-                                @endif
-                            </div>
-                        </div>
+                    <h5 class="mb-3">Detail Pembelian</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="5%">NO</th>
+                                    <th>Item</th>
+                                    <th class="text-end">Harga Satuan</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($pelunasanUtang->pembelian->pembelianDetails as $index => $detail)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>
+                                        @if($detail->bahanBaku)
+                                            <strong>{{ $detail->bahanBaku->nama_bahan }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'unit' }} × 
+                                                Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
+                                            </small>
+                                        @elseif($detail->bahanPendukung)
+                                            <strong>{{ $detail->bahanPendukung->nama_bahan }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'unit' }} × 
+                                                Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
+                                            </small>
+                                        @else
+                                            Item {{ $index + 1 }}
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ number_format($detail->jumlah, 0, ',', '.') }} unit × 
+                                                Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
+                                            </small>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">
+                                        {{ $detail->harga_satuan ? 'Rp ' . number_format($detail->harga_satuan, 0, ',', '.') : '-' }}
+                                    </td>
+                                    <td class="text-end">
+                                        {{ $detail->subtotal ? 'Rp ' . number_format($detail->subtotal, 0, ',', '.') : '-' }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total Pembelian</strong></td>
+                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->total_harga, 0, ',', '.') }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Sudah Dibayar</strong></td>
+                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->terbayar, 0, ',', '.') }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Sisa Utang</strong></td>
+                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran + $pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td colspan="3" class="text-end"><strong>Jumlah Pelunasan Ini</strong></td>
+                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td colspan="3" class="text-end"><strong>Sisa Utang Setelah Pelunasan</strong></td>
+                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran, 0, ',', '.') }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
-                </div>
-
-                <div class="text-md-right mt-4">
-                    <div class="float-left">
-                        <a href="{{ route('transaksi.pelunasan-utang.index') }}" class="btn btn-light">
-                            <i class="fas fa-arrow-left"></i> Kembali
-                        </a>
-                    </div>
-                    <button onclick="window.print()" class="btn btn-warning btn-icon icon-left">
-                        <i class="fas fa-print"></i> Cetak
-                    </button>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informasi Pembayaran</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-muted">Akun Kas</h6>
+                        <p class="mb-0">
+                            @if($pelunasanUtang->akunKas)
+                                <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama_akun }}
+                            @else
+                                <span class="text-muted">Akun Kas tidak ditemukan</span>
+                            @endif
+                        </p>
+                    </div>
+                    
+                    @if($pelunasanUtang->coaPelunasan)
+                    <div class="mb-3">
+                        <h6 class="text-muted">COA Pelunasan</h6>
+                        <p class="mb-0">
+                            <strong>{{ $pelunasanUtang->coaPelunasan->kode_akun }}</strong> - {{ $pelunasanUtang->coaPelunasan->nama_akun }}
+                        </p>
+                    </div>
+                    @endif
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted">Tanggal Pembayaran</h6>
+                        <p class="mb-0">{{ $pelunasanUtang->tanggal->format('d F Y') }}</p>
+                    </div>
+                    
+                    @if($pelunasanUtang->keterangan)
+                    <div class="mb-3">
+                        <h6 class="text-muted">Keterangan</h6>
+                        <p class="mb-0">{{ $pelunasanUtang->keterangan }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Jurnal</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Akun</th>
+                                    <th class="text-end">Debit</th>
+                                    <th class="text-end">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($pelunasanUtang->jurnals as $jurnal)
+                                <tr>
+                                    <td>{{ $jurnal->coa->kode_akun }} - {{ $jurnal->coa->nama }}</td>
+                                    <td class="text-end">{{ $jurnal->debit ? 'Rp ' . number_format($jurnal->debit, 0, ',', '.') : '-' }}</td>
+                                    <td class="text-end">{{ $jurnal->kredit ? 'Rp ' . number_format($jurnal->kredit, 0, ',', '.') : '-' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1"><small>Dibuat oleh: {{ $pelunasanUtang->user->name }}</small></p>
+                            <p class="text-muted mb-0"><small>Dibuat pada: {{ $pelunasanUtang->created_at->format('d/m/Y H:i') }}</small></p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            @if($pelunasanUtang->updated_at->gt($pelunasanUtang->created_at))
+                                <p class="text-muted mb-0"><small>Diperbarui pada: {{ $pelunasanUtang->updated_at->format('d/m/Y H:i') }}</small></p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+@push('styles')
 <style>
     @media print {
-        body * {
-            visibility: hidden;
-        }
-        .invoice, .invoice * {
-            visibility: visible;
-        }
-        .invoice {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20px;
-            font-size: 12px;
-        }
-        .no-print {
+        .btn, .breadcrumb, nav, .sidebar {
             display: none !important;
         }
-        .table td, .table th {
-            padding: 0.5rem;
+        .container-fluid {
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #000;
+            box-shadow: none;
         }
     }
 </style>
+@endpush
 
 @endsection
