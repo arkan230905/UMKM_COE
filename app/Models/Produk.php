@@ -227,7 +227,16 @@ class Produk extends Model
             }
         }
         
-        // PRIORITY 4: Fallback - return 0 if no cost data available
+        // PRIORITY 4: Try to get from harga_bom
+        if (!empty($this->harga_bom) && $this->harga_bom > 0) {
+            return $this->harga_bom;
+        }
+        
+        // PRIORITY 5: Fallback to 50% of harga_jual if still 0
+        if (!empty($this->harga_jual) && $this->harga_jual > 0) {
+            return $this->harga_jual * 0.5;
+        }
+        
         return 0;
     }
     

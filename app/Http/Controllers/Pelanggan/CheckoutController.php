@@ -42,7 +42,7 @@ class CheckoutController extends Controller
             ->get();
 
         if ($carts->isEmpty()) {
-            return redirect()->route('pelanggan.cart')
+            return redirect()->route('pelanggan.cart', ['perusahaan_slug' => request()->route('perusahaan_slug')])
                 ->with('error', 'Keranjang kosong!');
         }
 

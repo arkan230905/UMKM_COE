@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>SIMCOST - @yield('title', 'Belanja Online')</title>
+    @php
+        $currentCompany = request()->attributes->get('perusahaan') ?? \App\Models\Perusahaan::find(session('perusahaan_id')) ?? \App\Models\Perusahaan::first();
+    @endphp
+    <title>{{ $currentCompany->nama ?? 'SIMCOST' }} - @yield('title', 'Belanja Online')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     
     <!-- Bootstrap CSS -->
@@ -232,6 +235,7 @@
                 <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height:36px;width:auto;">
                 <img src="{{ asset('images/logo_telkom.png') }}" alt="Telkom" style="height:36px;width:auto;">
                 <img src="{{ asset('images/logo_eadt.png') }}" alt="EADT" style="height:36px;width:auto;">
+                <span class="ms-2 d-none d-md-inline" style="font-size: 1rem; font-weight: 700; color: white;">{{ $currentCompany->nama ?? '' }}</span>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -312,13 +316,12 @@
     <footer class="footer">
         <div class="container">
             @php 
-                $footerCompany = \App\Models\Perusahaan::first(); 
                 $waNumber = config('services.whatsapp.number') ?? env('WHATSAPP_NUMBER', '6281234567890');
                 $waLink = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $waNumber) . '?text=' . urlencode('Halo, saya butuh bantuan mengenai layanan e-commerce Anda.');
             @endphp
             <div class="row gy-4 mb-4">
                 <div class="col-lg-5 col-md-6">
-                    <h5 class="footer-title">{{ $footerCompany->nama ?? config('app.name') }}</h5>
+                    <h5 class="footer-title">{{ $currentCompany->nama ?? config('app.name') }}</h5>
                     <p class="mb-3" style="font-size: 0.95rem; line-height: 1.6;">
                         Platform e-commerce terpercaya untuk UMKM. Kami menyediakan berbagai produk berkualitas langsung dari produsen ke tangan Anda. Belanja mudah, aman, dan terpercaya.
                     </p>
@@ -349,7 +352,7 @@
             </div>
             
             <div class="footer-bottom text-center">
-                <p class="mb-0" style="font-size: 0.85rem;">&copy; {{ date('Y') }} {{ $footerCompany->nama ?? config('app.name') }}. All rights reserved.</p>
+                <p class="mb-0" style="font-size: 0.85rem;">&copy; {{ date('Y') }} {{ $currentCompany->nama ?? config('app.name') }}. All rights reserved.</p>
                 <small class="text-white-50 mt-1 d-block">Mendukung pertumbuhan UMKM Indonesia</small>
             </div>
         </div>

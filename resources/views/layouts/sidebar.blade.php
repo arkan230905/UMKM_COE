@@ -129,6 +129,13 @@
         </button>
         <div class="sb-submenu {{ request()->is('kelola-catalog*') ? 'show' : '' }}" id="menu-catalog">
             <a href="{{ route('kelola-catalog.index') }}" class="sb-sub {{ request()->is('kelola-catalog*') ? 'active' : '' }}">Kelola Catalog</a>
+            @php
+                $userCompany = auth()->check() ? \App\Models\Perusahaan::find(auth()->user()->perusahaan_id) : null;
+                $userCompanySlug = $userCompany ? \App\Helpers\PerusahaanHelper::getSlug($userCompany) : null;
+            @endphp
+            @if($userCompanySlug)
+            <a href="{{ url($userCompanySlug . '/pelanggan/dashboard') }}" target="_blank" class="sb-sub">Lihat Toko Online</a>
+            @endif
         </div>
 
         @endif

@@ -9,54 +9,90 @@ use App\Helpers\PerusahaanHelper;
 class FallbackController extends Controller
 {
     /**
-     * Redirect dari /pelanggan/dashboard ke /pt-arkan-trans-jaya/pelanggan/dashboard
+     * Get redirect slug based on logged-in user or session
+     */
+    private function getRedirectSlug()
+    {
+        $perusahaan = null;
+        
+        // 1. Check logged in customer
+        if (auth('pelanggan')->check()) {
+            $user = auth('pelanggan')->user();
+            if ($user && $user->perusahaan_id) {
+                $perusahaan = Perusahaan::find($user->perusahaan_id);
+            }
+        }
+        
+        // 2. Check logged in owner/admin
+        if (!$perusahaan && auth('web')->check()) {
+            $user = auth('web')->user();
+            if ($user && $user->perusahaan_id) {
+                $perusahaan = Perusahaan::find($user->perusahaan_id);
+            }
+        }
+        
+        // 3. Check session
+        if (!$perusahaan && session()->has('perusahaan_id')) {
+            $perusahaan = Perusahaan::find(session('perusahaan_id'));
+        }
+        
+        // 4. Fallback to first perusahaan
+        if (!$perusahaan) {
+            $perusahaan = Perusahaan::first();
+        }
+        
+        if (!$perusahaan) {
+            return null;
+        }
+        
+        return PerusahaanHelper::getSlug($perusahaan);
+    }
+
+    /**
+     * Redirect dari /pelanggan/dashboard ke /{company_slug}/pelanggan/dashboard
      */
     public function dashboard()
     {
-        $perusahaan = Perusahaan::first();
-        if (!$perusahaan) {
+        $slug = $this->getRedirectSlug();
+        if (!$slug) {
             return response('Perusahaan tidak ditemukan', 404);
         }
-        $slug = PerusahaanHelper::getSlug($perusahaan);
         return redirect("/{$slug}/pelanggan/dashboard");
     }
 
     /**
-     * Redirect dari /pelanggan/login ke /pt-arkan-trans-jaya/pelanggan/login
+     * Redirect dari /pelanggan/login ke /{company_slug}/pelanggan/login
      */
     public function login()
     {
-        $perusahaan = Perusahaan::first();
-        if (!$perusahaan) {
+        $slug = $this->getRedirectSlug();
+        if (!$slug) {
             return response('Perusahaan tidak ditemukan', 404);
         }
-        $slug = PerusahaanHelper::getSlug($perusahaan);
         return redirect("/{$slug}/pelanggan/login");
     }
 
     /**
-     * Redirect dari /pelanggan/cart ke /pt-arkan-trans-jaya/pelanggan/cart
+     * Redirect dari /pelanggan/cart ke /{company_slug}/pelanggan/cart
      */
     public function cart()
     {
-        $perusahaan = Perusahaan::first();
-        if (!$perusahaan) {
+        $slug = $this->getRedirectSlug();
+        if (!$slug) {
             return response('Perusahaan tidak ditemukan', 404);
         }
-        $slug = PerusahaanHelper::getSlug($perusahaan);
         return redirect("/{$slug}/pelanggan/cart");
     }
 
     /**
-     * Catch-all untuk redirect ke perusahaan pertama
+     * Catch-all untuk redirect ke perusahaan yang sesuai
      */
     public function catchAll($path = '')
     {
-        $perusahaan = Perusahaan::first();
-        if (!$perusahaan) {
+        $slug = $this->getRedirectSlug();
+        if (!$slug) {
             return response('Perusahaan tidak ditemukan', 404);
         }
-        $slug = PerusahaanHelper::getSlug($perusahaan);
         $newPath = $path ? "/{$slug}/pelanggan/{$path}" : "/{$slug}/pelanggan/dashboard";
         return redirect($newPath);
     }

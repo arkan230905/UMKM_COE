@@ -21,9 +21,8 @@ class CartController extends Controller
         $total = $carts->sum('subtotal');
 
         // Get perusahaan_slug for URL generation
-        $ownerUser = auth('pelanggan')->user()->owner;
-        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
-        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+        $perusahaan = current_perusahaan();
+        $perusahaan_slug = perusahaan_slug($perusahaan);
 
         return view('pelanggan.cart', compact('carts', 'total', 'perusahaan_slug'));
     }
@@ -77,7 +76,7 @@ class CartController extends Controller
         }
     }
 
-    public function update(Request $request, Cart $cart)
+    public function update(Request $request, $perusahaan_slug, Cart $cart)
     {
         $request->validate([
             'qty' => 'required|integer|min:1',
@@ -108,7 +107,7 @@ class CartController extends Controller
         return back()->with('success', 'Keranjang berhasil diupdate!');
     }
 
-    public function destroy(Cart $cart)
+    public function destroy($perusahaan_slug, Cart $cart)
     {
         // Cek ownership
         if ($cart->user_id !== auth('pelanggan')->id()) {
@@ -204,7 +203,7 @@ class CartController extends Controller
         return response()->json($carts);
     }
 
-    public function updateAjax(Request $request, $id)
+    public function updateAjax(Request $request, $perusahaan_slug, $id)
     {
         if (!auth('pelanggan')->check()) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -240,7 +239,7 @@ class CartController extends Controller
         ]);
     }
 
-    public function destroyAjax(Request $request, $id)
+    public function destroyAjax(Request $request, $perusahaan_slug, $id)
     {
         if (!auth('pelanggan')->check()) {
             return response()->json(['error' => 'Unauthorized'], 401);
