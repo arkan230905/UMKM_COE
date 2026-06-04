@@ -10,15 +10,18 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <style>
-        /* Video background */
-        video#bg-video {
+        /* Image background - Optimized for performance */
+        .bg-image {
             position: fixed;
             right: 0;
             bottom: 0;
             min-width: 100%;
             min-height: 100%;
             z-index: -1;
-            object-fit: cover;
+            background-image: url('{{ asset('images/karangpakuanumkm.jpg') }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             filter: brightness(55%);
         }
 
@@ -191,10 +194,8 @@
 </head>
 <body>
 
-    <!-- Background video -->
-    <video autoplay muted loop id="bg-video">
-        <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
-    </video>
+    <!-- Background image - Optimized for fast loading -->
+    <div class="bg-image"></div>
 
     <div class="reset-container px-3">
         <div class="reset-box">

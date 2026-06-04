@@ -38,17 +38,19 @@
             scrollbar-width: none;  /* Firefox */
         }
 
-        /* Video Background */
-        .video-bg {
+        /* Image Background - Optimized for performance */
+        .bg-image {
             position: fixed;
-            top: -5%;
+            top: 0;
             left: 0;
             width: 100%;
-            height: 110%;
-            object-fit: cover;
+            height: 100%;
+            background-image: url('{{ asset('images/karangpakuanumkm.jpg') }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             z-index: -1;
             filter: contrast(1.1) brightness(1.05) saturate(1.1);
-            transform: scale(1.02);
         }
 
         .gradient-bg {
@@ -544,10 +546,7 @@
 <body>
 
     <div class="gradient-bg">
-        <video autoplay muted loop playsinline preload="auto" class="video-bg">
-            <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
-            Browser Anda tidak mendukung video.
-        </video>
+        <div class="bg-image"></div>
         <div class="overlay"></div>
         
         <!-- Logo Section Outside Container -->

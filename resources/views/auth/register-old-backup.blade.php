@@ -407,11 +407,8 @@
     </style>
 </head>
 <body>
-    <!-- Video Background -->
-    <video autoplay muted loop playsinline preload="auto" class="video-bg">
-        <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
-        Browser Anda tidak mendukung video.
-    </video>
+    <!-- Background image - Optimized for fast loading -->
+    <div class="bg-image"></div>
     <div class="overlay"></div>
 
     <!-- Logo Section Outside Container -->

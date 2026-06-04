@@ -596,10 +596,8 @@
 </head>
 <body>
 
-    <!-- Background video -->
-    <video autoplay muted loop playsinline preload="auto" id="bg-video">
-        <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
-    </video>
+    <!-- Background image - Optimized for fast loading -->
+    <div class="bg-image"></div>
     <div class="overlay"></div>
 
     <!-- Logo Section Outside Container -->
