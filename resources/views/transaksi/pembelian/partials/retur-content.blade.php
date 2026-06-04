@@ -1,4 +1,5 @@
 {{-- Retur Content untuk Tab di Halaman Pembelian --}}
+
 <div class="card">
     <div class="card-header">
         <div class="d-flex align-items-center">

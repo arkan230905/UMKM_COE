@@ -76,17 +76,19 @@
             box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.3) !important;
         }
 
-        /* Video background */
-        video#bg-video {
+        /* Image background - Optimized for performance */
+        .bg-image {
             position: fixed;
-            top: -5%;
+            top: 0;
             left: 0;
             width: 100%;
-            height: 110%;
+            height: 100%;
+            background-image: url('{{ asset('FOTO_MANUFAKTUR.png') }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             z-index: -2;
-            object-fit: cover;
             filter: contrast(1.1) brightness(1.05) saturate(1.1);
-            transform: scale(1.02);
         }
 
         .overlay {
@@ -634,10 +636,8 @@
 </head>
 <body>
 
-    <!-- Background video -->
-    <video autoplay muted loop playsinline preload="auto" id="bg-video">
-        <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
-    </video>
+    <!-- Background image - Optimized for fast loading -->
+    <div class="bg-image"></div>
     <div class="overlay"></div>
 
     <!-- Logo Section Outside Container -->

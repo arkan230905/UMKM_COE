@@ -89,11 +89,121 @@ class ReturController extends Controller
     }
 
     /**
-     * Public method untuk digunakan oleh PembelianController
+     * Public method untuk digunakan oleh PembelianController dengan filter support
      */
-    public function getRetursDataForPembelian()
+    public function getRetursDataForPembelian($request = null)
     {
-        return $this->getRetursData();
+        // Clear model cache dan reconnect database untuk data fresh
+        \App\Models\PurchaseReturn::clearBootedModels();
+        \DB::reconnect();
+        
+        // CRITICAL: Filter by user_id for multi-tenant
+        $query = \App\Models\PurchaseReturn::with([
+                'pembelian.vendor', 
+                'items.bahanBaku', 
+                'items.bahanPendukung'
+            ])
+            ->where('user_id', auth()->id());
+        
+        // Apply filters if request is provided
+        if ($request) {
+            // Filter by nomor transaksi (pembelian)
+            if ($request->filled('nomor_transaksi')) {
+                $query->whereHas('pembelian', function($q) use ($request) {
+                    $q->where('nomor_pembelian', 'like', '%' . $request->nomor_transaksi . '%');
+                });
+            }
+            
+            // Filter by tanggal
+            if ($request->filled('tanggal_mulai')) {
+                $query->whereDate('tanggal_retur', '>=', $request->tanggal_mulai);
+            }
+            if ($request->filled('tanggal_selesai')) {
+                $query->whereDate('tanggal_retur', '<=', $request->tanggal_selesai);
+            }
+            
+            // Filter by vendor
+            if ($request->filled('vendor_id')) {
+                $query->whereHas('pembelian', function($q) use ($request) {
+                    $q->where('vendor_id', $request->vendor_id);
+                });
+            }
+            
+            // Filter by no retur
+            if ($request->filled('no_retur')) {
+                $query->where('nomor_retur', 'like', '%' . $request->no_retur . '%');
+            }
+            
+            // Filter by status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+            
+            // Filter by jenis retur
+            if ($request->filled('jenis_retur')) {
+                $query->where('jenis_retur', $request->jenis_retur);
+            }
+            
+            // Dynamic sorting
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'asc');
+            
+            // Validate sort column
+            $allowedSortColumns = [
+                'tanggal_retur',
+                'nomor_retur',
+                'jenis_retur',
+                'status',
+                'created_at'
+            ];
+            
+            if (in_array($sortBy, $allowedSortColumns)) {
+                $query->orderBy($sortBy, $sortOrder);
+            } else {
+                $query->oldest('created_at');
+            }
+        } else {
+            $query->oldest('created_at');
+        }
+        
+        $returs = $query->get();
+        
+        // Calculate total manually since withSum uses wrong table name
+        $returs->each(function($retur) {
+            $retur->calculated_total = $retur->items->sum('subtotal');
+        });
+            
+        // Handle new retur session - pastikan retur baru ada di collection
+        if (session('new_retur_created') && session('new_retur_id')) {
+            $newReturId = session('new_retur_id');
+            $newReturExists = $returs->where('id', $newReturId)->first();
+            
+            if (!$newReturExists) {
+                $newRetur = \App\Models\PurchaseReturn::with([
+                    'pembelian.vendor', 
+                    'items.bahanBaku', 
+                    'items.bahanPendukung'
+                ])
+                ->where('user_id', auth()->id())
+                ->find($newReturId);
+                
+                if ($newRetur) {
+                    $newRetur->calculated_total = $newRetur->items->sum('subtotal');
+                    $returs = $returs->prepend($newRetur);
+                    \Log::info('Added missing new retur to collection:', ['retur_id' => $newReturId]);
+                }
+            }
+        }
+        
+        \Log::info('Returs data loaded:', [
+            'count' => $returs->count(),
+            'session_new_retur' => session('new_retur_created'),
+            'session_new_retur_id' => session('new_retur_id'),
+            'new_retur_in_collection' => session('new_retur_id') ? 
+                $returs->where('id', session('new_retur_id'))->count() > 0 : false
+        ]);
+        
+        return $returs;
     }
 
     public function indexPembelian()
