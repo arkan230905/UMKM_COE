@@ -60,13 +60,6 @@
                         <option value="belum_lunas" {{ request('status_pembayaran') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Urutkan</label>
-                    <select name="sort_order" class="form-select">
-                        <option value="asc" {{ request('sort_order', 'asc') == 'asc' ? 'selected' : '' }}>Terlama ke Terbaru</option>
-                        <option value="desc" {{ request('sort_order') == 'desc' ? 'selected' : '' }}>Terbaru ke Terlama</option>
-                    </select>
-                </div>
                 <div class="col-md-12">
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
@@ -89,7 +82,7 @@
             <div class="d-flex align-items-center">
                 <i class="fas fa-list me-2"></i>
                 <span>Riwayat Pembelian</span>
-                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'payment_method', 'status', 'status_pembayaran', 'sort_order']))
+                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'payment_method', 'status', 'status_pembayaran']))
                     <small class="text-muted ms-3">(Filter Aktif)</small>
                 @endif
             </div>
@@ -102,16 +95,106 @@
                     <tr>
 
                         <th class="text-center" style="width: 50px">No</th>
-                        <th class="nowrap">No. Transaksi</th>
-                        <th class="nowrap">No. Faktur</th>
+                        <th class="nowrap sortable" data-sort="nomor_pembelian" style="cursor: pointer;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>No. Transaksi</span>
+                                <span class="sort-icon ms-2">
+                                    @if(request('sort_by') == 'nomor_pembelian')
+                                        @if(request('sort_order') == 'asc')
+                                            <i class="fas fa-sort-up text-primary"></i>
+                                        @else
+                                            <i class="fas fa-sort-down text-primary"></i>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-sort text-muted"></i>
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
+                        <th class="nowrap sortable" data-sort="nomor_faktur" style="cursor: pointer;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>No. Faktur</span>
+                                <span class="sort-icon ms-2">
+                                    @if(request('sort_by') == 'nomor_faktur')
+                                        @if(request('sort_order') == 'asc')
+                                            <i class="fas fa-sort-up text-primary"></i>
+                                        @else
+                                            <i class="fas fa-sort-down text-primary"></i>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-sort text-muted"></i>
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
                         <th class="nowrap">Bukti Faktur</th>
-                        <th class="nowrap">Tanggal</th>
+                        <th class="nowrap sortable" data-sort="tanggal" style="cursor: pointer;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>Tanggal</span>
+                                <span class="sort-icon ms-2">
+                                    @if(request('sort_by') == 'tanggal')
+                                        @if(request('sort_order') == 'asc')
+                                            <i class="fas fa-sort-up text-primary"></i>
+                                        @else
+                                            <i class="fas fa-sort-down text-primary"></i>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-sort text-muted"></i>
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
                         <th class="nowrap">Vendor</th>
                         <th class="nowrap">Item</th>
                         <th class="nowrap">Satuan Pembelian</th>
-                        <th class="nowrap">Pembayaran</th>
-                        <th class="nowrap">Status Pembayaran</th>
-                        <th class="nowrap">Total Harga</th>
+                        <th class="nowrap sortable" data-sort="payment_method" style="cursor: pointer;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>Pembayaran</span>
+                                <span class="sort-icon ms-2">
+                                    @if(request('sort_by') == 'payment_method')
+                                        @if(request('sort_order') == 'asc')
+                                            <i class="fas fa-sort-up text-primary"></i>
+                                        @else
+                                            <i class="fas fa-sort-down text-primary"></i>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-sort text-muted"></i>
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
+                        <th class="nowrap sortable" data-sort="status_pembayaran" style="cursor: pointer;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>Status Pembayaran</span>
+                                <span class="sort-icon ms-2">
+                                    @if(request('sort_by') == 'status_pembayaran')
+                                        @if(request('sort_order') == 'asc')
+                                            <i class="fas fa-sort-up text-primary"></i>
+                                        @else
+                                            <i class="fas fa-sort-down text-primary"></i>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-sort text-muted"></i>
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
+                        <th class="nowrap sortable" data-sort="total_harga" style="cursor: pointer;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>Total Harga</span>
+                                <span class="sort-icon ms-2">
+                                    @if(request('sort_by') == 'total_harga')
+                                        @if(request('sort_order') == 'asc')
+                                            <i class="fas fa-sort-up text-primary"></i>
+                                        @else
+                                            <i class="fas fa-sort-down text-primary"></i>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-sort text-muted"></i>
+                                    @endif
+                                </span>
+                            </div>
+                        </th>
                         <th class="nowrap">Status Retur</th>
                         <th class="text-center" style="width: 180px">Aksi</th>
 </tr>
@@ -275,3 +358,81 @@
         </div>
     </div>
 </div>
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle sortable column clicks
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            const currentSortBy = '{{ request("sort_by") }}';
+            const currentSortOrder = '{{ request("sort_order", "asc") }}';
+            
+            // Determine new sort order
+            let newSortOrder = 'asc';
+            if (sortBy === currentSortBy) {
+                // Toggle sort order if clicking the same column
+                newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            }
+            
+            // Build URL with all current filters
+            const url = new URL(window.location.href);
+            url.searchParams.set('sort_by', sortBy);
+            url.searchParams.set('sort_order', newSortOrder);
+            
+            // Redirect to new URL
+            window.location.href = url.toString();
+        });
+        
+        // Add hover effect
+        header.style.transition = 'background-color 0.2s';
+        header.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        header.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+@endpush
+
+@push('styles')
+<style>
+.sortable {
+    user-select: none;
+    position: relative;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa !important;
+}
+
+.sortable .sort-icon {
+    display: inline-block;
+    min-width: 15px;
+    text-align: center;
+}
+
+.sortable .sort-icon i {
+    font-size: 0.875rem;
+}
+
+.sortable .sort-icon .fa-sort {
+    opacity: 0.3;
+}
+
+.sortable:hover .sort-icon .fa-sort {
+    opacity: 0.6;
+}
+
+.sortable .sort-icon .fa-sort-up,
+.sortable .sort-icon .fa-sort-down {
+    opacity: 1;
+}
+</style>
+@endpush
