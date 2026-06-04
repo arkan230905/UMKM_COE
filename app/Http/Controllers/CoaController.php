@@ -59,7 +59,7 @@ class CoaController extends Controller
             }, $missingCoas);
             
             session()->flash('warning_coa', 'Akun yang belum ada: ' . implode(', ', $missingNames) . 
-                '. Silakan tambahkan akun tersebut terlebih dahulu.');
+                '. Silakan tambahkan akun tersebut terlebih dahulu');
         }
         
         // Get saldo untuk setiap COA berdasarkan periode
