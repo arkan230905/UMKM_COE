@@ -78,13 +78,14 @@ class ProdukController extends Controller
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan Barang Jadi (support both naming patterns)
-        // Matches: "Persediaan Barang Jadi", "Pers. Barang Jadi", and any variation with "Barang Jadi"
+        // Get all COA Persediaan Barang Jadi
+        // Query yang lebih robust: cari akun dengan kata kunci yang relevan
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->whereIn('tipe_akun', ['Asset', 'Aset']) // Support both English and Indonesian naming
             ->where(function($query) {
-                $query->where('nama_akun', 'LIKE', '%Barang Jadi%')
-                      ->orWhere('kode_akun', 'LIKE', '116%'); // Also match by code (116x pattern)
+                // Cari berdasarkan nama akun yang mengandung kata kunci
+                $query->where('nama_akun', 'LIKE', '%Persediaan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
+                      ->orWhere('kode_akun', 'LIKE', '116%');
             })
             ->orderBy('kode_akun')
             ->get();
@@ -165,13 +166,14 @@ class ProdukController extends Controller
         
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan Barang Jadi (support both naming patterns)
-        // Matches: "Persediaan Barang Jadi", "Pers. Barang Jadi", and any variation with "Barang Jadi"
+        // Get all COA Persediaan Barang Jadi
+        // Query yang lebih robust: cari akun dengan kata kunci yang relevan
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->whereIn('tipe_akun', ['Asset', 'Aset']) // Support both English and Indonesian naming
             ->where(function($query) {
-                $query->where('nama_akun', 'LIKE', '%Barang Jadi%')
-                      ->orWhere('kode_akun', 'LIKE', '116%'); // Also match by code (116x pattern)
+                // Cari berdasarkan nama akun yang mengandung kata kunci
+                $query->where('nama_akun', 'LIKE', '%Persediaan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
+                      ->orWhere('kode_akun', 'LIKE', '116%');
             })
             ->orderBy('kode_akun')
             ->get();
