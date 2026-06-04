@@ -153,49 +153,72 @@ class LoginController extends Controller
 
         // Login dengan kode perusahaan untuk pegawai
         if ($role === 'pegawai') {
-            $pegawai = Pegawai::where('email', $email)->first();
-
-            if (!$pegawai) {
-                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan. Email: ' . $email]);
-            }
-
-            // Cek apakah user sudah ada untuk pegawai ini
+            // ✅ FIXED: Cari user dulu (by email)
+            // Bisa user dengan role pegawai ATAU user dengan role lain yang punya pegawai_id
             $user = User::where('email', $email)->first();
+
             if (!$user) {
-                $user = User::create([
-                    'name' => $pegawai->nama,
-                    'email' => $pegawai->email,
-                    'password' => Hash::make(Str::random(32)),
-                    'role' => User::ROLE_PEGAWAI,
-                    'pegawai_id' => $pegawai->id,
-                    'email_verified_at' => now(),
-                ]);
+                return back()->withInput()->withErrors(['email' => 'Email belum terdaftar. Hubungi admin.']);
             }
 
-            // Pastikan user terhubung ke pegawai
+            // ✅ Cek apakah user punya pegawai_id (bisa dari role apapun - owner, admin, or pegawai)
             if (!$user->pegawai_id) {
-                $user->update([
-                    'pegawai_id' => $pegawai->id
-                ]);
+                return back()->withInput()->withErrors(['email' => 'User tidak terhubung dengan data pegawai. Hubungi admin untuk setup.']);
             }
 
+            // ✅ Get pegawai dari user relationship
+            $pegawai = $user->pegawai;
+            if (!$pegawai) {
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan untuk user ini. Hubungi admin.']);
+            }
+
+            // ✅ Validasi perusahaan_id
+            if (!$user->perusahaan_id) {
+                return back()->withInput()->withErrors(['email' => 'User tidak terhubung dengan perusahaan. Hubungi admin.']);
+            }
+
+            // ✅ PENTING: Update user role ke 'pegawai' jika belum (untuk consistency)
             if ($user->role !== 'pegawai') {
-                return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai. Role user saat ini: ' . $user->role]);
+                $user->update(['role' => 'pegawai']);
+                \Log::info('User role updated to pegawai for login', ['user_id' => $user->id, 'old_role' => $user->getOriginal('role')]);
             }
 
             // Login otomatis untuk pegawai
             auth()->login($user);
             $request->session()->regenerate();
 
+            // ✅ Simpan perusahaan_id ke session
+            session(['perusahaan_id' => $user->perusahaan_id]);
+
+            \Log::info('Pegawai login berhasil', [
+                'user_id' => $user->id,
+                'pegawai_id' => $pegawai->id,
+                'perusahaan_id' => $user->perusahaan_id,
+                'email' => $email,
+            ]);
+
             return redirect()->intended(route('pegawai.presensi.absen-wajah'));
         }
 
         // Login dengan kode perusahaan untuk pegawai pembelian/gudang
         if ($role === 'pegawai_pembelian') {
-            $pegawai = Pegawai::where('email', $email)->first();
+            // ✅ FIXED: Cari user dulu (by email)
+            // Bisa user dengan role apapun yang punya pegawai_id
+            $user = User::where('email', $email)->first();
 
+            if (!$user) {
+                return back()->withInput()->withErrors(['email' => 'Email belum terdaftar. Hubungi admin.']);
+            }
+
+            // ✅ Cek pegawai_id
+            if (!$user->pegawai_id) {
+                return back()->withInput()->withErrors(['email' => 'User tidak terhubung dengan data pegawai. Hubungi admin.']);
+            }
+
+            // ✅ Get pegawai dari user relationship
+            $pegawai = $user->pegawai;
             if (!$pegawai) {
-                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan. Email: ' . $email]);
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan. Hubungi admin.']);
             }
 
             // Cek apakah jabatan pegawai sesuai (gudang atau pembelian)
@@ -204,33 +227,30 @@ class LoginController extends Controller
                 return back()->withInput()->withErrors(['email' => 'Jabatan pegawai tidak sesuai. Jabatan saat ini: ' . $pegawai->jabatan . '. Jabatan yang diizinkan: Bagian Gudang atau Pembelian.']);
             }
 
-            // Cek apakah user sudah ada untuk pegawai ini
-            $user = User::where('email', $email)->first();
-            if (!$user) {
-                $user = User::create([
-                    'name' => $pegawai->nama,
-                    'email' => $pegawai->email,
-                    'password' => Hash::make(Str::random(32)),
-                    'role' => User::ROLE_PEGAWAI_PEMBELIAN,
-                    'pegawai_id' => $pegawai->id,
-                    'email_verified_at' => now(),
-                ]);
+            // ✅ Validasi perusahaan_id
+            if (!$user->perusahaan_id) {
+                return back()->withInput()->withErrors(['email' => 'User tidak terhubung dengan perusahaan. Hubungi admin.']);
             }
 
-            // Pastikan user terhubung ke pegawai
-            if (!$user->pegawai_id) {
-                $user->update([
-                    'pegawai_id' => $pegawai->id
-                ]);
-            }
-
+            // ✅ Update user role ke 'pegawai_pembelian' jika belum
             if ($user->role !== 'pegawai_pembelian') {
-                return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai pembelian. Role user saat ini: ' . $user->role]);
+                $user->update(['role' => 'pegawai_pembelian']);
+                \Log::info('User role updated to pegawai_pembelian', ['user_id' => $user->id]);
             }
 
-            // Login otomatis untuk pegawai pembelian
+            // Login otomatis
             auth()->login($user);
             $request->session()->regenerate();
+
+            // ✅ Simpan perusahaan_id ke session
+            session(['perusahaan_id' => $user->perusahaan_id]);
+
+            \Log::info('Pegawai pembelian login berhasil', [
+                'user_id' => $user->id,
+                'pegawai_id' => $pegawai->id,
+                'perusahaan_id' => $user->perusahaan_id,
+                'email' => $email,
+            ]);
 
             return redirect()->intended(route('pegawai-pembelian.dashboard'));
         }
