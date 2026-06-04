@@ -78,13 +78,13 @@ class ProdukController extends Controller
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan (match both "Pers. Barang Jadi" and "Persediaan Barang Jadi" naming patterns)
+        // Get all COA Persediaan Barang Jadi (support both naming patterns)
+        // Matches: "Persediaan Barang Jadi", "Pers. Barang Jadi", and any variation with "Barang Jadi"
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Aset')
+            ->whereIn('tipe_akun', ['Asset', 'Aset']) // Support both English and Indonesian naming
             ->where(function($query) {
-                $query->where('nama_akun', 'LIKE', '%Pers. Barang Jadi%')
-                      ->orWhere('nama_akun', 'LIKE', '%Persediaan Barang Jadi%')
-                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%');
+                $query->where('nama_akun', 'LIKE', '%Barang Jadi%')
+                      ->orWhere('kode_akun', 'LIKE', '116%'); // Also match by code (116x pattern)
             })
             ->orderBy('kode_akun')
             ->get();
@@ -165,13 +165,13 @@ class ProdukController extends Controller
         
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan (match both "Pers. Barang Jadi" and "Persediaan Barang Jadi" naming patterns)
+        // Get all COA Persediaan Barang Jadi (support both naming patterns)
+        // Matches: "Persediaan Barang Jadi", "Pers. Barang Jadi", and any variation with "Barang Jadi"
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Aset')
+            ->whereIn('tipe_akun', ['Asset', 'Aset']) // Support both English and Indonesian naming
             ->where(function($query) {
-                $query->where('nama_akun', 'LIKE', '%Pers. Barang Jadi%')
-                      ->orWhere('nama_akun', 'LIKE', '%Persediaan Barang Jadi%')
-                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%');
+                $query->where('nama_akun', 'LIKE', '%Barang Jadi%')
+                      ->orWhere('kode_akun', 'LIKE', '116%'); // Also match by code (116x pattern)
             })
             ->orderBy('kode_akun')
             ->get();
