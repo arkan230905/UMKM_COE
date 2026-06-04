@@ -79,8 +79,8 @@ class ProdukController extends Controller
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Get all COA Persediaan Barang Jadi
-        // Remove user_id filter temporarily to debug if data exists
-        $coaPersediaan = \App\Models\Coa::query()
+        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
+        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
                 $query->where('nama_akun', 'LIKE', '%Persediaan%')
@@ -167,8 +167,8 @@ class ProdukController extends Controller
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Get all COA Persediaan Barang Jadi
-        // Remove user_id filter temporarily to debug if data exists
-        $coaPersediaan = \App\Models\Coa::query()
+        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
+        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
                 $query->where('nama_akun', 'LIKE', '%Persediaan%')
