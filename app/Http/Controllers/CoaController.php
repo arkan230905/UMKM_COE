@@ -52,12 +52,13 @@ class CoaController extends Controller
         $missingCoas = array_diff($requiredCoas, $existingCoas);
         
         // Tampilkan warning jika ada COA yang hilang dengan nama akun yang lebih user-friendly
+        // Gunakan key 'warning_coa' agar hanya tampil di COA page, bukan di page lain
         if (!empty($missingCoas)) {
             $missingNames = array_map(function($code) use ($coaNames) {
                 return $coaNames[$code] ?? $code;
             }, $missingCoas);
             
-            session()->flash('warning', 'Akun yang belum ada: ' . implode(', ', $missingNames) . 
+            session()->flash('warning_coa', 'Akun yang belum ada: ' . implode(', ', $missingNames) . 
                 '. Silakan tambahkan akun tersebut terlebih dahulu.');
         }
         
