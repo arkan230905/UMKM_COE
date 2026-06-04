@@ -147,14 +147,16 @@
 
 </div>
 
-@if(session('success') || session('error') || session('warning'))
+@if(session('success') || session('error') || (session('warning') && session('warning') !== session('warning_coa')))
 @php
     // Context-aware notification filtering
     $currentRoute = request()->route()->getName() ?? '';
     $currentTab = request('tab', '');
     $successMessage = session('success');
     $errorMessage = session('error');
-    $warningMessage = session('warning');
+    // Don't show warning_coa (COA-specific warning) in the global notification
+    // It should only appear in the COA index view
+    $warningMessage = session('warning') && session('warning') !== session('warning_coa') ? session('warning') : null;
     $showNotification = true;
     
     // If we're on pembelian page with retur tab, filter out pembelian success messages
@@ -171,7 +173,7 @@
         }
     }
     
-    // Always show error and warning messages
+    // Always show error and warning messages (except warning_coa)
     if ($errorMessage || $warningMessage) {
         $showNotification = true;
     }
@@ -180,7 +182,7 @@
 @if($showNotification)
 <div id="notif-flash" style="position:fixed;top:20px;right:20px;z-index:99999;min-width:300px;max-width:450px;padding:14px 18px;border-radius:8px;color:white;font-size:14px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px;background:{{ session('success') ? '#28a745' : (session('error') ? '#dc3545' : '#e6a817') }}">
     <span style="font-size:18px;flex-shrink:0">{{ session('success') ? '✔' : (session('error') ? '✖' : '⚠') }}</span>
-    <span style="flex:1">{{ session('success') ?? session('error') ?? session('warning') }}</span>
+    <span style="flex:1">{{ session('success') ?? session('error') ?? $warningMessage }}</span>
     <button onclick="document.getElementById('notif-flash').remove()" style="margin-left:auto;background:none;border:none;color:white;font-size:22px;cursor:pointer;line-height:1">&times;</button>
 </div>
 <script>setTimeout(function(){var e=document.getElementById('notif-flash');if(e)e.remove();},3500);</script>
