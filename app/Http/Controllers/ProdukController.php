@@ -78,10 +78,14 @@ class ProdukController extends Controller
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
+        // Get all COA Persediaan (match both "Pers. Barang Jadi" and "Persediaan Barang Jadi" naming patterns)
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Asset')
-            ->where('kode_akun', 'LIKE', '11%')
+            ->where('tipe_akun', 'Aset')
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%Pers. Barang Jadi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Persediaan Barang Jadi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%');
+            })
             ->orderBy('kode_akun')
             ->get();
         
@@ -161,10 +165,14 @@ class ProdukController extends Controller
         
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
+        // Get all COA Persediaan (match both "Pers. Barang Jadi" and "Persediaan Barang Jadi" naming patterns)
         $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Asset')
-            ->where('kode_akun', 'LIKE', '11%')
+            ->where('tipe_akun', 'Aset')
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%Pers. Barang Jadi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Persediaan Barang Jadi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%');
+            })
             ->orderBy('kode_akun')
             ->get();
         
