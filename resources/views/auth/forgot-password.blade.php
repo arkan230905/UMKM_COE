@@ -18,7 +18,7 @@
             min-width: 100%;
             min-height: 100%;
             z-index: -1;
-            background-image: url('{{ asset('images/karangpakuanumkm.jpg') }}');
+            background-image: url('{{ asset('FOTO_MANUFAKTUR.png') }}');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
