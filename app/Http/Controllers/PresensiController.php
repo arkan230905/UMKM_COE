@@ -619,12 +619,18 @@ $user = auth()->user();
         $pegawai = $user->pegawai;
 
         if (!$pegawai) {
-            \Log::error('Pegawai not found for absen wajah', [
+            \Log::error('❌ CRITICAL: Pegawai not found for absen wajah', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
-                'user_role' => $user->role
+                'user_role' => $user->role,
+                'pegawai_id' => $user->pegawai_id,
+                'perusahaan_id' => $user->perusahaan_id,
             ]);
-            return redirect()->route('pegawai.dashboard')->with('error', 'Data pegawai tidak ditemukan. Hubungi administrator.');
+            
+            abort(500, '❌ ERROR: Data pegawai tidak ditemukan. 
+                       User ID: ' . $user->id . ', 
+                       Pegawai ID: ' . $user->pegawai_id . '. 
+                       Ini kemungkinan bug multi-tenant - hubungi administrator untuk debugging.');
         }
 
         $today = now()->toDateString();
@@ -634,6 +640,12 @@ $user = auth()->user();
             ->whereDate('tgl_presensi', $today)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        \Log::info('Pegawai absen wajah page accessed', [
+            'pegawai_id' => $pegawai->id,
+            'pegawai_nama' => $pegawai->nama,
+            'today_attendances' => $attendances->count(),
+        ]);
 
         return view('pegawai.presensi.absen-wajah', compact('pegawai', 'attendances'));
     }
