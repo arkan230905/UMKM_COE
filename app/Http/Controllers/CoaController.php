@@ -37,13 +37,28 @@ class CoaController extends Controller
         
         // Cek COA yang diperlukan untuk penggajian
         $requiredCoas = ['52', '54', '513', '514', '515', '516', '111', '112'];
+        $coaNames = [
+            '52' => 'Beban Gaji Pokok',
+            '54' => 'Beban BOP',
+            '513' => 'Beban Tunjangan',
+            '514' => 'Beban Asuransi',
+            '515' => 'Beban Bonus',
+            '516' => 'Beban Lainnya',
+            '111' => 'Kas/Bank',
+            '112' => 'Kas Kecil'
+        ];
+        
         $existingCoas = $coas->pluck('kode_akun')->toArray();
         $missingCoas = array_diff($requiredCoas, $existingCoas);
         
-        // Tampilkan warning jika ada COA yang hilang
+        // Tampilkan warning jika ada COA yang hilang dengan nama akun yang lebih user-friendly
         if (!empty($missingCoas)) {
-            session()->flash('warning', 'COA untuk penggajian yang belum ada: ' . implode(', ', $missingCoas) . 
-                '. Silakan tambahkan COA tersebut terlebih dahulu.');
+            $missingNames = array_map(function($code) use ($coaNames) {
+                return $coaNames[$code] ?? $code;
+            }, $missingCoas);
+            
+            session()->flash('warning', 'Akun yang belum ada: ' . implode(', ', $missingNames) . 
+                '. Silakan tambahkan akun tersebut terlebih dahulu.');
         }
         
         // Get saldo untuk setiap COA berdasarkan periode
