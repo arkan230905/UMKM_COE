@@ -78,7 +78,7 @@ class ProdukController extends Controller
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan Barang Jadi
+        // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
         // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
         $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
             ->where(function($query) {
@@ -87,6 +87,8 @@ class ProdukController extends Controller
                       ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
                       ->orWhere('kode_akun', 'LIKE', '116%');
             })
+            ->select('kode_akun', 'nama_akun')
+            ->distinct()
             ->orderBy('kode_akun')
             ->get();
         
@@ -166,7 +168,7 @@ class ProdukController extends Controller
         
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan Barang Jadi
+        // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
         // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
         $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
             ->where(function($query) {
@@ -175,6 +177,8 @@ class ProdukController extends Controller
                       ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
                       ->orWhere('kode_akun', 'LIKE', '116%');
             })
+            ->select('kode_akun', 'nama_akun')
+            ->distinct()
             ->orderBy('kode_akun')
             ->get();
         
