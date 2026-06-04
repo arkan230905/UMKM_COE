@@ -79,8 +79,8 @@ class ProdukController extends Controller
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Get all COA Persediaan Barang Jadi
-        // Query yang lebih robust: cari akun dengan kata kunci yang relevan
-        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
+        // Remove user_id filter temporarily to debug if data exists
+        $coaPersediaan = \App\Models\Coa::query()
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
                 $query->where('nama_akun', 'LIKE', '%Persediaan%')
@@ -167,8 +167,8 @@ class ProdukController extends Controller
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Get all COA Persediaan Barang Jadi
-        // Query yang lebih robust: cari akun dengan kata kunci yang relevan
-        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
+        // Remove user_id filter temporarily to debug if data exists
+        $coaPersediaan = \App\Models\Coa::query()
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
                 $query->where('nama_akun', 'LIKE', '%Persediaan%')
