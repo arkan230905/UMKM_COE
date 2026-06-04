@@ -4,7 +4,7 @@
 $host = '127.0.0.1';
 $user = 'root';
 $password = '';
-$database = 'simcost_sistem_manufaktur_process_costing';
+$database = 'eadt_umkm';
 
 $conn = new mysqli($host, $user, $password, $database);
 
