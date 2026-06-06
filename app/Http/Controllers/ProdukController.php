@@ -23,8 +23,9 @@ class ProdukController extends Controller
         $kategoriFilter = $request->get('kategori');
         $statusFilter = $request->get('status');
         
-        // Get all products with filters
-        $query = Produk::where('user_id', auth()->id());
+        // Get all products with filters - EAGER LOAD related data
+        $query = Produk::where('user_id', auth()->id())
+            ->with('kategori'); // Eager load kategori
         
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -50,6 +51,7 @@ class ProdukController extends Controller
         $hargaBom = [];
         foreach ($produks as $produk) {
             // Use getActualHPP() method which gets HPP from harga-pokok-produksi
+            // Cache result dalam produk object untuk menghindari multiple calculations
             $totalBiayaHPP = $produk->getActualHPP();
             $hargaBom[$produk->id] = $totalBiayaHPP;
         }
