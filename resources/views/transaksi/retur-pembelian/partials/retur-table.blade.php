@@ -50,13 +50,73 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" width="5%">No</th>
-                            <th class="text-center" width="8%">Tanggal</th>
-                            <th class="text-center" width="12%">No Retur</th>
+                            <th class="text-center sortable" data-sort="tanggal_retur" width="8%" style="cursor: pointer;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Tanggal</span>
+                                    <span class="sort-icon ms-2">
+                                        @if(request('sort_by') == 'tanggal_retur')
+                                            @if(request('sort_order') == 'asc')
+                                                <i class="fas fa-sort-up text-primary"></i>
+                                            @else
+                                                <i class="fas fa-sort-down text-primary"></i>
+                                            @endif
+                                        @else
+                                            <i class="fas fa-sort text-muted"></i>
+                                        @endif
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="text-center sortable" data-sort="nomor_retur" width="12%" style="cursor: pointer;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>No Retur</span>
+                                    <span class="sort-icon ms-2">
+                                        @if(request('sort_by') == 'nomor_retur')
+                                            @if(request('sort_order') == 'asc')
+                                                <i class="fas fa-sort-up text-primary"></i>
+                                            @else
+                                                <i class="fas fa-sort-down text-primary"></i>
+                                            @endif
+                                        @else
+                                            <i class="fas fa-sort text-muted"></i>
+                                        @endif
+                                    </span>
+                                </div>
+                            </th>
                             <th class="text-center" width="12%">No Transaksi</th>
                             <th class="text-center" width="12%">Vendor</th>
                             <th class="text-center" width="15%">Item</th>
-                            <th class="text-center" width="10%">Jenis Retur</th>
-                            <th class="text-center" width="8%">Status</th>
+                            <th class="text-center sortable" data-sort="jenis_retur" width="10%" style="cursor: pointer;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Jenis Retur</span>
+                                    <span class="sort-icon ms-2">
+                                        @if(request('sort_by') == 'jenis_retur')
+                                            @if(request('sort_order') == 'asc')
+                                                <i class="fas fa-sort-up text-primary"></i>
+                                            @else
+                                                <i class="fas fa-sort-down text-primary"></i>
+                                            @endif
+                                        @else
+                                            <i class="fas fa-sort text-muted"></i>
+                                        @endif
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="text-center sortable" data-sort="status" width="8%" style="cursor: pointer;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span>Status</span>
+                                    <span class="sort-icon ms-2">
+                                        @if(request('sort_by') == 'status')
+                                            @if(request('sort_order') == 'asc')
+                                                <i class="fas fa-sort-up text-primary"></i>
+                                            @else
+                                                <i class="fas fa-sort-down text-primary"></i>
+                                            @endif
+                                        @else
+                                            <i class="fas fa-sort text-muted"></i>
+                                        @endif
+                                    </span>
+                                </div>
+                            </th>
                             <th class="text-center" width="18%">Aksi</th>
                         </tr>
                     </thead>
@@ -176,10 +236,83 @@
 {{-- Shared Styles --}}
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/retur-pembelian.css') }}">
+<style>
+.retur-table-container .sortable {
+    user-select: none;
+    position: relative;
+}
+
+.retur-table-container .sortable:hover {
+    background-color: #f8f9fa !important;
+}
+
+.retur-table-container .sortable .sort-icon {
+    display: inline-block;
+    min-width: 15px;
+    text-align: center;
+}
+
+.retur-table-container .sortable .sort-icon i {
+    font-size: 0.875rem;
+}
+
+.retur-table-container .sortable .sort-icon .fa-sort {
+    opacity: 0.3;
+}
+
+.retur-table-container .sortable:hover .sort-icon .fa-sort {
+    opacity: 0.6;
+}
+
+.retur-table-container .sortable .sort-icon .fa-sort-up,
+.retur-table-container .sortable .sort-icon .fa-sort-down {
+    opacity: 1;
+}
+</style>
 @endpush
 
 {{-- Shared Scripts --}}
 @push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle sortable column clicks for retur table
+    const sortableHeaders = document.querySelectorAll('.retur-table-container .sortable');
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            const currentSortBy = '{{ request("sort_by") }}';
+            const currentSortOrder = '{{ request("sort_order", "asc") }}';
+            
+            // Determine new sort order
+            let newSortOrder = 'asc';
+            if (sortBy === currentSortBy) {
+                // Toggle sort order if clicking the same column
+                newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            }
+            
+            // Build URL with all current filters
+            const url = new URL(window.location.href);
+            url.searchParams.set('sort_by', sortBy);
+            url.searchParams.set('sort_order', newSortOrder);
+            url.searchParams.set('tab', 'retur'); // Keep on retur tab
+            
+            // Redirect to new URL
+            window.location.href = url.toString();
+        });
+        
+        // Add hover effect
+        header.style.transition = 'background-color 0.2s';
+        header.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        header.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+
 @if(session('new_retur_id'))
 <script>
 // Auto-scroll to new retur if exists

@@ -66,12 +66,31 @@ class PembelianController extends Controller
             }
         }
         
-        // Sorting by nomor_pembelian (No. Transaksi)
-        $sortOrder = $request->get('sort_order', 'asc'); // Default: Terlama ke Terbaru
-        if ($sortOrder === 'asc') {
-            $query->orderBy('nomor_pembelian', 'asc'); // Terlama ke Terbaru
+        // Dynamic sorting from header clicks
+        $sortBy = $request->get('sort_by', 'nomor_pembelian');
+        $sortOrder = $request->get('sort_order', 'asc');
+        
+        // Validate sort column to prevent SQL injection
+        $allowedSortColumns = [
+            'nomor_pembelian',
+            'nomor_faktur',
+            'tanggal',
+            'payment_method',
+            'total_harga',
+            'status_pembayaran'
+        ];
+        
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'nomor_pembelian';
+        }
+        
+        // Special handling for vendor sorting (relation)
+        if ($sortBy === 'vendor_id') {
+            $query->join('vendors', 'pembelians.vendor_id', '=', 'vendors.id')
+                  ->select('pembelians.*')
+                  ->orderBy('vendors.nama_vendor', $sortOrder);
         } else {
-            $query->orderBy('nomor_pembelian', 'desc'); // Terbaru ke Terlama
+            $query->orderBy($sortBy, $sortOrder);
         }
         
         $pembelians = $query->get();
@@ -84,7 +103,7 @@ class PembelianController extends Controller
         // Add purchase return data for the Retur tab
         // Gunakan helper method dari ReturController untuk konsistensi
         $returController = new \App\Http\Controllers\ReturController();
-        $returs = $returController->getRetursDataForPembelian();
+        $returs = $returController->getRetursDataForPembelian($request);
         
         return view('transaksi.pembelian.index', compact('pembelians', 'vendors', 'returs'));
     }
