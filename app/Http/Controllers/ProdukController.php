@@ -78,10 +78,17 @@ class ProdukController extends Controller
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
-        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Asset')
-            ->where('kode_akun', 'LIKE', '11%')
+        // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
+        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
+        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+            ->where(function($query) {
+                // Cari berdasarkan nama akun yang mengandung kata kunci
+                $query->where('nama_akun', 'LIKE', '%Persediaan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
+                      ->orWhere('kode_akun', 'LIKE', '116%');
+            })
+            ->select('kode_akun', 'nama_akun')
+            ->distinct()
             ->orderBy('kode_akun')
             ->get();
         
@@ -161,10 +168,17 @@ class ProdukController extends Controller
         
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
-        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
-            ->where('tipe_akun', 'Asset')
-            ->where('kode_akun', 'LIKE', '11%')
+        // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
+        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
+        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+            ->where(function($query) {
+                // Cari berdasarkan nama akun yang mengandung kata kunci
+                $query->where('nama_akun', 'LIKE', '%Persediaan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
+                      ->orWhere('kode_akun', 'LIKE', '116%');
+            })
+            ->select('kode_akun', 'nama_akun')
+            ->distinct()
             ->orderBy('kode_akun')
             ->get();
         
