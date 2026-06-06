@@ -12,10 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop the incorrect foreign key constraint
-        Schema::table('pembelians', function (Blueprint $table) {
-            $table->dropForeign(['bank_id']);
-        });
+        // Drop the incorrect foreign key constraint if exists
+        try {
+            Schema::table('pembelians', function (Blueprint $table) {
+                $table->dropForeign(['bank_id']);
+            });
+        } catch (\Exception $e) {
+            // FK doesn't exist, skip
+        }
         
         // Add the correct foreign key constraint to coas table
         Schema::table('pembelians', function (Blueprint $table) {
