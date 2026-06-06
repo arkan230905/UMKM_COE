@@ -50,11 +50,15 @@
                     <label for="coa_persediaan_id" class="form-label">COA Persediaan <span class="text-danger">*</span></label>
                     <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-control" required>
                         <option value="">-- Pilih COA Persediaan --</option>
-                        @foreach($coaPersediaan as $coa)
-                            <option value="{{ $coa->kode_akun }}" {{ old('coa_persediaan_id') == $coa->kode_akun ? 'selected' : '' }}>
-                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                            </option>
-                        @endforeach
+                        @if($coaPersediaan->count() > 0)
+                            @foreach($coaPersediaan as $coa)
+                                <option value="{{ $coa->kode_akun }}" {{ old('coa_persediaan_id') == $coa->kode_akun ? 'selected' : '' }}>
+                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                </option>
+                            @endforeach
+                        @else
+                            <option value="" disabled>Belum ada COA Persediaan</option>
+                        @endif
                     </select>
                     <small class="form-text text-muted">Pilih akun persediaan untuk produk ini (biasanya 116 - Persediaan Barang Jadi).</small>
                 </div>
@@ -94,7 +98,7 @@
                     <label for="harga_jual" class="form-label">Harga Jual</label>
                     <input type="text" name="harga_jual" id="harga_jual" 
                            class="form-control" value="0" readonly>
-                    <small class="form-text text-muted">HPP belum tersedia, harga jual akan otomatis muncul setelah HPP dihitung dan bisa diubah di bagian edit.</small>
+                    <small class="form-text text-muted">HPP belum ada, silakan buat HPP terlebih dahulu di menu produk.</small>
                     <small class="form-text text-muted">Presentase keuntungan: <span id="profit_percentage">0</span>%</small>
                 </div>
 
