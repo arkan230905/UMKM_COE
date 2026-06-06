@@ -88,10 +88,15 @@ class PembelianJournalService
             $biayaKirim = (float) ($pembelian->biaya_kirim ?? 0);
             if ($biayaKirim > 0) {
                 // Try to find Biaya Kirim COA, or use a generic BOP account
-                $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '5111')->first();
+                // CRITICAL: Filter by user_id for multi-tenant isolation
+                $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '5111')
+                    ->where('user_id', auth()->id())
+                    ->first();
                 if (!$biayaKirimCoa) {
                     // Fallback to BOP Lain account
-                    $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '55')->first();
+                    $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '55')
+                        ->where('user_id', auth()->id())
+                        ->first();
                 }
                 
                 if ($biayaKirimCoa) {
@@ -173,7 +178,10 @@ class PembelianJournalService
             // WAJIB gunakan COA Persediaan spesifik dari bahan baku
             if ($detail->bahanBaku->coa_persediaan_id) {
                 // coa_persediaan_id berisi kode COA, bukan ID COA
-                $coa = Coa::where('kode_akun', $detail->bahanBaku->coa_persediaan_id)->first();
+                // CRITICAL: Filter by user_id for multi-tenant isolation
+                $coa = Coa::where('kode_akun', $detail->bahanBaku->coa_persediaan_id)
+                    ->where('user_id', auth()->id())
+                    ->first();
                 if ($coa) {
                     $coaId = $coa->id;
                     $coaCode = $coa->kode_akun;
@@ -190,7 +198,10 @@ class PembelianJournalService
             // WAJIB gunakan COA Persediaan spesifik dari bahan pendukung
             if ($detail->bahanPendukung->coa_persediaan_id) {
                 // coa_persediaan_id berisi kode COA, bukan ID COA
-                $coa = Coa::where('kode_akun', $detail->bahanPendukung->coa_persediaan_id)->first();
+                // CRITICAL: Filter by user_id for multi-tenant isolation
+                $coa = Coa::where('kode_akun', $detail->bahanPendukung->coa_persediaan_id)
+                    ->where('user_id', auth()->id())
+                    ->first();
                 if ($coa) {
                     $coaId = $coa->id;
                     $coaCode = $coa->kode_akun;
@@ -229,7 +240,11 @@ class PembelianJournalService
             case 'cash':
                 if ($pembelian->bank_id) {
                     // Gunakan akun kas/bank spesifik
-                    $coa = Coa::find($pembelian->bank_id);
+                    // Note: Coa model already has global scope for user_id filtering
+                    // But we make it explicit for clarity
+                    $coa = Coa::where('id', $pembelian->bank_id)
+                        ->where('user_id', auth()->id())
+                        ->first();
                     if ($coa) {
                         $coaId = $coa->id;
                         $coaCode = $coa->kode_akun;
@@ -251,7 +266,11 @@ class PembelianJournalService
             case 'transfer':
                 if ($pembelian->bank_id) {
                     // Gunakan akun bank spesifik
-                    $coa = Coa::find($pembelian->bank_id);
+                    // Note: Coa model already has global scope for user_id filtering
+                    // But we make it explicit for clarity
+                    $coa = Coa::where('id', $pembelian->bank_id)
+                        ->where('user_id', auth()->id())
+                        ->first();
                     if ($coa) {
                         $coaId = $coa->id;
                         $coaCode = $coa->kode_akun;
@@ -294,10 +313,13 @@ class PembelianJournalService
      */
     private function getCoaByCode(string $code): Coa
     {
-        $coa = Coa::where('kode_akun', $code)->first();
+        // CRITICAL: Filter by user_id for multi-tenant isolation
+        $coa = Coa::where('kode_akun', $code)
+            ->where('user_id', auth()->id())
+            ->first();
         
         if (!$coa) {
-            throw new \Exception("COA dengan kode {$code} tidak ditemukan");
+            throw new \Exception("COA dengan kode {$code} tidak ditemukan untuk user Anda");
         }
         
         return $coa;
