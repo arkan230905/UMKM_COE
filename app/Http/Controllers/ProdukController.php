@@ -138,8 +138,16 @@ class ProdukController extends Controller
 
         $fotoPath = null;
         if ($request->hasFile('foto')) {
-            // Store file using Laravel Storage - no need manual copy
-            $fotoPath = $request->file('foto')->store('produk', 'public');
+            try {
+                // Ensure directory exists
+                \Storage::disk('public')->makeDirectory('produk', 0755, true);
+                // Store file using Laravel Storage
+                $fotoPath = $request->file('foto')->store('produk', 'public');
+            } catch (\Exception $e) {
+                \Log::error('Foto upload error: ' . $e->getMessage());
+                // Continue without photo if upload fails
+                $fotoPath = null;
+            }
         }
 
         // Parse harga_jual from formatted string (remove dots)
@@ -253,6 +261,8 @@ class ProdukController extends Controller
                     }
                 }
 
+                // Ensure directory exists
+                \Storage::disk('public')->makeDirectory('produk', 0755, true);
                 // Store new photo
                 $fotoPath = $request->file('foto')->store('produk', 'public');
                 $produk->update(['foto' => $fotoPath]);
@@ -332,12 +342,19 @@ class ProdukController extends Controller
                 }
             }
             
-            // Store new photo with explicit disk
-            $storedPath = $request->file('foto')->store('produk', 'public');
-            $data['foto'] = $storedPath;
-            
-            \Log::info('New photo stored at: ' . $storedPath);
-            \Log::info('Storage exists check: ' . (\Storage::disk('public')->exists($storedPath) ? 'YES' : 'NO'));
+            try {
+                // Ensure directory exists
+                \Storage::disk('public')->makeDirectory('produk', 0755, true);
+                // Store new photo with explicit disk
+                $storedPath = $request->file('foto')->store('produk', 'public');
+                $data['foto'] = $storedPath;
+                
+                \Log::info('New photo stored at: ' . $storedPath);
+                \Log::info('Storage exists check: ' . (\Storage::disk('public')->exists($storedPath) ? 'YES' : 'NO'));
+            } catch (\Exception $e) {
+                \Log::error('Foto upload error: ' . $e->getMessage());
+                // Continue without photo if upload fails
+            }
         }
 
         $produk->update($data);
