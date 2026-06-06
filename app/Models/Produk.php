@@ -166,15 +166,15 @@ class Produk extends Model
      */
     public function getActualHPP($tanggalPenjualan = null)
     {
-        // PRIORITY 1: Use harga_pokok from database if it's already set and > 0
-        if (!empty($this->harga_pokok) && $this->harga_pokok > 0) {
-            return $this->harga_pokok;
-        }
-        
-        // PRIORITY 2: Get from Harga Pokok Produksi (BBB + BTKL + BOP)
+        // PRIORITY 1: Get from Harga Pokok Produksi (BBB + BTKL + BOP) - ALWAYS USE THIS
         $hppFromCalculation = $this->getHPPFromHargaPokokProduksi();
         if ($hppFromCalculation > 0) {
             return $hppFromCalculation;
+        }
+        
+        // PRIORITY 2: Use harga_pokok from database if calculation returns 0
+        if (!empty($this->harga_pokok) && $this->harga_pokok > 0) {
+            return $this->harga_pokok;
         }
         
         // PRIORITY 3: Try to get from production costs
