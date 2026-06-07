@@ -897,47 +897,53 @@ function loadEditComponents(bop) {
     editKomponenBahanRows.innerHTML = '';
     editKomponenLainRows.innerHTML = '';
     
-    // Load components from bop.komponen_bop if exists
-    let components = [];
-    if (bop.komponen_bop) {
-        if (typeof bop.komponen_bop === 'string') {
+    // ========================================
+    // NEW STRUCTURE: Load from komponen_bahan_pendukung and komponen_lainnya
+    // ========================================
+    let komponenBahanPendukung = [];
+    let komponenLainnya = [];
+    
+    // Load Bahan Pendukung
+    if (bop.komponen_bahan_pendukung) {
+        if (typeof bop.komponen_bahan_pendukung === 'string') {
             try {
-                components = JSON.parse(bop.komponen_bop);
+                komponenBahanPendukung = JSON.parse(bop.komponen_bahan_pendukung);
             } catch (e) {
-                components = [];
+                komponenBahanPendukung = [];
             }
-        } else if (Array.isArray(bop.komponen_bop)) {
-            components = bop.komponen_bop;
+        } else if (Array.isArray(bop.komponen_bahan_pendukung)) {
+            komponenBahanPendukung = bop.komponen_bahan_pendukung;
         }
     }
     
-    // Check if there are any components
-    if (components.length === 0) {
-        // Add at least one empty row in Lainnya section
-        addEditLainRow();
-        return;
+    // Load Lainnya
+    if (bop.komponen_lainnya) {
+        if (typeof bop.komponen_lainnya === 'string') {
+            try {
+                komponenLainnya = JSON.parse(bop.komponen_lainnya);
+            } catch (e) {
+                komponenLainnya = [];
+            }
+        } else if (Array.isArray(bop.komponen_lainnya)) {
+            komponenLainnya = bop.komponen_lainnya;
+        }
     }
     
-    // Separate components into Bahan Pendukung and Lainnya
-    // Logic: if component name matches a bahan pendukung from database, it's a "bahan"
-    // Otherwise, it's "lainnya"
-    components.forEach(comp => {
-        const componentName = comp.component || comp.nama_komponen || '';
-        
-        // Check if this component matches any bahan pendukung
-        const isBahanPendukung = bahanPendukungs && bahanPendukungs.some(bahan => 
-            bahan.nama_bahan.toLowerCase() === componentName.toLowerCase()
-        );
-        
-        if (isBahanPendukung) {
-            // Add to Bahan Pendukung section
-            const bahan = bahanPendukungs.find(b => b.nama_bahan.toLowerCase() === componentName.toLowerCase());
-            addEditBahanRowWithData(comp, bahan ? bahan.id : null);
-        } else {
-            // Add to Lainnya section
+    // Load Bahan Pendukung components
+    if (komponenBahanPendukung && komponenBahanPendukung.length > 0) {
+        komponenBahanPendukung.forEach(comp => {
+            // comp structure: {bahan_pendukung_id, nama, qty_per_produk, harga_satuan, total, coa_debit, coa_kredit, keterangan}
+            addEditBahanRowWithData(comp, comp.bahan_pendukung_id);
+        });
+    }
+    
+    // Load Lainnya components
+    if (komponenLainnya && komponenLainnya.length > 0) {
+        komponenLainnya.forEach(comp => {
+            // comp structure: {nama_komponen, nilai_per_produk, coa_debit, coa_kredit, keterangan}
             addEditLainRowWithData(comp);
-        }
-    });
+        });
+    }
     
     // If no rows in Lainnya, add one empty row
     if (editKomponenLainRows.children.length === 0) {
@@ -952,6 +958,13 @@ function loadEditComponents(bop) {
 function addEditBahanRowWithData(comp, selectedBahanId = null) {
     const tbody = document.getElementById('editKomponenBahanRows');
     const newRow = document.createElement('tr');
+    
+    // comp structure from database: {bahan_pendukung_id, nama, qty_per_produk, harga_satuan, total, coa_debit, coa_kredit, keterangan}
+    // We need to populate the rate field with "total" value
+    const rateValue = comp.total || comp.harga_satuan || 0;
+    const coaDebit = comp.coa_debit || '1173';
+    const coaKredit = comp.coa_kredit || '530';
+    const keterangan = comp.keterangan || '';
     
     // Build dropdown options
     let bahanOptions = '<option value="">-- Pilih Bahan Pendukung --</option>';
@@ -968,12 +981,12 @@ function addEditBahanRowWithData(comp, selectedBahanId = null) {
                 ${bahanOptions}
             </select>
         </td>
-        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${comp.rate_per_hour || comp.rate_per_produk || 0}" onchange="calculateEditBopSummary()"></td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${rateValue}" onchange="calculateEditBopSummary()"></td>
         <td>
             <select name="komponen_coa_debit[]" class="form-select form-select-sm">
                 <option value="">-- Pilih --</option>
                 @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
-                    <option value="{{ $coa->kode_akun }}" ${(comp.coa_debit || '1173') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                    <option value="{{ $coa->kode_akun }}" ${coaDebit === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
                         {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                     </option>
                 @endforeach
@@ -984,7 +997,7 @@ function addEditBahanRowWithData(comp, selectedBahanId = null) {
                 <option value="">-- Pilih --</option>
                 <optgroup label="BOP">
                     @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
-                        <option value="{{ $coa->kode_akun }}" ${(comp.coa_kredit || '510') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                        <option value="{{ $coa->kode_akun }}" ${coaKredit === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
                             {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                         </option>
                     @endforeach
@@ -1012,7 +1025,7 @@ function addEditBahanRowWithData(comp, selectedBahanId = null) {
                 </optgroup>
             </select>
         </td>
-        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${comp.description || comp.keterangan || ''}" placeholder="Keterangan"></td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${keterangan}" placeholder="Keterangan"></td>
         <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditBahanRow(this)">Hapus</button></td>
     `;
     
@@ -1024,14 +1037,21 @@ function addEditLainRowWithData(comp) {
     const tbody = document.getElementById('editKomponenLainRows');
     const newRow = document.createElement('tr');
     
+    // comp structure from database: {nama_komponen, nilai_per_produk, coa_debit, coa_kredit, keterangan}
+    const namaKomponen = comp.nama_komponen || '';
+    const nilaiPerProduk = comp.nilai_per_produk || 0;
+    const coaDebit = comp.coa_debit || '1173';
+    const coaKredit = comp.coa_kredit || '550';
+    const keterangan = comp.keterangan || '';
+    
     newRow.innerHTML = `
-        <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" value="${comp.component || comp.nama_komponen || ''}" placeholder="Nama komponen"></td>
-        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${comp.rate_per_hour || comp.rate_per_produk || 0}" placeholder="0" onchange="calculateEditBopSummary()"></td>
+        <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" value="${namaKomponen}" placeholder="Nama komponen"></td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${nilaiPerProduk}" placeholder="0" onchange="calculateEditBopSummary()"></td>
         <td>
             <select name="komponen_coa_debit[]" class="form-select form-select-sm">
                 <option value="">-- Pilih --</option>
                 @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
-                    <option value="{{ $coa->kode_akun }}" ${(comp.coa_debit || '1173') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                    <option value="{{ $coa->kode_akun }}" ${coaDebit === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
                         {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                     </option>
                 @endforeach
@@ -1042,7 +1062,7 @@ function addEditLainRowWithData(comp) {
                 <option value="">-- Pilih --</option>
                 <optgroup label="BOP">
                     @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
-                        <option value="{{ $coa->kode_akun }}" ${(comp.coa_kredit || '510') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                        <option value="{{ $coa->kode_akun }}" ${coaKredit === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
                             {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                         </option>
                     @endforeach
@@ -1070,7 +1090,7 @@ function addEditLainRowWithData(comp) {
                 </optgroup>
             </select>
         </td>
-        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${comp.description || comp.keterangan || ''}" placeholder="Keterangan"></td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${keterangan}" placeholder="Keterangan"></td>
         <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditLainRow(this)">Hapus</button></td>
     `;
     
