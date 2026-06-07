@@ -123,22 +123,27 @@
                                 <td>
                                     <div class="small">
                                         @php
-                                            $komponenBop = [];
-                                            if ($bop->komponen_bop && is_array($bop->komponen_bop)) {
-                                                $komponenBop = $bop->komponen_bop;
-                                            }
+                                            // Get all components from both sections
+                                            $allKomponen = $bop->all_komponen ?? [];
                                         @endphp
-                                        @if(!empty($komponenBop))
-                                            @foreach($komponenBop as $komponen)
+                                        @if(!empty($allKomponen))
+                                            @foreach($allKomponen as $komponen)
                                                 <div class="d-flex justify-content-between align-items-center py-1">
-                                                    <span class="text-muted">{{ $komponen['component'] ?? 'N/A' }}</span>
-                                                    <span class="fw-semibold">Rp {{ formatNumberClean($komponen['rate_per_produk'] ?? $komponen['rate_per_hour'] ?? 0) }}</span>
+                                                    <span class="text-muted">
+                                                        @if($komponen['type'] == 'bahan_pendukung')
+                                                            <i class="fas fa-box text-success me-1" title="Bahan Pendukung"></i>
+                                                        @else
+                                                            <i class="fas fa-tools text-primary me-1" title="Lainnya"></i>
+                                                        @endif
+                                                        {{ $komponen['component'] ?? 'N/A' }}
+                                                    </span>
+                                                    <span class="fw-semibold">Rp {{ formatNumberClean($komponen['rate_per_produk'] ?? 0) }}</span>
                                                 </div>
                                             @endforeach
                                             <div class="border-top pt-1 mt-1">
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <strong>Total BOP / produk:</strong>
-                                                    <strong class="text-primary">Rp {{ formatNumberClean($bop->total_bop_per_produk ?? $bop->bop_per_unit) }}</strong>
+                                                    <strong class="text-primary">Rp {{ formatNumberClean($bop->total_bop_per_produk) }}</strong>
                                                 </div>
                                             </div>
                                         @else
@@ -148,8 +153,8 @@
                                 </td>
                                 <td>
                                     <div class="small">
-                                        @if(!empty($komponenBop))
-                                            @foreach($komponenBop as $komponen)
+                                        @if(!empty($allKomponen))
+                                            @foreach($allKomponen as $komponen)
                                                 @if(!empty($komponen['coa_debit']))
                                                     <div class="py-1">
                                                         <span class="badge bg-light text-dark me-1">{{ $komponen['coa_debit'] }}</span>
@@ -164,8 +169,8 @@
                                 </td>
                                 <td>
                                     <div class="small">
-                                        @if(!empty($komponenBop))
-                                            @foreach($komponenBop as $komponen)
+                                        @if(!empty($allKomponen))
+                                            @foreach($allKomponen as $komponen)
                                                 @if(!empty($komponen['coa_kredit']))
                                                     <div class="py-1">
                                                         <span class="badge bg-light text-dark me-1">{{ $komponen['coa_kredit'] }}</span>
