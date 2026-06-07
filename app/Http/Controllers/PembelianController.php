@@ -1063,38 +1063,6 @@ class PembelianController extends Controller
 
                 // Create journal entries for accounting integration
                 try {
-                    // ✅ PERBAIKAN: Load relasi COA sebelum membuat jurnal
-                    // Ini penting agar getCoaForItem() dapat mengakses coa_persediaan_id
-                    $pembelian->load([
-                        'details.bahanBaku.coaPersediaan',
-                        'details.bahanPendukung.coaPersediaan'
-                    ]);
-                    
-                    \Log::info('Loaded COA relations for journal creation', [
-                        'pembelian_id' => $pembelian->id,
-                        'details_count' => $pembelian->details->count()
-                    ]);
-                    
-                    // Debug: Log COA status for each item
-                    foreach ($pembelian->details as $detail) {
-                        if ($detail->bahanBaku) {
-                            \Log::info('Bahan Baku COA Check', [
-                                'nama_bahan' => $detail->bahanBaku->nama_bahan,
-                                'coa_persediaan_id' => $detail->bahanBaku->coa_persediaan_id,
-                                'coa_persediaan_loaded' => $detail->bahanBaku->relationLoaded('coaPersediaan'),
-                                'coa_exists' => $detail->bahanBaku->coaPersediaan ? true : false
-                            ]);
-                        }
-                        if ($detail->bahanPendukung) {
-                            \Log::info('Bahan Pendukung COA Check', [
-                                'nama_bahan' => $detail->bahanPendukung->nama_bahan,
-                                'coa_persediaan_id' => $detail->bahanPendukung->coa_persediaan_id,
-                                'coa_persediaan_loaded' => $detail->bahanPendukung->relationLoaded('coaPersediaan'),
-                                'coa_exists' => $detail->bahanPendukung->coaPersediaan ? true : false
-                            ]);
-                        }
-                    }
-                    
                     $pembelianJournalService = new \App\Services\PembelianJournalService();
                     $pembelianJournalService->createJournalFromPembelian($pembelian);
                     \Log::info('Journal entries created successfully for pembelian', [
@@ -1525,18 +1493,6 @@ class PembelianController extends Controller
             // Only regenerate journal entries if payment method changed
             if ($paymentMethodChanged) {
                 try {
-                    // ✅ PERBAIKAN: Load relasi COA sebelum membuat jurnal
-                    $pembelian->load([
-                        'details.bahanBaku.coaPersediaan',
-                        'details.bahanPendukung.coaPersediaan'
-                    ]);
-                    
-                    \Log::info('Loaded COA relations for journal recreation (payment method changed)', [
-                        'pembelian_id' => $pembelian->id,
-                        'old_method' => $originalPaymentMethod,
-                        'new_method' => $paymentMethod
-                    ]);
-                    
                     $pembelianJournalService = new \App\Services\PembelianJournalService();
                     $pembelianJournalService->createJournalFromPembelian($pembelian);
                     \Log::info('Journal entries updated for pembelian due to payment method change', [
