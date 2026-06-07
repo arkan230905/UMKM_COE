@@ -231,10 +231,14 @@
                             <td class="td-no">{{ $loop->iteration }}</td>
                             <td class="td-foto">
                                 @if($produk->foto)
-                                    <img src="{{ Storage::url($produk->foto) }}" alt="{{ $produk->nama_produk }}"
+                                    @php
+                                        // Use asset() to correctly resolve public URLs regardless of server setup
+                                        $fotoUrl = asset('storage/' . $produk->foto);
+                                    @endphp
+                                    <img src="{{ $fotoUrl }}" alt="{{ $produk->nama_produk }}"
                                          class="pimg"
-                                         onclick="showImg('{{ Storage::url($produk->foto) }}','{{ addslashes($produk->nama_produk) }}')"
-                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23f0ebe4%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E';">
+                                         onclick="showImg('{{ $fotoUrl }}','{{ addslashes($produk->nama_produk) }}')"
+                                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23f0ebe4%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E';">
                                 @else
                                     <div class="pimg-ph"><i class="fas fa-image"></i></div>
                                 @endif

@@ -300,6 +300,15 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         return $export->download('jurnal-umum-'.date('Y-m-d').'.xlsx');
     }
 
+    public function bukuBesarExportExcel(Request $request)
+    {
+        $from = $request->get('from');
+        $to = $request->get('to');
+        
+        $export = new \App\Exports\BukuBesarExport($from, $to);
+        return $export->download('buku-besar-'.date('Y-m-d').'.csv');
+    }
+
     public function bukuBesar(Request $request)
     {
         $month = $request->get('month');
@@ -880,14 +889,20 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
     /**
      * Laporan Laba Rugi
      */
-    public function labaRugi(Request $request)
+    private function prepareLabaRugiData(Request $request)
     {
         $periode = $request->get('periode', now()->format('Y-m'));
 
-        $tahun = substr($periode, 0, 4);
-        $bulan = substr($periode, 5, 2);
-        $from  = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
-        $to    = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+        if ($request->has('from') && $request->has('to')) {
+            $from = $request->get('from');
+            $to = $request->get('to');
+            $periode = substr($from, 0, 7);
+        } else {
+            $tahun = substr($periode, 0, 4);
+            $bulan = substr($periode, 5, 2);
+            $from  = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+            $to    = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+        }
 
         // Ambil semua COA
         $coas = \App\Models\Coa::where('user_id', auth()->id())
@@ -1072,7 +1087,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'detailHpp_count' => $detailHpp->count()
         ]);
 
-        return view('akuntansi.laba_rugi', compact(
+        return compact(
             'periode', 'from', 'to',
             'pendapatan', 'beban',
             'totalPendapatan', 'totalBeban',
@@ -1085,7 +1100,19 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'getSaldo' => function($coa) use ($accountData) {
                 return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             }
-        ]);
+        ];
+    }
+
+    public function labaRugi(Request $request)
+    {
+        $data = $this->prepareLabaRugiData($request);
+        return view('akuntansi.laba_rugi', $data);
+    }
+
+    public function labaRugiExportPdf(Request $request)
+    {
+        $data = $this->prepareLabaRugiData($request);
+        return view('akuntansi.laba-rugi-pdf', $data);
     }
 
     /**

@@ -18,26 +18,35 @@ class AccountHelper
      * Get semua akun Kas & Bank dengan format metode-akun COA
      * Format: Nama Akun = lowercase(nama) (kode_akun)
      * 
+     * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getKasBankAccounts()
+    public static function getKasBankAccounts($userId = null)
     {
-        // Hanya ambil akun bank yang memiliki nomor rekening (untuk transfer)
-        // dan akun kas untuk pembayaran tunai
-        $coaAccounts = Coa::whereIn('kode_akun', ['111', '112', '113'])
-            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET'])
-            ->orderBy('kode_akun')
-            ->get();
+        $query = Coa::whereIn('kode_akun', ['111', '112', '113'])
+            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
+        
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        
+        $coaAccounts = $query->orderBy('kode_akun')->get();
         
         // Jika tidak ada, fallback ke pencarian berdasarkan nama
         if ($coaAccounts->count() === 0) {
-            $coaAccounts = Coa::where('tipe_akun', 'Asset')
+            $fallbackQuery = Coa::where('tipe_akun', 'Asset')
                 ->where(function($query) {
                     $query->where('nama_akun', 'like', '%kas%')
                           ->orWhere('nama_akun', 'like', '%bank%');
-                })
-                ->orderBy('kode_akun')
-                ->get();
+                });
+            
+            // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+            if ($userId !== null) {
+                $fallbackQuery->where('user_id', $userId);
+            }
+            
+            $coaAccounts = $fallbackQuery->orderBy('kode_akun')->get();
         }
         
         return $coaAccounts;
@@ -47,45 +56,63 @@ class AccountHelper
      * Get akun Bank saja yang memiliki nomor rekening (untuk transfer)
      * Updated to match the query used in Tentang Perusahaan page
      * 
+     * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getBankAccountsForTransfer()
+    public static function getBankAccountsForTransfer($userId = null)
     {
-        return Coa::where('tipe_akun', 'asset')
+        $query = Coa::where('tipe_akun', 'asset')
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%bank%')
                       ->orWhere('kode_akun', '111');
             })
             ->whereNotNull('nomor_rekening')
-            ->where('nomor_rekening', '!=', '')
-            ->orderBy('kode_akun')
-            ->get();
+            ->where('nomor_rekening', '!=', '');
+        
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        
+        return $query->orderBy('kode_akun')->get();
     }
     
     /**
      * Get akun Kas saja (112, 113)
      * 
+     * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getKasAccounts()
+    public static function getKasAccounts($userId = null)
     {
-        return Coa::whereIn('kode_akun', ['112', '113'])
-            ->where('tipe_akun', 'Asset')
-            ->orderBy('kode_akun')
-            ->get();
+        $query = Coa::whereIn('kode_akun', ['112', '113'])
+            ->where('tipe_akun', 'Asset');
+        
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        
+        return $query->orderBy('kode_akun')->get();
     }
     
     /**
      * Get akun Bank saja (111)
      * 
+     * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getBankAccounts()
+    public static function getBankAccounts($userId = null)
     {
-        return Coa::whereIn('kode_akun', ['111'])
-            ->where('tipe_akun', 'Asset')
-            ->orderBy('kode_akun')
-            ->get();
+        $query = Coa::whereIn('kode_akun', ['111'])
+            ->where('tipe_akun', 'Asset');
+        
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        
+        return $query->orderBy('kode_akun')->get();
     }
     
     /**
@@ -121,12 +148,20 @@ class AccountHelper
      * Get saldo saat ini untuk akun Kas/Bank
      * 
      * @param string $kodeAkun
+     * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return float
      */
-    public static function getCurrentBalance($kodeAkun)
+    public static function getCurrentBalance($kodeAkun, $userId = null)
     {
         // Cari COA berdasarkan kode_akun
-        $coa = Coa::where('kode_akun', $kodeAkun)->first();
+        $query = Coa::where('kode_akun', $kodeAkun);
+        
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        
+        $coa = $query->first();
         if (!$coa) {
             return 0;
         }
@@ -135,10 +170,13 @@ class AccountHelper
         $saldoAwal = is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
         
         // Hitung saldo dari journal lines
-        $saldo = DB::table('journal_lines')
+        // Note: journal_entries tidak punya user_id, tapi COA sudah difilter by user_id
+        // Jadi saldo yang dihitung otomatis adalah saldo untuk COA milik user tersebut
+        $journalQuery = DB::table('journal_lines')
             ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->selectRaw('SUM(debit) - SUM(credit) as saldo')
+            ->where('journal_lines.coa_id', $coa->id);
+        
+        $saldo = $journalQuery->selectRaw('SUM(debit) - SUM(credit) as saldo')
             ->value('saldo') ?? 0;
             
         return $saldoAwal + $saldo;
@@ -147,14 +185,15 @@ class AccountHelper
     /**
      * Get semua akun Kas & Bank dengan saldo
      * 
+     * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function getKasBankAccountsWithBalance()
+    public static function getKasBankAccountsWithBalance($userId = null)
     {
-        $accounts = self::getKasBankAccounts();
+        $accounts = self::getKasBankAccounts($userId);
         
         foreach ($accounts as $account) {
-            $account->saldo = self::getCurrentBalance($account->kode_akun);
+            $account->saldo = self::getCurrentBalance($account->kode_akun, $userId);
         }
         
         return $accounts;

@@ -17,7 +17,9 @@ class BopProsesController extends Controller
     {
         try {
             // Get all BTKL processes with their BOP data
+            // 🔒 SECURITY: Filter by user_id
             $prosesProduksis = ProsesProduksi::with('bopProses')
+                ->where('user_id', auth()->id())
                 ->orderBy('kode_proses')
                 ->paginate(10);
 
@@ -35,6 +37,7 @@ class BopProsesController extends Controller
     {
         // Get BTKL processes that don't have BOP yet
         $availableProses = ProsesProduksi::whereDoesntHave('bopProses')
+            ->where('user_id', auth()->id()) // 🔒 SECURITY: Filter by user_id
             ->orderBy('nama_proses')
             ->get();
 
@@ -43,7 +46,12 @@ class BopProsesController extends Controller
                 ->with('warning', 'Semua proses BTKL sudah memiliki BOP atau belum memiliki kapasitas per jam.');
         }
 
-        return view('master-data.bop-proses.create', compact('availableProses'));
+        // 🔒 SECURITY: Get bahan pendukung filtered by user_id
+        $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())
+            ->orderBy('nama_bahan')
+            ->get();
+
+        return view('master-data.bop-proses.create', compact('availableProses', 'bahanPendukungs'));
     }
 
     /**
@@ -53,12 +61,10 @@ class BopProsesController extends Controller
     {
         $validated = $request->validate([
             'proses_produksi_id' => 'required|exists:proses_produksis,id|unique:bop_proses,proses_produksi_id',
-            'listrik_per_jam' => 'required|numeric|min:0',
-            'gas_bbm_per_jam' => 'required|numeric|min:0',
-            'penyusutan_mesin_per_jam' => 'required|numeric|min:0',
-            'maintenance_per_jam' => 'required|numeric|min:0',
-            'gaji_mandor_per_jam' => 'required|numeric|min:0',
-            'lain_lain_per_jam' => 'nullable|numeric|min:0',
+            'komponen_bop' => 'required|array|min:1',
+            'komponen_bop.*.bahan_pendukung_id' => 'nullable|exists:bahan_pendukungs,id',
+            'komponen_bop.*.component' => 'nullable|string',
+            'komponen_bop.*.rate_per_hour' => 'required|numeric|min:0',
         ]);
 
         try {
@@ -66,9 +72,44 @@ class BopProsesController extends Controller
 
             // Get BTKL process
             $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
+            
+            // 🔒 SECURITY: Verify proses produksi belongs to user
+            if ($prosesProduksi->user_id != auth()->id()) {
+                throw new \Exception('Unauthorized access to proses produksi');
+            }
+
+            // Process komponen_bop array
+            $processedKomponen = [];
+            
+            foreach ($validated['komponen_bop'] as $key => $komponen) {
+                $item = [];
+                
+                // Check if it's bahan pendukung or lainnya
+                if (!empty($komponen['bahan_pendukung_id'])) {
+                    // It's bahan pendukung
+                    $bahanPendukung = \App\Models\BahanPendukung::find($komponen['bahan_pendukung_id']);
+                    
+                    // 🔒 SECURITY: Verify bahan pendukung belongs to user
+                    if ($bahanPendukung && $bahanPendukung->user_id == auth()->id()) {
+                        $item['bahan_pendukung_id'] = $komponen['bahan_pendukung_id'];
+                        $item['component'] = $bahanPendukung->nama_bahan;
+                        $item['rate_per_hour'] = $komponen['rate_per_hour'];
+                        $processedKomponen[] = $item;
+                    }
+                } elseif (!empty($komponen['component'])) {
+                    // It's lainnya component
+                    $item['component'] = $komponen['component'];
+                    $item['rate_per_hour'] = $komponen['rate_per_hour'];
+                    $processedKomponen[] = $item;
+                }
+            }
 
             // Create BOP Proses (calculations will be done automatically in model)
-            BopProses::create($validated);
+            BopProses::create([
+                'proses_produksi_id' => $validated['proses_produksi_id'],
+                'komponen_bop' => $processedKomponen,
+                'user_id' => auth()->id(), // 🔒 SECURITY: Set user_id
+            ]);
 
             DB::commit();
 
@@ -107,7 +148,13 @@ class BopProsesController extends Controller
     {
         try {
             $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
-            return view('master-data.bop-proses.edit', compact('bopProses'));
+            
+            // 🔒 SECURITY: Get bahan pendukung filtered by user_id
+            $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())
+                ->orderBy('nama_bahan')
+                ->get();
+            
+            return view('master-data.bop-proses.edit', compact('bopProses', 'bahanPendukungs'));
             
         } catch (\Exception $e) {
             return redirect()
@@ -123,7 +170,8 @@ class BopProsesController extends Controller
     {
         $validated = $request->validate([
             'komponen_bop' => 'required|array|min:1',
-            'komponen_bop.*.component' => 'required|string',
+            'komponen_bop.*.bahan_pendukung_id' => 'nullable|exists:bahan_pendukungs,id',
+            'komponen_bop.*.component' => 'nullable|string',
             'komponen_bop.*.rate_per_hour' => 'required|numeric|min:0',
         ]);
 
@@ -132,8 +180,34 @@ class BopProsesController extends Controller
         try {
             $bopProses = BopProses::findOrFail($id);
             
+            // Process komponen_bop array
+            $processedKomponen = [];
+            
+            foreach ($validated['komponen_bop'] as $key => $komponen) {
+                $item = [];
+                
+                // Check if it's bahan pendukung or lainnya
+                if (!empty($komponen['bahan_pendukung_id'])) {
+                    // It's bahan pendukung
+                    $bahanPendukung = \App\Models\BahanPendukung::find($komponen['bahan_pendukung_id']);
+                    
+                    // 🔒 SECURITY: Verify bahan pendukung belongs to user
+                    if ($bahanPendukung && $bahanPendukung->user_id == auth()->id()) {
+                        $item['bahan_pendukung_id'] = $komponen['bahan_pendukung_id'];
+                        $item['component'] = $bahanPendukung->nama_bahan;
+                        $item['rate_per_hour'] = $komponen['rate_per_hour'];
+                        $processedKomponen[] = $item;
+                    }
+                } elseif (!empty($komponen['component'])) {
+                    // It's lainnya component
+                    $item['component'] = $komponen['component'];
+                    $item['rate_per_hour'] = $komponen['rate_per_hour'];
+                    $processedKomponen[] = $item;
+                }
+            }
+            
             // Update komponen_bop
-            $bopProses->komponen_bop = $validated['komponen_bop'];
+            $bopProses->komponen_bop = $processedKomponen;
             $bopProses->save();
 
             DB::commit();

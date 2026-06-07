@@ -190,8 +190,37 @@ class PenjualanController extends Controller
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $salesReturns = \App\Models\ReturPenjualan::where('user_id', auth()->id())
             ->with(['penjualan', 'detailReturPenjualans.produk'])
-->orderBy('created_at', 'desc')
             ->get();
+
+        // Sorting for sales returns
+        $sortReturBy = $request->get('sort_retur_by', 'tanggal');
+        $sortReturDir = $request->get('sort_retur_dir', 'desc');
+        $isReturDesc = $sortReturDir === 'desc';
+
+        if ($sortReturBy === 'no') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->id, SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'tanggal') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->tanggal ?? $r->created_at, SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'nomor_penjualan') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->penjualan?->nomor_penjualan ?? '', SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'deskripsi') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->keterangan ?? '', SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'kompensasi') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->jenis_retur ?? '', SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'status') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->status ?? '', SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'total_retur') {
+            $salesReturns = $salesReturns->sortBy(fn($r) => (float)($r->total_retur ?? 0), SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'produk') {
+            $salesReturns = $salesReturns->sortBy(function($r) {
+                if ($r->detailReturPenjualans && $r->detailReturPenjualans->count() > 0) {
+                    return $r->detailReturPenjualans->first()->produk?->nama_produk ?? '';
+                }
+                return '';
+            }, SORT_REGULAR, $isReturDesc);
+        } else {
+            $salesReturns = $salesReturns->sortBy(fn($r) => $r->tanggal ?? $r->created_at, SORT_REGULAR, true);
+        }
 
         return view('transaksi.penjualan.index', compact(
             'penjualans',

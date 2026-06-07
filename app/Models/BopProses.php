@@ -14,101 +14,54 @@ class BopProses extends Model
     protected $fillable = [
         'user_id',
         'nama_bop_proses',
-        'komponen_bop', // JSON array of components with rate_per_produk
-        'total_bop_per_produk', // Total BOP per produk from components
-        'total_biaya_per_produk', // Total biaya per produk (BTKL + BOP)
-        'total_bop_per_jam', // Backward compatibility
-        'kapasitas_per_jam', // Read-only dari BTKL
-        'bop_per_unit', // Same as total_bop_per_produk
+        'komponen_bahan_pendukung', // JSON: Bahan pendukung yang akan berkurang stoknya saat produksi
+        'komponen_lainnya', // JSON: Komponen lainnya (listrik, gas, penyusutan, dll)
+        'total_bop_per_produk',
+        'total_biaya_per_produk',
         'keterangan',
-        'budget',
-        'aktual',
         'is_active'
     ];
 
     protected $casts = [
-        'komponen_bop' => 'array',
+        'komponen_bahan_pendukung' => 'array',
+        'komponen_lainnya' => 'array',
         'total_bop_per_produk' => 'decimal:2',
         'total_biaya_per_produk' => 'decimal:2',
-        'total_bop_per_jam' => 'decimal:2',
-        'kapasitas_per_jam' => 'integer',
-        'bop_per_unit' => 'decimal:4',
-        'budget' => 'decimal:2',
-        'aktual' => 'decimal:2',
         'is_active' => 'boolean'
     ];
 
     /**
-     * Boot method untuk auto-calculate dan multi-tenant
+     * Boot method untuk auto-set user_id
      */
     protected static function booted()
     {
         static::creating(function ($model) {
-            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            // Auto-set user_id for multi-tenant isolation
             if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();
             }
         });
         
         static::saving(function ($model) {
-            // Calculate total BOP per produk from komponen_bop JSON
-            // Using proper decimal arithmetic to avoid floating point precision issues
-            $totalBopPerProduk = 0;
+            // Auto-calculate total_bop_per_produk from components
+            $totalBop = 0;
             
-            if ($model->komponen_bop && is_array($model->komponen_bop)) {
-                foreach ($model->komponen_bop as $komponen) {
-                    if (isset($komponen['rate_per_produk'])) {
-                        // Use round to ensure decimal:2 precision
-                        $totalBopPerProduk += round(floatval($komponen['rate_per_produk']), 2);
-                    } elseif (isset($komponen['rate_per_hour'])) {
-                        // Fallback for old structure - treat rate_per_hour as rate_per_produk
-                        $totalBopPerProduk += round(floatval($komponen['rate_per_hour']), 2);
-                    }
+            // Sum from komponen_bahan_pendukung
+            if ($model->komponen_bahan_pendukung && is_array($model->komponen_bahan_pendukung)) {
+                foreach ($model->komponen_bahan_pendukung as $komponen) {
+                    $totalBop += round((float)($komponen['total'] ?? 0), 2);
                 }
             }
             
-            // Round final total to ensure precision
-            $totalBopPerProduk = round($totalBopPerProduk, 2);
-            
-            // Calculate BTKL per produk
-            $btklPerProduk = 0;
-            if ($model->prosesProduksi && $model->prosesProduksi->kapasitas_per_jam > 0) {
-                $btklPerProduk = round(floatval($model->prosesProduksi->tarif_btkl) / floatval($model->prosesProduksi->kapasitas_per_jam), 2);
+            // Sum from komponen_lainnya
+            if ($model->komponen_lainnya && is_array($model->komponen_lainnya)) {
+                foreach ($model->komponen_lainnya as $komponen) {
+                    $totalBop += round((float)($komponen['nilai_per_produk'] ?? 0), 2);
+                }
             }
             
-            // Calculate total biaya per produk (BTKL + BOP)
-            $totalBiayaPerProduk = round($btklPerProduk + $totalBopPerProduk, 2);
-            
-            // Calculate total BOP per jam (backward compatibility)
-            $totalBopPerJam = 
-                round(floatval($model->listrik_per_jam ?? 0), 2) +
-                round(floatval($model->gas_bbm_per_jam ?? 0), 2) +
-                round(floatval($model->penyusutan_mesin_per_jam ?? 0), 2) +
-                round(floatval($model->maintenance_per_jam ?? 0), 2) +
-                round(floatval($model->gaji_mandor_per_jam ?? 0), 2) +
-                round(floatval($model->lain_lain_per_jam ?? 0), 2);
-            
-            $totalBopPerJam = round($totalBopPerJam, 2);
-            
-            // Set calculated values
-            $model->total_bop_per_produk = $totalBopPerProduk;
-            $model->total_biaya_per_produk = $totalBiayaPerProduk;
-            $model->bop_per_unit = $totalBopPerProduk; // For backward compatibility
-            $model->total_bop_per_jam = $totalBopPerJam;
-
-            // Auto-sync kapasitas dari BTKL
-            if ($model->prosesProduksi) {
-                $model->kapasitas_per_jam = $model->prosesProduksi->kapasitas_per_jam;
-            }
+            $model->total_bop_per_produk = round($totalBop, 2);
         });
-    }
-
-    /**
-     * Relasi ke Proses Produksi (BTKL)
-     */
-    public function prosesProduksi()
-    {
-        return $this->belongsTo(ProsesProduksi::class, 'proses_produksi_id');
     }
 
     /**
@@ -120,45 +73,57 @@ class BopProses extends Model
     }
 
     /**
-     * Get komponen BOP dalam array - raw data dari database
+     * Get all komponen (bahan pendukung + lainnya) for display
      */
-    public function getRawKomponenBopAttribute()
+    public function getAllKomponenAttribute(): array
     {
-        return $this->attributes['komponen_bop'] ?? null;
-    }
-
-    /**
-     * Get komponen BOP dalam format lama untuk backward compatibility
-     */
-    public function getKomponenBopLegacyAttribute(): array
-    {
-        return [
-            'listrik_per_jam' => $this->listrik_per_jam ?? 0,
-            'gas_bbm_per_jam' => $this->gas_bbm_per_jam ?? 0,
-            'penyusutan_mesin_per_jam' => $this->penyusutan_mesin_per_jam ?? 0,
-            'maintenance_per_jam' => $this->maintenance_per_jam ?? 0,
-            'gaji_mandor_per_jam' => $this->gaji_mandor_per_jam ?? 0,
-            'lain_lain_per_jam' => $this->lain_lain_per_jam ?? 0,
-        ];
-    }
-
-    /**
-     * Format BOP per unit untuk tampilan
-     * Hanya tampilkan desimal jika ada nilai desimal
-     */
-    public function getBopPerUnitFormattedAttribute(): string
-    {
-        $value = $this->bop_per_unit;
+        $allKomponen = [];
         
-        // Jika nilai adalah integer (tidak ada desimal), tampilkan tanpa desimal
+        // Add bahan pendukung
+        if ($this->komponen_bahan_pendukung && is_array($this->komponen_bahan_pendukung)) {
+            foreach ($this->komponen_bahan_pendukung as $komponen) {
+                $allKomponen[] = [
+                    'type' => 'bahan_pendukung',
+                    'component' => $komponen['nama'] ?? 'N/A',
+                    'rate_per_produk' => $komponen['total'] ?? 0,
+                    'coa_debit' => $komponen['coa_debit'] ?? null,
+                    'coa_kredit' => $komponen['coa_kredit'] ?? null,
+                    'keterangan' => $komponen['keterangan'] ?? '',
+                    'bahan_pendukung_id' => $komponen['bahan_pendukung_id'] ?? null,
+                    'qty_per_produk' => $komponen['qty_per_produk'] ?? 1,
+                ];
+            }
+        }
+        
+        // Add lainnya
+        if ($this->komponen_lainnya && is_array($this->komponen_lainnya)) {
+            foreach ($this->komponen_lainnya as $komponen) {
+                $allKomponen[] = [
+                    'type' => 'lainnya',
+                    'component' => $komponen['nama_komponen'] ?? 'N/A',
+                    'rate_per_produk' => $komponen['nilai_per_produk'] ?? 0,
+                    'coa_debit' => $komponen['coa_debit'] ?? null,
+                    'coa_kredit' => $komponen['coa_kredit'] ?? null,
+                    'keterangan' => $komponen['keterangan'] ?? '',
+                ];
+            }
+        }
+        
+        return $allKomponen;
+    }
+
+    /**
+     * Format BOP per produk untuk tampilan
+     */
+    public function getTotalBopFormattedAttribute(): string
+    {
+        $value = $this->total_bop_per_produk;
+        
         if ($value == floor($value)) {
             return 'Rp ' . number_format($value, 0, ',', '.');
         }
         
-        // Jika ada desimal, format dengan 2 desimal dan hapus trailing zeros
         $formatted = number_format($value, 2, ',', '.');
-        
-        // Hapus trailing zeros setelah koma
         $formatted = rtrim($formatted, '0');
         $formatted = rtrim($formatted, ',');
         
@@ -166,65 +131,26 @@ class BopProses extends Model
     }
 
     /**
-     * Format total BOP per jam untuk tampilan
-     */
-    public function getTotalBopPerJamFormattedAttribute(): string
-    {
-        return 'Rp ' . number_format($this->total_bop_per_jam, 0, ',', '.');
-    }
-
-    /**
-     * Cek apakah BOP sudah dikonfigurasi
+     * Check if BOP sudah dikonfigurasi
      */
     public function isConfigured(): bool
     {
-        return $this->total_bop_per_jam > 0;
+        return $this->total_bop_per_produk > 0;
     }
 
     /**
-     * Get efisiensi BOP (unit per rupiah)
+     * Get komponen bahan pendukung count
      */
-    public function getEfisiensiBopAttribute(): float
+    public function getBahanPendukungCountAttribute(): int
     {
-        if ($this->total_bop_per_jam > 0) {
-            return $this->kapasitas_per_jam / $this->total_bop_per_jam;
-        }
-        return 0;
+        return is_array($this->komponen_bahan_pendukung) ? count($this->komponen_bahan_pendukung) : 0;
     }
 
     /**
-     * Get biaya per produk (BTKL per pcs + BOP per pcs)
+     * Get komponen lainnya count
      */
-    public function getBiayaPerProdukAttribute(): float
+    public function getLainnyaCountAttribute(): int
     {
-        if ($this->kapasitas_per_jam > 0 && $this->prosesProduksi) {
-            $btklPerPcs = $this->prosesProduksi->tarif_btkl / $this->kapasitas_per_jam;
-            return $this->bop_per_unit + $btklPerPcs;
-        }
-        return 0;
+        return is_array($this->komponen_lainnya) ? count($this->komponen_lainnya) : 0;
     }
-
-    /**
-     * Format biaya per produk untuk tampilan
-     * Hanya tampilkan desimal jika ada nilai desimal
-     */
-    public function getBiayaPerProdukFormattedAttribute(): string
-    {
-        $value = $this->biaya_per_produk;
-        
-        // Jika nilai adalah integer (tidak ada desimal), tampilkan tanpa desimal
-        if ($value == floor($value)) {
-            return 'Rp ' . number_format($value, 0, ',', '.');
-        }
-        
-        // Jika ada desimal, format dengan 2 desimal dan hapus trailing zeros
-        $formatted = number_format($value, 2, ',', '.');
-        
-        // Hapus trailing zeros setelah koma
-        $formatted = rtrim($formatted, '0');
-        $formatted = rtrim($formatted, ',');
-        
-        return 'Rp ' . $formatted;
-    }
-
 }

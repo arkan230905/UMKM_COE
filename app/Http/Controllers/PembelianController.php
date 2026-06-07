@@ -1063,15 +1063,54 @@ class PembelianController extends Controller
 
                 // Create journal entries for accounting integration
                 try {
+                    \Log::info('[PembelianController] ========== CREATING JOURNAL ENTRIES ==========', [
+                        'pembelian_id' => $pembelian->id,
+                        'nomor_pembelian' => $pembelian->nomor_pembelian,
+                        'total_harga' => $pembelian->total_harga,
+                        'payment_method' => $pembelian->payment_method,
+                        'user_id' => $pembelian->user_id,
+                        'details_count' => $pembelian->details->count()
+                    ]);
+                    
+                    // Log detail items for debugging
+                    foreach ($pembelian->details as $detail) {
+                        \Log::info('[PembelianController] Detail Item', [
+                            'detail_id' => $detail->id,
+                            'bahan_baku_id' => $detail->bahan_baku_id,
+                            'bahan_pendukung_id' => $detail->bahan_pendukung_id,
+                            'jumlah' => $detail->jumlah,
+                            'harga_satuan' => $detail->harga_satuan,
+                            'has_bahanBaku_relation' => $detail->relationLoaded('bahanBaku'),
+                            'has_bahanPendukung_relation' => $detail->relationLoaded('bahanPendukung')
+                        ]);
+                        
+                        if ($detail->bahanBaku) {
+                            \Log::info('[PembelianController] Bahan Baku Detail', [
+                                'nama' => $detail->bahanBaku->nama_bahan,
+                                'coa_persediaan_id' => $detail->bahanBaku->coa_persediaan_id
+                            ]);
+                        }
+                        
+                        if ($detail->bahanPendukung) {
+                            \Log::info('[PembelianController] Bahan Pendukung Detail', [
+                                'nama' => $detail->bahanPendukung->nama_bahan,
+                                'coa_persediaan_id' => $detail->bahanPendukung->coa_persediaan_id
+                            ]);
+                        }
+                    }
+                    
                     $pembelianJournalService = new \App\Services\PembelianJournalService();
                     $pembelianJournalService->createJournalFromPembelian($pembelian);
-                    \Log::info('Journal entries created successfully for pembelian', [
+                    
+                    \Log::info('[PembelianController] ✓ Journal entries created successfully', [
                         'pembelian_id' => $pembelian->id,
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error('Failed to create journal entries for pembelian', [
+                    \Log::error('[PembelianController] ✗ Failed to create journal entries', [
                         'pembelian_id' => $pembelian->id,
                         'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
                         'trace' => $e->getTraceAsString(),
                     ]);
                     // Show warning to user but don't fail the transaction

@@ -100,7 +100,7 @@
                     </div>
                 </div>
 
-                <!-- Komponen BOP per Jam -->
+                <!-- Komponen BOP - 2 Bagian -->
                 <div class="row g-3">
                     <div class="col-12">
                         <h5 class="text-white mb-3">
@@ -109,14 +109,46 @@
                         <small class="text-light">Masukkan biaya overhead pabrik per jam operasi mesin</small>
                     </div>
 
-                    <div class="col-12">
-                        <div id="komponenBopContainer">
-                            <!-- Dynamic rows will be inserted here -->
+                    <!-- BAGIAN 1: BOP PROSES BAHAN PENDUKUNG -->
+                    <div class="col-12 mt-4">
+                        <div class="card" style="background: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.3);">
+                            <div class="card-header" style="background: rgba(25, 135, 84, 0.2); border-bottom: 1px solid rgba(25, 135, 84, 0.3);">
+                                <h6 class="mb-0 text-success">
+                                    <i class="fas fa-box me-2"></i>BOP Proses - Bahan Pendukung
+                                </h6>
+                                <small class="text-light">Pilih bahan pendukung dari database</small>
+                            </div>
+                            <div class="card-body">
+                                <div id="komponenBahanContainer">
+                                    <!-- Dynamic rows for bahan pendukung will be inserted here -->
+                                </div>
+                                
+                                <button type="button" id="addBahanBtn" class="btn btn-success btn-sm mt-3">
+                                    <i class="fas fa-plus"></i> Tambah Bahan Pendukung
+                                </button>
+                            </div>
                         </div>
-                        
-                        <button type="button" id="addKomponenBtn" class="btn btn-success btn-sm mt-3">
-                            <i class="fas fa-plus"></i> Tambah Komponen
-                        </button>
+                    </div>
+
+                    <!-- BAGIAN 2: BOP PROSES LAINNYA -->
+                    <div class="col-12 mt-4">
+                        <div class="card" style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.3);">
+                            <div class="card-header" style="background: rgba(0, 123, 255, 0.2); border-bottom: 1px solid rgba(0, 123, 255, 0.3);">
+                                <h6 class="mb-0 text-info">
+                                    <i class="fas fa-tools me-2"></i>BOP Proses - Lainnya
+                                </h6>
+                                <small class="text-light">Komponen BOP lainnya (Listrik, Gas, Penyusutan, dll)</small>
+                            </div>
+                            <div class="card-body">
+                                <div id="komponenLainContainer">
+                                    <!-- Dynamic rows for lainnya will be inserted here -->
+                                </div>
+                                
+                                <button type="button" id="addLainBtn" class="btn btn-info btn-sm mt-3">
+                                    <i class="fas fa-plus"></i> Tambah Komponen Lain
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -160,42 +192,48 @@
 document.addEventListener('DOMContentLoaded', function() {
     const prosesSelect = document.getElementById('proses_produksi_id');
     const prosesInfo = document.getElementById('prosesInfo');
-    const komponenContainer = document.getElementById('komponenBopContainer');
-    const addKomponenBtn = document.getElementById('addKomponenBtn');
+    const komponenBahanContainer = document.getElementById('komponenBahanContainer');
+    const komponenLainContainer = document.getElementById('komponenLainContainer');
+    const addBahanBtn = document.getElementById('addBahanBtn');
+    const addLainBtn = document.getElementById('addLainBtn');
     
-    // Static list of BOP components
-    const komponenOptions = [
+    // Bahan Pendukung dari server (filtered by user_id)
+    const bahanPendukungs = @json($bahanPendukungs ?? []);
+    
+    // Static list of BOP components for "Lainnya"
+    const komponenLainOptions = [
         'Listrik Mesin',
         'Gas / BBM',
         'Penyusutan Mesin',
         'Maintenance',
         'Air & Kebersihan',
-        'Bahan Penolong',
         'Gaji Mandor',
         'Lain-lain'
     ];
     
-    let komponenCount = 0;
+    let bahanCount = 0;
+    let lainCount = 0;
     
-    // Add initial empty row
-    addKomponenRow();
+    // Add initial empty rows
+    addBahanRow();
+    addLainRow();
     
-    // Add component row function
-    function addKomponenRow(component = '', rate = '') {
-        komponenCount++;
-        const rowId = `komponen_${komponenCount}`;
+    // ===== BAGIAN 1: BAHAN PENDUKUNG =====
+    function addBahanRow(bahanId = '', rate = '') {
+        bahanCount++;
+        const rowId = `bahan_${bahanCount}`;
         
         const rowHtml = `
             <div class="row g-3 mb-3 komponen-row" id="${rowId}">
                 <div class="col-md-5">
-                    <label class="form-label text-white">Komponen BOP</label>
-                    <select name="komponen_bop[${komponenCount}][component]" 
-                            class="form-select komponen-select" 
+                    <label class="form-label text-white">Bahan Pendukung</label>
+                    <select name="komponen_bop[${rowId}][bahan_pendukung_id]" 
+                            class="form-select bahan-select" 
                             data-row-id="${rowId}"
-                            required>
-                        <option value="">-- Pilih Komponen --</option>
-                        ${komponenOptions.map(opt => 
-                            `<option value="${opt}" ${component === opt ? 'selected' : ''}>${opt}</option>`
+                            data-type="bahan">
+                        <option value="">-- Pilih Bahan Pendukung --</option>
+                        ${bahanPendukungs.map(bahan => 
+                            `<option value="${bahan.id}" ${bahanId == bahan.id ? 'selected' : ''}>${bahan.nama_bahan}</option>`
                         ).join('')}
                     </select>
                 </div>
@@ -204,14 +242,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="input-group">
                         <span class="input-group-text">Rp</span>
                         <input type="number" 
-                               name="komponen_bop[${komponenCount}][rate_per_hour]" 
+                               name="komponen_bop[${rowId}][rate_per_hour]" 
                                class="form-control rate-input" 
                                data-row-id="${rowId}"
                                value="${rate}"
                                min="0" 
                                step="0.01" 
-                               placeholder="0"
-                               required>
+                               placeholder="0">
                     </div>
                 </div>
                 <div class="col-md-2">
@@ -223,11 +260,70 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        komponenContainer.insertAdjacentHTML('beforeend', rowHtml);
+        komponenBahanContainer.insertAdjacentHTML('beforeend', rowHtml);
         
-        // Add event listeners to new row
+        // Add event listeners
         const newRow = document.getElementById(rowId);
-        const select = newRow.querySelector('.komponen-select');
+        const select = newRow.querySelector('.bahan-select');
+        const input = newRow.querySelector('.rate-input');
+        const deleteBtn = newRow.querySelector('.delete-row');
+        
+        select.addEventListener('change', updateCalculation);
+        input.addEventListener('input', updateCalculation);
+        deleteBtn.addEventListener('click', function() {
+            deleteRow(rowId);
+        });
+        
+        updateCalculation();
+    }
+    
+    // ===== BAGIAN 2: LAINNYA =====
+    function addLainRow(component = '', rate = '') {
+        lainCount++;
+        const rowId = `lain_${lainCount}`;
+        
+        const rowHtml = `
+            <div class="row g-3 mb-3 komponen-row" id="${rowId}">
+                <div class="col-md-5">
+                    <label class="form-label text-white">Komponen BOP</label>
+                    <select name="komponen_bop[${rowId}][component]" 
+                            class="form-select lain-select" 
+                            data-row-id="${rowId}"
+                            data-type="lain">
+                        <option value="">-- Pilih Komponen --</option>
+                        ${komponenLainOptions.map(opt => 
+                            `<option value="${opt}" ${component === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label text-white">Nominal per Jam (Rp)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input type="number" 
+                               name="komponen_bop[${rowId}][rate_per_hour]" 
+                               class="form-control rate-input" 
+                               data-row-id="${rowId}"
+                               value="${rate}"
+                               min="0" 
+                               step="0.01" 
+                               placeholder="0">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white">&nbsp;</label><br>
+                    <button type="button" class="btn btn-danger btn-sm w-100 delete-row" data-row-id="${rowId}">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        komponenLainContainer.insertAdjacentHTML('beforeend', rowHtml);
+        
+        // Add event listeners
+        const newRow = document.getElementById(rowId);
+        const select = newRow.querySelector('.lain-select');
         const input = newRow.querySelector('.rate-input');
         const deleteBtn = newRow.querySelector('.delete-row');
         
@@ -249,9 +345,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Add component button event
-    addKomponenBtn.addEventListener('click', function() {
-        addKomponenRow();
+    // Add button events
+    addBahanBtn.addEventListener('click', function() {
+        addBahanRow();
+    });
+    
+    addLainBtn.addEventListener('click', function() {
+        addLainRow();
     });
     
     // Update info when process is selected
@@ -283,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const kapasitas = parseInt(selectedOption.dataset.kapasitas) || 0;
         
-        // Calculate total BOP per jam from all rate inputs
+        // Calculate total BOP per jam from ALL rate inputs (both sections)
         let totalBopPerJam = 0;
         const rateInputs = document.querySelectorAll('.rate-input');
         rateInputs.forEach(function(input) {
@@ -341,23 +441,43 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Check for duplicate components
-        const selectedComponents = [];
-        const selects = document.querySelectorAll('.komponen-select');
-        let hasDuplicates = false;
+        // Check for duplicate bahan pendukung
+        const selectedBahan = [];
+        const bahanSelects = document.querySelectorAll('.bahan-select');
+        let hasDuplicateBahan = false;
         
-        selects.forEach(function(select) {
+        bahanSelects.forEach(function(select) {
             const value = select.value;
-            if (value && selectedComponents.includes(value)) {
-                hasDuplicates = true;
+            if (value && selectedBahan.includes(value)) {
+                hasDuplicateBahan = true;
             } else if (value) {
-                selectedComponents.push(value);
+                selectedBahan.push(value);
             }
         });
         
-        if (hasDuplicates) {
+        if (hasDuplicateBahan) {
             e.preventDefault();
-            alert('Komponen BOP tidak boleh duplikat.');
+            alert('Bahan Pendukung tidak boleh duplikat.');
+            return;
+        }
+        
+        // Check for duplicate lainnya components
+        const selectedLain = [];
+        const lainSelects = document.querySelectorAll('.lain-select');
+        let hasDuplicateLain = false;
+        
+        lainSelects.forEach(function(select) {
+            const value = select.value;
+            if (value && selectedLain.includes(value)) {
+                hasDuplicateLain = true;
+            } else if (value) {
+                selectedLain.push(value);
+            }
+        });
+        
+        if (hasDuplicateLain) {
+            e.preventDefault();
+            alert('Komponen BOP Lainnya tidak boleh duplikat.');
             return;
         }
         

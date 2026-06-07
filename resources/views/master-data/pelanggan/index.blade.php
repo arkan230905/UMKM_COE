@@ -51,6 +51,33 @@
         Data pelanggan yang terdaftar akan otomatis muncul di sini.
     </div>
 
+    <!-- Search & Filter Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form action="{{ route('master-data.pelanggan.index') }}" method="GET" class="row gx-3 gy-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">Pencarian</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" class="form-control" name="search" value="{{ request('search') }}" placeholder="Nama, email, atau no. telp...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">Terdaftar Dari</label>
+                    <input type="date" class="form-control" name="date_start" value="{{ request('date_start') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">Terdaftar Sampai</label>
+                    <input type="date" class="form-control" name="date_end" value="{{ request('date_end') }}">
+                </div>
+                <div class="col-md-2 d-flex">
+                    <button type="submit" class="btn btn-primary w-100 me-2"><i class="fas fa-search"></i></button>
+                    <a href="{{ route('master-data.pelanggan.index') }}" class="btn btn-outline-secondary w-100"><i class="fas fa-sync-alt"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">

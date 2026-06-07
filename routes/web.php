@@ -3517,7 +3517,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         
         // Laporan Penjualan
         Route::get('/penjualan', [\App\Http\Controllers\LaporanPenjualanController::class, 'index'])->name('penjualan');
-        Route::post('/penjualan/export-pdf', [\App\Http\Controllers\LaporanPenjualanController::class, 'exportPdf'])->name('penjualan.export-pdf');
+        Route::get('/penjualan/export-pdf', [\App\Http\Controllers\LaporanPenjualanController::class, 'exportPdf'])->name('penjualan.export');
         
         // Laporan Retur (now only handles purchase returns, sales returns moved to penjualan tab)
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
@@ -3601,6 +3601,8 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         
         Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
         Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
+        
+        // Akuntansi - Laporan
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
         Route::post('/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
         
