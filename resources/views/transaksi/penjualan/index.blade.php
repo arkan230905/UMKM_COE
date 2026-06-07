@@ -753,14 +753,46 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="text-center" style="width: 50px">NO</th>
-                                    <th>Tanggal</th>
-                                    <th>Nomor Penjualan</th>
-                                    <th>Deskripsi</th>
-                                    <th>Kompensasi</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Total Retur</th>
-                                    <th>Produk</th>
+                                    <th class="text-center" style="width: 50px">
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'no', 'sort_retur_dir' => request('sort_retur_by') === 'no' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            NO @if(request('sort_retur_by') === 'no') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'tanggal', 'sort_retur_dir' => request('sort_retur_by', 'tanggal') === 'tanggal' && request('sort_retur_dir', 'desc') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Tanggal @if(request('sort_retur_by', 'tanggal') === 'tanggal') <i class="fas fa-sort-{{ request('sort_retur_dir', 'desc') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'nomor_penjualan', 'sort_retur_dir' => request('sort_retur_by') === 'nomor_penjualan' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Nomor Penjualan @if(request('sort_retur_by') === 'nomor_penjualan') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'deskripsi', 'sort_retur_dir' => request('sort_retur_by') === 'deskripsi' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Deskripsi @if(request('sort_retur_by') === 'deskripsi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'kompensasi', 'sort_retur_dir' => request('sort_retur_by') === 'kompensasi' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Kompensasi @if(request('sort_retur_by') === 'kompensasi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'status', 'sort_retur_dir' => request('sort_retur_by') === 'status' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Status @if(request('sort_retur_by') === 'status') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th class="text-end">
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'total_retur', 'sort_retur_dir' => request('sort_retur_by') === 'total_retur' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Total Retur @if(request('sort_retur_by') === 'total_retur') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'produk', 'sort_retur_dir' => request('sort_retur_by') === 'produk' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Produk @if(request('sort_retur_by') === 'produk') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>

@@ -101,6 +101,56 @@
                         </div>
                     </div>
                 </div>
+                <div class="row" id="refundOptionsContainer" style="display: none;">
+                    <div class="col-md-12 mt-3">
+                        <div class="card bg-light border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning"><i class="fas fa-money-bill-wave me-2"></i>Opsi Pengembalian Dana (Refund)</h6>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Metode Pengembalian Dana <span class="text-danger">*</span></label>
+                                        <div class="d-flex gap-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="metode_refund" id="refundKas" value="kas" {{ old('metode_refund') == 'kas' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="refundKas">Tunai / Kas</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="metode_refund" id="refundTransfer" value="transfer" {{ old('metode_refund') == 'transfer' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="refundTransfer">Transfer Bank</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="transferFieldsContainer" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="bank_refund_id" class="form-label">Sumber Dana (Bank Perusahaan) <span class="text-danger">*</span></label>
+                                            <select name="bank_refund_id" id="bank_refund_id" class="form-select">
+                                                <option value="">-- Pilih Bank Perusahaan --</option>
+                                                @foreach($kasBankCoas as $coa)
+                                                    <option value="{{ $coa->id }}" {{ old('bank_refund_id') == $coa->id ? 'selected' : '' }}>
+                                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="bank_tujuan_refund" class="form-label">Bank Tujuan <span class="text-danger">*</span></label>
+                                            <input type="text" name="bank_tujuan_refund" id="bank_tujuan_refund" class="form-control" value="{{ old('bank_tujuan_refund') }}" placeholder="Contoh: BCA">
+                                            <small class="text-muted">Perusahaan hanya melayani transfer ke sesama bank</small>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="nama_penerima_refund" class="form-label">Nama Penerima <span class="text-danger">*</span></label>
+                                            <input type="text" name="nama_penerima_refund" id="nama_penerima_refund" class="form-control" value="{{ old('nama_penerima_refund') }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -200,6 +250,37 @@ $(document).ready(function() {
     // Initialize totals on page load
     updateTotals();
 
+    // Handle jenis retur change
+    $('#jenis_retur').change(function() {
+        const jenis = $(this).val();
+        if (jenis === 'refund') {
+            $('#refundOptionsContainer').slideDown();
+        } else {
+            $('#refundOptionsContainer').slideUp();
+        }
+        updateTotals();
+    });
+    
+    // Trigger on load if old value exists
+    if ($('#jenis_retur').val() === 'refund') {
+        $('#refundOptionsContainer').show();
+    }
+
+    // Handle metode refund change
+    $('input[name="metode_refund"]').change(function() {
+        if ($(this).val() === 'transfer') {
+            $('#transferFieldsContainer').slideDown();
+        } else {
+            $('#transferFieldsContainer').slideUp();
+        }
+    });
+    
+    // Trigger on load if old value exists
+    if ($('input[name="metode_refund"]:checked').val() === 'transfer') {
+        $('#transferFieldsContainer').show();
+    }
+
+
     // Handle qty changes
     $(document).on('input', '.qty-retur', function() {
         const row = $(this).closest('tr');
@@ -266,6 +347,24 @@ $(document).ready(function() {
             alert('Tambahkan minimal satu detail retur');
             return false;
         }
+
+        const jenisRetur = $('#jenis_retur').val();
+        if (jenisRetur === 'refund') {
+            const metodeRefund = $('input[name="metode_refund"]:checked').val();
+            if (!metodeRefund) {
+                e.preventDefault();
+                alert('Pilih Metode Pengembalian Dana untuk jenis retur Refund');
+                return false;
+            }
+            if (metodeRefund === 'transfer') {
+                if (!$('#bank_refund_id').val() || !$('#bank_tujuan_refund').val() || !$('#nama_penerima_refund').val()) {
+                    e.preventDefault();
+                    alert('Harap lengkapi data Sumber Dana, Bank Tujuan, dan Nama Penerima untuk metode transfer');
+                    return false;
+                }
+            }
+        }
+
 
         let valid = true;
         $('.qty-retur').each(function() {
