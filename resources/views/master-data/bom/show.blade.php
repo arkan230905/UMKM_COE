@@ -223,13 +223,51 @@
                     @if($selectedBop->count() > 0)
                         @foreach($selectedBop as $index => $bop)
                             @php
-                                // komponen_bop might already be an array (Laravel casts it)
-                                $komponenBop = $bop->bopProses->komponen_bop ?? [];
-                                if (is_string($komponenBop)) {
-                                    $komponenBop = json_decode($komponenBop, true) ?? [];
+                                // DEBUG: Check if bopProses exists
+                                if (!$bop->bopProses) {
+                                    \Log::error('BOP Show - Missing bopProses relation', [
+                                        'bop_id' => $bop->id,
+                                        'bop_proses_id' => $bop->bop_proses_id
+                                    ]);
+                                    continue; // Skip this iteration
                                 }
-                                $bopName = $bop->bopProses->prosesProduksi->nama_proses ?? 'BOP Item';
+                                
+                                // Get komponen from new structure
+                                $komponenBahanPendukung = $bop->bopProses->komponen_bahan_pendukung ?? [];
+                                $komponenLainnya = $bop->bopProses->komponen_lainnya ?? [];
+                                
+                                // Ensure they are arrays (cast from JSON if needed)
+                                if (is_string($komponenBahanPendukung)) {
+                                    $komponenBahanPendukung = json_decode($komponenBahanPendukung, true) ?? [];
+                                }
+                                if (is_string($komponenLainnya)) {
+                                    $komponenLainnya = json_decode($komponenLainnya, true) ?? [];
+                                }
+                                
+                                // Ensure both are arrays even if null
+                                if (!is_array($komponenBahanPendukung)) {
+                                    $komponenBahanPendukung = [];
+                                }
+                                if (!is_array($komponenLainnya)) {
+                                    $komponenLainnya = [];
+                                }
+                                
+                                $bopName = $bop->bopProses->nama_bop_proses ?? 'BOP Item';
                                 $totalBopItem = $bop->bopProses->total_bop_per_produk ?? 0;
+                                
+                                // Count total components
+                                $totalKomponen = count($komponenBahanPendukung) + count($komponenLainnya);
+                                
+                                // DEBUG LOG
+                                \Log::info('BOP Show - Processing BOP', [
+                                    'index' => $index + 1,
+                                    'bop_id' => $bop->id,
+                                    'nama' => $bopName,
+                                    'total_bop' => $totalBopItem,
+                                    'bahan_pendukung_count' => count($komponenBahanPendukung),
+                                    'lainnya_count' => count($komponenLainnya),
+                                    'total_komponen' => $totalKomponen
+                                ]);
                             @endphp
                             
                             <div class="card mb-3 border-danger">
@@ -239,31 +277,75 @@
                                     </h6>
                                 </div>
                                 <div class="card-body">
-                                    @if(!empty($komponenBop) && is_array($komponenBop))
+                                    {{-- DEBUG INFO (can be removed later) --}}
+                                    @if(config('app.debug'))
+                                        <div class="alert alert-info alert-sm mb-3">
+                                            <small>
+                                                <strong>Debug Info:</strong> 
+                                                Bahan Pendukung: {{ count($komponenBahanPendukung) }} items | 
+                                                Lainnya: {{ count($komponenLainnya) }} items | 
+                                                Total Komponen: {{ $totalKomponen }}
+                                            </small>
+                                        </div>
+                                    @endif
+                                    
+                                    @if($totalKomponen > 0)
                                         <div class="table-responsive">
                                             <table class="table table-sm table-hover mb-0">
                                                 <thead class="table-light">
                                                     <tr>
                                                         <th width="10%">No</th>
-                                                        <th width="60%">Komponen BOP</th>
-                                                        <th width="30%" class="text-end">Tarif per Jam</th>
+                                                        <th width="10%">Tipe</th>
+                                                        <th width="50%">Komponen BOP</th>
+                                                        <th width="30%" class="text-end">Tarif per Produk</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    @foreach($komponenBop as $idx => $komponen)
-                                                        @php
-                                                            $ratePerHour = $komponen['rate_per_hour'] ?? 0;
-                                                        @endphp
-                                                        <tr>
-                                                            <td>{{ $idx + 1 }}</td>
-                                                            <td>{{ $komponen['component'] ?? 'Unknown' }}</td>
-                                                            <td class="text-end"><strong>Rp {{ number_format($ratePerHour, 0, ',', '.') }}</strong></td>
-                                                        </tr>
-                                                    @endforeach
+                                                    @php $no = 1; @endphp
+                                                    
+                                                    <!-- Bahan Pendukung -->
+                                                    @if(!empty($komponenBahanPendukung))
+                                                        @foreach($komponenBahanPendukung as $komponen)
+                                                            @php
+                                                                $nama = $komponen['nama'] ?? 'Unknown';
+                                                                $total = $komponen['total'] ?? 0;
+                                                            @endphp
+                                                            <tr>
+                                                                <td>{{ $no++ }}</td>
+                                                                <td>
+                                                                    <span class="badge bg-success">
+                                                                        <i class="fas fa-box me-1"></i>Bahan
+                                                                    </span>
+                                                                </td>
+                                                                <td>{{ $nama }}</td>
+                                                                <td class="text-end"><strong>Rp {{ number_format($total, 0, ',', '.') }}</strong></td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
+                                                    
+                                                    <!-- Lainnya -->
+                                                    @if(!empty($komponenLainnya))
+                                                        @foreach($komponenLainnya as $komponen)
+                                                            @php
+                                                                $nama = $komponen['nama_komponen'] ?? 'Unknown';
+                                                                $nilai = $komponen['nilai_per_produk'] ?? 0;
+                                                            @endphp
+                                                            <tr>
+                                                                <td>{{ $no++ }}</td>
+                                                                <td>
+                                                                    <span class="badge bg-primary">
+                                                                        <i class="fas fa-tools me-1"></i>Lainnya
+                                                                    </span>
+                                                                </td>
+                                                                <td>{{ $nama }}</td>
+                                                                <td class="text-end"><strong>Rp {{ number_format($nilai, 0, ',', '.') }}</strong></td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
                                                 </tbody>
                                                 <tfoot class="table-light">
                                                     <tr>
-                                                        <th colspan="2" class="text-end">Total BOP {{ $bopName }}:</th>
+                                                        <th colspan="3" class="text-end">Total BOP {{ $bopName }}:</th>
                                                         <th class="text-end text-danger">Rp {{ number_format($totalBopItem, 0, ',', '.') }}</th>
                                                     </tr>
                                                 </tfoot>
@@ -272,7 +354,11 @@
                                     @else
                                         <div class="alert alert-warning mb-0">
                                             <i class="fas fa-exclamation-triangle me-2"></i>
-                                            Tidak ada detail komponen BOP. Total BOP: <strong>Rp {{ number_format($totalBopItem, 0, ',', '.') }}</strong>
+                                            <strong>Tidak ada detail komponen BOP.</strong> 
+                                            Total BOP: <strong>Rp {{ number_format($totalBopItem, 0, ',', '.') }}</strong>
+                                            @if(config('app.debug'))
+                                                <br><small class="text-muted">Debug: Bahan={{ count($komponenBahanPendukung) }}, Lainnya={{ count($komponenLainnya) }}</small>
+                                            @endif
                                         </div>
                                     @endif
                                 </div>

@@ -1109,12 +1109,6 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         return view('akuntansi.laba_rugi', $data);
     }
 
-    public function labaRugiExportPdf(Request $request)
-    {
-        $data = $this->prepareLabaRugiData($request);
-        return view('akuntansi.laba-rugi-pdf', $data);
-    }
-
     /**
      * Export Laporan Laba Rugi ke PDF
      */

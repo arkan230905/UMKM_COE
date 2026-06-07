@@ -862,11 +862,11 @@ class LaporanController extends Controller
                         }
                     } elseif ($tipe == 'bahan_pendukung') {
                         foreach ($bahanPendukungs as $bp) {
-                            $stockIn = StockMovement::where('item_type', 'bahan_pendukung')
+                            $stockIn = StockMovement::where('item_type', 'support')
                                 ->where('item_id', $bp->id)
                                 ->where('direction', 'in')
                                 ->sum('qty');
-                            $stockOut = StockMovement::where('item_type', 'bahan_pendukung')
+                            $stockOut = StockMovement::where('item_type', 'support')
                                 ->where('item_id', $bp->id)
                                 ->where('direction', 'out')
                                 ->sum('qty');
