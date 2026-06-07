@@ -719,7 +719,7 @@
                 font-size: 0.45rem;
                 font-style: italic;
             ">
-                © 2026 SIMACOST - Sistem Manufaktur Process Costing
+                © 2026 SIMCOST - Sistem Manufaktur Process Costing
             </div>
         </div>
     </div>
