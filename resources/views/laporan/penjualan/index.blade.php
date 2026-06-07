@@ -7,14 +7,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Laporan Penjualan</h3>
         <div>
-            <a href="{{ route('laporan.penjualan.export') }}" class="btn btn-danger">
-                <i class="fas fa-file-pdf me-1"></i> Export PDF
-            </a>
+            <button type="button" onclick="window.print()" class="btn btn-danger no-print">
+                <i class="fas fa-print me-1"></i> Cetak PDF
+            </button>
         </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <ul class="nav nav-tabs mb-4" id="laporanTabs" role="tablist">
+    <ul class="nav nav-tabs mb-4 no-print" id="laporanTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="penjualan-tab" data-bs-toggle="tab" data-bs-target="#penjualan" type="button" role="tab" aria-controls="penjualan" aria-selected="true">
                 <i class="fas fa-shopping-cart me-2"></i>Penjualan
@@ -33,7 +33,7 @@
         <div class="tab-pane fade show active" id="penjualan" role="tabpanel" aria-labelledby="penjualan-tab">
 
     <!-- Filter Form -->
-    <div class="card mb-4">
+    <div class="card mb-4 no-print">
         <div class="card-body">
             <form action="" method="GET" class="row g-3">
                 <div class="col-md-4">
@@ -535,4 +535,44 @@
     });
 </script>
 @endpush
+
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background: white !important;
+        }
+        .container {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        .table th, .table td {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+        }
+        /* Ensure the active tab prints properly and inactive hides */
+        .tab-pane:not(.active) {
+            display: none !important;
+        }
+        .tab-pane.active {
+            display: block !important;
+            opacity: 1 !important;
+        }
+    }
+</style>
+
 @endsection

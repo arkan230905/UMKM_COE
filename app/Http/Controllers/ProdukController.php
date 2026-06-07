@@ -128,7 +128,7 @@ class ProdukController extends Controller
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|max:10240',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             'harga_jual' => 'required|numeric|min:0',
             'hpp' => 'nullable|numeric|min:0',
             'margin_percent' => 'nullable|numeric|min:0',
@@ -257,7 +257,7 @@ class ProdukController extends Controller
         // Handle photo-only update (for AJAX requests from kelola-catalog)
         if ($request->ajax() && $request->hasFile('foto') && !$request->has('nama_produk')) {
             $request->validate([
-                'foto' => 'required|image|max:10240',
+                'foto' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             ]);
 
             try {
@@ -294,7 +294,7 @@ class ProdukController extends Controller
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|max:10240',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             'harga_jual' => 'required|string',
             'hpp' => 'nullable|numeric|min:0',
             'hpp_calculated' => 'nullable|numeric|min:0',

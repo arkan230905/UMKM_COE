@@ -3604,7 +3604,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         
         // Akuntansi - Laporan
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
-        Route::get('/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
+        Route::post('/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
         
         // Redirect old URLs to new URLs for backward compatibility
         Route::redirect('/neraca', '/laporan-posisi-keuangan', 301);

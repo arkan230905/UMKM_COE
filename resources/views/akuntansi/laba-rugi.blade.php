@@ -8,22 +8,24 @@
         <h2 class="mb-0">
             <i class="fas fa-chart-line me-2"></i>Laba Rugi
         </h2>
-        <form method="get" class="d-flex gap-2 align-items-end">
-            <div>
-                <label class="form-label">Dari</label>
-                <input type="date" name="from" value="{{ $from }}" class="form-control">
-            </div>
-            <div>
-                <label class="form-label">Sampai</label>
-                <input type="date" name="to" value="{{ $to }}" class="form-control">
-            </div>
-            <div>
-                <button class="btn btn-primary">Terapkan</button>
-                <a href="{{ route('laba-rugi.export-pdf', ['periode' => request('periode')]) }}" class="btn btn-danger">
-                    <i class="fas fa-file-pdf me-1"></i> Export PDF
-                </a>
-            </div>
-        </form>
+        <div class="d-flex gap-2 align-items-end">
+            <form method="get" class="d-flex gap-2 align-items-end">
+                <div>
+                    <label class="form-label">Dari</label>
+                    <input type="date" name="from" value="{{ $from }}" class="form-control">
+                </div>
+                <div>
+                    <label class="form-label">Sampai</label>
+                    <input type="date" name="to" value="{{ $to }}" class="form-control">
+                </div>
+                <div>
+                    <button class="btn btn-primary">Terapkan</button>
+                </div>
+            </form>
+            <button class="btn btn-export" id="exportPdfLabaRugiBtn" style="background: #8B7355; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600;">
+                <i class="fas fa-file-pdf me-2"></i>Export PDF
+            </button>
+        </div>
     </div>
 
     <div class="card">
@@ -206,4 +208,55 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('exportPdfLabaRugiBtn').addEventListener('click', function() {
+    const from = document.querySelector('input[name="from"]').value;
+    const to = document.querySelector('input[name="to"]').value;
+    
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ route("akuntansi.laba-rugi.export-pdf") }}';
+    form.target = '_blank';
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = '_token';
+        input.value = csrfToken.content;
+        form.appendChild(input);
+    }
+
+    if (from) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'from';
+        input.value = from;
+        form.appendChild(input);
+    }
+
+    if (to) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'to';
+        input.value = to;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }, 2000);
+});
+</script>
 @endsection

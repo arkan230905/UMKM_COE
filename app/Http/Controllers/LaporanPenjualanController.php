@@ -7,7 +7,7 @@ use App\Models\Penjualan;
 use App\Models\ReturPenjualan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\PDF;
 
 class LaporanPenjualanController extends Controller
 {
@@ -149,11 +149,12 @@ class LaporanPenjualanController extends Controller
 
     public function exportPdf(Request $request)
     {
+        // Get filter parameters
         $tanggalMulai = $request->get('tanggal_mulai', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $tanggalSelesai = $request->get('tanggal_selesai', Carbon::now()->format('Y-m-d'));
         $metodePembayaran = $request->get('metode_pembayaran');
-        $statusTransaksi = $request->get('status_transaksi');
 
+        // Build query for penjualan
         $query = Penjualan::with(['produk', 'details.produk', 'returPenjualans.detailReturPenjualans'])
             ->where('user_id', auth()->id())
             ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
@@ -164,17 +165,25 @@ class LaporanPenjualanController extends Controller
 
         $penjualans = $query->orderBy('tanggal', 'desc')->get();
 
-        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran, $statusTransaksi);
+        // Calculate summary data
+        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran);
+
+        // Get retur data
         $returData = $this->getReturData($tanggalMulai, $tanggalSelesai);
 
-        $pdf = Pdf::loadView('laporan.penjualan.export-pdf', compact(
+        // Create PDF
+        $pdf = \PDF::loadView('laporan.penjualan-pdf', compact(
             'penjualans',
             'summaryData',
             'returData',
             'tanggalMulai',
-            'tanggalSelesai'
-        ))->setPaper('a4', 'landscape');
+            'tanggalSelesai',
+            'metodePembayaran'
+        ));
 
-        return $pdf->download('laporan-penjualan-'.$tanggalMulai.'-sd-'.$tanggalSelesai.'.pdf');
+        $pdf->setPaper('A4', 'landscape');
+
+        // Return PDF download
+        return $pdf->download('Laporan-Penjualan-' . date('Y-m-d-His') . '.pdf');
     }
 }
