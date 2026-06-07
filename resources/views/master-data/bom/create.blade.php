@@ -172,8 +172,15 @@
                             @else
                                 @foreach($bopProses as $item)
                                     @php
-                                        $komponenBop = is_string($item->komponen_bop) ? json_decode($item->komponen_bop, true) : ($item->komponen_bop ?? []);
-                                        $totalBop = $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0;
+                                        // Get komponen from new structure
+                                        $allKomponen = [];
+                                        if ($item->komponen_bahan_pendukung && is_array($item->komponen_bahan_pendukung)) {
+                                            $allKomponen = array_merge($allKomponen, $item->komponen_bahan_pendukung);
+                                        }
+                                        if ($item->komponen_lainnya && is_array($item->komponen_lainnya)) {
+                                            $allKomponen = array_merge($allKomponen, $item->komponen_lainnya);
+                                        }
+                                        $totalBop = $item->total_bop_per_produk ?? 0;
                                     @endphp
                                     <div class="col-12 mb-3">
                                         <div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, #f5e6d3 0%, #f9f0e6 100%); border-left: 5px solid #5a3a1a !important;">
@@ -192,18 +199,23 @@
                                                                     </div>
                                                                     <div>
                                                                         <h6 class="mb-0 fw-bold" style="color: #5a3a1a;">{{ $item->nama_bop_proses ?? 'BOP Proses' }}</h6>
-                                                                        <small class="text-muted">{{ is_array($komponenBop) ? count($komponenBop) : 0 }} komponen</small>
+                                                                        <small class="text-muted">{{ is_array($allKomponen) ? count($allKomponen) : 0 }} komponen</small>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-5 text-center">
-                                                                @if(is_array($komponenBop) && count($komponenBop) > 0)
+                                                                @if(is_array($allKomponen) && count($allKomponen) > 0)
                                                                     <div class="row g-1">
-                                                                        @foreach($komponenBop as $komp)
+                                                                        @foreach($allKomponen as $komp)
                                                                             <div class="col-6">
                                                                                 <div class="d-flex justify-content-between align-items-center p-1 rounded" style="background-color: rgba(160, 130, 109, 0.05); font-size: 0.8rem;">
-                                                                                    <small class="text-muted text-truncate me-1">{{ $komp['component'] ?? 'N/A' }}</small>
-                                                                                    <strong class="text-dark text-nowrap">Rp {{ number_format($komp['rate_per_hour'] ?? 0, 0, ',', '.') }}</strong>
+                                                                                    @php
+                                                                                        // Handle both bahan_pendukung and lainnya structure
+                                                                                        $namaKomponen = $komp['nama'] ?? $komp['nama_komponen'] ?? 'N/A';
+                                                                                        $nilaiKomponen = $komp['total'] ?? $komp['nilai_per_produk'] ?? 0;
+                                                                                    @endphp
+                                                                                    <small class="text-muted text-truncate me-1">{{ $namaKomponen }}</small>
+                                                                                    <strong class="text-dark text-nowrap">Rp {{ number_format($nilaiKomponen, 0, ',', '.') }}</strong>
                                                                                 </div>
                                                                             </div>
                                                                         @endforeach

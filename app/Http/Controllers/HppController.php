@@ -154,7 +154,7 @@ class HppController extends Controller
             'btkl_selected' => 'nullable|array',
             'btkl_selected.*' => 'exists:btkls,id',
             'bop_selected' => 'nullable|array',
-            'bop_selected.*' => 'exists:bops,id',
+            'bop_selected.*' => 'exists:bop_proses,id',
         ]);
 
         DB::beginTransaction();
@@ -197,17 +197,18 @@ class HppController extends Controller
                 }
             }
 
-            // Calculate BOP
+            // Calculate BOP using BopProses (new structure)
             $totalBOP = 0;
             if ($request->bop_selected) {
                 foreach ($request->bop_selected as $bopId) {
-                    $bop = Bop::where('id', $bopId)
+                    $bop = BopProses::where('id', $bopId)
                         ->where('user_id', auth()->id())
                         ->first();
                     
                     if ($bop) {
-                        $nominal = $bop->nominal ?? 0;
-                        $totalBOP += $nominal;
+                        // Use total_bop_per_produk from new structure
+                        $nominal = $bop->total_bop_per_produk ?? 0;
+                        $totalBOP += $nominal * $request->jumlah_produk;
 
                         // Save BOP selection
                         $bom->bopSelections()->create([
