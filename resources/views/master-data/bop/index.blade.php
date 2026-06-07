@@ -115,7 +115,7 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
                                         <div>
-                                            <div class="fw-semibold text-warning">Rp {{ formatNumberClean($bop->total_bop_per_produk ?? $bop->bop_per_unit) }}</div>
+                                            <div class="fw-semibold text-warning">Rp {{ formatNumberClean($bop->total_bop_per_produk) }}</div>
                                             <small class="text-muted">Per produk</small>
                                         </div>
                                     </div>
@@ -234,7 +234,7 @@
                                 <td>
                                     <div class="d-flex align-items-center justify-content-end">
                                         @php
-                                            $totalBopPerProduk = $bopProses->sum('bop_per_unit');
+                                            $totalBopPerProduk = $bopProses->sum('total_bop_per_produk');
                                         @endphp
                                         <span class="fw-bold text-success fs-6">Rp {{ formatNumberClean($totalBopPerProduk) }}</span>
                                     </div>
@@ -338,7 +338,7 @@
                             <strong>Informasi:</strong>
                             <ul class="mb-0 mt-1 small">
                                 <li>Proses: {{ $bop->nama_bop_proses ?? 'Tidak Diketahui' }}</li>
-                                <li>BOP / produk: Rp {{ formatNumberClean($bop->bop_per_unit) }}</li>
+                                <li>BOP / produk: Rp {{ formatNumberClean($bop->total_bop_per_produk) }}</li>
                                                             </ul>
                         </div>
                     </div>
