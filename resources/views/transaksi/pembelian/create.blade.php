@@ -1082,7 +1082,9 @@ function updateItemsBasedOnVendor(vendorSelect) {
             tipeItemInput.value = 'bahan_baku';
             @foreach ($bahanBakus as $bb)
                 @php
-                    $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->first() : null;
+                    // CRITICAL: Filter COA by user_id for multi-tenant isolation
+                    // FIX: coa_persediaan_id stores kode_akun, not id
+                    $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
                     $coaKode = $coa ? $coa->kode_akun : '114';
                     $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Baku';
                 @endphp
@@ -1093,7 +1095,9 @@ function updateItemsBasedOnVendor(vendorSelect) {
             tipeItemInput.value = 'bahan_pendukung';
             @foreach ($bahanPendukungs as $bp)
                 @php
-                    $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->first() : null;
+                    // CRITICAL: Filter COA by user_id for multi-tenant isolation
+                    // FIX: coa_persediaan_id stores kode_akun, not id
+                    $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
                     $coaKode = $coa ? $coa->kode_akun : '115';
                     $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung';
                 @endphp
@@ -1348,7 +1352,9 @@ function updateJournalPreview() {
         let coaKode = item.coaKode || '114'; // Default for bahan baku
         let coaNama = item.coaNama || 'Persediaan Bahan Baku';
         
-        j1 += rowD(item.name, coaKode, coaNama, item.amount);
+        // ✅ PERBAIKAN: Gunakan nama COA di kolom Keterangan, bukan nama item
+        // Ini sesuai dengan yang ditampilkan di production
+        j1 += rowD(coaNama, coaKode, coaNama, item.amount);
     });
     document.getElementById('jurnal-persediaan-body').innerHTML = j1 || empty5;
     
