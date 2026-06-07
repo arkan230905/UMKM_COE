@@ -21,11 +21,8 @@ class BopController extends Controller
         try {
 
             // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only
-            $bopProses = BopProses::with(['prosesProduksi' => function($query) {
-                $query->where('user_id', auth()->id());
-            }])
-                ->where('user_id', auth()->id())
-->where('is_active', true)
+            $bopProses = BopProses::where('user_id', auth()->id())
+                ->where('is_active', true)
                 ->orderBy('id')
                 ->get();
 
@@ -406,15 +403,9 @@ class BopController extends Controller
     public function showProsesModal($id)
     {
         try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            $bopProses = BopProses::findOrFail($id);
             
-            // Get matching BTKL data based on process name (only if prosesProduksi exists)
-            $btkl = null;
-            if ($bopProses->prosesProduksi) {
-                $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
-            }
-            
-            return view('master-data.bop.show-proses-modal', compact('bopProses', 'btkl'));
+            return view('master-data.bop.show-proses-modal', compact('bopProses'));
             
         } catch (\Exception $e) {
             return response()->json([
@@ -431,7 +422,7 @@ class BopController extends Controller
     public function editProses($id)
     {
         try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            $bopProses = BopProses::findOrFail($id);
             return view('master-data.bop.edit-proses', compact('bopProses'));
             
         } catch (\Exception $e) {
@@ -937,7 +928,7 @@ class BopController extends Controller
     public function getBopProses($id)
     {
         try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            $bopProses = BopProses::findOrFail($id);
             
             return response()->json([
                 'success' => true,

@@ -106,7 +106,7 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-gear-fill me-2 text-primary opacity-50"></i>
                                         <div>
-                                            <div class="fw-semibold">{{ $bop->nama_bop_proses ?? ($bop->prosesProduksi ? $bop->prosesProduksi->nama_proses : '-') }}</div>
+                                            <div class="fw-semibold">{{ $bop->nama_bop_proses ?? '-' }}</div>
                                             <small class="text-muted">BOP Proses</small>
                                         </div>
                                     </div>
@@ -328,7 +328,7 @@
                         <i class="bi bi-trash3 text-danger" style="font-size: 2rem;"></i>
                     </div>
                     <h6 class="text-danger fw-bold">Apakah Anda yakin?</h6>
-                    <p class="text-muted mb-0">Data BOP untuk proses <strong>"{{ $bop->nama_bop_proses ?? ($bop->prosesProduksi ? $bop->prosesProduksi->nama_proses : 'Tidak Diketahui') }}"</strong> akan dihapus secara permanen.</p>
+                    <p class="text-muted mb-0">Data BOP untuk proses <strong>"{{ $bop->nama_bop_proses ?? 'Tidak Diketahui' }}"</strong> akan dihapus secara permanen.</p>
                 </div>
                 
                 <div class="alert alert-warning">
@@ -337,7 +337,7 @@
                         <div>
                             <strong>Informasi:</strong>
                             <ul class="mb-0 mt-1 small">
-                                <li>Proses: {{ $bop->nama_bop_proses ?? ($bop->prosesProduksi ? $bop->prosesProduksi->nama_proses : 'Tidak Diketahui') }}</li>
+                                <li>Proses: {{ $bop->nama_bop_proses ?? 'Tidak Diketahui' }}</li>
                                 <li>BOP / produk: Rp {{ formatNumberClean($bop->bop_per_unit) }}</li>
                                                             </ul>
                         </div>
