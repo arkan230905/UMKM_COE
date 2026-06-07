@@ -9,15 +9,42 @@ use Illuminate\Support\Facades\Hash;
 
 class PelangganController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // 🔒 SECURITY: Get all pelanggan users
         // Pelanggan yang terdaftar melalui website memiliki role = 'pelanggan'
         // Semua owner bisa melihat semua pelanggan yang terdaftar
-        $pelanggans = User::where('role', 'pelanggan')
-            ->withCount('orders')
-            ->latest()
-            ->paginate(15);
+        $query = User::where('role', 'pelanggan')->withCount('orders');
+
+        // Pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Pengurutan
+        $sort = $request->get('sort', 'terbaru');
+        switch ($sort) {
+            case 'terlama':
+                $query->oldest();
+                break;
+            case 'nama_az':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'nama_za':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'terbaru':
+            default:
+                $query->latest();
+                break;
+        }
+
+        $pelanggans = $query->paginate(15)->withQueryString();
 
         return view('master-data.pelanggan.index', compact('pelanggans'));
     }

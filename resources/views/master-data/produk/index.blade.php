@@ -232,14 +232,13 @@
                             <td class="td-foto">
                                 @if($produk->foto)
                                     @php
-                                        $fotoUrl = Storage::url($produk->foto);
-                                        // Fallback: jika symlink tidak ada, gunakan path langsung ke storage
-                                        $fallbackUrl = '/storage/' . $produk->foto;
+                                        // Use asset() to correctly resolve public URLs regardless of server setup
+                                        $fotoUrl = asset('storage/' . $produk->foto);
                                     @endphp
                                     <img src="{{ $fotoUrl }}" alt="{{ $produk->nama_produk }}"
                                          class="pimg"
                                          onclick="showImg('{{ $fotoUrl }}','{{ addslashes($produk->nama_produk) }}')"
-                                         onerror="this.src='{{ $fallbackUrl }}'; if(this.src === this.onerror.url) { this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23f0ebe4%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E'; }">
+                                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23f0ebe4%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E';">
                                 @else
                                     <div class="pimg-ph"><i class="fas fa-image"></i></div>
                                 @endif

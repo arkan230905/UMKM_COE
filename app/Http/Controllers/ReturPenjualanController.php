@@ -46,7 +46,11 @@ class ReturPenjualanController extends Controller
             'details' => 'required|array|min:1',
             'details.*.penjualan_detail_id' => 'required|exists:penjualan_details,id',
             'details.*.qty_retur' => 'required|numeric|min:0.0001',
-            'details.*.harga_barang' => 'required|numeric|min:0'
+            'details.*.harga_barang' => 'required|numeric|min:0',
+            'metode_refund' => 'required_if:jenis_retur,refund|in:kas,transfer|nullable',
+            'bank_refund_id' => 'required_if:metode_refund,transfer|exists:coas,id|nullable',
+            'nama_penerima_refund' => 'required_if:metode_refund,transfer|string|nullable',
+            'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable'
         ]);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
@@ -152,7 +156,11 @@ class ReturPenjualanController extends Controller
             'details' => 'required|array|min:1',
             'details.*.penjualan_detail_id' => 'required|exists:penjualan_details,id',
             'details.*.qty_retur' => 'required|numeric|min:0.0001',
-            'details.*.harga_barang' => 'required|numeric|min:0'
+            'details.*.harga_barang' => 'required|numeric|min:0',
+            'metode_refund' => 'required_if:jenis_retur,refund|in:kas,transfer|nullable',
+            'bank_refund_id' => 'required_if:metode_refund,transfer|exists:coas,id|nullable',
+            'nama_penerima_refund' => 'required_if:metode_refund,transfer|string|nullable',
+            'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable'
         ]);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
