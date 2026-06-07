@@ -880,14 +880,17 @@ function editBopProses(id) {
 
 // Load components for edit modal
 function loadEditComponents(bop) {
-    const editKomponenRows = document.getElementById('editKomponenRows');
+    const editKomponenBahanRows = document.getElementById('editKomponenBahanRows');
+    const editKomponenLainRows = document.getElementById('editKomponenLainRows');
     
-    if (!editKomponenRows) {
-        console.error('editKomponenRows element not found');
+    if (!editKomponenBahanRows || !editKomponenLainRows) {
+        console.error('Edit component rows elements not found');
         return;
     }
     
-    editKomponenRows.innerHTML = '';
+    // Clear both sections
+    editKomponenBahanRows.innerHTML = '';
+    editKomponenLainRows.innerHTML = '';
     
     // Load components from bop.komponen_bop if exists
     let components = [];
@@ -903,68 +906,327 @@ function loadEditComponents(bop) {
         }
     }
     
-    // If no components, create empty row
+    // Check if there are any components
     if (components.length === 0) {
-        components = [{component: '', rate_per_hour: 0, description: ''}];
+        // Add at least one empty row in Lainnya section
+        addEditLainRow();
+        return;
     }
     
-    // Add component rows
+    // Separate components into Bahan Pendukung and Lainnya
+    // Logic: if component name matches a bahan pendukung from database, it's a "bahan"
+    // Otherwise, it's "lainnya"
     components.forEach(comp => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" value="${comp.component || comp.nama_komponen || ''}" placeholder="Nama komponen"></td>
-            <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${comp.rate_per_hour || comp.rp_per_jam || 0}" placeholder="0" onchange="calculateEditBopSummary()"></td>
-            <td>
-                <select name="komponen_coa_debit[]" class="form-select form-select-sm" required>
-                    <option value="">-- Pilih --</option>
-                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
-                        <option value="{{ $coa->kode_akun }}" ${(comp.coa_debit || '1173') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
-                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                        </option>
-                    @endforeach
-                </select>
-            </td>
-            <td>
-                <select name="komponen_coa_kredit[]" class="form-select form-select-sm" required>
-                    <option value="">-- Pilih --</option>
-                    <optgroup label="BOP">
-                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
-                            <option value="{{ $coa->kode_akun }}" ${(comp.coa_kredit || '510') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
-                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                            </option>
-                        @endforeach
-                    </optgroup>
-                    <optgroup label="Beban Sewa">
-                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
-                            <option value="{{ $coa->kode_akun }}">
-                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                            </option>
-                        @endforeach
-                    </optgroup>
-                    <optgroup label="BOP Lain">
-                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
-                            <option value="{{ $coa->kode_akun }}">
-                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                            </option>
-                        @endforeach
-                    </optgroup>
-                    <optgroup label="Harga Pokok Penjualan">
-                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
-                            <option value="{{ $coa->kode_akun }}">
-                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                            </option>
-                        @endforeach
-                    </optgroup>
-                </select>
-            </td>
-            <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${comp.description || comp.keterangan || ''}" placeholder="Keterangan"></td>
-            <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditRow(this)">Hapus</button></td>
-        `;
-        editKomponenRows.appendChild(row);
+        const componentName = comp.component || comp.nama_komponen || '';
+        
+        // Check if this component matches any bahan pendukung
+        const isBahanPendukung = bahanPendukungs && bahanPendukungs.some(bahan => 
+            bahan.nama_bahan.toLowerCase() === componentName.toLowerCase()
+        );
+        
+        if (isBahanPendukung) {
+            // Add to Bahan Pendukung section
+            const bahan = bahanPendukungs.find(b => b.nama_bahan.toLowerCase() === componentName.toLowerCase());
+            addEditBahanRowWithData(comp, bahan ? bahan.id : null);
+        } else {
+            // Add to Lainnya section
+            addEditLainRowWithData(comp);
+        }
     });
+    
+    // If no rows in Lainnya, add one empty row
+    if (editKomponenLainRows.children.length === 0) {
+        addEditLainRow();
+    }
     
     // Setup listeners for edit components
     setupEditComponentListeners();
+}
+
+// Add Bahan Pendukung row with existing data for edit modal
+function addEditBahanRowWithData(comp, selectedBahanId = null) {
+    const tbody = document.getElementById('editKomponenBahanRows');
+    const newRow = document.createElement('tr');
+    
+    // Build dropdown options
+    let bahanOptions = '<option value="">-- Pilih Bahan Pendukung --</option>';
+    if (bahanPendukungs && bahanPendukungs.length > 0) {
+        bahanPendukungs.forEach(bahan => {
+            const selected = (selectedBahanId && bahan.id == selectedBahanId) ? 'selected' : '';
+            bahanOptions += `<option value="${bahan.id}" ${selected}>${bahan.nama_bahan} - Rp ${formatCurrencyInput(bahan.harga_satuan)}</option>`;
+        });
+    }
+    
+    newRow.innerHTML = `
+        <td>
+            <select name="komponen_name[]" class="form-select form-select-sm bahan-pendukung-dropdown" onchange="handleEditBahanChange(this)">
+                ${bahanOptions}
+            </select>
+        </td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${comp.rate_per_hour || comp.rate_per_produk || 0}" onchange="calculateEditBopSummary()"></td>
+        <td>
+            <select name="komponen_coa_debit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                    <option value="{{ $coa->kode_akun }}" ${(comp.coa_debit || '1173') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select name="komponen_coa_kredit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                <optgroup label="BOP">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}" ${(comp.coa_kredit || '510') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Beban Sewa">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="BOP Lain">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Harga Pokok Penjualan">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            </select>
+        </td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${comp.description || comp.keterangan || ''}" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditBahanRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+}
+
+// Add Lainnya row with existing data for edit modal
+function addEditLainRowWithData(comp) {
+    const tbody = document.getElementById('editKomponenLainRows');
+    const newRow = document.createElement('tr');
+    
+    newRow.innerHTML = `
+        <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" value="${comp.component || comp.nama_komponen || ''}" placeholder="Nama komponen"></td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="${comp.rate_per_hour || comp.rate_per_produk || 0}" placeholder="0" onchange="calculateEditBopSummary()"></td>
+        <td>
+            <select name="komponen_coa_debit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                    <option value="{{ $coa->kode_akun }}" ${(comp.coa_debit || '1173') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select name="komponen_coa_kredit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                <optgroup label="BOP">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}" ${(comp.coa_kredit || '510') === '{{ $coa->kode_akun }}' ? 'selected' : ''}>
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Beban Sewa">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="BOP Lain">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Harga Pokok Penjualan">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            </select>
+        </td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" value="${comp.description || comp.keterangan || ''}" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditLainRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+}
+
+// Add Bahan Pendukung row for edit modal (empty)
+function addEditBahanRow() {
+    const tbody = document.getElementById('editKomponenBahanRows');
+    const newRow = document.createElement('tr');
+    
+    let bahanOptions = '<option value="">-- Pilih Bahan Pendukung --</option>';
+    if (bahanPendukungs && bahanPendukungs.length > 0) {
+        bahanPendukungs.forEach(bahan => {
+            bahanOptions += `<option value="${bahan.id}">${bahan.nama_bahan} - Rp ${formatCurrencyInput(bahan.harga_satuan)}</option>`;
+        });
+    }
+    
+    newRow.innerHTML = `
+        <td>
+            <select name="komponen_name[]" class="form-select form-select-sm bahan-pendukung-dropdown" onchange="handleEditBahanChange(this)">
+                ${bahanOptions}
+            </select>
+        </td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="0" onchange="calculateEditBopSummary()"></td>
+        <td>
+            <select name="komponen_coa_debit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                    <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select name="komponen_coa_kredit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                <optgroup label="BOP">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Beban Sewa">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="BOP Lain">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Harga Pokok Penjualan">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            </select>
+        </td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditBahanRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+}
+
+// Add Lainnya row for edit modal (empty)
+function addEditLainRow() {
+    const tbody = document.getElementById('editKomponenLainRows');
+    const newRow = document.createElement('tr');
+    
+    newRow.innerHTML = `
+        <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" placeholder="Nama komponen"></td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" value="0" placeholder="0" onchange="calculateEditBopSummary()"></td>
+        <td>
+            <select name="komponen_coa_debit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                    <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select name="komponen_coa_kredit[]" class="form-select form-select-sm">
+                <option value="">-- Pilih --</option>
+                <optgroup label="BOP">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Beban Sewa">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="BOP Lain">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Harga Pokok Penjualan">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            </select>
+        </td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditLainRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+}
+
+// Handle bahan pendukung change in edit modal
+function handleEditBahanChange(selectElement) {
+    const bahanId = selectElement.value;
+    const row = selectElement.closest('tr');
+    const rateInput = row.querySelector('.komponen-rate');
+    
+    if (bahanId && bahanPendukungs && rateInput) {
+        const selectedBahan = bahanPendukungs.find(b => b.id == bahanId);
+        if (selectedBahan && selectedBahan.harga_satuan) {
+            rateInput.value = selectedBahan.harga_satuan;
+            calculateEditBopSummary();
+        }
+    }
+}
+
+// Remove bahan row in edit modal
+function removeEditBahanRow(button) {
+    button.closest('tr').remove();
+    calculateEditBopSummary();
+}
+
+// Remove lainnya row in edit modal
+function removeEditLainRow(button) {
+    const tbody = button.closest('tbody');
+    if (tbody.children.length > 1) {
+        button.closest('tr').remove();
+    }
+    calculateEditBopSummary();
 }
 
 // Add component row for edit modal
