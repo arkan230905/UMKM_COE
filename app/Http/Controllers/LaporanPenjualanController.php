@@ -7,6 +7,7 @@ use App\Models\Penjualan;
 use App\Models\ReturPenjualan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\PDF;
 
 class LaporanPenjualanController extends Controller
 {
@@ -148,7 +149,41 @@ class LaporanPenjualanController extends Controller
 
     public function exportPdf(Request $request)
     {
-        // TODO: Implement PDF export functionality
-        return response()->json(['message' => 'Export PDF functionality will be implemented']);
+        // Get filter parameters
+        $tanggalMulai = $request->get('tanggal_mulai', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $tanggalSelesai = $request->get('tanggal_selesai', Carbon::now()->format('Y-m-d'));
+        $metodePembayaran = $request->get('metode_pembayaran');
+
+        // Build query for penjualan
+        $query = Penjualan::with(['produk', 'details.produk', 'returPenjualans.detailReturPenjualans'])
+            ->where('user_id', auth()->id())
+            ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
+
+        if ($metodePembayaran) {
+            $query->where('payment_method', $metodePembayaran);
+        }
+
+        $penjualans = $query->orderBy('tanggal', 'desc')->get();
+
+        // Calculate summary data
+        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran);
+
+        // Get retur data
+        $returData = $this->getReturData($tanggalMulai, $tanggalSelesai);
+
+        // Create PDF
+        $pdf = \PDF::loadView('laporan.penjualan-pdf', compact(
+            'penjualans',
+            'summaryData',
+            'returData',
+            'tanggalMulai',
+            'tanggalSelesai',
+            'metodePembayaran'
+        ));
+
+        $pdf->setPaper('A4', 'landscape');
+
+        // Return PDF download
+        return $pdf->download('Laporan-Penjualan-' . date('Y-m-d-His') . '.pdf');
     }
 }

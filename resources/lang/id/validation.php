@@ -5,10 +5,16 @@ return [
     'string' => 'Kolom :attribute harus berupa teks.',
     'email' => 'Kolom :attribute harus berupa alamat email yang valid.',
     'max' => [
+        'numeric' => 'Kolom :attribute tidak boleh lebih dari :max.',
+        'file' => 'Kolom :attribute tidak boleh lebih dari :max kilobita.',
         'string' => 'Kolom :attribute tidak boleh lebih dari :max karakter.',
+        'array' => 'Kolom :attribute tidak boleh memiliki lebih dari :max item.',
     ],
     'min' => [
+        'numeric' => 'Kolom :attribute harus minimal :min.',
+        'file' => 'Kolom :attribute harus minimal :min kilobita.',
         'string' => 'Kolom :attribute harus minimal :min karakter.',
+        'array' => 'Kolom :attribute harus memiliki minimal :min item.',
     ],
     'confirmed' => 'Konfirmasi :attribute tidak cocok.',
     'unique' => ':attribute sudah digunakan.',
@@ -21,10 +27,9 @@ return [
     'before_or_equal' => 'Kolom :attribute harus berupa tanggal sebelum atau sama dengan :date.',
     'date' => 'Kolom :attribute harus berupa tanggal yang valid.',
     'numeric' => 'Kolom :attribute harus berupa angka.',
-    'min' => [
-        'numeric' => 'Kolom :attribute harus minimal :min.',
-        'string' => 'Kolom :attribute harus minimal :min karakter.',
-    ],
+    'mimes' => 'Kolom :attribute harus berupa file dengan tipe: :values.',
+    'image' => 'Kolom :attribute harus berupa gambar.',
+    'file' => 'Kolom :attribute harus berupa file.',
 
     'attributes' => [
         'name' => 'nama',
@@ -47,5 +52,8 @@ return [
         'harga_perolehan' => 'harga perolehan',
         'biaya_perolehan' => 'biaya perolehan',
         'keterangan' => 'keterangan',
+        'foto' => 'foto',
+        'harga_jual' => 'harga jual',
+        'hpp' => 'HPP',
     ],
 ];

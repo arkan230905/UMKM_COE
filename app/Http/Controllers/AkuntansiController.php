@@ -1087,4 +1087,103 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             }
         ]);
     }
+
+    /**
+     * Export Laporan Laba Rugi ke PDF
+     */
+    public function labaRugiExportPdf(Request $request)
+    {
+        $from = $request->get('from');
+        $to = $request->get('to');
+
+        // If no dates provided, use current month
+        if (!$from || !$to) {
+            $from = now()->startOfMonth()->format('Y-m-d');
+            $to = now()->format('Y-m-d');
+        }
+
+        // Get all COAs
+        $coas = Coa::where('user_id', auth()->id())
+            ->orderBy('kode_akun')
+            ->get();
+
+        // Calculate mutation for the period
+        $mutasi = DB::table('jurnal_umum')
+            ->select('coa_id',
+                DB::raw('SUM(debit) as total_debit'),
+                DB::raw('SUM(kredit) as total_kredit'))
+            ->where('user_id', auth()->id())
+            ->whereDate('tanggal', '>=', $from)
+            ->whereDate('tanggal', '<=', $to)
+            ->groupBy('coa_id')
+            ->get()
+            ->keyBy('coa_id');
+
+        // Build account data
+        $accountData = [];
+        foreach ($coas as $coa) {
+            $m = $mutasi[$coa->id] ?? null;
+            $debit = $m ? (float)$m->total_debit : 0;
+            $kredit = $m ? (float)$m->total_kredit : 0;
+
+            $first = substr($coa->kode_akun, 0, 1);
+            $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
+
+            $accountData[$coa->kode_akun] = [
+                'coa' => $coa,
+                'saldo_akhir' => $saldoAkhir
+            ];
+        }
+
+        // Filter revenue accounts (4xxx)
+        $revenue = $coas->filter(function($coa) use ($accountData) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '4') return false;
+            $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            return $saldo > 0;
+        })->sortBy('kode_akun');
+
+        // Get HPP account
+        $hppCoa = $coas->first(function($coa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '5') return false;
+
+            $isHpp = stripos($coa->nama_akun, 'harga pokok') !== false ||
+                     stripos($coa->nama_akun, 'hpp') !== false ||
+                     $coa->kode_akun === '56' ||
+                     $coa->kode_akun === '560';
+
+            return $isHpp;
+        });
+
+        $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
+
+        // Filter expense accounts (5xxx, 6xxx) excluding HPP
+        $expense = $coas->filter(function($coa) use ($accountData, $hppCoa) {
+            $first = substr($coa->kode_akun, 0, 1);
+            if (!in_array($first, ['5', '6'])) return false;
+
+            if ($hppCoa && $coa->id === $hppCoa->id) return false;
+
+            if (stripos($coa->nama_akun, 'harga pokok') !== false ||
+                stripos($coa->nama_akun, 'hpp') !== false) {
+                return false;
+            }
+
+            $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            return $saldo > 0;
+        })->sortBy('kode_akun');
+
+        // Generate PDF
+        $pdf = PDF::loadView('akuntansi.laba-rugi-pdf', compact(
+            'from', 'to',
+            'revenue', 'hppAmount', 'expense',
+            'coas'
+        ));
+
+        $pdf->setPaper('A4', 'portrait');
+
+        // Return PDF download
+        return $pdf->download('Laporan-Laba-Rugi-' . date('Y-m-d-His') . '.pdf');
+    }
 }

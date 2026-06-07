@@ -96,8 +96,9 @@
 
                 <div class="mb-3">
                     <label for="harga_jual" class="form-label">Harga Jual</label>
-                    <input type="text" name="harga_jual" id="harga_jual" 
-                           class="form-control" value="HPP belum ada, silakan buat HPP terlebih dahulu" readonly style="color: #6c757d; font-style: italic;">
+                    <input type="text" id="harga_jual_display" 
+                           class="form-control" value="HPP belum ada, silahkan kosongkan terlebih dahulu" readonly style="color: #6c757d; font-style: italic;">
+                    <input type="hidden" name="harga_jual" id="harga_jual" value="0">
                     <small class="form-text text-muted">Presentase keuntungan: <span id="profit_percentage">0</span>%</small>
                 </div>
 

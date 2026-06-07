@@ -288,7 +288,7 @@
         <div>
             <h2 class="mb-0" style="font-weight: 600; color: #1f2937; font-size: 1.5rem;">Laporan Penjualan</h2>
         </div>
-        <button class="btn btn-export">
+        <button class="btn btn-export" id="exportPdfBtn">
             <i class="fas fa-file-pdf me-2"></i>Export PDF
         </button>
     </div>
@@ -1119,6 +1119,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+    });
+
+    // Export PDF Handler
+    document.getElementById('exportPdfBtn').addEventListener('click', function() {
+        // Get current filter values
+        const tanggalMulai = document.querySelector('input[name="tanggal_mulai"]').value;
+        const tanggalSelesai = document.querySelector('input[name="tanggal_selesai"]').value;
+        const metodePembayaran = document.querySelector('select[name="metode_pembayaran"]').value;
+
+        // Show loading state
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating PDF...';
+
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("laporan.penjualan.export-pdf") }}';
+        form.target = '_blank';
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = '_token';
+            input.value = csrfToken.content;
+            form.appendChild(input);
+        }
+
+        // Add filter parameters
+        const addInput = (name, value) => {
+            if (value) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            }
+        };
+
+        addInput('tanggal_mulai', tanggalMulai);
+        addInput('tanggal_selesai', tanggalSelesai);
+        addInput('metode_pembayaran', metodePembayaran);
+
+        // Submit form
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        // Restore button state
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }, 2000);
     });
 });
 </script>
