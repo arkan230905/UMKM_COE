@@ -365,6 +365,9 @@
 // Store BTKL data for auto-fill functionality
 const btklData = @json($btklData);
 
+// Store Bahan Pendukung data for dropdown
+const bahanPendukungs = @json($bahanPendukungs);
+
 // Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -527,6 +530,209 @@ function removeRow(button) {
     }
 }
 
+// ============================================
+// FUNCTIONS FOR BOP PROSES WITH 2 SECTIONS
+// ============================================
+
+// Add Bahan Pendukung row (dropdown from database)
+function addBahanRow() {
+    const tbody = document.getElementById('komponenBahanRows');
+    const newRow = document.createElement('tr');
+    
+    // Build dropdown options from bahanPendukungs data
+    let bahanOptions = '<option value="">-- Pilih Bahan Pendukung --</option>';
+    if (bahanPendukungs && bahanPendukungs.length > 0) {
+        bahanPendukungs.forEach(bahan => {
+            bahanOptions += `<option value="${bahan.id}">${bahan.nama_bahan} - Rp ${formatCurrencyInput(bahan.harga_satuan)}</option>`;
+        });
+    } else {
+        bahanOptions += '<option value="" disabled>Tidak ada data bahan pendukung</option>';
+    }
+    
+    newRow.innerHTML = `
+        <td>
+            <select name="komponen_name[]" class="form-select form-select-sm bahan-pendukung-dropdown" required onchange="handleBahanChange(this)">
+                ${bahanOptions}
+            </select>
+        </td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" placeholder="0" required></td>
+        <td>
+            <select name="komponen_coa_debit[]" class="form-select form-select-sm" required>
+                <option value="">-- Pilih --</option>
+                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                    <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select name="komponen_coa_kredit[]" class="form-select form-select-sm" required>
+                <option value="">-- Pilih --</option>
+                <optgroup label="BOP">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Beban Sewa">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="BOP Lain">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Harga Pokok Penjualan">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            </select>
+        </td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeBahanRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+    
+    // Setup listener for new row
+    const rateInput = newRow.querySelector('.komponen-rate');
+    if (rateInput) {
+        rateInput.addEventListener('input', calculateBopSummary);
+        rateInput.addEventListener('change', calculateBopSummary);
+        rateInput.addEventListener('keyup', calculateBopSummary);
+    }
+    
+    // Recalculate after adding row
+    calculateBopSummary();
+}
+
+// Handle bahan pendukung dropdown change - auto-fill price
+function handleBahanChange(selectElement) {
+    const bahanId = selectElement.value;
+    const row = selectElement.closest('tr');
+    const rateInput = row.querySelector('.komponen-rate');
+    
+    if (bahanId && bahanPendukungs && rateInput) {
+        const selectedBahan = bahanPendukungs.find(b => b.id == bahanId);
+        if (selectedBahan && selectedBahan.harga_satuan) {
+            rateInput.value = selectedBahan.harga_satuan;
+            calculateBopSummary();
+        }
+    }
+}
+
+// Remove Bahan Pendukung row
+function removeBahanRow(button) {
+    const row = button.closest('tr');
+    const tbody = row.parentNode;
+    
+    // Always allow removal of bahan rows (no minimum required)
+    row.remove();
+    calculateBopSummary();
+}
+
+// Add Lainnya row (manual input like Listrik, Gas, Penyusutan)
+function addLainRow() {
+    const tbody = document.getElementById('komponenLainRows');
+    const newRow = document.createElement('tr');
+    
+    newRow.innerHTML = `
+        <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" placeholder="Nama komponen" required></td>
+        <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" placeholder="0" required></td>
+        <td>
+            <select name="komponen_coa_debit[]" class="form-select form-select-sm" required>
+                <option value="">-- Pilih --</option>
+                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                    <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                    </option>
+                @endforeach
+            </select>
+        </td>
+        <td>
+            <select name="komponen_coa_kredit[]" class="form-select form-select-sm" required>
+                <option value="">-- Pilih --</option>
+                <optgroup label="BOP">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Beban Sewa">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="BOP Lain">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+                <optgroup label="Harga Pokok Penjualan">
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}">
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </optgroup>
+            </select>
+        </td>
+        <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeLainRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+    
+    // Setup listener for new row
+    const rateInput = newRow.querySelector('.komponen-rate');
+    if (rateInput) {
+        rateInput.addEventListener('input', calculateBopSummary);
+        rateInput.addEventListener('change', calculateBopSummary);
+        rateInput.addEventListener('keyup', calculateBopSummary);
+    }
+    
+    // Recalculate after adding row
+    calculateBopSummary();
+}
+
+// Remove Lainnya row
+function removeLainRow(button) {
+    const row = button.closest('tr');
+    const tbody = row.parentNode;
+    
+    // Don't remove if it's the last row in Lainnya section
+    if (tbody.children.length > 1) {
+        row.remove();
+        calculateBopSummary();
+    } else {
+        // Clear the last row instead of removing it
+        row.querySelectorAll('input').forEach(input => {
+            if (input.type === 'number') {
+                input.value = '0';
+            } else {
+                input.value = '';
+            }
+        });
+        calculateBopSummary();
+    }
+}
+
 // Setup component rate listeners
 function setupComponentRateListeners() {
     const rateInputs = document.querySelectorAll('.komponen-rate');
@@ -571,7 +777,7 @@ function formatRupiahDisplay(value) {
 
 // Calculate BOP summary - simplified version
 function calculateBopSummary() {
-    // Calculate Total BOP per produk from components (direct sum)
+    // Calculate Total BOP per produk from ALL components (both Bahan & Lainnya sections)
     const componentRates = document.querySelectorAll('.komponen-rate');
     let totalBopPerProduk = 0;
     

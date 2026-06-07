@@ -93,6 +93,11 @@ class BopController extends Controller
                 \Log::error('Error loading BebanOperasional: ' . $bebanError->getMessage());
             }
 
+            // 🔒 SECURITY: Get bahan pendukung filtered by user_id
+            $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())
+                ->orderBy('nama_bahan')
+                ->get();
+
             return view('master-data.bop.index', compact(
                 'bopProses',
                 'prosesProduksis',
@@ -101,7 +106,8 @@ class BopController extends Controller
                 'jumlahBopLainnya',
                 'akunBeban',
                 'btklData',
-                'bebanOperasional'
+                'bebanOperasional',
+                'bahanPendukungs'
             ));
             
         } catch (\Exception $e) {
