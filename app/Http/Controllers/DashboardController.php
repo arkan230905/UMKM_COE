@@ -121,6 +121,7 @@ class DashboardController extends Controller
         // Get pembayaran beban from PembayaranBeban (same as transaksi/pembayaran-beban page)
         if (\Schema::hasTable('pembayaran_beban')) {
             $recentExpensePayments = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas', 'bebanOperasional'])
+                ->where('user_id', $user->id) // 🔒 SECURITY: Filter by user_id
                 ->latest('tanggal')
                 ->take(5)
                 ->get();
@@ -132,6 +133,7 @@ class DashboardController extends Controller
             $recentApSettlements = \DB::table('pelunasan_utangs')
                 ->join('pembelians', 'pelunasan_utangs.pembelian_id', '=', 'pembelians.id')
                 ->join('vendors', 'pembelians.vendor_id', '=', 'vendors.id')
+                ->where('pelunasan_utangs.user_id', $user->id) // 🔒 SECURITY: Filter by user_id
                 ->select('pelunasan_utangs.*', 'pembelians.nomor_faktur', 'vendors.nama_vendor')
                 ->latest('pelunasan_utangs.tanggal')
                 ->take(5)
@@ -248,11 +250,13 @@ class DashboardController extends Controller
         try {
             if (!\Schema::hasTable('coas')) { return 0; }
 
-            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
+            $user = auth()->user();
+            
+            // 🔒 SECURITY: Filter COA by user_id for multi-tenant isolation
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts($user->id);
             if ($akunKasBank->isEmpty()) { return 0; }
 
             $total = 0;
-            $user = auth()->user();
             
             foreach ($akunKasBank as $akun) {
                 $total += $this->getSaldoAkhirAkun($akun, $user->id);
@@ -626,10 +630,12 @@ return (float)$totalPiutang;
         try {
             if (!\Schema::hasTable('coas')) { return collect(); }
 
-            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
+            $user = auth()->user();
+            
+            // 🔒 SECURITY: Filter COA by user_id for multi-tenant isolation
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts($user->id);
             if ($akunKasBank->isEmpty()) { return collect(); }
 
-            $user = auth()->user();
             $details = [];
             
             foreach ($akunKasBank as $akun) {
