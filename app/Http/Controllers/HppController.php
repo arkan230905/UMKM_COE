@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Models\BiayaBahanBaku;
 use App\Models\Btkl;
 use App\Models\Bop;
+use App\Models\BopProses;
 use App\Models\Produksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,7 +126,10 @@ class HppController extends Controller
             ->with(['jabatan'])
             ->get();
 
-        $bops = Bop::where('user_id', auth()->id())
+        // Get BOP Proses (new structure with komponen_bahan_pendukung & komponen_lainnya)
+        $bops = BopProses::where('user_id', auth()->id())
+            ->where('is_active', true)
+            ->orderBy('nama_bop_proses')
             ->get();
 
         return view('hpp.create', compact(
