@@ -75,7 +75,7 @@
                 <div class="mb-3">
                     <p class="small mb-2 text-muted">Foto saat ini:</p>
                     <div class="current-image-wrapper">
-                        <img src="{{ Storage::url($produk->foto) }}" alt="Foto Produk" class="current-img">
+                        <img src="{{ asset('storage/' . $produk->foto) }}" alt="Foto Produk" class="current-img">
                     </div>
                 </div>
             @endif

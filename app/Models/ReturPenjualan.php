@@ -18,6 +18,10 @@ class ReturPenjualan extends Model
         'penjualan_id',
         'pelanggan_id',
         'jenis_retur',
+        'metode_refund',
+        'bank_refund_id',
+        'nama_penerima_refund',
+        'bank_tujuan_refund',
         'total_retur',
         'ppn',
         'status',
@@ -120,45 +124,9 @@ class ReturPenjualan extends Model
 
     private function processRefund()
     {
-        // Add stock back using StockService
-        $stockService = app(\App\Services\StockService::class);
+        // Berdasarkan aturan baru, barang retur berjenis "refund"
+        // TIDAK ditambahkan kembali ke stok produk.
         
-        foreach ($this->detailReturPenjualans as $detail) {
-            // Get product to get current cost
-            $produk = \App\Models\Produk::find($detail->produk_id);
-            $unitCost = $produk ? $produk->hpp : 0;
-            
-            // Create movement record for tracking first, so StockService skips duplicating it
-            StockMovement::create([
-                'user_id'   => $this->user_id ?? auth()->id(),
-                'item_type' => 'product',
-                'item_id'   => $detail->produk_id,
-                'tanggal'   => $this->tanggal,
-                'direction' => 'in',
-                'qty'       => $detail->qty_retur,
-                'ref_type'  => 'retur_penjualan',
-                'ref_id'    => $this->id,
-            ]);
-            
-            // Add stock back using StockService
-            $stockService->addLayerWithManualConversion(
-                'product',
-                $detail->produk_id,
-                $detail->qty_retur,
-                'pcs',
-                $unitCost,
-                'retur_penjualan',
-                $this->id,
-                $this->tanggal
-            );
-            
-            // Increment the product stock for the returned item
-            if ($produk) {
-                $produk->stok = (float)($produk->stok ?? 0) + $detail->qty_retur;
-                $produk->save();
-            }
-        }
-
         $this->status = 'lunas';
         $this->save();
     }

@@ -19,6 +19,9 @@
             </div>
             <div>
                 <button class="btn btn-primary">Terapkan</button>
+                <a href="{{ route('laba-rugi.export-pdf', ['periode' => request('periode')]) }}" class="btn btn-danger">
+                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+                </a>
             </div>
         </form>
     </div>

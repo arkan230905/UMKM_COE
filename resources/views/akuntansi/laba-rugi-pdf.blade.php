@@ -1,6 +1,60 @@
-@extends('layouts.app')
-@section('title', 'Laporan Laba Rugi')
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Laporan Laba Rugi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .laporan-container { width: 100%; max-width: 800px; margin: 0 auto; }
+        .laporan-header { text-align: center; margin-bottom: 20px; }
+        .laporan-header h2 { margin: 0; padding: 0; }
+        .laporan-header p { margin: 5px 0 0 0; color: #666; }
+        .report-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .report-table th, .report-table td { padding: 8px; border-bottom: 1px solid #ddd; }
+        .report-table th { text-align: left; }
+        .text-right { text-align: right; }
+        .font-weight-bold { font-weight: bold; }
+        .header-row { background-color: #f8f9fa; font-weight: bold; }
+        .total-row { font-weight: bold; border-top: 2px solid #333; border-bottom: 2px solid #333; }
+        .indent { padding-left: 30px !important; }
+        .text-success { color: #28a745; }
+        .text-danger { color: #dc3545; }
+        .mb-2 { margin-bottom: 10px; }
+        .mb-4 { margin-bottom: 20px; }
+        
+        /* Remove shadows and radius for PDF */
+        .card, .table-container { box-shadow: none !important; border-radius: 0 !important; border: none !important; }
+    
+@media print {
+    body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        margin: 0;
+        padding: 0;
+        background: white !important;
+    }
+    .lr {
+        background: white !important;
+        padding: 0 !important;
+    }
+    .lr-wrap {
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+    @page {
+        margin: 1cm;
+    }
+}
 
+</style>
+</head>
+<body>
+    <div class="laporan-header">
+        <h2>Laporan Laba Rugi</h2>
+        <p>Periode: {{ \Carbon\Carbon::parse($periode.'-01')->startOfMonth()->format('d M Y') }} - {{ \Carbon\Carbon::parse($periode.'-01')->endOfMonth()->format('d M Y') }}</p>
+    </div>
 @push('styles')
 <style>
 /* ── Base ── */
@@ -108,10 +162,31 @@
     .lr-page-head { flex-direction:column; }
     .lr-row .ramt, .lr-total .ramt, .lr-hpp .ramt, .lr-laba-kotor .ramt { min-width:100px; }
 }
+
+@media print {
+    body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        margin: 0;
+        padding: 0;
+        background: white !important;
+    }
+    .lr {
+        background: white !important;
+        padding: 0 !important;
+    }
+    .lr-wrap {
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+    @page {
+        margin: 1cm;
+    }
+}
+
 </style>
 @endpush
 
-@section('content')
 <div class="lr">
 <div class="lr-wrap">
 
@@ -120,20 +195,11 @@
     <div>
         <h1>Laporan Laba Rugi</h1>
         <div class="period">
-            <i class="fas fa-calendar" style="color:#AAA;"></i>
+            
             {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
         </div>
     </div>
-    <form method="GET" class="lr-filter no-print">
-        <div>
-            <label>Periode</label>
-            <input type="month" name="periode" value="{{ $periode }}">
-        </div>
-        <button type="submit" class="btn-show">Tampilkan</button>
-        <button type="button" onclick="window.print()" class="btn-show no-print" style="background-color: #dc3545; color: white; margin-left: 10px; border: none; padding: 10px 20px; border-radius: 5px; display: inline-block; cursor: pointer;">
-            <i class="fas fa-print"></i> Cetak PDF
-        </button>
-    </form>
+    
 </div>
 
 {{-- ══════════════════════════════════════════
@@ -171,7 +237,7 @@
 <div class="lr-card">
 
     <div class="sec-strip">
-        <div class="sec-icon green"><i class="fas fa-arrow-up"></i></div>
+        <div class="sec-icon green"></div>
         <span class="sec-label">Pendapatan</span>
     </div>
 
@@ -249,7 +315,7 @@
 <div class="lr-card">
 
     <div class="sec-strip">
-        <div class="sec-icon red"><i class="fas fa-arrow-down"></i></div>
+        <div class="sec-icon red"></div>
         <span class="sec-label">Biaya Operasional</span>
     </div>
 
@@ -292,28 +358,20 @@
         </div>
     </div>
     <div class="lr-hasil-footer">
-        <span><i class="fas fa-circle" style="color:#1A7A3C;font-size:7px;"></i> Pendapatan: Rp {{ number_format($totalPendapatan,0,',','.') }}</span>
-        <span><i class="fas fa-circle" style="color:#B05030;font-size:7px;"></i> HPP: Rp {{ number_format($totalHpp,0,',','.') }}</span>
-        <span><i class="fas fa-circle" style="color:#C0392B;font-size:7px;"></i> Biaya: Rp {{ number_format($totalBeban,0,',','.') }}</span>
+        <span> Pendapatan: Rp {{ number_format($totalPendapatan,0,',','.') }}</span>
+        <span> HPP: Rp {{ number_format($totalHpp,0,',','.') }}</span>
+        <span> Biaya: Rp {{ number_format($totalBeban,0,',','.') }}</span>
     </div>
 </div>
 
 </div>{{-- end lr-wrap --}}
 </div>{{-- end lr --}}
-<style>
-    @media print {
-        .no-print {
-            display: none !important;
-        }
-        body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        .lr-summary, .lr-card, .lr-hasil {
-            box-shadow: none !important;
-            border: 1px solid #ddd !important;
-        }
-    }
-</style>
 
-@endsection
+
+<script>
+    window.onload = function() {
+        window.print();
+    }
+</script>
+</body>
+</html>
