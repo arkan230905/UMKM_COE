@@ -3,6 +3,10 @@
 @section('title', 'Tambah Pembelian')
 
 @push('styles')
+<!-- FORCE RELOAD - VERSION 2.1 - <?php echo date('YmdHis'); ?> -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
 <style>
 /* Ensure dropdowns are clickable */
 select.form-select {
@@ -647,6 +651,14 @@ select.form-select {
 </div>
 
 <script>
+// ============================================
+// SCRIPT VERSION: 2.1.0 - <?php echo date('Y-m-d H:i:s'); ?>
+// ============================================
+console.clear();
+console.log('%c🚀 PEMBELIAN CREATE SCRIPT LOADED - v2.1.0', 'background: #4CAF50; color: white; padding: 5px 10px; font-size: 14px; font-weight: bold;');
+console.log('Timestamp:', '<?php echo date('Y-m-d H:i:s'); ?>');
+console.log('Hard refresh: Ctrl+Shift+R or Ctrl+F5');
+
 let rowCount = 0;
 
 // Sub satuan data from controller
@@ -873,6 +885,12 @@ function updateSubSatuanKonversi(subSatuanSelect) {
     const subSatuanTotal = row.querySelector('.sub-satuan-total');
     const jumlahSubSatuanInput = row.querySelector('.jumlah-sub-satuan');
     
+    // NULL CHECK: Return early if required elements not found
+    if (!conversionPrefix || !conversionInput || !conversionSuffix || !subSatuanPrice || !subSatuanTotal || !jumlahSubSatuanInput) {
+        console.warn('⚠️ updateSubSatuanKonversi: Required elements not found in row');
+        return;
+    }
+    
     // Get item info to show proper unit names
     const itemSelect = row.querySelector('.item-select');
     const selectedItemOption = itemSelect.options[itemSelect.selectedIndex];
@@ -1005,13 +1023,23 @@ function addItemRow() {
             itemSelect.disabled = false;
             tipeItemInput.value = 'bahan_baku';
             @foreach ($bahanBakus as $bb)
-                itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku">{{ $bb->nama_bahan }}</option>';
+                @php
+                    $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
+                    $coaKode = $coa ? $coa->kode_akun : '114';
+                    $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Baku';
+                @endphp
+                itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bb->nama_bahan }}</option>';
             @endforeach
         } else if (kategori === 'Bahan Pendukung') {
             itemSelect.disabled = false;
             tipeItemInput.value = 'bahan_pendukung';
             @foreach ($bahanPendukungs as $bp)
-                itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}" data-tipe="bahan_pendukung">{{ $bp->nama_bahan }}</option>';
+                @php
+                    $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
+                    $coaKode = $coa ? $coa->kode_akun : '115';
+                    $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung';
+                @endphp
+                itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}" data-tipe="bahan_pendukung" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bp->nama_bahan }}</option>';
             @endforeach
         }
         
@@ -1088,6 +1116,7 @@ function updateItemsBasedOnVendor(vendorSelect) {
                     $coaKode = $coa ? $coa->kode_akun : '114';
                     $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Baku';
                 @endphp
+                console.log('🔧 Adding Bahan Baku: {{ $bb->nama_bahan }} → COA: {{ $coaKode }} / {{ $coaNama }}');
                 itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bb->nama_bahan }}</option>';
             @endforeach
         } else if (kategori === 'Bahan Pendukung') {
@@ -1250,10 +1279,21 @@ function updateJournalPreview() {
                 coaKode = selectedOption.getAttribute('data-coa-kode') || '';
                 coaNama = selectedOption.getAttribute('data-coa-nama') || '';
                 
+                // DEBUG: Log what we got from attributes
+                console.log('🔍 DEBUG COA Data:', {
+                    itemName: itemName,
+                    coaKode: coaKode,
+                    coaNama: coaNama,
+                    hasDataCoa: selectedOption.hasAttribute('data-coa-kode'),
+                    dataCoaValue: selectedOption.getAttribute('data-coa-kode'),
+                    dataCoaNamaValue: selectedOption.getAttribute('data-coa-nama')
+                });
+                
                 // If no COA data found in attributes, use mapping fallback
                 if (!coaKode && itemCoaMapping[itemName]) {
                     coaKode = itemCoaMapping[itemName].kode;
                     coaNama = itemCoaMapping[itemName].nama;
+                    console.log('🔄 DEBUG: Using itemCoaMapping fallback', { coaKode, coaNama });
                 }
                 
                 // Final fallback to default COA
@@ -1265,6 +1305,9 @@ function updateJournalPreview() {
                         coaKode = '114';
                         coaNama = 'Persediaan Bahan Baku';
                     }
+                    console.log('⚠️ DEBUG: Using default fallback', { itemTipe, coaKode, coaNama });
+                    // Alert if fallback is used
+                    alert('⚠️ FALLBACK! Item "' + itemName + '" tidak punya COA spesifik, pakai default: ' + coaNama);
                 }
             }
             
@@ -1530,6 +1573,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const subSatuanConversion = row.querySelector('.sub-satuan-conversion');
         const subSatuanPrice = row.querySelector('.sub-satuan-price');
+        
+        // NULL CHECK: Return early if required elements not found
+        if (!subSatuanConversion || !subSatuanPrice) {
+            console.warn('⚠️ updateSubSatuanKonversi: Required elements not found in row');
+            return;
+        }
         
         const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
         const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
