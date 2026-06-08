@@ -61,38 +61,53 @@
         @endforeach
     </div>
 
-    {{-- Detail Bahan Baku (BBB) - SAMA DENGAN CREATE --}}
+    {{-- Detail Bahan Baku (BBB) - DENGAN INFO LENGKAP --}}
     @php
         $detailsBahanBaku = $produksi->details->where('bahan_baku_id', '!=', null);
         $totalBahanBaku = $detailsBahanBaku->sum('subtotal');
+        $qtyProduksi = $produksi->qty_produksi;
     @endphp
     <div class="card mb-3">
         <div class="card-header bg-success text-white">
             <h6 class="mb-0">Biaya Bahan Baku (BBB)</h6>
+            <small class="text-white-50">Qty Produksi: {{ number_format($qtyProduksi, 0, ',', '.') }} pcs</small>
         </div>
         <div class="card-body p-0">
             <table class="table table-sm table-bordered mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Nama Bahan</th>
-                        <th>Qty Resep</th>
+                        <th>Qty Total</th>
+                        <th>Qty Per Produk</th>
+                        <th class="text-end">Harga/Unit</th>
                         <th class="text-end">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($detailsBahanBaku as $d)
+                    @php
+                        $qtyTotal = $d->qty_resep;
+                        $qtyPerProduk = $qtyProduksi > 0 ? ($qtyTotal / $qtyProduksi) : 0;
+                    @endphp
                     <tr>
                         <td>{{ $d->bahanBaku->nama_bahan ?? '-' }}</td>
-                        <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
+                        <td>
+                            <strong>{{ rtrim(rtrim(number_format($qtyTotal,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</strong>
+                            <br><small class="text-danger">⚠️ Stok berkurang: {{ rtrim(rtrim(number_format($qtyTotal,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ rtrim(rtrim(number_format($qtyPerProduk,4,',','.'),'0'),',') }} {{ $d->satuan_resep }} / pcs</small>
+                        </td>
+                        <td class="text-end">Rp {{ number_format($d->harga_satuan,0,',','.') }}</td>
                         <td class="text-end">Rp {{ number_format($d->subtotal,0,',','.') }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="3" class="text-center text-muted">Belum ada data</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted">Belum ada data</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot class="table-light">
                     <tr>
-                        <td colspan="2" class="fw-bold">Total BBB</td>
+                        <td colspan="4" class="fw-bold">Total BBB</td>
                         <td class="text-end fw-bold">Rp {{ number_format($totalBahanBaku,0,',','.') }}</td>
                     </tr>
                 </tfoot>
