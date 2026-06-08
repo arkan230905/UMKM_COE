@@ -11,9 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             CompanySeeder::class,
-            CoaTemplateSeeder::class,
-            JasukeCoaSeeder::class, // Memastikan COA Jasuke masuk terakhir
-            CoaAyamSeeder::class,   // COA untuk usaha Ayam Crispy
+            CoaSeeder::class, // COA untuk Ayam Goreng Bundo (84 COA standar)
         ]);
     }
 }
