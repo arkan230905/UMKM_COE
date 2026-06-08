@@ -90,7 +90,7 @@ class CoaPeriodController extends Controller
         
         if ($previousPeriod) {
             $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-                ->where('period_id', $previousPeriod->id)
+                ->where('coa_period_id', $previousPeriod->id)
                 ->first();
             
             if ($previousBalance) {
@@ -166,7 +166,7 @@ class CoaPeriodController extends Controller
             ]);
 
             // Update status posting saldo
-            CoaPeriodBalance::where('period_id', $period->id)
+            CoaPeriodBalance::where('coa_period_id', $period->id)
                 ->update(['is_posted' => false]);
 
             DB::commit();

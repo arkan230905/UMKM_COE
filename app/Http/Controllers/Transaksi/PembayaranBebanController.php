@@ -324,7 +324,7 @@ class PembayaranBebanController extends Controller
         if ($periode) {
             // 2. Cek apakah ada saldo periode
             $periodBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
-                ->where('period_id', $periode->id)
+                ->where('coa_period_id', $periode->id)
                 ->first();
             
             if ($periodBalance) {
@@ -335,7 +335,7 @@ class PembayaranBebanController extends Controller
             $previousPeriod = $periode->getPreviousPeriod();
             if ($previousPeriod) {
                 $previousBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
-                    ->where('period_id', $previousPeriod->id)
+                    ->where('coa_period_id', $previousPeriod->id)
                     ->first();
                 
                 if ($previousBalance) {

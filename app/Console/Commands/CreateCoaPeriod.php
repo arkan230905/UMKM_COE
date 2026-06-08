@@ -91,7 +91,7 @@ class CreateCoaPeriod extends Command
             if ($previousPeriod) {
                 // Ambil saldo akhir periode sebelumnya
                 $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-                    ->where('period_id', $previousPeriod->id)
+                    ->where('coa_period_id', $previousPeriod->id)
                     ->first();
                 
                 if ($previousBalance) {
