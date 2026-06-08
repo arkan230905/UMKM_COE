@@ -22,8 +22,66 @@ class BahanPendukungObserver
      */
     public function created(BahanPendukung $bahanPendukung): void
     {
+        // Auto-set COA Persediaan if not set
+        if (!$bahanPendukung->coa_persediaan_id) {
+            $this->autoSetCoaPersediaan($bahanPendukung);
+        }
+        
         // Ensure initial stock movement exists for laporan stok
         $this->ensureInitialStockMovement($bahanPendukung);
+    }
+    
+    /**
+     * Auto-set coa_persediaan_id based on item name
+     */
+    private function autoSetCoaPersediaan(BahanPendukung $bahanPendukung): void
+    {
+        $coaKode = $this->getCoaKodeFromName($bahanPendukung->nama_bahan);
+        
+        // Find COA for this user
+        $coa = \App\Models\Coa::where('kode_akun', $coaKode)
+            ->where('user_id', $bahanPendukung->user_id)
+            ->first();
+        
+        if ($coa) {
+            $bahanPendukung->coa_persediaan_id = $coa->kode_akun;
+            $bahanPendukung->saveQuietly(); // Save without triggering events
+            
+            Log::info('[BahanPendukungObserver] Auto-set COA Persediaan', [
+                'bahan_pendukung_id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'coa_kode' => $coa->kode_akun,
+                'coa_nama' => $coa->nama_akun
+            ]);
+        } else {
+            Log::warning('[BahanPendukungObserver] COA not found for auto-set', [
+                'bahan_pendukung_id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'expected_coa_kode' => $coaKode,
+                'user_id' => $bahanPendukung->user_id
+            ]);
+        }
+    }
+    
+    /**
+     * Determine COA code based on item name
+     */
+    private function getCoaKodeFromName(string $nama): string
+    {
+        $nama = strtolower($nama);
+        
+        // Specific mappings
+        if (str_contains($nama, 'air')) return '1150';
+        if (str_contains($nama, 'minyak')) return '1151';
+        if (str_contains($nama, 'tepung terigu')) return '1152';
+        if (str_contains($nama, 'tepung maizena') || str_contains($nama, 'maizena')) return '1153';
+        if (str_contains($nama, 'lada')) return '1154';
+        if (str_contains($nama, 'kaldu')) return '1155';
+        if (str_contains($nama, 'bawang putih')) return '1156';
+        if (str_contains($nama, 'kemasan')) return '1157';
+        
+        // Default: Generic Persediaan Bahan Pendukung
+        return '115';
     }
     
     /**

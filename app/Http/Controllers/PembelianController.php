@@ -1063,6 +1063,9 @@ class PembelianController extends Controller
 
                 // Create journal entries for accounting integration
                 try {
+                    // CRITICAL: Load relations before creating journal
+                    $pembelian->load('details.bahanBaku', 'details.bahanPendukung');
+                    
                     \Log::info('[PembelianController] ========== CREATING JOURNAL ENTRIES ==========', [
                         'pembelian_id' => $pembelian->id,
                         'nomor_pembelian' => $pembelian->nomor_pembelian,
