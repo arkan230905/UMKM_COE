@@ -444,8 +444,7 @@
                     <select name="payment_method" class="form-select form-select-sm">
                         <option value="">Semua Metode</option>
                         <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                        <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -563,12 +562,11 @@
                                 <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                 <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                 <td>
-                                    <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                                    <span class="badge bg-success">
                                         @switch($penjualan->payment_method ?? '')
                                             @case('cash') Tunai @break
-                                            @case('transfer') Transfer @break
-                                            @case('credit') Kredit @break
-                                            @default Tidak Diketahui
+                                            @case('transfer') Transfer Bank @break
+                                            @default {{ ucfirst($penjualan->payment_method ?? '') }}
                                         @endswitch
                                     </span>
                                 </td>
@@ -814,9 +812,6 @@
                                                     case 'tukar_barang':
                                                         $jenisLabel = 'Tukar Barang';
                                                         break;
-                                                    case 'kredit':
-                                                        $jenisLabel = 'Kredit';
-                                                        break;
                                                     default:
                                                         $jenisLabel = '-';
                                                 }
@@ -975,12 +970,11 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <strong>Metode Pembayaran:</strong> 
-                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                            @switch($penjualan->payment_method ?? '')
+                        <span class="badge bg-success">
+                            @switch($penjualan->payment_method ?? 'cash')
                                 @case('cash') Tunai @break
-                                @case('transfer') Transfer @break
-                                @case('credit') Kredit @break
-                                @default Tidak Diketahui
+                                @case('transfer') Transfer Bank @break
+                                @default {{ ucfirst($penjualan->payment_method ?? '-') }}
                             @endswitch
                         </span>
                     </div>
@@ -1300,7 +1294,7 @@
                                 <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
                                 <td>
                                     <span class="badge {{ $retur->jenis_retur === 'refund' ? 'bg-danger' : ($retur->jenis_retur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
-                                        {{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : ($retur->jenis_retur === 'refund' ? 'Refund' : 'Kredit') }}
+                                        {{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : 'Refund' }}
                                     </span>
                                 </td>
                                 <td>
