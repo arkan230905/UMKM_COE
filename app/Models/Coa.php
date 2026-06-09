@@ -90,7 +90,7 @@ class Coa extends Model
      */
     public function getSaldoPeriode($periodId)
     {
-        $balance = $this->periodBalances()->where('coa_period_id', $periodId)->first();
+        $balance = $this->periodBalances()->where('period_id', $periodId)->first();
         return $balance ? $balance->saldo_awal : ($this->saldo_awal ?? 0);
     }
 

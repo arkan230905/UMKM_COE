@@ -129,7 +129,7 @@ class PostCoaPeriod extends Command
         
         if ($previousPeriod) {
             $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-                ->where('coa_period_id', $previousPeriod->id)
+                ->where('period_id', $previousPeriod->id)
                 ->first();
             
             if ($previousBalance) {

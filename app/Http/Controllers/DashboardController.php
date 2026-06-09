@@ -281,7 +281,7 @@ class DashboardController extends Controller
             // 2. Cek apakah ada saldo di CoaPeriodBalance untuk periode tersebut
             $periodBalance = \DB::table('coa_period_balances')
                 ->where('kode_akun', $akun->kode_akun)
-                ->where('coa_period_id', $periode->id)
+                ->where('period_id', $periode->id)
                 ->first();
                 
             if ($periodBalance) {
@@ -295,7 +295,7 @@ class DashboardController extends Controller
         if ($previousPeriod) {
             $previousBalance = \DB::table('coa_period_balances')
                 ->where('kode_akun', $akun->kode_akun)
-                ->where('coa_period_id', $previousPeriod->id)
+                ->where('period_id', $previousPeriod->id)
                 ->first();
                 
             if ($previousBalance) {

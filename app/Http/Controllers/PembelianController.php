@@ -343,7 +343,7 @@ class PembelianController extends Controller
         
         if ($periode) {
             // 2. Cari saldo di CoaPeriodBalance untuk periode tersebut
-            $balance = \App\Models\CoaPeriodBalance::where('coa_period_id', $periode->id)
+            $balance = \App\Models\CoaPeriodBalance::where('period_id', $periode->id)
                 ->where('kode_akun', $akun->kode_akun)
                 ->first();
                 
@@ -1063,6 +1063,9 @@ class PembelianController extends Controller
 
                 // Create journal entries for accounting integration
                 try {
+                    // CRITICAL: Load relations before creating journal
+                    $pembelian->load('details.bahanBaku', 'details.bahanPendukung');
+                    
                     \Log::info('[PembelianController] ========== CREATING JOURNAL ENTRIES ==========', [
                         'pembelian_id' => $pembelian->id,
                         'nomor_pembelian' => $pembelian->nomor_pembelian,
