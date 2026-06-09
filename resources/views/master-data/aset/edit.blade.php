@@ -667,7 +667,7 @@ function hitungPenyusutan() {
                 break;
 
             case 'saldo_menurun':
-                const rate = 2 / umur; // Double declining balance
+                const rate = 2 / umur; // Metode saldo menurun
                 penyusutanTahunan = total * rate;
                 break;
 

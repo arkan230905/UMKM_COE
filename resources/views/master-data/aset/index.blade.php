@@ -126,7 +126,7 @@
                                     $metodeLabel = [
                                         'garis_lurus'        => 'Garis Lurus',
                                         'saldo_menurun'      => 'Saldo Menurun',
-                                        'sum_of_years_digits'=> 'Sum of Years Digits',
+                                        'sum_of_years_digits'=> 'Jumlah Angka Tahun',
                                     ][$aset->metode_penyusutan] ?? ucfirst(str_replace('_',' ',$aset->metode_penyusutan ?? '-'));
                                 @endphp
                                 {{ $metodeLabel }}

@@ -1005,7 +1005,7 @@ function hitungPenyusutan() {
         document.getElementById('hasil_perhitungan_header').style.display = 'block';
         document.getElementById('hasil_perhitungan_container').style.display = 'block';
     } else if (metode === 'saldo_menurun') {
-        // Metode saldo menurun (double declining balance)
+        // Metode saldo menurun
         // Gunakan tarif standar: 2 / umur manfaat
         const rate = 2 / umur;
         
