@@ -4,383 +4,330 @@
     <meta charset="UTF-8">
     <title>Laporan Penjualan</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Calibri', 'Arial', sans-serif;
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
             font-size: 11px;
             line-height: 1.5;
-            color: #2c3e50;
-            background-color: #f8f9fa;
-        }
-        .page {
+            color: #333;
             background-color: white;
-            margin: 10px;
-            padding: 25px;
-            page-break-after: always;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
         }
         
         /* Header Styling */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            background: linear-gradient(135deg, #8B7355 0%, #6a5844 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(139, 115, 85, 0.2);
+        .header-container {
+            width: 100%;
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header-container table {
+            width: 100%;
+            border: none;
+            margin: 0;
+        }
+        .header-container td {
+            border: none;
+            padding: 0;
+        }
+        .company-info {
+            text-align: left;
+        }
+        .report-info {
+            text-align: right;
         }
         .company-name {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
-            margin-bottom: 5px;
-            letter-spacing: 1px;
+            color: #1e3a8a;
+            text-transform: uppercase;
+        }
+        .company-address {
+            font-size: 10px;
+            color: #555;
+            margin-top: 5px;
         }
         .report-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            border-bottom: 2px solid rgba(255,255,255,0.5);
-            padding-bottom: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase;
+            margin-bottom: 5px;
         }
         .report-period {
             font-size: 11px;
-            opacity: 0.95;
-            margin: 3px 0;
+            color: #666;
         }
         
-        /* Summary Section - Cards Style */
-        .summary-section {
-            margin-bottom: 25px;
-        }
-        .summary-header {
-            font-size: 13px;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 3px solid #8B7355;
-            display: inline-block;
-        }
-        .summary-grid {
-            display: table;
+        /* Summary Section */
+        .summary-box {
             width: 100%;
-            margin-bottom: 12px;
-            table-layout: fixed;
-        }
-        .summary-item {
-            display: table-cell;
-            width: 33.33%;
-            padding: 12px;
-            border-left: 4px solid #8B7355;
-            background-color: #f8f9fa;
-            margin-right: 10px;
+            margin-bottom: 25px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
-        .summary-item:nth-child(2) {
-            border-left-color: #3b82f6;
+        .summary-box table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
         }
-        .summary-item:nth-child(3) {
-            border-left-color: #10b981;
+        .summary-box th, .summary-box td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
         }
-        .summary-label {
-            font-size: 9px;
-            color: #6b7280;
-            margin-bottom: 5px;
-            font-weight: 600;
+        .summary-box th {
+            background-color: #f8f9fa;
+            font-size: 10px;
+            color: #555;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-        .summary-value {
+        .summary-box td {
             font-size: 14px;
             font-weight: bold;
-            color: #1f2937;
+            color: #1e3a8a;
         }
+        .val-danger { color: #dc2626 !important; }
+        .val-success { color: #16a34a !important; }
         
         /* Section Title */
         .section-title {
             font-size: 13px;
             font-weight: bold;
-            color: white;
-            background-color: #8B7355;
-            margin-bottom: 12px;
-            margin-top: 18px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            display: inline-block;
+            color: #1e3a8a;
+            border-bottom: 1px solid #1e3a8a;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            margin-top: 20px;
+            text-transform: uppercase;
         }
         
         /* Tables */
-        table {
+        .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-        table.summary-table {
-            margin-top: 10px;
+        .data-table th, .data-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px;
+            font-size: 10px;
         }
-        th {
-            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+        .data-table th {
+            background-color: #1e3a8a;
             color: white;
-            border: 1px solid #d1d5db;
-            padding: 10px;
-            text-align: left;
-            font-weight: 700;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        td {
-            border: 1px solid #e5e7eb;
-            padding: 9px;
-            font-size: 10px;
-        }
-        tbody tr {
-            transition: background-color 0.2s;
-        }
-        tbody tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
-        tbody tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        tbody tr:hover {
-            background-color: #f3f4f6;
-        }
-        .text-right {
-            text-align: right;
-        }
-        .text-center {
             text-align: center;
-        }
-        .bold {
             font-weight: bold;
+            text-transform: uppercase;
         }
+        .data-table tbody tr:nth-child(even) { background-color: #f8fafc; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
         .total-row {
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            background-color: #e2e8f0;
             font-weight: bold;
-            border-top: 2px solid #8B7355;
         }
         .total-row td {
-            padding: 12px 9px;
-            border-color: #8B7355;
+            border-top: 2px solid #94a3b8;
         }
         
         /* Badges */
         .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
             font-size: 9px;
-            font-weight: 700;
+            font-weight: bold;
+            color: white;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
         }
-        .badge-cash {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-        .badge-transfer {
-            background-color: #dbeafe;
-            color: #1e40af;
-        }
-        .badge-credit {
-            background-color: #fecaca;
-            color: #7f1d1d;
-        }
+        .bg-cash { background-color: #16a34a; }
+        .bg-transfer { background-color: #2563eb; }
+        .bg-credit { background-color: #dc2626; }
+        .bg-default { background-color: #64748b; }
         
         /* Footer */
         .footer {
             margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #e5e7eb;
+            padding-top: 10px;
+            border-top: 1px dashed #ccc;
             text-align: center;
             font-size: 9px;
-            color: #9ca3af;
+            color: #666;
         }
-        .footer-line {
-            margin: 3px 0;
-        }
-        
-        .color-success { color: #10b981; font-weight: bold; }
-        .color-danger { color: #ef4444; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="page">
-        <!-- Header -->
-        <div class="header">
-            <div class="company-name">📊 UMKM COE</div>
-            <div class="report-title">LAPORAN PENJUALAN</div>
-            <div class="report-period">
-                Periode: {{ \Carbon\Carbon::parse($tanggalMulai)->format('d M Y') }} - {{ \Carbon\Carbon::parse($tanggalSelesai)->format('d M Y') }}
-            </div>
-            @if($metodePembayaran)
-                <div class="report-period">
-                    Metode: 
-                    @switch($metodePembayaran)
-                        @case('cash') 💵 Tunai @break
-                        @case('transfer') 🏦 Transfer @break
-                        @case('credit') 📝 Kredit @break
-                    @endswitch
-                </div>
-            @endif
-        </div>
+    @php
+        $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
+        $namaPerusahaan = $perusahaan ? $perusahaan->nama : 'UMKM COE';
+        $alamatPerusahaan = $perusahaan ? $perusahaan->alamat : 'Sistem Informasi Manufaktur';
+        $teleponPerusahaan = $perusahaan ? $perusahaan->telepon : '';
+    @endphp
 
-        <!-- Summary Section -->
-        <div class="summary-section">
-            <div class="section-title">📈 RINGKASAN PENJUALAN</div>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-label">💰 Total Penjualan Produk</div>
-                    <div class="summary-value">Rp {{ number_format($summaryData['total_penjualan_produk'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">🚚 Total Ongkir</div>
-                    <div class="summary-value">Rp {{ number_format($summaryData['total_ongkir'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">📌 Total PPN (11%)</div>
-                    <div class="summary-value">Rp {{ number_format($summaryData['total_ppn'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-            </div>
-
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-label">💹 Total Pendapatan Kotor</div>
-                    <div class="summary-value">Rp {{ number_format($summaryData['total_pendapatan_kotor'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">🏷️ Total Diskon</div>
-                    <div class="summary-value color-danger">Rp {{ number_format($summaryData['total_diskon'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">✅ Total Pendapatan Bersih</div>
-                    <div class="summary-value color-success">Rp {{ number_format($summaryData['total_pendapatan_bersih'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Detail Transaksi -->
-        <div class="section-title">🛒 DETAIL TRANSAKSI PENJUALAN</div>
+    <!-- Header -->
+    <div class="header-container">
         <table>
-            <thead>
-                <tr>
-                    <th width="4%">No</th>
-                    <th width="11%">No. Transaksi</th>
-                    <th width="10%">Tanggal</th>
-                    <th width="10%">Pembayaran</th>
-                    <th width="28%">Produk</th>
-                    <th width="7%" class="text-right">Qty</th>
-                    <th width="12%" class="text-right">Harga/Satuan</th>
-                    <th width="14%" class="text-right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($penjualans as $key => $penjualan)
-                    <tr>
-                        <td class="text-center">{{ $key + 1 }}</td>
-                        <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
-                        <td>{{ optional($penjualan->tanggal)->format('d-m-Y') ?? '-' }}</td>
-                        <td class="text-center">
-                            @switch($penjualan->payment_method ?? '')
-                                @case('cash')
-                                    <span class="badge badge-cash">Tunai</span>
-                                    @break
-                                @case('transfer')
-                                    <span class="badge badge-transfer">Transfer</span>
-                                    @break
-                                @case('credit')
-                                    <span class="badge badge-credit">Kredit</span>
-                                    @break
-                                @default
-                                    <span class="badge" style="background: #f3f4f6; color: #6b7280;">Lainnya</span>
-                            @endswitch
-                        </td>
-                        <td>
-                            @php $detailCount = $penjualan->details->count(); @endphp
-                            @if($detailCount > 1)
-                                @foreach($penjualan->details as $d)
-                                    <div style="margin-bottom: 3px;">{{ $d->produk->nama_produk ?? '-' }}</div>
-                                @endforeach
-                            @elseif($detailCount === 1)
-                                {{ $penjualan->details[0]->produk->nama_produk ?? '-' }}
-                            @else
-                                {{ $penjualan->produk?->nama_produk ?? '-' }}
-                            @endif
-                        </td>
-                        <td class="text-right">
-                            @php $detailCount = $penjualan->details->count(); @endphp
-                            @if($detailCount > 1)
-                                <strong>{{ $penjualan->details->sum('jumlah') }}</strong>
-                            @elseif($detailCount === 1)
-                                {{ $penjualan->details[0]->jumlah ?? 0 }}
-                            @else
-                                {{ $penjualan->jumlah ?? 0 }}
-                            @endif
-                        </td>
-                        <td class="text-right">
-                            @php $detailCount = $penjualan->details->count(); @endphp
-                            @if($detailCount > 1)
-                                @php $avgHarga = $penjualan->details->count() > 0 ? round($penjualan->details->sum(function($d) { return $d->harga_satuan * $d->jumlah; }) / $penjualan->details->sum('jumlah')) : 0; @endphp
-                                Rp {{ number_format($avgHarga, 0, ',', '.') }}
-                            @elseif($detailCount === 1)
-                                Rp {{ number_format($penjualan->details[0]->harga_satuan ?? 0, 0, ',', '.') }}
-                            @else
-                                @php
-                                    $hdrHarga = $penjualan->harga_satuan;
-                                    if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                        $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                    }
-                                @endphp
-                                Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
-                            @endif
-                        </td>
-                        <td class="text-right bold">
-                            Rp {{ number_format($penjualan->total ?? 0, 0, ',', '.') }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="text-center" style="padding: 20px; color: #9ca3af;">📭 Tidak ada data transaksi penjualan</td>
-                    </tr>
-                @endforelse
-                <tr class="total-row">
-                    <td colspan="7" class="text-right">📊 TOTAL PENJUALAN BERSIH</td>
-                    <td class="text-right" style="color: #10b981;">Rp {{ number_format($summaryData['total_pendapatan_bersih'] ?? 0, 0, ',', '.') }}</td>
-                </tr>
-            </tbody>
+            <tr>
+                <td class="company-info" width="60%">
+                    <div class="company-name">{{ strtoupper($namaPerusahaan) }}</div>
+                    <div class="company-address">
+                        {{ $alamatPerusahaan }}<br>
+                        @if($teleponPerusahaan) Telp: {{ $teleponPerusahaan }} @endif
+                    </div>
+                </td>
+                <td class="report-info" width="40%">
+                    <div class="report-title">Laporan Penjualan</div>
+                    <div class="report-period">
+                        Periode: {{ \Carbon\Carbon::parse($tanggalMulai)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($tanggalSelesai)->format('d/m/Y') }}
+                    </div>
+                    @if($metodePembayaran)
+                        <div class="report-period">
+                            Metode: {{ strtoupper($metodePembayaran) }}
+                        </div>
+                    @endif
+                </td>
+            </tr>
         </table>
+    </div>
 
-        <!-- Retur Section if data exists -->
-        @if($returData['total_retur'] > 0)
-            <div class="section-title">↩️ RINGKASAN RETUR PENJUALAN</div>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-label">Total Retur</div>
-                    <div class="summary-value">{{ $returData['total_retur'] }} transaksi</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Total Nilai Retur</div>
-                    <div class="summary-value color-danger">Rp {{ number_format($returData['total_nilai_retur'] ?? 0, 0, ',', '.') }}</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Refund vs Tukar Barang</div>
-                    <div class="summary-value">{{ $returData['total_refund'] }} | {{ $returData['total_tukar_barang'] }}</div>
-                </div>
-            </div>
-        @endif
+    <!-- Summary Section -->
+    <div class="section-title">Ringkasan Keuangan</div>
+    <div class="summary-box">
+        <table>
+            <tr>
+                <th>Penjualan Produk</th>
+                <th>Total Ongkir</th>
+                <th>PPN (11%)</th>
+                <th>Total Diskon</th>
+                <th>Pendapatan Bersih</th>
+            </tr>
+            <tr>
+                <td>Rp {{ number_format($summaryData['total_penjualan_produk'] ?? 0, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format($summaryData['total_ongkir'] ?? 0, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format($summaryData['total_ppn'] ?? 0, 0, ',', '.') }}</td>
+                <td class="val-danger">-Rp {{ number_format($summaryData['total_diskon'] ?? 0, 0, ',', '.') }}</td>
+                <td class="val-success">Rp {{ number_format($summaryData['total_pendapatan_bersih'] ?? 0, 0, ',', '.') }}</td>
+            </tr>
+        </table>
+    </div>
 
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-line">Dicetak pada: {{ now()->format('d M Y H:i:s') }}</div>
-            <div class="footer-line" style="margin-top: 8px;">© 2024 UMKM COE - Sistem Informasi Manufaktur</div>
+    <!-- Detail Transaksi -->
+    <div class="section-title">Detail Transaksi Penjualan</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th width="4%">No</th>
+                <th width="12%">No. Transaksi</th>
+                <th width="10%">Tanggal</th>
+                <th width="10%">Pembayaran</th>
+                <th width="28%">Produk</th>
+                <th width="8%">Qty</th>
+                <th width="14%">Harga/Satuan</th>
+                <th width="14%">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($penjualans as $key => $penjualan)
+                <tr>
+                    <td class="text-center">{{ $key + 1 }}</td>
+                    <td class="text-center"><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
+                    <td class="text-center">{{ optional($penjualan->tanggal)->format('d/m/Y') ?? '-' }}</td>
+                    <td class="text-center">
+                        @switch($penjualan->payment_method ?? '')
+                            @case('cash')
+                                <span class="badge bg-cash">TUNAI</span>
+                                @break
+                            @case('transfer')
+                                <span class="badge bg-transfer">TRANSFER</span>
+                                @break
+                            @case('credit')
+                                <span class="badge bg-credit">KREDIT</span>
+                                @break
+                            @default
+                                <span class="badge bg-default">LAINNYA</span>
+                        @endswitch
+                    </td>
+                    <td>
+                        @php $detailCount = $penjualan->details->count(); @endphp
+                        @if($detailCount > 1)
+                            @foreach($penjualan->details as $d)
+                                <div style="margin-bottom: 2px;">• {{ $d->produk->nama_produk ?? '-' }}</div>
+                            @endforeach
+                        @elseif($detailCount === 1)
+                            {{ $penjualan->details[0]->produk->nama_produk ?? '-' }}
+                        @else
+                            {{ $penjualan->produk?->nama_produk ?? '-' }}
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        @if($detailCount > 1)
+                            <strong>{{ rtrim(rtrim(number_format($penjualan->details->sum('jumlah'), 2, ',', '.'), '0'), ',') }}</strong>
+                        @elseif($detailCount === 1)
+                            {{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah ?? 0, 2, ',', '.'), '0'), ',') }}
+                        @else
+                            {{ rtrim(rtrim(number_format($penjualan->jumlah ?? 0, 2, ',', '.'), '0'), ',') }}
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        @if($detailCount > 1)
+                            @php $avgHarga = $penjualan->details->count() > 0 ? round($penjualan->details->sum(function($d) { return $d->harga_satuan * $d->jumlah; }) / $penjualan->details->sum('jumlah')) : 0; @endphp
+                            Rp {{ number_format($avgHarga, 0, ',', '.') }}
+                        @elseif($detailCount === 1)
+                            Rp {{ number_format($penjualan->details[0]->harga_satuan ?? 0, 0, ',', '.') }}
+                        @else
+                            @php
+                                $hdrHarga = $penjualan->harga_satuan;
+                                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                }
+                            @endphp
+                            Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        <strong>Rp {{ number_format($penjualan->total ?? 0, 0, ',', '.') }}</strong>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 20px; color: #666;">
+                        <em>Tidak ada data transaksi penjualan pada periode ini.</em>
+                    </td>
+                </tr>
+            @endforelse
+            <tr class="total-row">
+                <td colspan="7" class="text-right">TOTAL PENJUALAN BERSIH</td>
+                <td class="text-right val-success">Rp {{ number_format($summaryData['total_pendapatan_bersih'] ?? 0, 0, ',', '.') }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Retur Section if data exists -->
+    @if(($returData['total_retur'] ?? 0) > 0)
+        <div class="section-title">Ringkasan Retur Penjualan</div>
+        <div class="summary-box">
+            <table>
+                <tr>
+                    <th>Total Transaksi Retur</th>
+                    <th>Refund</th>
+                    <th>Tukar Barang</th>
+                    <th>Total Nilai Retur</th>
+                </tr>
+                <tr>
+                    <td>{{ $returData['total_retur'] }}</td>
+                    <td>{{ $returData['total_refund'] }}</td>
+                    <td>{{ $returData['total_tukar_barang'] }}</td>
+                    <td class="val-danger">Rp {{ number_format($returData['total_nilai_retur'] ?? 0, 0, ',', '.') }}</td>
+                </tr>
+            </table>
         </div>
+    @endif
+
+    <!-- Footer -->
+    <div class="footer">
+        Dicetak oleh: {{ auth()->user()->name ?? 'Administrator' }} | 
+        Tanggal Cetak: {{ now()->format('d/m/Y H:i:s') }}<br>
+        Dokumen ini dibuat otomatis oleh Sistem Informasi UMKM COE.
     </div>
 </body>
 </html>

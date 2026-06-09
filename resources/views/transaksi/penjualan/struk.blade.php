@@ -281,7 +281,6 @@
         <!-- Footer -->
         <div class="footer">
             <div>Terima kasih atas kunjungan Anda!</div>
-            <div>Barang yang sudah dibeli tidak bisa dikembalikan</div>
         </div>
     </div>
 

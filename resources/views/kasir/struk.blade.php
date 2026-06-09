@@ -72,7 +72,6 @@
 
                     <div class="text-center">
                         <p class="mb-1">Terima kasih atas kunjungan Anda!</p>
-                        <small class="text-muted">Barang yang sudah dibeli tidak dapat dikembalikan</small>
                     </div>
                 </div>
 
