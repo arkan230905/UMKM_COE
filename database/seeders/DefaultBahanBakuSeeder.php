@@ -14,6 +14,12 @@ class DefaultBahanBakuSeeder extends Seeder
      */
     public function run(int $userId): void
     {
+        // Check if already seeded for this user
+        if (BahanBaku::where('user_id', $userId)->exists()) {
+            \Log::info("Bahan baku already seeded for user {$userId}, skipping");
+            return;
+        }
+
         // Get satuan IDs for this user
         $ekor = Satuan::where('nama', 'Ekor')->where('user_id', $userId)->first();
         

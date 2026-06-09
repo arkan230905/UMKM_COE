@@ -14,6 +14,12 @@ class DefaultBahanPendukungSeeder extends Seeder
      */
     public function run(int $userId): void
     {
+        // Check if already seeded for this user
+        if (BahanPendukung::where('user_id', $userId)->exists()) {
+            \Log::info("Bahan pendukung already seeded for user {$userId}, skipping");
+            return;
+        }
+
         // Get satuan IDs for this user
         $liter = Satuan::where('nama', 'Liter')->where('user_id', $userId)->first();
         $kg = Satuan::where('nama', 'Kilogram')->where('user_id', $userId)->first();
