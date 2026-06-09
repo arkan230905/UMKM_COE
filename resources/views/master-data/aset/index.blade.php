@@ -168,20 +168,16 @@
                                     
                                     <!-- Row 2: Posting | Hapus -->
                                     @if(isset($aset->is_posted_this_month) && $aset->is_posted_this_month)
-                                        <button class="btn btn-sm btn-success" disabled title="Sudah Posted">
-                                            <i class="fas fa-check me-1"></i>Posted
-                                        </button>
-                                    @elseif(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0 && $aset->expense_coa_id && $aset->accum_depr_coa_id)
-                                        <button type="button" class="btn btn-sm btn-outline-info post-depreciation-btn"
-                                            data-aset-id="{{ $aset->id }}"
-                                            data-aset-name="{{ $aset->nama_aset }}"
-                                            data-amount="{{ number_format($aset->monthly_depreciation, 0, ',', '.') }}"
-                                            title="Posting Penyusutan">
-                                            <i class="fas fa-file-invoice me-1"></i>Posting
+                                        <button class="btn btn-sm btn-success" disabled title="Sudah Posted Bulan Ini">
+                                            <i class="fas fa-check-circle me-1"></i>Posted
                                         </button>
                                     @else
-                                        <button class="btn btn-sm btn-outline-secondary" disabled title="Tidak tersedia">
-                                            <i class="fas fa-minus me-1"></i>N/A
+                                        <button type="button" class="btn btn-sm btn-success post-depreciation-btn"
+                                            data-aset-id="{{ $aset->id }}"
+                                            data-aset-name="{{ $aset->nama_aset }}"
+                                            data-amount="{{ number_format($aset->monthly_depreciation ?? 0, 0, ',', '.') }}"
+                                            title="Klik untuk Posting Penyusutan">
+                                            <i class="fas fa-file-invoice me-1"></i>Posting
                                         </button>
                                     @endif
                                     
