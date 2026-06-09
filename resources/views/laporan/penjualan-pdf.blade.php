@@ -285,7 +285,21 @@
                         @endif
                     </td>
                     <td class="text-right">
-                        <strong>Rp {{ number_format($penjualan->total ?? 0, 0, ',', '.') }}</strong>
+                        <div style="font-size: 9px; color: #555; text-align: right; margin-bottom: 3px; line-height: 1.3;">
+                            Subtotal: Rp {{ number_format($penjualan->total ?? 0, 0, ',', '.') }}<br>
+                            @if(($penjualan->biaya_ppn ?? 0) > 0)
+                                PPN: Rp {{ number_format($penjualan->biaya_ppn, 0, ',', '.') }}<br>
+                            @endif
+                            @if(($penjualan->biaya_ongkir ?? 0) > 0)
+                                Ongkir: Rp {{ number_format($penjualan->biaya_ongkir, 0, ',', '.') }}<br>
+                            @endif
+                            @if(($penjualan->diskon_nominal ?? 0) > 0)
+                                Diskon: -Rp {{ number_format($penjualan->diskon_nominal, 0, ',', '.') }}<br>
+                            @endif
+                        </div>
+                        <div style="border-top: 1px dashed #ccc; padding-top: 3px; font-weight: bold; color: #1e3a8a;">
+                            Rp {{ number_format(($penjualan->grand_total ?? ($penjualan->total + ($penjualan->biaya_ppn ?? 0) + ($penjualan->biaya_ongkir ?? 0) - ($penjualan->diskon_nominal ?? 0))), 0, ',', '.') }}
+                        </div>
                     </td>
                 </tr>
             @empty
@@ -321,6 +335,48 @@
                 </tr>
             </table>
         </div>
+
+        <div class="section-title" style="margin-top: 15px;">Detail Transaksi Retur</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="5%">No</th>
+                    <th width="15%">No. Retur</th>
+                    <th width="15%">No. Penjualan</th>
+                    <th width="12%">Tanggal</th>
+                    <th width="13%">Jenis</th>
+                    <th width="25%">Alasan</th>
+                    <th width="15%">Nilai Retur</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($returData['retur_list'] ?? [] as $key => $retur)
+                    <tr>
+                        <td class="text-center">{{ $key + 1 }}</td>
+                        <td class="text-center"><strong>{{ $retur->nomor_retur ?? '-' }}</strong></td>
+                        <td class="text-center">{{ $retur->penjualan->nomor_penjualan ?? '-' }}</td>
+                        <td class="text-center">{{ optional($retur->tanggal)->format('d/m/Y') ?? '-' }}</td>
+                        <td class="text-center">
+                            @if($retur->jenis_retur == 'refund')
+                                <span class="badge bg-credit">REFUND</span>
+                            @else
+                                <span class="badge bg-transfer">TUKAR BARANG</span>
+                            @endif
+                        </td>
+                        <td>{{ $retur->alasan ?? '-' }}</td>
+                        <td class="text-right val-danger">
+                            <strong>Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</strong>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center" style="padding: 15px; color: #666;">
+                            <em>Data detail retur tidak ditemukan.</em>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     @endif
 
     <!-- Footer -->

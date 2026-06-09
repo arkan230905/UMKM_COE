@@ -341,7 +341,7 @@ class PenjualanController extends Controller
         $request->validate([
             'tanggal' => 'required|date',
             'waktu' => 'required',
-            'payment_method' => 'required|in:cash,transfer,credit',
+            'payment_method' => 'required|in:cash,transfer',
             'sumber_dana' => 'required',
             'produk_id.*' => 'required',
             'jumlah.*' => 'required|integer|min:1',

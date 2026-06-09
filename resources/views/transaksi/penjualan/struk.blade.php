@@ -229,7 +229,6 @@
 
                 $paymentLabel = match($penjualan->payment_method ?? 'cash') {
                     'transfer' => 'Transfer Bank',
-                    'credit'   => 'Kredit',
                     default    => 'Tunai',
                 };
             @endphp

@@ -304,8 +304,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
     {
         $from = $request->get('from');
         $to = $request->get('to');
+        $accountCode = $request->get('account_code');
         
-        $export = new \App\Exports\BukuBesarExport($from, $to);
+        $export = new \App\Exports\BukuBesarExport($from, $to, $accountCode);
         return $export->download('buku-besar-'.date('Y-m-d').'.csv');
     }
 
@@ -406,6 +407,84 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         }
 
         return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
+    }
+
+    public function bukuBesarExportPdf(Request $request)
+    {
+        $month = $request->get('month');
+        $year = $request->get('year');
+        $accountCode = $request->get('account_code');
+
+        if (!$accountCode) {
+            return redirect()->back()->with('error', 'Silakan pilih akun terlebih dahulu');
+        }
+
+        $coa = \App\Models\Coa::where('kode_akun', $accountCode)
+                ->where('user_id', auth()->id())
+                ->first();
+
+        if (!$coa) {
+            return redirect()->back()->with('error', 'Akun tidak ditemukan');
+        }
+
+        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
+        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
+        
+        if (in_array($accountCode, $bahanBakuCoas) || in_array($accountCode, $bahanPendukungCoas)) {
+            $saldoAwal = $this->getInventorySaldoAwal($accountCode);
+        } else {
+            $saldoAwal = (float)($coa->saldo_awal ?? 0);
+        }
+
+        $query = \DB::table('jurnal_umum as ju')
+            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+            ->where('ju.user_id', auth()->id())
+            ->where('coas.kode_akun', $accountCode)
+            ->select([
+                'ju.*',
+                'coas.kode_akun',
+                'coas.nama_akun',
+                'coas.tipe_akun'
+            ])
+            ->where(function($q) {
+                $q->where('ju.debit', '>', 0)
+                  ->orWhere('ju.kredit', '>', 0);
+            })
+            ->orderBy('ju.tanggal','asc')
+            ->orderBy('ju.id','asc');
+        
+        if ($month && $year) {
+            $query->whereMonth('ju.tanggal', $month)
+                   ->whereYear('ju.tanggal', $year);
+        }
+
+        $journalLines = $query->get();
+
+        $lines = collect();
+        foreach ($journalLines as $line) {
+            $lines->push((object) [
+                'id' => $line->id,
+                'tanggal' => $line->tanggal,
+                'keterangan' => $line->keterangan,
+                'debit' => $line->debit,
+                'kredit' => $line->kredit,
+                'kode_akun' => $line->kode_akun,
+                'nama_akun' => $line->nama_akun,
+                'tipe_akun' => $line->tipe_akun
+            ]);
+        }
+
+        $totalDebit = $journalLines->sum('debit');
+        $totalKredit = $journalLines->sum('kredit');
+        $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+
+        $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
+
+        $pdf = Pdf::loadView('akuntansi.buku-besar-pdf', compact(
+            'coa', 'lines', 'saldoAwal', 'month', 'year', 'totalDebit', 'totalKredit', 'saldoAkhir', 'perusahaan'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->download('buku-besar-'.$accountCode.'-'.date('YmdHis').'.pdf');
     }
 
     private function getInventorySaldoAwal($kodeAkun)
@@ -1116,9 +1195,15 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
     {
         $from = $request->get('from');
         $to = $request->get('to');
+        $periode = $request->get('periode');
 
-        // If no dates provided, use current month
-        if (!$from || !$to) {
+        if ($periode) {
+            $tahun = substr($periode, 0, 4);
+            $bulan = substr($periode, 5, 2);
+            $from  = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+            $to    = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+        } elseif (!$from || !$to) {
+            // If no dates provided, use current month
             $from = now()->startOfMonth()->format('Y-m-d');
             $to = now()->format('Y-m-d');
         }
@@ -1178,6 +1263,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         });
 
         $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
+        $hppAccounts = $hppCoa ? collect([$hppCoa]) : collect([]);
 
         // Filter expense accounts (5xxx, 6xxx) excluding HPP
         $expense = $coas->filter(function($coa) use ($accountData, $hppCoa) {
@@ -1198,8 +1284,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         // Generate PDF
         $pdf = PDF::loadView('akuntansi.laba-rugi-pdf', compact(
             'from', 'to',
-            'revenue', 'hppAmount', 'expense',
-            'coas'
+            'revenue', 'hppAmount', 'hppAccounts', 'expense',
+            'coas', 'accountData'
         ));
 
         $pdf->setPaper('A4', 'portrait');

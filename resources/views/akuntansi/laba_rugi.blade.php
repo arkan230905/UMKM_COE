@@ -130,9 +130,9 @@
             <input type="month" name="periode" value="{{ $periode }}">
         </div>
         <button type="submit" class="btn-show">Tampilkan</button>
-        <button type="button" onclick="window.print()" class="btn-show no-print" style="background-color: #dc3545; color: white; margin-left: 10px; border: none; padding: 10px 20px; border-radius: 5px; display: inline-block; cursor: pointer;">
-            <i class="fas fa-print"></i> Cetak PDF
-        </button>
+        <a href="{{ route('akuntansi.laba-rugi.export-pdf', ['periode' => $periode]) }}" class="btn-show no-print" style="background-color: #dc3545; color: white; margin-left: 10px; border: none; padding: 10px 20px; border-radius: 5px; display: inline-flex; align-items: center; text-decoration: none;">
+            <i class="fas fa-print" style="margin-right: 5px;"></i> Cetak PDF
+        </a>
     </form>
 </div>
 

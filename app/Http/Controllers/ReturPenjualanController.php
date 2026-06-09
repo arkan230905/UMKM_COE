@@ -32,7 +32,9 @@ class ReturPenjualanController extends Controller
             $jenisReturOptions['kredit'] = 'Kredit';
         }
 
-        return view('transaksi.retur-penjualan.detail-retur', compact('penjualan', 'pelanggans', 'jenisReturOptions'));
+        $kasBankCoas = \App\Helpers\AccountHelper::getKasBankAccounts(auth()->id());
+
+        return view('transaksi.retur-penjualan.detail-retur', compact('penjualan', 'pelanggans', 'jenisReturOptions', 'kasBankCoas'));
     }
 
     public function store(Request $request)
@@ -132,7 +134,9 @@ class ReturPenjualanController extends Controller
             $jenisReturOptions['kredit'] = 'Kredit';
         }
 
-        return view('transaksi.retur-penjualan.edit', compact('returPenjualan', 'penjualans', 'pelanggans', 'jenisReturOptions'));
+        $kasBankCoas = \App\Helpers\AccountHelper::getKasBankAccounts(auth()->id());
+
+        return view('transaksi.retur-penjualan.edit', compact('returPenjualan', 'penjualans', 'pelanggans', 'jenisReturOptions', 'kasBankCoas'));
     }
 
     public function update(Request $request, ReturPenjualan $returPenjualan)

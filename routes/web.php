@@ -3580,6 +3580,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/jurnal-umum/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportExcel'])->name('jurnal-umum.export-excel');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
+        Route::get('/buku-besar/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportPdf'])->name('buku-besar.export-pdf');
         
         // Neraca Saldo - Updated version (based on General Ledger)
         Route::get('/neraca-saldo', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('neraca-saldo');
@@ -3605,7 +3606,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         
         // Akuntansi - Laporan
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
-        Route::post('/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
+        Route::match(['get', 'post'], '/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
         
         // Jurnal Penyesuaian Aset
         Route::get('/jurnal-penyesuaian-aset', [\App\Http\Controllers\JurnalPenyesuaianAsetController::class, 'index'])->name('jurnal-penyesuaian-aset');

@@ -265,7 +265,6 @@ mark.bg-warning {
                 <select name="payment_method" id="payment_method_jual" class="form-select" required onchange="toggleSumberDana()">
                     <option value="cash" {{ ($penjualan->payment_method ?? '') == 'cash' ? 'selected' : '' }}>Tunai</option>
                     <option value="transfer" {{ ($penjualan->payment_method ?? '') == 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
-                    <option value="credit" {{ ($penjualan->payment_method ?? '') == 'credit' ? 'selected' : '' }}>Kredit</option>
                 </select>
             </div>
             <div class="col-md-3" id="sumber_dana_wrapper_jual">
