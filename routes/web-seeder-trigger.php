@@ -36,6 +36,11 @@ Route::get('/run-seeders-now', function () {
     $startTime = microtime(true);
 
     try {
+        // 0. Run pending migrations first
+        $results[] = '🔄 Running pending migrations...';
+        Artisan::call('migrate', ['--force' => true]);
+        $results[] = '✅ Migrations completed: ' . Artisan::output();
+
         // 1. CoaAyamSeeder
         $results[] = '🐔 Running CoaAyamSeeder...';
         Artisan::call('db:seed', ['--class' => 'CoaAyamSeeder']);
