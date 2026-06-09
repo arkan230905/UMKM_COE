@@ -201,7 +201,7 @@ class AsetController extends Controller
         $jenisAset = 'aset-tetap'; // Hardcoded karena semua aset = aset tetap
         $disusutkan = true; // Semua aset tetap disusutkan
         
-        // Validation rules dasar
+        // Validation rules dasar (COA fields dihapus karena akan di-assign otomatis saat posting)
         $rules = [
             // REFACTOR: Removed 'jenis_aset' validation
             'nama_aset' => 'required|string|max:255',
@@ -211,9 +211,7 @@ class AsetController extends Controller
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
             'keterangan' => 'nullable|string',
-            'asset_coa_id' => 'required|exists:coas,id',
-            'accum_depr_coa_id' => 'nullable|exists:coas,id',
-            'expense_coa_id' => 'nullable|exists:coas,id',
+            // COA fields tidak diperlukan lagi - akan di-assign otomatis saat posting
         ];
         
         // Tambah validation untuk penyusutan/amortisasi
@@ -332,10 +330,10 @@ class AsetController extends Controller
             $aset->user_id = auth()->id(); // 🔒 SECURITY: CRITICAL - Set user_id for multi-tenant
             $aset->updated_by = auth()->id();
             
-            // Save COA fields
-            $aset->asset_coa_id = $request->asset_coa_id;
-            $aset->accum_depr_coa_id = $request->accum_depr_coa_id;
-            $aset->expense_coa_id = $request->expense_coa_id;
+            // COA fields akan di-assign otomatis saat posting, jadi tidak perlu di-set di sini
+            // $aset->asset_coa_id = null;
+            // $aset->accum_depr_coa_id = null;
+            // $aset->expense_coa_id = null;
             
             $aset->save();
             
@@ -344,8 +342,7 @@ class AsetController extends Controller
             $successMessage = 'Aset berhasil ditambahkan';
             if ($disusutkan) {
                 $successMessage .= ' dengan penyusutan per bulan: Rp ' . number_format($penyusutanPerBulan, 2) . ' dan per tahun: Rp ' . number_format($penyusutanPerTahun, 2);
-            } else {
-                $successMessage .= '. Aset ini tidak mengalami penyusutan.';
+                $successMessage .= '. Silakan klik tombol "Posting" untuk mencatat jurnal perolehan dan penyusutan.';
             }
             
             return redirect()->route('master-data.aset.index')
@@ -1215,5 +1212,166 @@ class AsetController extends Controller
         // Remove Rp, spaces, dots, and convert to decimal format
         $v = str_replace(['Rp', '.', ' '], ['', ''], $value);
         return $v;
+    }
+
+    /**
+     * Posting aset - Catat jurnal perolehan dan penyusutan bulan berjalan
+     * Route: POST /master-data/aset/{aset}/post
+     */
+    public function postAset(Request $request, $id)
+    {
+        try {
+            $aset = Aset::where('id', $id)
+                ->where('user_id', auth()->id())
+                ->with('kategori')
+                ->firstOrFail();
+            
+            // Check if already posted
+            if ($aset->is_posted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aset ini sudah diposting sebelumnya'
+                ]);
+            }
+            
+            // Auto-assign COA based on kategori
+            $assetCoaId = $aset->getAutoAssetCoaId();
+            $accumDeprCoaId = $aset->getAutoAccumDepreciationCoaId();
+            $expenseCoaId = $aset->getAutoExpenseCoaId();
+            
+            if (!$assetCoaId || !$accumDeprCoaId || !$expenseCoaId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak dapat menemukan COA yang sesuai untuk kategori aset ini. Pastikan COA untuk ' . ($aset->kategori->nama ?? 'kategori ini') . ' sudah tersedia.'
+                ]);
+            }
+            
+            // Get COA Kas/Bank untuk kredit perolehan
+            $coaKas = Coa::where('user_id', auth()->id())
+                ->where(function($q) {
+                    $q->where('nama_akun', 'LIKE', '%Kas%')
+                      ->orWhere('nama_akun', 'LIKE', '%Bank%');
+                })
+                ->where('tipe_akun', 'Aset')
+                ->first();
+            
+            if (!$coaKas) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'COA Kas/Bank tidak ditemukan. Pastikan COA Kas atau Bank sudah dibuat.'
+                ]);
+            }
+            
+            DB::beginTransaction();
+            
+            // Update aset dengan COA yang di-assign otomatis
+            $aset->asset_coa_id = $assetCoaId;
+            $aset->accum_depr_coa_id = $accumDeprCoaId;
+            $aset->expense_coa_id = $expenseCoaId;
+            $aset->is_posted = true;
+            $aset->posted_at = now();
+            $aset->save();
+            
+            $totalPerolehan = (float)$aset->harga_perolehan + (float)$aset->biaya_perolehan;
+            $penyusutanBulanIni = (float)$aset->penyusutan_per_bulan;
+            $userId = auth()->id();
+            $tanggalPosting = now()->format('Y-m-d');
+            $referensi = 'ASET-' . $aset->id;
+            
+            // 1. JURNAL PEROLEHAN ASET (masuk ke journal_lines untuk Jurnal Umum)
+            // DEBIT: COA Aset
+            JournalLine::create([
+                'user_id' => $userId,
+                'coa_id' => $assetCoaId,
+                'debit' => $totalPerolehan,
+                'credit' => 0,
+                'memo' => "Perolehan {$aset->nama_aset}",
+                'tipe_referensi' => 'aset_perolehan',
+                'referensi' => $referensi,
+                'tanggal' => $tanggalPosting,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            // KREDIT: COA Kas/Bank
+            JournalLine::create([
+                'user_id' => $userId,
+                'coa_id' => $coaKas->id,
+                'debit' => 0,
+                'credit' => $totalPerolehan,
+                'memo' => "Perolehan {$aset->nama_aset}",
+                'tipe_referensi' => 'aset_perolehan',
+                'referensi' => $referensi,
+                'tanggal' => $tanggalPosting,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            // 2. JURNAL PENYUSUTAN BULAN BERJALAN (masuk ke journal_lines untuk Jurnal Penyesuaian)
+            if ($penyusutanBulanIni > 0) {
+                // DEBIT: COA Beban Penyusutan
+                JournalLine::create([
+                    'user_id' => $userId,
+                    'coa_id' => $expenseCoaId,
+                    'debit' => $penyusutanBulanIni,
+                    'credit' => 0,
+                    'memo' => "Beban Penyusutan {$aset->nama_aset}",
+                    'tipe_referensi' => 'aset_penyusutan',
+                    'referensi' => $referensi,
+                    'tanggal' => $tanggalPosting,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                // KREDIT: COA Akumulasi Penyusutan
+                JournalLine::create([
+                    'user_id' => $userId,
+                    'coa_id' => $accumDeprCoaId,
+                    'debit' => 0,
+                    'credit' => $penyusutanBulanIni,
+                    'memo' => "Akumulasi Penyusutan {$aset->nama_aset}",
+                    'tipe_referensi' => 'aset_penyusutan',
+                    'referensi' => $referensi,
+                    'tanggal' => $tanggalPosting,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            
+            DB::commit();
+            
+            \Log::info('Aset posted successfully', [
+                'aset_id' => $aset->id,
+                'aset_name' => $aset->nama_aset,
+                'total_perolehan' => $totalPerolehan,
+                'penyusutan_bulan_ini' => $penyusutanBulanIni,
+                'asset_coa_id' => $assetCoaId,
+                'accum_depr_coa_id' => $accumDeprCoaId,
+                'expense_coa_id' => $expenseCoaId,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Aset berhasil diposting! Jurnal perolehan dan penyusutan telah dicatat.',
+                'data' => [
+                    'perolehan' => 'Rp ' . number_format($totalPerolehan, 0, ',', '.'),
+                    'penyusutan' => 'Rp ' . number_format($penyusutanBulanIni, 0, ',', '.'),
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            
+            \Log::error('Error posting aset', [
+                'aset_id' => $id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat posting aset: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

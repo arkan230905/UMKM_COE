@@ -512,72 +512,7 @@
 
                 <!-- Keterangan field hidden per user request -->
                 <input type="hidden" id="keterangan" name="keterangan" value="">
-
-                <!-- Section COA -->
-                <div class="card border-0 shadow-sm mb-4 bg-white">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Akun COA untuk Jurnal</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info mb-3">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Pilih akun COA</strong> untuk pencatatan jurnal aset agar struktur akuntansi terdata dengan rapi.
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="asset_coa_id" class="form-label text-dark">Akun COA Aset <span class="text-danger">*</span></label>
-                                <select class="form-select bg-white text-dark @error('asset_coa_id') is-invalid @enderror" 
-                                        id="asset_coa_id" name="asset_coa_id" required>
-                                    <option value="" disabled selected>-- Pilih Akun Aset --</option>
-                                    @foreach($coaAsets as $coa)
-                                        <option value="{{ $coa->id }}" {{ old('asset_coa_id') == $coa->id ? 'selected' : '' }}>
-                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <small class="text-muted">Pilih akun aset untuk mencatat nilai perolehan aset</small>
-                                @error('asset_coa_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="accum_depr_coa_id" class="form-label text-dark">Akun COA Akumulasi Penyusutan <span class="text-danger">*</span></label>
-                                <select class="form-select bg-white text-dark @error('accum_depr_coa_id') is-invalid @enderror" 
-                                        id="accum_depr_coa_id" name="accum_depr_coa_id" required>
-                                    <option value="" disabled selected>-- Pilih Akun Akumulasi --</option>
-                                    @foreach($coaAkumulasi as $coa)
-                                        <option value="{{ $coa->id }}" {{ old('accum_depr_coa_id') == $coa->id ? 'selected' : '' }}>
-                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <small class="text-muted">Pilih akun akumulasi penyusutan aset</small>
-                                @error('accum_depr_coa_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="expense_coa_id" class="form-label text-dark">Akun COA Beban Penyusutan <span class="text-danger">*</span></label>
-                                <select class="form-select bg-white text-dark @error('expense_coa_id') is-invalid @enderror" 
-                                        id="expense_coa_id" name="expense_coa_id" required>
-                                    <option value="" disabled selected>-- Pilih Akun Beban --</option>
-                                    @foreach($coaBeban as $coa)
-                                        <option value="{{ $coa->id }}" {{ old('expense_coa_id') == $coa->id ? 'selected' : '' }}>
-                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <small class="text-muted">Pilih akun beban penyusutan untuk mencatat biaya penyusutan</small>
-                                @error('expense_coa_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- INFO: COA akan di-assign otomatis saat posting berdasarkan kategori aset -->
 
                 <div class="mb-3">
                     <button type="submit" class="btn btn-primary">
