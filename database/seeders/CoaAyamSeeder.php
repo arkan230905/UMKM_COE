@@ -31,6 +31,7 @@ class CoaAyamSeeder extends Seeder
             ['kode_akun' => '111',  'nama_akun' => 'Kas Bank',                                        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             ['kode_akun' => '1111', 'nama_akun' => 'Bank BCA',                                        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             ['kode_akun' => '1112', 'nama_akun' => 'Bank Mandiri',                                    'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1113', 'nama_akun' => 'Bank BRI',                                        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             ['kode_akun' => '112',  'nama_akun' => 'Kas',                                             'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             ['kode_akun' => '113',  'nama_akun' => 'Kas Kecil',                                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
@@ -59,9 +60,9 @@ class CoaAyamSeeder extends Seeder
             
             // Persediaan Barang Dalam Proses (WIP)
             ['kode_akun' => '117',  'nama_akun' => 'Pers. Barang Dalam Proses',                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
-            ['kode_akun' => '1174', 'nama_akun' => 'Pers. Barang Dalam Proses - BBB (WIP BBB)',       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
-            ['kode_akun' => '1175', 'nama_akun' => 'Pers. Barang Dalam Proses - BTKL (WIP BTKL)',     'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
-            ['kode_akun' => '1176', 'nama_akun' => 'Pers. Barang Dalam Proses - BOP (WIP BOP)',       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1171', 'nama_akun' => 'Pers. Barang Dalam Proses - BBB (WIP BBB)',       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1172', 'nama_akun' => 'Pers. Barang Dalam Proses - BTKL (WIP BTKL)',     'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1173', 'nama_akun' => 'Pers. Barang Dalam Proses - BOP (WIP BOP)',       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
             // Aset Lainnya
             ['kode_akun' => '118',  'nama_akun' => 'Piutang',                                         'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
@@ -172,5 +173,6 @@ class CoaAyamSeeder extends Seeder
 
         $this->command->info('✅ COA Ayam seeder completed successfully!');
         $this->command->info('📊 Total COA created: ' . count($coas));
+        $this->command->info('🏦 Bank accounts: BCA (1111), Mandiri (1112), BRI (1113)');
     }
 }
