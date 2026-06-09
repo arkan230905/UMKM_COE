@@ -2145,6 +2145,9 @@ Route::middleware('auth')->group(function () {
         // Individual depreciation posting route
         Route::post('aset/{aset}/post-depreciation', [AsetController::class, 'postIndividualDepreciation'])->name('aset.post-depreciation');
         
+        // NEW: Posting aset (perolehan + penyusutan bulan berjalan)
+        Route::post('aset/{id}/post', [AsetController::class, 'postAset'])->name('aset.post');
+        
         // Asset acquisition posting routes
         Route::post('aset/{aset}/post-to-journal', [AsetController::class, 'postAssetToJournal'])->name('aset.post-to-journal');
         Route::post('aset/{aset}/unpost-from-journal', [AsetController::class, 'unpostAssetFromJournal'])->name('aset.unpost-from-journal');

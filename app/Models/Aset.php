@@ -30,6 +30,8 @@ class Aset extends Model
         'tanggal_beli',
         'tanggal_akuisisi',
         'status',
+        'is_posted',
+        'posted_at',
         'metode_penyusutan',
         'tarif_penyusutan',
         'bulan_mulai',
@@ -584,6 +586,109 @@ class Aset extends Model
         }
 
         return array_values($byYear);
+    }
+
+    /**
+     * Get COA untuk aset berdasarkan kategori secara otomatis
+     * Mapping otomatis berdasarkan nama kategori aset
+     */
+    public function getAutoAssetCoaId(): ?int
+    {
+        if (!$this->kategori) {
+            return null;
+        }
+
+        $kategoriNama = strtolower($this->kategori->nama);
+        $userId = $this->user_id ?? auth()->id();
+
+        // Mapping nama kategori ke nama akun COA
+        $coaMapping = [
+            'mesin' => 'Mesin',
+            'kendaraan' => 'Kendaraan',
+            'peralatan' => 'Peralatan',
+            'gedung' => 'Gedung',
+        ];
+
+        foreach ($coaMapping as $key => $coaName) {
+            if (str_contains($kategoriNama, $key)) {
+                $coa = Coa::where('user_id', $userId)
+                    ->where('nama_akun', 'LIKE', "%{$coaName}%")
+                    ->where('nama_akun', 'NOT LIKE', '%Akumulasi%')
+                    ->where('nama_akun', 'NOT LIKE', '%Penyusutan%')
+                    ->where('nama_akun', 'NOT LIKE', '%Beban%')
+                    ->first();
+                
+                return $coa ? $coa->id : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get COA Akumulasi Penyusutan untuk aset berdasarkan kategori
+     */
+    public function getAutoAccumDepreciationCoaId(): ?int
+    {
+        if (!$this->kategori) {
+            return null;
+        }
+
+        $kategoriNama = strtolower($this->kategori->nama);
+        $userId = $this->user_id ?? auth()->id();
+
+        // Mapping nama kategori ke nama akun COA
+        $coaMapping = [
+            'mesin' => 'Akumulasi Penyusutan Mesin',
+            'kendaraan' => 'Akumulasi Penyusutan Kendaraan',
+            'peralatan' => 'Akumulasi Penyusutan Peralatan',
+            'gedung' => 'Akumulasi Penyusutan Gedung',
+        ];
+
+        foreach ($coaMapping as $key => $coaName) {
+            if (str_contains($kategoriNama, $key)) {
+                $coa = Coa::where('user_id', $userId)
+                    ->where('nama_akun', 'LIKE', "%{$coaName}%")
+                    ->first();
+                
+                return $coa ? $coa->id : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get COA Beban Penyusutan untuk aset berdasarkan kategori
+     */
+    public function getAutoExpenseCoaId(): ?int
+    {
+        if (!$this->kategori) {
+            return null;
+        }
+
+        $kategoriNama = strtolower($this->kategori->nama);
+        $userId = $this->user_id ?? auth()->id();
+
+        // Mapping nama kategori ke nama akun COA Beban Penyusutan
+        $coaMapping = [
+            'mesin' => 'BOP - Beban Penyusutan Mesin',
+            'kendaraan' => 'BOP - Beban Penyusutan Kendaraan',
+            'peralatan' => 'BOP - Beban Penyusutan Peralatan',
+            'gedung' => 'BOP - Beban Penyusutan Gedung',
+        ];
+
+        foreach ($coaMapping as $key => $coaName) {
+            if (str_contains($kategoriNama, $key)) {
+                $coa = Coa::where('user_id', $userId)
+                    ->where('nama_akun', 'LIKE', "%{$coaName}%")
+                    ->first();
+                
+                return $coa ? $coa->id : null;
+            }
+        }
+
+        return null;
     }
 
     /**

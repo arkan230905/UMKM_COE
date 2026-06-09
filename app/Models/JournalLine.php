@@ -12,11 +12,15 @@ class JournalLine extends Model
     protected $table = 'journal_lines';
 
     protected $fillable = [
+        'user_id',
         'journal_entry_id',
         'coa_id',
         'debit',
         'credit',
         'memo',
+        'tipe_referensi',
+        'referensi',
+        'tanggal',
     ];
 
     protected $casts = [

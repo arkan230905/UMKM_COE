@@ -16,6 +16,13 @@
                 <a href="{{ route('master-data.aset.index') }}" style="padding: 10px 20px; background-color: #e5e7eb; color: #374151; border: none; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; cursor: pointer;">
                     <i class="fas fa-arrow-left me-2"></i>Kembali
                 </a>
+                
+                @if(!$aset->is_posted)
+                    <button id="btnPosting" onclick="postAset()" style="padding: 10px 20px; background-color: #10b981; color: white; border: none; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; cursor: pointer;">
+                        <i class="fas fa-paper-plane me-2"></i>Posting
+                    </button>
+                @endif
+                
                 <a href="{{ route('master-data.aset.edit', $aset->id) }}" style="padding: 10px 20px; background-color: #7A4F2A; color: white; border: none; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; cursor: pointer;">
                     <i class="fas fa-edit me-2"></i>Edit Aset
                 </a>
@@ -72,7 +79,7 @@
                     <div>
                         <p style="font-size: 12px; color: #6b7280; margin: 0; font-weight: 500;">Status Posting</p>
                         <div style="margin-top: 5px;">
-                            @if($asetSummary['is_posted_this_month'] ?? false)
+                            @if($aset->is_posted)
                                 <span style="background-color: #D1FAE5; color: #065F46; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Sudah Posting</span>
                             @else
                                 <span style="background-color: #FEF3C7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Belum Posting</span>
@@ -263,5 +270,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const metodePenyusutan = '{{ $aset->metode_penyusutan }}';
     console.log('Metode Penyusutan:', metodePenyusutan);
 });
+
+// Function untuk posting aset
+function postAset() {
+    if (!confirm('Apakah Anda yakin ingin memposting aset ini?\n\nSetelah diposting, sistem akan:\n1. Mencatat jurnal perolehan aset ke Jurnal Umum\n2. Mencatat jurnal penyusutan bulan berjalan ke Jurnal Penyesuaian\n3. Status aset berubah menjadi "Sudah Posting"')) {
+        return;
+    }
+    
+    const btn = document.getElementById('btnPosting');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memposting...';
+    }
+    
+    fetch('{{ route("master-data.aset.post", $aset->id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message + '\n\nPerolehan: ' + (data.data?.perolehan || '-') + '\nPenyusutan: ' + (data.data?.penyusutan || '-'));
+            window.location.reload();
+        } else {
+            alert('❌ ' + (data.message || 'Terjadi kesalahan saat posting aset'));
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Posting';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Terjadi kesalahan saat posting aset. Silakan coba lagi.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Posting';
+        }
+    });
+}
 </script>
 @endsection
