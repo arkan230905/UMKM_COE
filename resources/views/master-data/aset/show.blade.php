@@ -19,15 +19,6 @@
                 <a href="{{ route('master-data.aset.edit', $aset->id) }}" style="padding: 10px 20px; background-color: #7A4F2A; color: white; border: none; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; cursor: pointer;">
                     <i class="fas fa-edit me-2"></i>Edit Aset
                 </a>
-                @if($aset->status_posting !== 'posted')
-                    <button type="button" onclick="showPostingModal()" style="padding: 10px 20px; background-color: #10b981; color: white; border: none; border-radius: 8px; font-weight: 500; font-size: 14px; cursor: pointer;">
-                        <i class="fas fa-check-circle me-2"></i>Posting
-                    </button>
-                @else
-                    <button type="button" onclick="unpostAsset()" style="padding: 10px 20px; background-color: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: 500; font-size: 14px; cursor: pointer;">
-                        <i class="fas fa-times-circle me-2"></i>Batalkan Posting
-                    </button>
-                @endif
             </div>
         </div>
 
@@ -81,10 +72,10 @@
                     <div>
                         <p style="font-size: 12px; color: #6b7280; margin: 0; font-weight: 500;">Status Posting</p>
                         <div style="margin-top: 5px;">
-                            @if($asetSummary['sudah_diposting'] ?? false)
-                                <span style="background-color: #DBEAFE; color: #1e40af; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Sudah Diposting</span>
+                            @if($asetSummary['is_posted_this_month'] ?? false)
+                                <span style="background-color: #D1FAE5; color: #065F46; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Sudah Posting</span>
                             @else
-                                <span style="background-color: #FEF3C7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Belum Diposting</span>
+                                <span style="background-color: #FEF3C7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Belum Posting</span>
                             @endif
                         </div>
                     </div>
@@ -267,170 +258,10 @@
     </div>
 </div>
 
-<!-- MODAL POSTING ASET -->
-<div class="modal fade" id="postingModal" tabindex="-1" aria-labelledby="postingModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background-color: #10b981; color: white; border: none;">
-                <h5 class="modal-title" id="postingModalLabel">
-                    <i class="fas fa-check-circle me-2"></i>Posting Aset ke Jurnal
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Posting aset akan membuat jurnal dengan <strong>nominal penyusutan bulan ini</strong>:
-                    <ul class="mb-0 mt-2">
-                        <li><strong>Debit:</strong> COA Aset ({{ $aset->assetCoa->nama_akun ?? 'Belum diset' }})</li>
-                        <li><strong>Kredit:</strong> Kas/Bank atau Hutang (pilih di bawah)</li>
-                    </ul>
-                </div>
-                
-                @if(!$aset->asset_coa_id)
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        COA Aset belum diset. Silakan edit aset dan lengkapi COA Aset terlebih dahulu.
-                    </div>
-                @else
-                    <form id="postingForm">
-                        @csrf
-                        <div class="mb-3">
-                            <label for="coa_kredit_id" class="form-label">Pilih COA untuk Pembayaran <span class="text-danger">*</span></label>
-                            <select class="form-select" id="coa_kredit_id" name="coa_kredit_id" required>
-                                <option value="">-- Pilih COA --</option>
-                                <optgroup label="Kas & Bank">
-                                    @foreach(\App\Models\Coa::where('kode_akun', 'LIKE', '11%')->orderBy('kode_akun')->get() as $coa)
-                                        <option value="{{ $coa->id }}">{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
-                                    @endforeach
-                                </optgroup>
-                                <optgroup label="Hutang">
-                                    @foreach(\App\Models\Coa::where('kode_akun', 'LIKE', '2%')->orderBy('kode_akun')->get() as $coa)
-                                        <option value="{{ $coa->id }}">{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
-                                    @endforeach
-                                </optgroup>
-                            </select>
-                            <small class="text-muted">Pilih Kas/Bank jika dibayar tunai, atau Hutang jika dibeli kredit</small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Nilai yang Akan Diposting</label>
-                            @php
-                                $penyusutanPerBulan = (float)($aset->penyusutan_per_bulan ?? 0);
-                                
-                                if ($penyusutanPerBulan <= 0) {
-                                    $hargaPerolehan = (float)$aset->harga_perolehan;
-                                    $umurManfaat = (int)$aset->umur_manfaat;
-                                    $penyusutanPerBulan = $umurManfaat > 0 ? $hargaPerolehan / ($umurManfaat * 12) : 0;
-                                }
-                            @endphp
-                            <input type="text" class="form-control" value="Rp {{ number_format($penyusutanPerBulan, 0, ',', '.') }}" readonly>
-                            <small class="text-muted">Nominal penyusutan bulan ini dari data aset</small>
-                        </div>
-                    </form>
-                @endif
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                @if($aset->coa_aset_id)
-                    <button type="button" class="btn btn-success" onclick="postAsset()">
-                        <i class="fas fa-check-circle me-1"></i> Posting
-                    </button>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const metodePenyusutan = '{{ $aset->metode_penyusutan }}';
     console.log('Metode Penyusutan:', metodePenyusutan);
 });
-
-function showPostingModal() {
-    const modal = new bootstrap.Modal(document.getElementById('postingModal'));
-    modal.show();
-}
-
-function postAsset() {
-    const coaKreditId = document.getElementById('coa_kredit_id').value;
-    
-    if (!coaKreditId) {
-        alert('Silakan pilih COA untuk pembayaran');
-        return;
-    }
-    
-    if (!confirm('Apakah Anda yakin ingin memposting aset ini ke jurnal?')) {
-        return;
-    }
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-hourglass-split me-1"></i> Memproses...';
-    
-    fetch('{{ route("master-data.aset.post-to-journal", $aset->id) }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-            coa_kredit_id: coaKreditId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Berhasil: ' + data.message);
-            location.reload();
-        } else {
-            alert('Gagal: ' + data.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Posting';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat memposting aset');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Posting';
-    });
-}
-
-function unpostAsset() {
-    if (!confirm('Apakah Anda yakin ingin membatalkan posting aset ini? Jurnal terkait akan dihapus.')) {
-        return;
-    }
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-hourglass-split me-1"></i> Memproses...';
-    
-    fetch('{{ route("master-data.aset.unpost-from-journal", $aset->id) }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Berhasil: ' + data.message);
-            location.reload();
-        } else {
-            alert('Gagal: ' + data.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-times-circle me-1"></i> Batalkan Posting';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat membatalkan posting');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-times-circle me-1"></i> Batalkan Posting';
-    });
-}
 </script>
 @endsection

@@ -201,7 +201,7 @@
                                     
                                     <!-- Row 2: Posting | Hapus -->
                                     @if(isset($aset->is_posted_this_month) && $aset->is_posted_this_month)
-                                        <button class="btn btn-sm btn-outline-success" disabled title="Sudah Posted">
+                                        <button class="btn btn-sm btn-success" disabled title="Sudah Posted">
                                             <i class="fas fa-check me-1"></i>Posted
                                         </button>
                                     @elseif(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0 && $aset->expense_coa_id && $aset->accum_depr_coa_id)

@@ -39,7 +39,22 @@ class ProdukController extends Controller
         }
         
         if ($statusFilter) {
-            $query->where('status', $statusFilter);
+            if ($statusFilter === 'aktif') {
+                $query->where(function($q) {
+                    $q->where('stok', '>', 0)
+                      ->orWhere('is_unlimited_stok', 1);
+                });
+            } elseif ($statusFilter === 'habis') {
+                $query->where(function($q) {
+                    $q->where(function($stokQ) {
+                        $stokQ->where('stok', '<=', 0)
+                              ->orWhereNull('stok');
+                    })->where(function($sub) {
+                        $sub->where('is_unlimited_stok', 0)
+                            ->orWhereNull('is_unlimited_stok');
+                    });
+                });
+            }
         }
         
         $produks = $query->get();

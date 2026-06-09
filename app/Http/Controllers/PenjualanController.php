@@ -295,8 +295,8 @@ class PenjualanController extends Controller
             ->with('details.produk', 'produk')
             ->findOrFail($id);
         
-        // Ambil data perusahaan - gunakan first() tanpa filter user_id karena kolom belum ada
-        $dataPerusahaan = \App\Models\Perusahaan::first();
+        // Ambil data perusahaan sesuai dengan user yang sedang login
+        $dataPerusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
         
         return view('transaksi.penjualan.struk', compact('penjualan', 'dataPerusahaan'));
     }
