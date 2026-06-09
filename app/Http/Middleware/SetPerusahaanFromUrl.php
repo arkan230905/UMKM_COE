@@ -34,8 +34,12 @@ class SetPerusahaanFromUrl
             return response('Perusahaan tidak ditemukan', 404);
         }
         
+        // Check if this is a customer portal route (not admin routes)
+        $isCustomerPortal = $request->routeIs('pelanggan.*') || str_contains($request->getPathInfo(), '/pelanggan/');
+        
         // If logged in as owner/admin under web guard, force redirect to their own company's slug
-        if (auth('web')->check()) {
+        // BUT: Don't redirect for customer portal - allow preview of customer store
+        if (!$isCustomerPortal && auth('web')->check()) {
             $user = auth('web')->user();
             if ($user && $user->perusahaan_id && $user->perusahaan_id != $perusahaan->id) {
                 $ownPerusahaan = Perusahaan::find($user->perusahaan_id);

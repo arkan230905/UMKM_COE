@@ -1483,26 +1483,11 @@ function loadStruk(penjualanId) {
 }
 
 function printStruk(elementId) {
-    const printContent = document.getElementById(elementId);
-    const printWindow = window.open('', '_blank');
+    // extract penjualanId from elementId (e.g. 'strukContent123')
+    const penjualanId = elementId.replace('strukContent', '');
     
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Struk Penjualan</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    @media print { body { margin: 0; } }
-                </style>
-            </head>
-            <body>
-                ${printContent.innerHTML}
-            </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.print();
+    // Open the full receipt page directly in a new window to preserve styles and sizes
+    window.open(`/transaksi/penjualan/${penjualanId}/struk?print=1`, '_blank', 'width=400,height=600');
 }
 
 // Load struk saat modal dibuka
