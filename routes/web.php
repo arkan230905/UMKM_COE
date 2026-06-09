@@ -3058,6 +3058,7 @@ Route::middleware('auth')->group(function () {
         Route::get('api/pembelian/{id}/journal', function($id) {
             $pembelian = \App\Models\Pembelian::where('id', $id)
                 ->where('user_id', auth()->id()) // Multi-tenant security
+                ->with('vendor') // Load vendor relation
                 ->first();
                 
             if (!$pembelian) {
@@ -3087,13 +3088,20 @@ Route::middleware('auth')->group(function () {
                 ];
             });
             
+            // Format tanggal pembelian
+            $tanggalFormatted = $pembelian->tanggal ? 
+                \Carbon\Carbon::parse($pembelian->tanggal)->locale('id')->isoFormat('D MMMM YYYY') : 
+                '-';
+            
             return response()->json([
                 'success' => true,
                 'journals' => $journalsArray,
                 'pembelian' => [
                     'id' => $pembelian->id,
                     'nomor_pembelian' => $pembelian->nomor_pembelian,
-                    'total_harga' => $pembelian->total_harga
+                    'total_harga' => $pembelian->total_harga,
+                    'vendor_name' => $pembelian->vendor ? $pembelian->vendor->nama : '-',
+                    'tanggal' => $tanggalFormatted
                 ]
             ]);
         })->name('api.pembelian.journal');
