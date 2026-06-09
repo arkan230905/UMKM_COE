@@ -49,11 +49,46 @@ Setelah clear cache, buat akun baru. Seharusnya:
 
 ## Test yang Dilakukan
 
-Test telah dijalankan dan hasilnya:
+### Test 1: Verifikasi NO Auto-seeding
 ```
 ✅ SUCCESS: NO bahan baku/pendukung auto-created!
 ✅ Users must create their own items, observer will auto-assign COA
 ```
+
+### Test 2: Verifikasi Observer Auto-assigns COA
+```
+1️⃣ Test: Creating 'Ayam Potong' bahan baku...
+   ✅ PASS: Correctly assigned to COA 1141 (Pers. Bahan Baku ayam potong)
+
+2️⃣ Test: Creating 'Ayam Kampung' bahan baku...
+   ✅ PASS: Correctly assigned to COA 1142 (Pers. Bahan Baku ayam kampung)
+
+3️⃣ Test: Creating 'Kemasan' bahan pendukung...
+   ✅ PASS: Correctly assigned to COA 1157 (Pers. Bahan Pendukung Kemasan)
+
+✅ All tests completed successfully!
+✅ Observer is working correctly - auto-assigns COA based on item name
+```
+
+## Observer COA Mapping Logic
+
+**Bahan Baku:**
+- Ayam Potong → 1141 (Pers. Bahan Baku ayam potong)
+- Ayam Kampung → 1142 (Pers. Bahan Baku ayam kampung)
+- Bebek → 1143 (Pers. Bahan Baku Bebek)
+- Ayam (lainnya) → 1144 (Pers. Bahan Baku Ayam lainnya)
+- Default → 114 (Persediaan Bahan Baku)
+
+**Bahan Pendukung:**
+- Air → 1150 (Pers. Bahan Pendukung Air)
+- Minyak → 1151 (Pers. Bahan Pendukung Minyak)
+- Tepung Terigu → 1152 (Pers. Bahan Pendukung Tepung Terigu)
+- Maizena → 1153 (Pers. Bahan Pendukung Tepung Maizena)
+- Lada → 1154 (Pers. Bahan Pendukung Lada)
+- Kaldu → 1155 (Pers. Bahan Pendukung Kaldu)
+- Bawang Putih → 1156 (Pers. Bahan Pendukung Bawang Putih)
+- Kemasan → 1157 (Pers. Bahan Pendukung Kemasan)
+- Default → 115 (Persediaan Bahan Pendukung)
 
 ## Code Changes Summary
 
