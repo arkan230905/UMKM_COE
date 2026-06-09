@@ -435,11 +435,13 @@ class AsetController extends Controller
         \Log::info("  Akumulasi saat ini: Rp " . number_format($aset->akumulasi_penyusutan, 2, ',', '.'));
         \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
         
-        // Cek apakah aset sudah pernah diposting penyusutannya
-
-        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
-            ->where('referensi', $aset->id)
-->exists();
+        // Cek apakah aset sudah diposting penyusutan bulan ini (konsisten dengan index)
+        $currentMonth = now()->format('Y-m');
+        $isPostedThisMonth = \DB::table('jurnal_umum')
+            ->where('tipe_referensi', 'depreciation')
+            ->where('referensi', 'ASET-' . $aset->id)
+            ->where('tanggal', 'LIKE', $currentMonth . '%')
+            ->exists();
         
         // Data summary untuk view
         $asetSummary = [
@@ -448,7 +450,7 @@ class AsetController extends Controller
             'penyusutan_per_bulan' => $penyusutanPerBulan,
             'akumulasi_penyusutan' => $aset->akumulasi_penyusutan,
             'nilai_buku_saat_ini' => $aset->nilai_buku,
-            'sudah_diposting' => $sudahDiposting
+            'is_posted_this_month' => $isPostedThisMonth
         ];
         
         return view('master-data.aset.show', compact('aset', 'depreciationData', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan', 'asetSummary'));

@@ -101,6 +101,7 @@
             <a href="{{ route('laporan.pelunasan-utang') }}"             class="sb-sub {{ request()->is('laporan/pelunasan-utang*') ? 'active' : '' }}">Laporan Pelunasan Utang</a>
             <a href="{{ route('laporan.kas-bank') }}"                    class="sb-sub {{ request()->is('laporan/kas-bank*') ? 'active' : '' }}">Laporan Kas &amp; Bank</a>
             <a href="{{ route('akuntansi.jurnal-umum') }}"               class="sb-sub {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}">Jurnal Umum</a>
+            <a href="{{ route('akuntansi.jurnal-penyesuaian-aset') }}"   class="sb-sub {{ request()->is('akuntansi/jurnal-penyesuaian-aset*') ? 'active' : '' }}">Jurnal Penyesuaian</a>
             <a href="{{ route('akuntansi.buku-besar') }}"                class="sb-sub {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}">Buku Besar</a>
 
             <a href="{{ route('akuntansi.neraca-saldo') }}"              class="sb-sub {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}">Neraca Saldo</a>
