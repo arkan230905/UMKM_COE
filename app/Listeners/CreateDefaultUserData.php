@@ -29,13 +29,9 @@ class CreateDefaultUserData
         $satuanSeeder = new DefaultSatuanSeeder();
         $satuanSeeder->run($event->user->id);
         
-        // Create default Bahan Baku with COA mapping
-        $bahanBakuSeeder = new \Database\Seeders\DefaultBahanBakuSeeder();
-        $bahanBakuSeeder->run($event->user->id);
-        
-        // Create default Bahan Pendukung with COA mapping
-        $bahanPendukungSeeder = new \Database\Seeders\DefaultBahanPendukungSeeder();
-        $bahanPendukungSeeder->run($event->user->id);
+        // NOTE: Bahan Baku dan Bahan Pendukung TIDAK di-seed otomatis
+        // User harus membuat Bahan Baku/Pendukung sendiri sesuai kebutuhan bisnis mereka
+        // Saat create, Observer akan auto-assign COA berdasarkan nama item
         
         // NOTE: Jabatan TIDAK di-seed otomatis
         // User harus membuat Jabatan sendiri sesuai kebutuhan bisnis mereka
