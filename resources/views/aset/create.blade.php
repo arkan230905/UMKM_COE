@@ -100,8 +100,8 @@
                                 <label class="form-label" id="label_metode">Metode *</label>
                                 <select name="metode_penyusutan" id="metode_penyusutan" class="form-select">
                                     <option value="">-- Pilih Metode --</option>
-                                    <option value="garis_lurus">Garis Lurus (Straight Line)</option>
-                                    <option value="saldo_menurun" class="opt-tetap">Saldo Menurun (Declining Balance)</option>
+                                    <option value="garis_lurus">Garis Lurus</option>
+                                    <option value="saldo_menurun" class="opt-tetap">Saldo Menurun</option>
                                     <option value="sum_of_years_digits" class="opt-tetap">Jumlah Angka Tahun</option>
                                 </select>
                             </div>
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labelCoaAkumulasi.innerText = 'Akun Akumulasi Amortisasi *';
                 labelCoaBeban.innerText = 'Akun Beban Amortisasi *';
                 
-                // Hide declining balance for amortisasi
+                // Hide saldo menurun for amortisasi
                 document.querySelectorAll('.opt-tetap').forEach(opt => opt.style.display = 'none');
                 if (metodePenyusutan.value !== 'garis_lurus') {
                     metodePenyusutan.value = 'garis_lurus';

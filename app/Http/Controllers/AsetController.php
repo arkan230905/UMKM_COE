@@ -135,9 +135,9 @@ class AsetController extends Controller
             ->get();
         $kodeAset = Aset::generateKodeAset();
         $metodePenyusutan = [
-            'garis_lurus' => 'Garis Lurus (Straight Line)',
-            'saldo_menurun' => 'Saldo Menurun (Declining Balance)',
-            'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
+            'garis_lurus' => 'Garis Lurus',
+            'saldo_menurun' => 'Saldo Menurun',
+            'sum_of_years_digits' => 'Jumlah Angka Tahun',
         ];
         
         // Load jenis aset list for custom asset types feature
@@ -534,7 +534,7 @@ class AsetController extends Controller
                 
             case 'garis_lurus':
             default:
-                // Straight Line Method - Hitung per bulan
+                // Metode Garis Lurus - Hitung per bulan
                 $totalPenyusutan = $totalPerolehan - $nilaiResidu;
                 $penyusutanPerTahun = $totalPenyusutan / $umurManfaat;
                 $penyusutanPerBulan = $penyusutanPerTahun / 12;
@@ -567,9 +567,9 @@ class AsetController extends Controller
             ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
             ->get();
         $metodePenyusutan = [
-            'garis_lurus' => 'Garis Lurus (Straight Line)',
-            'saldo_menurun' => 'Saldo Menurun (Declining Balance)',
-            'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
+            'garis_lurus' => 'Garis Lurus',
+            'saldo_menurun' => 'Saldo Menurun',
+            'sum_of_years_digits' => 'Jumlah Angka Tahun',
         ];
         
         // Load jenis aset list for custom asset types feature
