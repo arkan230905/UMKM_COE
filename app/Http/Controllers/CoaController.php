@@ -250,11 +250,20 @@ if ($parentCoa) {
 
         $coa = Coa::create($coaData);
 
+        // Auto-create BOP record for Beban type (if bops table exists)
         if ($coa->tipe_akun === 'Beban') {
-            Bop::create([
-                'coa_id' => $coa->id,
-                'keterangan' => 'Otomatis dari COA',
-            ]);
+            try {
+                Bop::create([
+                    'coa_id' => $coa->id,
+                    'keterangan' => 'Otomatis dari COA',
+                ]);
+            } catch (\Exception $e) {
+                // Silently skip if bops table doesn't exist
+                \Log::warning('Failed to create BOP record for COA', [
+                    'coa_id' => $coa->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
 
         return redirect()->route('master-data.coa.index')->with('success',
