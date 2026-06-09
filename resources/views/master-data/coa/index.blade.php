@@ -64,6 +64,25 @@
                     </thead>
                     <tbody>
                         @foreach($coas as $key => $coa)
+                            @php
+                                $tipeAkun = match($coa->tipe_akun) {
+                                    'Asset' => 'Aset',
+                                    'Liability' => 'Kewajiban',
+                                    'Equity', 'Ekuitas' => 'Modal',
+                                    'Revenue' => 'Pendapatan',
+                                    'Expense', 'Biaya' => 'Beban',
+                                    default => $coa->tipe_akun,
+                                };
+
+                                $tipeBadgeClass = match($tipeAkun) {
+                                    'Aset' => 'bg-success',
+                                    'Kewajiban' => 'bg-warning',
+                                    'Modal' => 'bg-info',
+                                    'Pendapatan' => 'bg-primary',
+                                    'Beban' => 'bg-danger',
+                                    default => 'bg-secondary',
+                                };
+                            @endphp
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>
@@ -78,17 +97,8 @@
                                 </td>
                                 <td><code>{{ $coa->kode_akun }}</code></td>
                                 <td>
-                                    <span class="badge {{ $coa->tipe_akun == 'Asset' || $coa->tipe_akun == 'Aset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' || $coa->tipe_akun == 'Kewajiban' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' || $coa->tipe_akun == 'Modal' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' || $coa->tipe_akun == 'Pendapatan' ? 'bg-primary' : 'bg-danger'))) }}">
-                                        @php
-                                            echo match($coa->tipe_akun) {
-                                                'Asset' => 'Aset',
-                                                'Liability' => 'Kewajiban',
-                                                'Equity' => 'Modal',
-                                                'Revenue' => 'Pendapatan',
-                                                'Expense' => 'Beban',
-                                                default => $coa->tipe_akun,
-                                            };
-                                        @endphp
+                                    <span class="badge {{ $tipeBadgeClass }}">
+                                        {{ $tipeAkun }}
                                     </span>
                                 </td>
                                 <td class="text-center">

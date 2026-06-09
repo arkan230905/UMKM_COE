@@ -231,7 +231,7 @@ class PenggajianController extends Controller
                 ->findOrFail($pegawaiId);
             
             // Get current salary data from qualification (jabatan)
-            $jabatan = $pegawai->jabatanRelasi;
+            $jabatan = $this->resolvePegawaiJabatan($pegawai);
             if ($jabatan) {
                 $tarif = (int) ($jabatan->tarif_produk ?? 0);
                 $gajiPokok = (int) ($jabatan->gaji_pokok ?? 0);
@@ -268,7 +268,7 @@ class PenggajianController extends Controller
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
-                'jabatan_nama' => $pegawai->jabatanRelasi?->nama ?? 'Staff',
+                'jabatan_nama' => $jabatan?->nama ?? $pegawai->jabatan ?? 'Staff',
                 'kategori' => $kategoriInternal // Simplified to BTKL or BTKTI
             ]);
             
@@ -362,7 +362,7 @@ class PenggajianController extends Controller
                 $totalProduk = $totalProdukInput > 0 ? $totalProdukInput : ($produkPerHari * $hariKerja);
 
                 // STEP 2: Get tarif from jabatan
-                $jabatan = $pegawai->jabatanRelasi;
+                $jabatan = $this->resolvePegawaiJabatan($pegawai);
                 $tarifProduk = (float) ($jabatan ? ($jabatan->tarif_produk ?? 0) : ($pegawai->tarif_per_jam ?? 0));
 
                 // STEP 3: Calculate gaji produksi
@@ -474,20 +474,21 @@ class PenggajianController extends Controller
 
             $pegawai = $penggajian->pegawai;
 
-            if (!$pegawai->jabatanRelasi) {
+            $jabatan = $this->resolvePegawaiJabatan($pegawai);
+
+            if (!$jabatan) {
                 throw new \Exception('Pegawai tidak memiliki kualifikasi jabatan. Harap set jabatan terlebih dahulu.');
             }
 
             // STEP 1: Get tunjangan & asuransi dari KUALIFIKASI (JABATAN) terbaru
-            $tunjanganJabatan = (float) ($pegawai->jabatanRelasi->tunjangan ?? 0);
-            $tunjanganTransport = (float) ($pegawai->jabatanRelasi->tunjangan_transport ?? 0);
-            $tunjanganKonsumsi = (float) ($pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0);
-            $asuransi = (float) ($pegawai->jabatanRelasi->asuransi ?? 0);
+            $tunjanganJabatan = (float) ($jabatan->tunjangan ?? 0);
+            $tunjanganTransport = (float) ($jabatan->tunjangan_transport ?? 0);
+            $tunjanganKonsumsi = (float) ($jabatan->tunjangan_konsumsi ?? 0);
+            $asuransi = (float) ($jabatan->asuransi ?? 0);
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
 
-            // STEP 2: Calculate total gaji dengan gaji_pokok yang sudah ada
-            // (gaji_pokok pada sistem produk-based adalah gaji_produksi_final)
-            $gajiProduksiFinal = (float) $penggajian->gaji_pokok;
+            $produkDetail = $this->resolveProdukPayrollDetail($penggajian);
+            $gajiProduksiFinal = $produkDetail['gaji_dasar'];
             $bonus = (float) $penggajian->bonus;
             $potongan = (float) $penggajian->potongan;
             
@@ -501,6 +502,9 @@ class PenggajianController extends Controller
                 'tunjangan_konsumsi' => $tunjanganKonsumsi,
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
+                'gaji_pokok' => $gajiProduksiFinal,
+                'total_produk_bulan' => $produkDetail['produk_dihasilkan'],
+                'tarif_produk' => $produkDetail['tarif_produk'],
                 'total_gaji' => $totalGaji,
             ]);
 
@@ -1105,10 +1109,109 @@ class PenggajianController extends Controller
     public function show($id)
     {
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $penggajian = Penggajian::with('pegawai')
+        $penggajian = Penggajian::with('pegawai.jabatanRelasi')
             ->where('user_id', auth()->id())
             ->findOrFail($id);
-        return view('transaksi.penggajian.show', compact('penggajian'));
+
+        $produkPayroll = $this->resolveProdukPayrollDetail($penggajian);
+
+        return view('transaksi.penggajian.show', compact('penggajian', 'produkPayroll'));
+    }
+
+    private function resolveProdukPayrollDetail(Penggajian $penggajian): array
+    {
+        $pegawai = $penggajian->pegawai;
+        $jabatan = $this->resolvePegawaiJabatan($pegawai);
+
+        $tarifProduk = $this->firstPositiveNumber([
+            $penggajian->tarif_produk,
+            $jabatan?->tarif_produk,
+            $jabatan?->tarif,
+            $pegawai?->tarif_per_produk,
+            $pegawai?->tarif,
+            $pegawai?->tarif_per_jam,
+        ]);
+
+        $produkDihasilkan = (float) (
+            $penggajian->total_produk_bulan
+            ?? $penggajian->total_produk_bulanan
+            ?? 0
+        );
+
+        if ($produkDihasilkan <= 0 && Schema::hasTable('produksis')) {
+            $bulan = $penggajian->periode_bulan ?: Carbon::parse($penggajian->tanggal_penggajian)->month;
+            $tahun = $penggajian->periode_tahun ?: Carbon::parse($penggajian->tanggal_penggajian)->year;
+            $tanggalAwal = Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
+            $tanggalAkhir = Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
+
+            $query = DB::table('produksis')
+                ->where('user_id', $penggajian->user_id ?? auth()->id())
+                ->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir]);
+
+            if ($pegawai && Schema::hasColumn('produksis', 'pegawai_id')) {
+                $query->where('pegawai_id', $pegawai->id);
+            } elseif ($pegawai && Schema::hasColumn('produksis', 'employee_id')) {
+                $query->where('employee_id', $pegawai->id);
+            }
+
+            $produkDihasilkan = (float) $query->sum('jumlah_produksi_bulanan');
+        }
+
+        $gajiDasar = (float) ($penggajian->gaji_pokok ?? 0);
+        if ($produkDihasilkan > 0 && $tarifProduk > 0) {
+            $gajiDasar = $produkDihasilkan * $tarifProduk;
+        }
+
+        $totalGaji = $gajiDasar
+            + (float) ($penggajian->total_tunjangan ?? 0)
+            + (float) ($penggajian->bonus ?? 0)
+            - (float) ($penggajian->asuransi ?? 0)
+            - (float) ($penggajian->potongan ?? 0);
+
+        return [
+            'tarif_produk' => $tarifProduk,
+            'produk_dihasilkan' => $produkDihasilkan,
+            'gaji_dasar' => $gajiDasar,
+            'total_gaji' => $totalGaji,
+        ];
+    }
+
+    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Jabatan
+    {
+        if (!$pegawai) {
+            return null;
+        }
+
+        if ($pegawai->jabatanRelasi) {
+            return $pegawai->jabatanRelasi;
+        }
+
+        $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
+
+        if ($pegawai->jabatan_id) {
+            $jabatan = (clone $query)->find($pegawai->jabatan_id);
+            if ($jabatan) {
+                return $jabatan;
+            }
+        }
+
+        if (!empty($pegawai->jabatan)) {
+            return (clone $query)->where('nama', $pegawai->jabatan)->first();
+        }
+
+        return null;
+    }
+
+    private function firstPositiveNumber(array $values): float
+    {
+        foreach ($values as $value) {
+            $number = (float) ($value ?? 0);
+            if ($number > 0) {
+                return $number;
+            }
+        }
+
+        return 0;
     }
 
     /**

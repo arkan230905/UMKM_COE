@@ -36,6 +36,7 @@ class JabatanResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nama')->label('Nama Jabatan')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('kategori')->badge()->sortable()
+                    ->color('success')
                     ->formatStateUsing(fn($s) => strtoupper($s)),
                 Tables\Columns\TextColumn::make('tunjangan')->money('IDR')->sortable(),
                 Tables\Columns\TextColumn::make('asuransi')->money('IDR')->sortable(),

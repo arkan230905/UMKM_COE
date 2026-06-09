@@ -17,7 +17,7 @@ class CoaResource extends Resource
     protected static ?string $navigationLabel = 'COA';
     
     // Disable automatic ID column
-    protected static bool $shouldRegisterNavigation = true;
+    protected static bool $shouldRegisterNavigation = false;
     
     /**
      * Get category options based on account type
