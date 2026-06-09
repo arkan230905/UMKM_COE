@@ -1134,10 +1134,10 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating PDF...';
 
-        // Create form and submit
+        // Create form for export
         const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{{ route("laporan.penjualan.export-pdf") }}';
+        form.method = 'GET';
+        form.action = '{{ route("laporan.penjualan.export") }}';
         form.target = '_blank';
 
         // Add CSRF token
