@@ -119,24 +119,17 @@ class CoaAyamSeeder extends Seeder
 
             // BIAYA TENAGA KERJA TIDAK LANGSUNG (BOP BTKTL)
             ['kode_akun' => '54',   'nama_akun' => 'BOP BTKTL - Biaya Tenaga Kerja Tidak Langsung',       'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '540',  'nama_akun' => 'BOP BTKTL - Biaya Pegawai Pemasaran',                 'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '541',  'nama_akun' => 'BOP BTKTL - Biaya Pegawai Kemasan',                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '542',  'nama_akun' => 'BOP BTKTL - Biaya Satpam Pabrik',                     'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '543',  'nama_akun' => 'BOP BTKTL - Biaya Cleaning Service',                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '544',  'nama_akun' => 'BOP BTKTL - Biaya Mandor',                            'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '545',  'nama_akun' => 'BOP BTKTL - Biaya Pegawai Keuangan',                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '546',  'nama_akun' => 'BOP BTKTL - BTKTL Lainnya',                           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
 
-            // BOP TIDAK LANGSUNG LAINNYA (BOP TL)
-            ['kode_akun' => '55',   'nama_akun' => 'BOP TL - BOP Tidak Langsung Lainnya',                 'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '550',  'nama_akun' => 'BOP TL - Biaya Listrik',                              'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '551',  'nama_akun' => 'BOP TL - Sewa Tempat',                                'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '552',  'nama_akun' => 'BOP TL - Biaya Penyusutan Gedung',                    'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '553',  'nama_akun' => 'BOP TL - Biaya Penyusutan Peralatan',                 'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '554',  'nama_akun' => 'BOP TL - Biaya Penyusutan Kendaraan',                 'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '555',  'nama_akun' => 'BOP TL - Biaya Penyusutan Mesin',                     'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '556',  'nama_akun' => 'BOP TL - Biaya Air',                                  'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
-            ['kode_akun' => '557',  'nama_akun' => 'BOP TL - Lainnya',                                    'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            // BIAYA OVERHEAD PABRIK LAINNYA (BOP)
+            ['kode_akun' => '55',   'nama_akun' => 'BOP - Lainnya',                                           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '550',  'nama_akun' => 'BOP - Beban Listrik',                                     'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '551',  'nama_akun' => 'BOP - Beban Sewa Tempat',                                 'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '552',  'nama_akun' => 'BOP - Beban Penyusutan Gedung',                           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '553',  'nama_akun' => 'BOP - Beban Penyusutan Peralatan',                        'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '554',  'nama_akun' => 'BOP - Beban Penyusutan Kendaraan',                        'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '555',  'nama_akun' => 'BOP - Beban Penyusutan Mesin',                            'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '556',  'nama_akun' => 'BOP - Beban Air',                                         'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '557',  'nama_akun' => 'BOP - Lainnya',                                           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '558',  'nama_akun' => 'Beban Transport Pembelian',                           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '559',  'nama_akun' => 'Diskon Pembelian',                                    'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
         ];
