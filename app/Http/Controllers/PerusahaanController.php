@@ -17,8 +17,7 @@ class PerusahaanController extends Controller
         \Log::info('Request URL: ' . request()->fullUrl());
         
         // Ambil data perusahaan dari database, tabel 'perusahaan'
-        // Gunakan first() tanpa filter user_id karena kolom belum ada di database
-        $dataPerusahaan = Perusahaan::first();
+        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
 
         // Jika belum ada data, buat default dummy
         if (!$dataPerusahaan) {
@@ -43,14 +42,8 @@ class PerusahaanController extends Controller
             abort(403, 'Hanya owner yang dapat mengedit data perusahaan.');
         }
         
-        // Cek apakah ada data perusahaan, jika tidak ada redirect ke index
-        $dataPerusahaan = Perusahaan::first();
-        if (!$dataPerusahaan) {
-            return redirect('/tentang-perusahaan')->with('info', 'Silakan buat data perusahaan terlebih dahulu.');
-        }
-        
         // Ambil data perusahaan dari database, tabel 'perusahaan'
-        $dataPerusahaan = Perusahaan::first();
+        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
 
         // Jika belum ada data, buat default dummy
         if (!$dataPerusahaan) {
@@ -85,7 +78,7 @@ class PerusahaanController extends Controller
         ]);
 
         // Update data ke database
-        $perusahaan = Perusahaan::first();
+        $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
         
         if ($perusahaan) {
             $perusahaan->update([
@@ -100,6 +93,7 @@ class PerusahaanController extends Controller
         } else {
             // Jika belum ada, buat baru
             $perusahaan = Perusahaan::create([
+                'user_id' => auth()->id(),
                 'nama' => $request->nama,
                 'alamat' => $request->alamat,
                 'email' => $request->email,
@@ -111,7 +105,7 @@ class PerusahaanController extends Controller
             ]);
         }
 
-        return redirect('/tentang-perusahaan/detail')->with('success', "Data perusahaan '{$perusahaan->nama}' berhasil diperbarui.");
+        return redirect('/tentang-perusahaan')->with('success', "Data perusahaan '{$perusahaan->nama}' berhasil diperbarui.");
     }
 
     // Update informasi bank

@@ -519,13 +519,14 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         if ($totalHPP > 0) {
             // Get HPP COA - use getOrCreateCoaHpp to find or create the account
             $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            $formattedQty = (float)$qty;
             
             // Debit HPP account
             $lines[] = [
                 'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
-                'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
+                'memo' => "HPP untuk {$product->nama_produk} ({$formattedQty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
             ];
             
             // Credit persediaan barang jadi
@@ -534,7 +535,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
                 'code' => $persediaanCOA,
                 'debit' => 0,
                 'credit' => $totalHPP,
-                'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
+                'memo' => "Keluar persediaan - {$product->nama_produk} ({$formattedQty} pcs)"
             ];
         }
 
@@ -577,13 +578,14 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         if ($totalHPP > 0) {
             // Get HPP COA - use getOrCreateCoaHpp to find or create the account
             $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            $formattedQty = (float)$qty;
             
             // Debit HPP account
             $lines[] = [
                 'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
-                'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
+                'memo' => "HPP untuk {$product->nama_produk} ({$formattedQty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
             ];
             
             // Credit persediaan barang jadi
@@ -592,7 +594,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
                 'code' => $persediaanCOA,
                 'debit' => 0,
                 'credit' => $totalHPP,
-                'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
+                'memo' => "Keluar persediaan - {$product->nama_produk} ({$formattedQty} pcs)"
             ];
             
             \Log::info('HPP lines created for single item', ['lines_count' => count($lines)]);
