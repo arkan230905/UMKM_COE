@@ -63,46 +63,73 @@
 
 <!-- Journal Modal -->
 <div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="journalModalLabel">
-                    <i class="fas fa-book me-2"></i>Jurnal Pembelian
-                </h5>
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content rounded-4 shadow-lg border-0">
+            <div class="modal-header border-0 pb-2 pt-4 px-4">
+                <h4 class="modal-title fw-bold" id="journalModalLabel" style="color: #1F2937;">
+                    Jurnal Pembelian
+                </h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body px-4 pt-2">
+                <!-- Transaction Info Card -->
+                <div class="card border rounded-3 mb-4" id="transactionInfoCard" style="background-color: #ffffff; border-color: #E5E7EB !important; display: none;">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-1" style="font-size: 0.75rem; font-weight: 500;">Nomor Pembelian</small>
+                                    <span class="fw-bold fs-5" id="nomorPembelian" style="color: #1F2937;">-</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-1" style="font-size: 0.75rem; font-weight: 500;">Vendor</small>
+                                    <span class="fw-semibold" id="vendorName" style="color: #6B4F3A; font-size: 0.95rem;">-</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-1" style="font-size: 0.75rem; font-weight: 500;">Tanggal</small>
+                                    <span class="fw-semibold" id="tanggalPembelian" style="color: #1F2937; font-size: 0.95rem;">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Journal Table -->
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped align-middle">
-                        <thead class="table-dark">
+                    <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+                        <thead style="background-color: #F8F6F3;">
                             <tr>
-                                <th>Tanggal</th>
-                                <th>Akun</th>
-                                <th>Keterangan</th>
-                                <th class="text-end">Debet</th>
-                                <th class="text-end">Kredit</th>
+                                <th class="border-0 py-3 px-3" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Tanggal</th>
+                                <th class="border-0 py-3 px-3" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Akun</th>
+                                <th class="border-0 py-3 px-3" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Keterangan</th>
+                                <th class="border-0 py-3 px-3 text-end" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Debit</th>
+                                <th class="border-0 py-3 px-3 text-end" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Kredit</th>
                             </tr>
                         </thead>
-                        <tbody id="journalTableBody">
+                        <tbody id="journalTableBody" style="background-color: #ffffff;">
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="5" class="text-center text-muted py-5 border-bottom" style="border-color: #E5E7EB !important;">
                                     <i class="fas fa-info-circle me-2"></i>
                                     Pilih pembelian untuk melihat jurnal
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot class="table-secondary">
+                        <tfoot style="background-color: #F8F6F3;">
                             <tr class="fw-bold">
-                                <td colspan="3" class="text-end">Total:</td>
-                                <td class="text-end" id="totalDebit">Rp 0</td>
-                                <td class="text-end" id="totalCredit">Rp 0</td>
+                                <td colspan="3" class="text-end py-3 px-3 border-0" style="color: #1F2937; font-size: 0.95rem;">Total:</td>
+                                <td class="text-end py-3 px-3 border-0" id="totalDebit" style="color: #1F2937; font-size: 0.95rem;">Rp 0</td>
+                                <td class="text-end py-3 px-3 border-0" id="totalCredit" style="color: #1F2937; font-size: 0.95rem;">Rp 0</td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-footer border-0 px-4 pb-4 pt-3">
+                <button type="button" class="btn btn-secondary px-4 rounded-3" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -128,6 +155,43 @@
         background-color: #fff;
         border-color: #dee2e6 #dee2e6 #fff;
     }
+
+    /* Modern Journal Modal Styles */
+    #journalModal .modal-content {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    #journalModal tbody tr {
+        border-bottom: 1px solid #E5E7EB;
+        transition: background-color 0.15s ease;
+    }
+
+    #journalModal tbody tr:hover {
+        background-color: #F9FAFB !important;
+    }
+
+    #journalModal tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    #journalModal tbody td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+    }
+
+    #journalModal .account-name {
+        color: #1F2937;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    #journalModal .account-code {
+        color: #6B7280;
+        font-size: 0.8rem;
+        font-weight: 400;
+    }
 </style>
 @endpush
 @push('scripts')
@@ -142,13 +206,19 @@ const journalModalVersion = '2026-04-30-v2';
         const journalTableBody = document.getElementById('journalTableBody');
         const totalDebit = document.getElementById('totalDebit');
         const totalCredit = document.getElementById('totalCredit');
+        const transactionInfoCard = document.getElementById('transactionInfoCard');
         
         if (!journalTableBody) {
             console.error('journalTableBody element not found');
             return;
         }
         
-        journalTableBody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+        // Hide transaction info during loading
+        if (transactionInfoCard) {
+            transactionInfoCard.style.display = 'none';
+        }
+        
+        journalTableBody.innerHTML = '<tr><td colspan="5" class="text-center py-5 border-bottom" style="border-color: #E5E7EB !important;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
         totalDebit.textContent = 'Rp 0';
         totalCredit.textContent = 'Rp 0';
         
@@ -172,25 +242,36 @@ const journalModalVersion = '2026-04-30-v2';
                     let totalCreditAmount = 0;
                     let rows = '';
                     
+                    // Update transaction info card
+                    if (transactionInfoCard && data.pembelian) {
+                        document.getElementById('nomorPembelian').textContent = data.pembelian.nomor_pembelian || nomorPembelian || '-';
+                        document.getElementById('vendorName').textContent = data.pembelian.vendor_name || '-';
+                        document.getElementById('tanggalPembelian').textContent = data.pembelian.tanggal || '-';
+                        transactionInfoCard.style.display = 'block';
+                    }
+                    
                     data.journals.forEach(entry => {
                         totalDebitAmount += entry.debit;
                         totalCreditAmount += entry.kredit;
                         
-                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : '-';
+                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+                        
+                        // Modern account format without badge
                         const coaInfo = entry.coa ? 
-                            `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
-                            '<span class="badge bg-secondary">COA tidak ditemukan</span>';
+                            `<span class="account-name">${entry.coa.nama_akun}</span><span class="account-code">${entry.coa.kode_akun}</span>` : 
+                            '<span class="account-name text-muted">COA tidak ditemukan</span>';
+                        
                         const keterangan = entry.keterangan || '-';
                         const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-';
                         const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-';
                         
                         rows += `
-                            <tr>
-                                <td>${tanggal}</td>
-                                <td>${coaInfo}</td>
-                                <td>${keterangan}</td>
-                                <td class="text-end">${debit}</td>
-                                <td class="text-end">${kredit}</td>
+                            <tr style="border-bottom: 1px solid #E5E7EB;">
+                                <td class="px-3 py-3" style="color: #6B7280; font-size: 0.875rem;">${tanggal}</td>
+                                <td class="px-3 py-3">${coaInfo}</td>
+                                <td class="px-3 py-3" style="color: #6B7280; font-size: 0.875rem;">${keterangan}</td>
+                                <td class="text-end px-3 py-3" style="color: #1F2937; font-weight: 500; font-size: 0.875rem;">${debit}</td>
+                                <td class="text-end px-3 py-3" style="color: #1F2937; font-weight: 500; font-size: 0.875rem;">${kredit}</td>
                             </tr>
                         `;
                     });
@@ -199,9 +280,12 @@ const journalModalVersion = '2026-04-30-v2';
                     totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID');
                     totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID');
                 } else {
+                    if (transactionInfoCard) {
+                        transactionInfoCard.style.display = 'none';
+                    }
                     journalTableBody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="text-center text-muted">
+                            <td colspan="5" class="text-center text-muted py-5 border-bottom" style="border-color: #E5E7EB !important;">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 Jurnal belum dibuat untuk pembelian ini
                             </td>
@@ -211,9 +295,12 @@ const journalModalVersion = '2026-04-30-v2';
             })
             .catch(error => {
                 console.error('Error loading journal:', error);
+                if (transactionInfoCard) {
+                    transactionInfoCard.style.display = 'none';
+                }
                 journalTableBody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="text-center text-danger">
+                        <td colspan="5" class="text-center text-danger py-5 border-bottom" style="border-color: #E5E7EB !important;">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             Gagal memuat data jurnal: ${error.message}
                         </td>
