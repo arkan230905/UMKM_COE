@@ -11,7 +11,7 @@
         <i class="bi bi-journal-text me-2"></i>
         Jurnal Penyesuaian
       </h1>
-      <p class="text-muted mb-0">Jurnal penyusutan aset tetap periode {{ $periode->isoFormat('MMMM YYYY') }}</p>
+      <p class="text-muted mb-0">Jurnal penyusutan periode {{ $periode->isoFormat('MMMM YYYY') }}</p>
     </div>
     <div class="col-md-6 text-end">
       <div class="d-flex gap-2 justify-content-end">
@@ -72,12 +72,12 @@
   </div>
 
   <!-- Company Header (sama dengan Neraca Saldo) -->
-  <div class="mb-4">
-    <div class="p-4 bg-white rounded-3 shadow-sm" style="width: 100%;">
-      <div class="text-center">
-        <h4 class="fw-bold mb-2">PT MANUFAKTUR COE</h4>
-        <p class="text-muted mb-2 small">Laporan Keuangan {{ $periode->isoFormat('MMMM YYYY') }}</p>
-        <h5 class="fw-bold text-dark mb-0">Jurnal Penyesuaian</h5>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom">
+      <div class="text-center py-2">
+        <h4 class="mb-1 fw-bold">PT MANUFAKTUR COE</h4>
+        <p class="mb-1">Periode: {{ $periode->isoFormat('MMMM YYYY') }}</p>
+        <h5 class="mb-0 fw-bold">Jurnal Penyesuaian</h5>
       </div>
     </div>
   </div>

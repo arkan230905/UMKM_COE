@@ -125,7 +125,7 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h2>{{ $perusahaan->nama_perusahaan ?? 'PT Chindi' }}</h2>
+        <h2>PT MANUFAKTUR COE</h2>
         <p>Periode: {{ $periode->isoFormat('MMMM YYYY') }}</p>
         <h3 style="margin: 10px 0 0 0; font-size: 14px;">Jurnal Penyesuaian</h3>
     </div>
@@ -202,7 +202,7 @@
     <!-- Footer -->
     <div class="footer">
         <p>Dicetak pada: {{ now()->isoFormat('DD MMMM YYYY HH:mm') }}</p>
-        <p>{{ $perusahaan->nama_perusahaan ?? 'PT Chindi' }}</p>
+        <p>PT MANUFAKTUR COE</p>
     </div>
 </body>
 </html>
