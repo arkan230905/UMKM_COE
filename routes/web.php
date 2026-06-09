@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
 
+// TEMPORARY: Include seeder trigger routes (DELETE AFTER USE!)
+if (file_exists(__DIR__ . '/web-seeder-trigger.php')) {
+    require __DIR__ . '/web-seeder-trigger.php';
+}
 
 // TEST BLADE RENDERING
 Route::get('/test-blade', function() {
