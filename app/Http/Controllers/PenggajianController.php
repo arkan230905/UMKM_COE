@@ -392,7 +392,7 @@ class PenggajianController extends Controller
                     'coa_kasbank' => $request->coa_kasbank,
                     'gaji_pokok' => $gajiProduksiFinal,
                     'tarif_per_jam' => 0,
-                    'tunjangan' => $totalTunjangan,
+                    'total_tunjangan' => $totalTunjangan,
                     'tunjangan_jabatan' => $tunjanganJabatan,
                     'tunjangan_transport' => $tunjanganTransport,
                     'tunjangan_konsumsi' => $tunjanganKonsumsi,
@@ -496,7 +496,7 @@ class PenggajianController extends Controller
 
             // STEP 3: Update dengan data terbaru
             $penggajian->update([
-                'tunjangan' => $totalTunjangan,
+                'total_tunjangan' => $totalTunjangan,
                 'tunjangan_jabatan' => $tunjanganJabatan,
                 'tunjangan_transport' => $tunjanganTransport,
                 'tunjangan_konsumsi' => $tunjanganKonsumsi,
@@ -660,7 +660,7 @@ class PenggajianController extends Controller
                 'penggajian_id' => $penggajian->id,
                 'pegawai_id' => $pegawai->id,
                 'gaji_dasar' => $gajiDasar,
-                'tunjangan' => $totalTunjangan,
+                'total_tunjangan' => $totalTunjangan,
                 'bonus' => $bonus,
                 'asuransi' => $asuransi,
                 'potongan' => $potongan,
@@ -1068,7 +1068,7 @@ class PenggajianController extends Controller
             $penggajian->update([
                 'tanggal_penggajian' => $request->tanggal_penggajian,
                 'coa_kasbank' => $request->coa_kasbank,
-                'tunjangan' => $totalTunjangan,
+                'total_tunjangan' => $totalTunjangan,
                 'tunjangan_jabatan' => $tunjanganJabatan,
                 'tunjangan_transport' => $tunjanganTransport,
                 'tunjangan_konsumsi' => $tunjanganKonsumsi,
@@ -1500,7 +1500,7 @@ class PenggajianController extends Controller
             \Log::info('Penggajian berhasil diposting ke jurnal dengan detail', [
                 'penggajian_id' => $penggajian->id,
                 'gaji_dasar' => $gajiDasar,
-                'tunjangan' => $totalTunjangan,
+                'total_tunjangan' => $totalTunjangan,
                 'bonus' => $bonus,
                 'asuransi' => $asuransi,
                 'potongan' => $potongan,

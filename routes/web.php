@@ -3607,6 +3607,11 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
         Route::post('/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
         
+        // Jurnal Penyesuaian Aset
+        Route::get('/jurnal-penyesuaian-aset', [\App\Http\Controllers\JurnalPenyesuaianAsetController::class, 'index'])->name('jurnal-penyesuaian-aset');
+        Route::post('/jurnal-penyesuaian-aset/post', [\App\Http\Controllers\JurnalPenyesuaianAsetController::class, 'postToJurnal'])->name('jurnal-penyesuaian-aset.post');
+        Route::get('/jurnal-penyesuaian-aset/cetak-pdf', [\App\Http\Controllers\JurnalPenyesuaianAsetController::class, 'cetakPdf'])->name('jurnal-penyesuaian-aset.cetak-pdf');
+        
         // Redirect old URLs to new URLs for backward compatibility
         Route::redirect('/neraca', '/laporan-posisi-keuangan', 301);
         Route::redirect('/akuntansi/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
