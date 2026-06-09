@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,310 +13,397 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
             padding: 20px;
+            background: #f5f5f5;
         }
 
-        .container {
-            max-width: 900px;
+        .slip-container {
+            max-width: 800px;
             margin: 0 auto;
-            background-color: white;
-            padding: 50px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: white;
+            border: 2px solid #000;
+            padding: 0;
         }
 
-        /* Header Section */
+        /* Header Perusahaan */
         .header {
             text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #1a3557;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
         }
 
         .company-name {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1a3557;
-            margin-bottom: 15px;
-        }
-
-        .slip-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a3557;
-            letter-spacing: 3px;
-            margin-bottom: 8px;
-        }
-
-        .period-info {
-            font-size: 12px;
-            color: #999;
-        }
-
-        /* Employee Information Section */
-        .employee-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px 40px;
-            margin-bottom: 40px;
-            padding: 25px 0;
-        }
-
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .info-label {
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 6px;
+            font-size: 24px;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .info-value {
-            font-size: 13px;
-            color: #333;
-            font-weight: 500;
-        }
-
-        /* Salary Details Section */
-        .section-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a3557;
-            margin-bottom: 15px;
-            text-transform: uppercase;
+            margin-bottom: 10px;
             letter-spacing: 1px;
         }
 
-        .salary-table {
+        .slip-main-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .company-address {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+
+        /* Judul Slip */
+        .slip-title {
+            background: #e8e8e8;
+            text-align: center;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #333;
+        }
+
+        /* Info Pegawai Table */
+        .employee-info {
+            padding: 15px 20px;
+        }
+
+        .employee-info table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 40px;
         }
 
-        .salary-table thead {
-            background-color: #1a3557;
-            color: white;
+        .employee-info td {
+            padding: 5px 0;
+            font-size: 14px;
         }
 
-        .salary-table th {
-            padding: 12px 15px;
-            text-align: left;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+        .employee-info td:first-child {
+            width: 150px;
         }
 
-        .salary-table th:last-child {
-            text-align: right;
-        }
-
-        .salary-table td {
-            padding: 12px 15px;
-            font-size: 13px;
-            border-bottom: 1px solid #e8e8e8;
-        }
-
-        .salary-table td:last-child {
-            text-align: right;
-            font-weight: 500;
-        }
-
-        .salary-table tbody tr:nth-child(even) {
-            background-color: #f5f5f5;
-        }
-
-        .salary-table tbody tr:last-child {
-            background-color: #e8f0f8;
-            border-top: 2px solid #1a3557;
-            border-bottom: 2px solid #1a3557;
-            font-weight: 600;
-        }
-
-        .salary-table tbody tr:last-child td {
-            padding: 14px 15px;
-            font-size: 13px;
-        }
-
-        .amount {
-            color: #1a3557;
-        }
-
-        /* Signature Section */
-        .signature-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px;
-            margin-top: 60px;
-            padding-top: 40px;
-        }
-
-        .signature-box {
+        .employee-info td:nth-child(2) {
+            width: 20px;
             text-align: center;
         }
 
-        .signature-label {
-            font-size: 12px;
-            color: #333;
-            margin-bottom: 60px;
+        .employee-info td:last-child {
             font-weight: 500;
         }
 
-        .signature-line {
-            border-top: 1px solid #333;
-            padding-top: 8px;
+        /* Rincian Gaji Table */
+        .salary-details {
+            padding: 0 20px 20px 20px;
+        }
+
+        .salary-details table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .salary-details td {
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .salary-details .label-col {
+            width: 60%;
+        }
+
+        .salary-details .amount-col {
+            width: 40%;
+            text-align: right;
+        }
+
+        .salary-details .detail-text {
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+            padding-left: 20px;
+        }
+
+        /* Row Styles */
+        .salary-details .subtotal-row td {
+            border-top: 1px solid #000;
+            font-weight: bold;
+            padding-top: 10px;
+        }
+
+        .salary-details .total-row td {
+            border-top: 3px double #000;
+            font-weight: bold;
+            font-size: 16px;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            background: #f9f9f9;
+        }
+
+        .salary-details .underline {
+            text-decoration: underline;
+        }
+
+        /* Payment Method */
+        .payment-method {
+            padding: 10px 20px;
+            font-size: 13px;
+            color: #555;
+            border-top: 1px solid #ddd;
+        }
+
+        /* Signature */
+        .signature {
+            padding: 30px 20px 20px 20px;
+            text-align: right;
+        }
+
+        .signature-date {
+            margin-bottom: 60px;
+            font-size: 14px;
+        }
+
+        .signature-name {
+            font-weight: bold;
+            font-size: 14px;
+            text-decoration: underline;
+        }
+
+        .signature-title {
             font-size: 12px;
-            color: #333;
-            font-weight: 500;
+            color: #666;
         }
 
         /* Print Button */
         .print-button {
             text-align: center;
-            margin-bottom: 25px;
+            margin: 20px 0;
         }
 
         .print-button button {
-            padding: 10px 24px;
-            background-color: #1a3557;
+            background: #007bff;
             color: white;
             border: none;
-            border-radius: 4px;
+            padding: 12px 30px;
+            font-size: 14px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 13px;
             font-weight: 500;
-            transition: background-color 0.3s;
         }
 
         .print-button button:hover {
-            background-color: #0f1f33;
+            background: #0056b3;
         }
 
         /* Print Styles */
         @media print {
             body {
-                background-color: white;
+                background: white;
                 padding: 0;
             }
 
-            .container {
-                box-shadow: none;
+            .slip-container {
                 max-width: 100%;
-                padding: 40px;
+                border: 2px solid #000;
             }
 
             .print-button {
                 display: none;
             }
 
-            .no-print {
-                display: none;
+            .header {
+                background: #2c5282 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                color: white !important;
+            }
+
+            .signature-date {
+                margin-bottom: 80px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="print-button no-print">
+    @php
+        $bulanIndo = [
+            '', 'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
+            'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
+        ];
+        $bulan = $bulanIndo[$penggajian->periode_bulan];
+        $tahun = $penggajian->periode_tahun;
+        
+        // Get perusahaan data
+        $perusahaan = auth()->user()->perusahaan ?? null;
+        
+        // Calculate totals
+        $gajiProduksi = $penggajian->gaji_pokok ?? 0;
+        $tunjanganTransport = $penggajian->tunjangan_transport ?? 0;
+        $tunjanganKonsumsi = $penggajian->tunjangan_konsumsi ?? 0;
+        $tunjanganJabatan = $penggajian->tunjangan_jabatan ?? 0;
+        $totalTunjangan = $tunjanganTransport + $tunjanganKonsumsi + $tunjanganJabatan;
+        
+        $jumlahPendapatan = $gajiProduksi + $totalTunjangan;
+        
+        $asuransi = $penggajian->asuransi ?? 0;
+        $potongan = $penggajian->potongan ?? 0;
+        $jumlahPotongan = $asuransi + $potongan;
+        
+        $gajiDiterima = $penggajian->total_gaji ?? ($jumlahPendapatan - $jumlahPotongan);
+        
+        // Detail produksi
+        $jumlahProduk = $penggajian->total_produk_bulan ?? 0;
+        $tarifProduk = $penggajian->tarif_produk ?? 0;
+        
+        // Metode pembayaran
+        $metodeBayar = $penggajian->metode_pembayaran ?? 'transfer_bank';
+        if ($metodeBayar === 'kas' || $metodeBayar === 'cash') {
+            $metodeBayarText = 'Tunai';
+        } else {
+            $metodeBayarText = ucwords(str_replace('_', ' ', $metodeBayar));
+        }
+    @endphp
+
+    <div class="print-button">
         <button onclick="window.print()">
             🖨️ Cetak Slip Gaji
         </button>
     </div>
 
-    <div class="container">
-        <!-- Header -->
+    <div class="slip-container">
+        <!-- Header Perusahaan -->
         <div class="header">
-            <div class="company-name">PT. PERUSAHAAN ANDA</div>
-            <div class="slip-title">SLIP GAJI</div>
-            <div class="period-info">
-                Periode: {{ ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
-                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][$penggajian->periode_bulan] ?? 'N/A' }}
-                {{ $penggajian->periode_tahun ?? date('Y') }}
+            <div class="company-name">
+                {{ $perusahaan->nama ?? 'PT. PERUSAHAAN ANDA' }}
+            </div>
+            <div class="slip-main-title">SLIP GAJI</div>
+            <div class="company-address">
+                Periode: {{ $bulan }} {{ $tahun }}
             </div>
         </div>
 
-        <!-- Employee Information -->
+        <!-- Judul Slip Gaji -->
+        <div class="slip-title" style="display: none;">
+            SLIP GAJI {{ $bulan }} {{ $tahun }}
+        </div>
+
+        <!-- Informasi Pegawai -->
         <div class="employee-info">
-            <div class="info-item">
-                <div class="info-label">Nama Karyawan</div>
-                <div class="info-value">{{ $penggajian->pegawai->nama }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Kode Pegawai</div>
-                <div class="info-value">{{ $penggajian->pegawai->kode_pegawai ?? '-' }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Jabatan</div>
-                <div class="info-value">{{ $penggajian->pegawai->jabatanRelasi->nama ?? '-' }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Departemen</div>
-                <div class="info-value">{{ $penggajian->pegawai->departemen->nama_departemen ?? '-' }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Tanggal Penggajian</div>
-                <div class="info-value">{{ $penggajian->tanggal_penggajian->format('d/m/Y') }}</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Metode Pembayaran</div>
-                <div class="info-value">{{ ucfirst(str_replace('_', ' ', $penggajian->metode_pembayaran ?? '-')) }}</div>
-            </div>
+            <table>
+                <tr>
+                    <td>Nama</td>
+                    <td>:</td>
+                    <td>{{ $penggajian->pegawai->nama }}</td>
+                </tr>
+                <tr>
+                    <td>NIK</td>
+                    <td>:</td>
+                    <td>{{ $penggajian->pegawai->kode_pegawai ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td>Kualifikasi</td>
+                    <td>:</td>
+                    <td>{{ $penggajian->pegawai->jabatanRelasi->nama ?? $penggajian->pegawai->jabatan ?? 'Staff' }}</td>
+                </tr>
+                <tr>
+                    <td>Status</td>
+                    <td>:</td>
+                    <td>{{ strtoupper($penggajian->pegawai->kategori ?? $penggajian->pegawai->jenis_pegawai ?? '-') }}</td>
+                </tr>
+            </table>
         </div>
 
-        <!-- Salary Details -->
-        <div class="section-title">Rincian Gaji</div>
-        <table class="salary-table">
-            <thead>
+        <!-- Rincian Gaji -->
+        <div class="salary-details">
+            <table>
+                <!-- Gaji Produksi -->
                 <tr>
-                    <th>Keterangan</th>
-                    <th>Jumlah</th>
+                    <td class="label-col">Gaji Produksi</td>
+                    <td class="amount-col">{{ number_format($gajiProduksi, 0, ',', '.') }}</td>
                 </tr>
-            </thead>
-            <tbody>
+                @if($jumlahProduk > 0 && $tarifProduk > 0)
                 <tr>
-                    <td>Gaji Produksi</td>
-                    <td class="amount">Rp {{ number_format($breakdown['gaji_pokok'], 0, ',', '.') }}</td>
+                    <td class="detail-text" colspan="2">
+                        {{ number_format($jumlahProduk, 0, ',', '.') }} produk × Rp {{ number_format($tarifProduk, 0, ',', '.') }}
+                    </td>
                 </tr>
-                <tr>
-                    <td>Tunjangan Jabatan</td>
-                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_jabatan ?? 0, 0, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Tunjangan Transport</td>
-                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_transport ?? 0, 0, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Tunjangan Konsumsi</td>
-                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_konsumsi ?? 0, 0, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Asuransi / BPJS</td>
-                    <td class="amount">- Rp {{ number_format($penggajian->asuransi ?? 0, 0, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Total Gaji Bersih</td>
-                    <td class="amount">Rp {{ number_format($breakdown['total'], 0, ',', '.') }}</td>
-                </tr>
-            </tbody>
-        </table>
+                @endif
 
-        <!-- Signature Section -->
-        <div class="signature-section">
-            <div class="signature-box">
-                <div class="signature-label">Disetujui Oleh</div>
-                <div class="signature-line">
-                    ___________________________
-                </div>
-                <div style="margin-top: 8px; font-size: 12px; color: #666;">Kepala Departemen</div>
+                <!-- Tunjangan -->
+                @if($tunjanganTransport > 0)
+                <tr>
+                    <td class="label-col">Tunjangan Transport</td>
+                    <td class="amount-col underline">{{ number_format($tunjanganTransport, 0, ',', '.') }}+</td>
+                </tr>
+                @endif
+
+                @if($tunjanganKonsumsi > 0)
+                <tr>
+                    <td class="label-col">Tunjangan Konsumsi</td>
+                    <td class="amount-col underline">{{ number_format($tunjanganKonsumsi, 0, ',', '.') }}+</td>
+                </tr>
+                @endif
+
+                @if($tunjanganJabatan > 0)
+                <tr>
+                    <td class="label-col">Tunjangan Jabatan</td>
+                    <td class="amount-col underline">{{ number_format($tunjanganJabatan, 0, ',', '.') }}+</td>
+                </tr>
+                @endif
+
+                <!-- Jumlah Pendapatan -->
+                <tr class="subtotal-row">
+                    <td class="label-col">Jumlah Pendapatan</td>
+                    <td class="amount-col">{{ number_format($jumlahPendapatan, 0, ',', '.') }}</td>
+                </tr>
+
+                <!-- Potongan -->
+                @if($asuransi > 0)
+                <tr>
+                    <td class="label-col">BPJS / Asuransi</td>
+                    <td class="amount-col underline">{{ number_format($asuransi, 0, ',', '.') }}+</td>
+                </tr>
+                @endif
+
+                @if($potongan > 0)
+                <tr>
+                    <td class="label-col">Potongan Lainnya</td>
+                    <td class="amount-col underline">{{ number_format($potongan, 0, ',', '.') }}+</td>
+                </tr>
+                @endif
+
+                <!-- Jumlah Potongan -->
+                @if($jumlahPotongan > 0)
+                <tr class="subtotal-row">
+                    <td class="label-col">Jumlah Potongan</td>
+                    <td class="amount-col">{{ number_format($jumlahPotongan, 0, ',', '.') }}-</td>
+                </tr>
+                @endif
+
+                <!-- Gaji Diterima -->
+                <tr class="total-row">
+                    <td class="label-col">Gaji Diterima</td>
+                    <td class="amount-col">{{ number_format($gajiDiterima, 0, ',', '.') }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Metode Pembayaran -->
+        <div class="payment-method">
+            Metode Pembayaran: <strong>{{ $metodeBayarText }}</strong>
+        </div>
+
+        <!-- Tanda Tangan -->
+        <div class="signature">
+            <div class="signature-date">
+                {{ $perusahaan->kota ?? 'Kota' }}, {{ now()->format('d F Y') }}
             </div>
-            <div class="signature-box">
-                <div class="signature-label">Diterima Oleh</div>
-                <div class="signature-line">
-                    ___________________________
-                </div>
-                <div style="margin-top: 8px; font-size: 12px; color: #666;">{{ $penggajian->pegawai->nama }}</div>
+            <div class="signature-name">
+                {{ $perusahaan->nama_hr ?? 'Manajer HR' }}
+            </div>
+            <div class="signature-title">
+                ({{ $perusahaan->jabatan_hr ?? 'Manajer HR' }})
             </div>
         </div>
     </div>
