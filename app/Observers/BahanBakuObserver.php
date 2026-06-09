@@ -14,6 +14,26 @@ class BahanBakuObserver
      */
     public function created(BahanBaku $bahanBaku): void
     {
+        $this->autoSetCoaIfNeeded($bahanBaku);
+    }
+    
+    /**
+     * Handle the BahanBaku "updating" event.
+     * Auto-set coa_persediaan_id if changed or still null
+     */
+    public function updating(BahanBaku $bahanBaku): void
+    {
+        // Only auto-set if COA is null or if nama_bahan changed
+        if (!$bahanBaku->coa_persediaan_id || $bahanBaku->isDirty('nama_bahan')) {
+            $this->autoSetCoaIfNeeded($bahanBaku, false); // Don't save, let the update continue
+        }
+    }
+    
+    /**
+     * Auto-set coa_persediaan_id based on item name
+     */
+    private function autoSetCoaIfNeeded(BahanBaku $bahanBaku, bool $save = true): void
+    {
         // Skip if COA already set
         if ($bahanBaku->coa_persediaan_id) {
             return;
@@ -29,7 +49,10 @@ class BahanBakuObserver
         
         if ($coa) {
             $bahanBaku->coa_persediaan_id = $coa->kode_akun;
-            $bahanBaku->saveQuietly(); // Save without triggering events
+            
+            if ($save) {
+                $bahanBaku->saveQuietly(); // Save without triggering events
+            }
             
             Log::info('[BahanBakuObserver] Auto-set COA Persediaan', [
                 'bahan_baku_id' => $bahanBaku->id,

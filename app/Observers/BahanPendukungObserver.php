@@ -23,19 +23,34 @@ class BahanPendukungObserver
     public function created(BahanPendukung $bahanPendukung): void
     {
         // Auto-set COA Persediaan if not set
-        if (!$bahanPendukung->coa_persediaan_id) {
-            $this->autoSetCoaPersediaan($bahanPendukung);
-        }
+        $this->autoSetCoaIfNeeded($bahanPendukung);
         
         // Ensure initial stock movement exists for laporan stok
         $this->ensureInitialStockMovement($bahanPendukung);
     }
     
     /**
+     * Handle the BahanPendukung "updating" event.
+     * Auto-set coa_persediaan_id if changed or still null
+     */
+    public function updating(BahanPendukung $bahanPendukung): void
+    {
+        // Only auto-set if COA is null or if nama_bahan changed
+        if (!$bahanPendukung->coa_persediaan_id || $bahanPendukung->isDirty('nama_bahan')) {
+            $this->autoSetCoaIfNeeded($bahanPendukung, false); // Don't save, let the update continue
+        }
+    }
+    
+    /**
      * Auto-set coa_persediaan_id based on item name
      */
-    private function autoSetCoaPersediaan(BahanPendukung $bahanPendukung): void
+    private function autoSetCoaIfNeeded(BahanPendukung $bahanPendukung, bool $save = true): void
     {
+        // Skip if COA already set
+        if ($bahanPendukung->coa_persediaan_id) {
+            return;
+        }
+
         $coaKode = $this->getCoaKodeFromName($bahanPendukung->nama_bahan);
         
         // Find COA for this user
@@ -45,7 +60,10 @@ class BahanPendukungObserver
         
         if ($coa) {
             $bahanPendukung->coa_persediaan_id = $coa->kode_akun;
-            $bahanPendukung->saveQuietly(); // Save without triggering events
+            
+            if ($save) {
+                $bahanPendukung->saveQuietly(); // Save without triggering events
+            }
             
             Log::info('[BahanPendukungObserver] Auto-set COA Persediaan', [
                 'bahan_pendukung_id' => $bahanPendukung->id,
