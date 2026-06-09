@@ -102,9 +102,6 @@
                             <th class="nowrap">Metode Penyusutan</th>
                             <th class="nowrap text-end">Penyusutan Bulan Ini</th>
                             <th class="nowrap text-center">Status Posting</th>
-                            <th class="nowrap">COA Aset</th>
-                            <th class="nowrap">COA Akumulasi Penyusutan</th>
-                            <th class="nowrap">COA Beban Penyusutan</th>
                             <th class="nowrap text-center">Status</th>
                             <th class="text-center" style="width: 200px">Aksi</th>
                         </tr>
@@ -143,36 +140,6 @@
                                     <span class="badge bg-success">Sudah Posting</span>
                                 @else
                                     <span class="badge bg-warning">Belum Posting</span>
-                                @endif
-                            </td>
-                            <td class="nowrap">
-                                @if($aset->assetCoa)
-                                    <div class="small">
-                                        <div class="fw-semibold">{{ $aset->assetCoa->kode_akun }}</div>
-                                        <div class="text-muted">{{ $aset->assetCoa->nama_akun }}</div>
-                                    </div>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="nowrap">
-                                @if($aset->accumDepreciationCoa)
-                                    <div class="small">
-                                        <div class="fw-semibold">{{ $aset->accumDepreciationCoa->kode_akun }}</div>
-                                        <div class="text-muted">{{ $aset->accumDepreciationCoa->nama_akun }}</div>
-                                    </div>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="nowrap">
-                                @if($aset->expenseCoa)
-                                    <div class="small">
-                                        <div class="fw-semibold">{{ $aset->expenseCoa->kode_akun }}</div>
-                                        <div class="text-muted">{{ $aset->expenseCoa->nama_akun }}</div>
-                                    </div>
-                                @else
-                                    <span class="text-muted">-</span>
                                 @endif
                             </td>
                             <td class="nowrap text-center">
