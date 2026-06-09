@@ -583,10 +583,7 @@ function handleJenisAsetChange() {
         // Set required
         metodePenyusutan.required = true;
         umurManfaat.required = true;
-        document.getElementById('accum_depr_coa_id').required = true;
-        document.getElementById('accum_depr_coa_id').parentElement.style.display = 'block';
-        document.getElementById('expense_coa_id').required = true;
-        document.getElementById('expense_coa_id').parentElement.style.display = 'block';
+        // COA fields removed - sistem auto-posting akan handle COA otomatis
         
         if (jenis === 'aset-tetap') {
             nilaiResidu.required = true;
@@ -630,10 +627,7 @@ function handleJenisAsetChange() {
         metodePenyusutan.required = false;
         umurManfaat.required = false;
         nilaiResidu.required = false;
-        document.getElementById('accum_depr_coa_id').required = false;
-        document.getElementById('accum_depr_coa_id').parentElement.style.display = 'none';
-        document.getElementById('expense_coa_id').required = false;
-        document.getElementById('expense_coa_id').parentElement.style.display = 'none';
+        // COA fields removed - sistem auto-posting akan handle COA otomatis
         
         // Set nilai default
         metodePenyusutan.value = '';

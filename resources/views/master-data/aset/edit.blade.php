@@ -515,59 +515,7 @@
                         </div>
                     </div>
 
-                    <!-- COA Selection -->
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="asset_coa_id" class="form-label text-dark">Akun COA Aset <span class="text-danger">*</span></label>
-                            <select class="form-select bg-white text-dark @error('asset_coa_id') is-invalid @enderror" 
-                                    id="asset_coa_id" name="asset_coa_id" required>
-                                <option value="" disabled>-- Pilih Akun Aset --</option>
-                                @foreach($coaAsets as $coa)
-                                    <option value="{{ $coa->id }}" {{ old('asset_coa_id', $aset->asset_coa_id) == $coa->id ? 'selected' : '' }}>
-                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">Pilih akun aset untuk mencatat nilai perolehan aset</small>
-                            @error('asset_coa_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label for="accum_depr_coa_id" class="form-label text-dark">Akun COA Akumulasi Penyusutan</label>
-                            <select class="form-select bg-white text-dark @error('accum_depr_coa_id') is-invalid @enderror" 
-                                    id="accum_depr_coa_id" name="accum_depr_coa_id">
-                                <option value="" disabled>-- Pilih Akun Akumulasi --</option>
-                                @foreach($coaAkumulasi as $coa)
-                                    <option value="{{ $coa->id }}" {{ old('accum_depr_coa_id', $aset->accum_depr_coa_id) == $coa->id ? 'selected' : '' }}>
-                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">Pilih akun akumulasi penyusutan aset</small>
-                            @error('accum_depr_coa_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label for="expense_coa_id" class="form-label text-dark">Akun COA Beban Penyusutan</label>
-                            <select class="form-select bg-white text-dark @error('expense_coa_id') is-invalid @enderror" 
-                                    id="expense_coa_id" name="expense_coa_id">
-                                <option value="" disabled>-- Pilih Akun Beban --</option>
-                                @foreach($coaBeban as $coa)
-                                    <option value="{{ $coa->id }}" {{ old('expense_coa_id', $aset->expense_coa_id) == $coa->id ? 'selected' : '' }}>
-                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">Pilih akun beban penyusutan aset</small>
-                            @error('expense_coa_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                    <!-- COA Selection - REMOVED: Sistem auto-posting akan handle COA otomatis -->
                 </div>
 
                 <!-- Alert untuk aset yang tidak disusutkan -->
@@ -803,10 +751,7 @@ function handleJenisAsetChange() {
         
         metodePenyusutan.required = true;
         umurManfaat.required = true;
-        if(document.getElementById('accum_depr_coa_id')) document.getElementById('accum_depr_coa_id').required = true;
-        if(document.getElementById('accum_depr_coa_id')) document.getElementById('accum_depr_coa_id').parentElement.style.display = 'block';
-        if(document.getElementById('expense_coa_id')) document.getElementById('expense_coa_id').required = true;
-        if(document.getElementById('expense_coa_id')) document.getElementById('expense_coa_id').parentElement.style.display = 'block';
+        // COA fields removed - sistem auto-posting akan handle COA otomatis
         
         if (jenis === 'aset-tetap') {
             nilaiResidu.required = true;
@@ -839,10 +784,7 @@ function handleJenisAsetChange() {
         metodePenyusutan.required = false;
         umurManfaat.required = false;
         nilaiResidu.required = false;
-        if(document.getElementById('accum_depr_coa_id')) document.getElementById('accum_depr_coa_id').required = false;
-        if(document.getElementById('accum_depr_coa_id')) document.getElementById('accum_depr_coa_id').parentElement.style.display = 'none';
-        if(document.getElementById('expense_coa_id')) document.getElementById('expense_coa_id').required = false;
-        if(document.getElementById('expense_coa_id')) document.getElementById('expense_coa_id').parentElement.style.display = 'none';
+        // COA fields removed - sistem auto-posting akan handle COA otomatis
         metodePenyusutan.value = '';
         umurManfaat.value = '';
         nilaiResidu.value = '';

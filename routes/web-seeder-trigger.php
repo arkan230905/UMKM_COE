@@ -139,3 +139,51 @@ Route::get('/check-seeders-status', function () {
             : 'Some COAs are missing, run /run-seeders-now'
     ]);
 });
+
+Route::get('/clear-cache-now', function () {
+    // Clear all caches - useful after deployment
+    if (!auth()->check()) {
+        return response()->json([
+            'error' => 'Unauthorized. Please login as admin first.'
+        ], 401);
+    }
+
+    if (!in_array(auth()->user()->role, ['admin', 'owner'])) {
+        return response()->json([
+            'error' => 'Forbidden. Only admin/owner can clear cache.'
+        ], 403);
+    }
+
+    $results = [];
+    
+    try {
+        // Clear view cache
+        Artisan::call('view:clear');
+        $results[] = '✅ View cache cleared';
+
+        // Clear config cache
+        Artisan::call('config:clear');
+        $results[] = '✅ Config cache cleared';
+
+        // Clear route cache
+        Artisan::call('route:clear');
+        $results[] = '✅ Route cache cleared';
+
+        // Clear application cache
+        Artisan::call('cache:clear');
+        $results[] = '✅ Application cache cleared';
+
+        $results[] = '<br>✅ <strong style="color: green;">All caches cleared! Refresh halaman edit aset sekarang.</strong>';
+
+        return response('<html><head><title>Cache Cleared</title></head><body style="font-family: monospace; padding: 20px;"><pre>' 
+            . implode("\n", $results) 
+            . '</pre></body></html>');
+
+    } catch (\Exception $e) {
+        $results[] = '❌ <strong style="color: red;">ERROR:</strong> ' . $e->getMessage();
+        
+        return response('<html><head><title>Cache Clear Error</title></head><body style="font-family: monospace; padding: 20px; background: #fee;"><pre>' 
+            . implode("\n", $results) 
+            . '</pre></body></html>', 500);
+    }
+});
