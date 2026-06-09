@@ -51,6 +51,11 @@ Route::get('/run-seeders-now', function () {
         Artisan::call('db:seed', ['--class' => 'AddBankAccountsToAllUsers']);
         $results[] = '✅ AddBankAccountsToAllUsers completed: ' . Artisan::output();
 
+        // 4. CopyCoaTemplateToExistingUsers (NEW - IMPORTANT!)
+        $results[] = '<br>📋 Running CopyCoaTemplateToExistingUsers...';
+        Artisan::call('db:seed', ['--class' => 'CopyCoaTemplateToExistingUsers']);
+        $results[] = '✅ CopyCoaTemplateToExistingUsers completed: ' . Artisan::output();
+
         // Verification
         $results[] = '<br><br>📊 <strong>Verification Results:</strong>';
         

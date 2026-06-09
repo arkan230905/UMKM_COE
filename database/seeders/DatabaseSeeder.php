@@ -12,10 +12,11 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CompanySeeder::class,
             CoaTemplateSeeder::class,
-            JasukeCoaSeeder::class,             // Memastikan COA Jasuke masuk terakhir
-            CoaAyamSeeder::class,               // COA untuk usaha Ayam Crispy (81 COA)
-            FixMissingWipCoasForUsers::class,   // Fix missing WIP COAs (1171-1173) untuk user yang punya 117
-            AddBankAccountsToAllUsers::class,   // Add 3 bank accounts: BCA (1111), Mandiri (1112), BRI (1113)
+            JasukeCoaSeeder::class,                  // Memastikan COA Jasuke masuk terakhir
+            CoaAyamSeeder::class,                    // COA untuk usaha Ayam Crispy (81 COA)
+            FixMissingWipCoasForUsers::class,        // Fix missing WIP COAs (1171-1173) untuk user yang punya 117
+            AddBankAccountsToAllUsers::class,        // Add 3 bank accounts: BCA (1111), Mandiri (1112), BRI (1113)
+            CopyCoaTemplateToExistingUsers::class,   // Copy all template COAs to existing users
         ]);
     }
 }
