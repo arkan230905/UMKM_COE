@@ -10,19 +10,10 @@
         $jenis = strtolower($penggajian->pegawai->jenis_pegawai ?? 'btktl');
         $coa = \App\Models\Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
 
-        $tarifProduk = (float)($penggajian->tarif_produk ?? $penggajian->tarif_per_jam ?? 0);
-        $produkDihasilkan = (float)($penggajian->total_produk_bulan ?? $penggajian->total_produk_bulanan ?? 0);
-        $gajiDasar = (float)($penggajian->gaji_pokok ?? 0);
-
-        if ($gajiDasar <= 0 && $produkDihasilkan > 0 && $tarifProduk > 0) {
-            $gajiDasar = $produkDihasilkan * $tarifProduk;
-        }
-
-        $totalGajiHitung = $gajiDasar
-            + (float)($penggajian->total_tunjangan ?? 0)
-            + (float)($penggajian->bonus ?? 0)
-            - (float)($penggajian->asuransi ?? 0)
-            - (float)($penggajian->potongan ?? 0);
+        $tarifProduk = (float)($produkPayroll['tarif_produk'] ?? 0);
+        $produkDihasilkan = (float)($produkPayroll['produk_dihasilkan'] ?? 0);
+        $gajiDasar = (float)($produkPayroll['gaji_dasar'] ?? $penggajian->gaji_pokok ?? 0);
+        $totalGajiHitung = (float)($produkPayroll['total_gaji'] ?? $penggajian->total_gaji ?? 0);
     @endphp
 
     <div class="row">

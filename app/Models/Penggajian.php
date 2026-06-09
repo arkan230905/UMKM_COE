@@ -213,6 +213,10 @@ class Penggajian extends Model
      */
     public function getTotalProdukBulanAttribute()
     {
+        if (($this->attributes['total_produk_bulan'] ?? 0) > 0) {
+            return (int) $this->attributes['total_produk_bulan'];
+        }
+
         return ($this->produk_hari_1_5 ?? 0) + 
                ($this->produk_hari_6_10 ?? 0) + 
                ($this->produk_hari_11_20 ?? 0) + 

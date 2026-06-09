@@ -93,7 +93,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-{{ $row->kategori==='btkl'?'primary':'success' }}">
+                                <span class="badge bg-success">
                                     {{ strtoupper($row->kategori) }}
                                 </span>
                             </td>

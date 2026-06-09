@@ -6152,19 +6152,3 @@ require_once __DIR__ . '/test-dashboard.php';
 
 // Include pelanggan fallback routes (redirect dari URL lama ke URL baru)
 require_once __DIR__ . '/pelanggan-fallback.php';
-// Temporary cleanup route for asset types
-Route::get('/cleanup-aset-urgent', function () {
-    try {
-        // Delete Aset Tidak Berwujud (ID 3) and Aset Lancar (ID 2)
-        $asetCount = DB::table('asets')->whereIn('jenis_aset_id', [2, 3])->delete();
-        $katCount = DB::table('kategori_asets')->whereIn('jenis_aset_id', [2, 3])->delete();
-        $jenisCount = DB::table('jenis_asets')->whereIn('id', [2, 3])->delete();
-
-        return "<h2>✅ Asset Cleanup Complete!</h2>
-                <p>Deleted {$asetCount} asets, {$katCount} categories (including Hak Cipta), {$jenisCount} jenis aset.</p>
-                <p><strong>Only Aset Tetap remains now!</strong></p>
-                <p><a href='/master-data/aset/create'>← Back to Aset</a></p>";
-    } catch (\Exception $e) {
-        return "<h2>❌ Error</h2><p>" . $e->getMessage() . "</p>";
-    }
-});
