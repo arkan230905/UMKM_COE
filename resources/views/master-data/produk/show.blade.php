@@ -16,10 +16,9 @@
                             $fotoUrl = '';
                             $fotoExists = false;
                             if ($produk->foto) {
-                                // Use Storage::url helper for proper URL generation
-                                $fotoUrl = Storage::url($produk->foto);
-                                // Check if file exists in storage
-                                $fotoExists = storage_exists($produk->foto);
+                                // Use asset() helper for proper URL generation
+                                $fotoUrl = asset('storage/' . $produk->foto);
+                                $fotoExists = true;
                             }
                         @endphp
                         @if($produk->foto && $fotoExists)

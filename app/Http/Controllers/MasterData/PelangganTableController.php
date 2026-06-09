@@ -10,15 +10,33 @@ use Illuminate\Support\Facades\Schema;
 
 class PelangganTableController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // 🔒 SECURITY: Get pelanggan users (registered via website)
-        // Pelanggan yang terdaftar melalui website memiliki role='pelanggan'
-        // Semua owner bisa melihat semua pelanggan yang terdaftar
-        $pelanggans = User::where('role', 'pelanggan')
-            ->withCount('orders')
-            ->latest()
-            ->paginate(15);
+        $query = User::where('role', 'pelanggan')->withCount('orders');
+
+        // Filter Pencarian
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Filter Rentang Tanggal Pendaftaran
+        if ($request->filled('date_start') && $request->filled('date_end')) {
+            $query->whereBetween('created_at', [
+                $request->date_start . ' 00:00:00',
+                $request->date_end . ' 23:59:59'
+            ]);
+        } elseif ($request->filled('date_start')) {
+            $query->where('created_at', '>=', $request->date_start . ' 00:00:00');
+        } elseif ($request->filled('date_end')) {
+            $query->where('created_at', '<=', $request->date_end . ' 23:59:59');
+        }
+
+        $pelanggans = $query->latest()->paginate(15)->withQueryString();
         
         return view('master-data.pelanggan.index', compact('pelanggans'));
     }

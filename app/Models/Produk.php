@@ -167,77 +167,8 @@ class Produk extends Model
     public function getActualHPP($tanggalPenjualan = null)
     {
         // PRIORITY 1: Get from Harga Pokok Produksi (BBB + BTKL + BOP) - ALWAYS USE THIS
-        $hppFromCalculation = $this->getHPPFromHargaPokokProduksi();
-        if ($hppFromCalculation > 0) {
-            return $hppFromCalculation;
-        }
-        
-        // PRIORITY 2: Use harga_pokok from database if calculation returns 0
-        if (!empty($this->harga_pokok) && $this->harga_pokok > 0) {
-            return $this->harga_pokok;
-        }
-        
-        // PRIORITY 3: Try to get from production costs
-        $query = \App\Models\Produksi::where('produk_id', $this->id)
-            ->where('status', 'completed')
-            ->orderBy('id', 'desc')
-            ->take(5); // Ambil 5 produksi terakhir
-        
-        // Jika ada tanggal penjualan, filter produksi sebelum tanggal tersebut
-        if ($tanggalPenjualan) {
-            $query->where('tanggal', '<=', $tanggalPenjualan);
-        }
-        
-        $productionCosts = $query->get();
-        
-        if ($productionCosts->isNotEmpty()) {
-            // Prioritaskan produksi yang memiliki total_biaya dan qty_produksi
-            foreach ($productionCosts as $production) {
-                // Gunakan total_biaya dan qty_produksi dari produksi jika ada
-                if ($production->total_biaya > 0 && $production->qty_produksi > 0) {
-                    return $production->total_biaya / $production->qty_produksi;
-                }
-            }
-            
-            // Fallback ke perhitungan dari detail produksi
-            $totalCost = 0;
-            $totalQuantity = 0;
-            $hasValidData = false;
-            
-            foreach ($productionCosts as $production) {
-                // Ambil detail produksi
-                $productionDetails = \App\Models\ProduksiDetail::where('produksi_id', $production->id)->get();
-                
-                foreach($productionDetails as $detail) {
-                    // Skip jika data tidak valid
-                    if (empty($detail->qty_konversi) || empty($detail->harga_satuan)) {
-                        continue;
-                    }
-                    
-                    $hasValidData = true;
-                    
-                    // Gunakan subtotal dari detail produksi
-                    $totalCost += $detail->subtotal ?? 0;
-                    $totalQuantity += $detail->qty_konversi ?? 0;
-                }
-            }
-            
-            if ($hasValidData && $totalQuantity > 0) {
-                return $totalCost / $totalQuantity;
-            }
-        }
-        
-        // PRIORITY 4: Try to get from harga_bom
-        if (!empty($this->harga_bom) && $this->harga_bom > 0) {
-            return $this->harga_bom;
-        }
-        
-        // PRIORITY 5: Fallback to 50% of harga_jual if still 0
-        if (!empty($this->harga_jual) && $this->harga_jual > 0) {
-            return $this->harga_jual * 0.5;
-        }
-        
-        return 0;
+        // Sesuai dengan permintaan, hanya mengambil total HPP yang ada di halaman Harga Pokok Produksi.
+        return $this->getHPPFromHargaPokokProduksi();
     }
     
     /**
@@ -261,6 +192,12 @@ class Produk extends Model
             })
             ->with('biayaBahanBaku')
             ->get();
+            
+        // Jika tidak ada data BBB, berarti produk ini belum diatur di Harga Pokok Produksi
+        // Kembalikan 0 agar tidak mendapat tambahan BTKL & BOP global
+        if ($selectedBbb->isEmpty()) {
+            return 0;
+        }
         
         $totalBbb = 0;
         foreach ($selectedBbb as $bbb) {
@@ -277,9 +214,10 @@ class Produk extends Model
         $totalBtkl = 0;
         foreach ($selectedBtkl as $btkl) {
             if ($btkl->prosesProduksi) {
-                // Use tarif_btkl directly as biaya per produk
-                $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
-                $totalBtkl += $tarif;
+                // Use tarif_per_produk * jumlah_pegawai as biaya per produk
+                $tarifPerProduk = $btkl->prosesProduksi->tarif_per_produk ?? 0;
+                $jumlahPegawai = $btkl->prosesProduksi->jumlah_pegawai ?? 1;
+                $totalBtkl += ($tarifPerProduk * $jumlahPegawai);
             }
         }
         

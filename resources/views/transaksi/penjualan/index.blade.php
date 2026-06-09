@@ -444,8 +444,7 @@
                     <select name="payment_method" class="form-select form-select-sm">
                         <option value="">Semua Metode</option>
                         <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                        <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -563,12 +562,11 @@
                                 <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                 <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                 <td>
-                                    <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                                    <span class="badge bg-success">
                                         @switch($penjualan->payment_method ?? '')
                                             @case('cash') Tunai @break
-                                            @case('transfer') Transfer @break
-                                            @case('credit') Kredit @break
-                                            @default Tidak Diketahui
+                                            @case('transfer') Transfer Bank @break
+                                            @default {{ ucfirst($penjualan->payment_method ?? '') }}
                                         @endswitch
                                     </span>
                                 </td>
@@ -753,14 +751,46 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="text-center" style="width: 50px">NO</th>
-                                    <th>Tanggal</th>
-                                    <th>Nomor Penjualan</th>
-                                    <th>Deskripsi</th>
-                                    <th>Kompensasi</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Total Retur</th>
-                                    <th>Produk</th>
+                                    <th class="text-center" style="width: 50px">
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'no', 'sort_retur_dir' => request('sort_retur_by') === 'no' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            NO @if(request('sort_retur_by') === 'no') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'tanggal', 'sort_retur_dir' => request('sort_retur_by', 'tanggal') === 'tanggal' && request('sort_retur_dir', 'desc') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Tanggal @if(request('sort_retur_by', 'tanggal') === 'tanggal') <i class="fas fa-sort-{{ request('sort_retur_dir', 'desc') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'nomor_penjualan', 'sort_retur_dir' => request('sort_retur_by') === 'nomor_penjualan' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Nomor Penjualan @if(request('sort_retur_by') === 'nomor_penjualan') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'deskripsi', 'sort_retur_dir' => request('sort_retur_by') === 'deskripsi' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Deskripsi @if(request('sort_retur_by') === 'deskripsi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'kompensasi', 'sort_retur_dir' => request('sort_retur_by') === 'kompensasi' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Kompensasi @if(request('sort_retur_by') === 'kompensasi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'status', 'sort_retur_dir' => request('sort_retur_by') === 'status' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Status @if(request('sort_retur_by') === 'status') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th class="text-end">
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'total_retur', 'sort_retur_dir' => request('sort_retur_by') === 'total_retur' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Total Retur @if(request('sort_retur_by') === 'total_retur') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'produk', 'sort_retur_dir' => request('sort_retur_by') === 'produk' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
+                                            Produk @if(request('sort_retur_by') === 'produk') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                        </a>
+                                    </th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
@@ -781,9 +811,6 @@
                                                         break;
                                                     case 'tukar_barang':
                                                         $jenisLabel = 'Tukar Barang';
-                                                        break;
-                                                    case 'kredit':
-                                                        $jenisLabel = 'Kredit';
                                                         break;
                                                     default:
                                                         $jenisLabel = '-';
@@ -943,12 +970,11 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <strong>Metode Pembayaran:</strong> 
-                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                            @switch($penjualan->payment_method ?? '')
+                        <span class="badge bg-success">
+                            @switch($penjualan->payment_method ?? 'cash')
                                 @case('cash') Tunai @break
-                                @case('transfer') Transfer @break
-                                @case('credit') Kredit @break
-                                @default Tidak Diketahui
+                                @case('transfer') Transfer Bank @break
+                                @default {{ ucfirst($penjualan->payment_method ?? '-') }}
                             @endswitch
                         </span>
                     </div>
@@ -1268,7 +1294,7 @@
                                 <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
                                 <td>
                                     <span class="badge {{ $retur->jenis_retur === 'refund' ? 'bg-danger' : ($retur->jenis_retur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
-                                        {{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : ($retur->jenis_retur === 'refund' ? 'Refund' : 'Kredit') }}
+                                        {{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : 'Refund' }}
                                     </span>
                                 </td>
                                 <td>
@@ -1451,26 +1477,11 @@ function loadStruk(penjualanId) {
 }
 
 function printStruk(elementId) {
-    const printContent = document.getElementById(elementId);
-    const printWindow = window.open('', '_blank');
+    // extract penjualanId from elementId (e.g. 'strukContent123')
+    const penjualanId = elementId.replace('strukContent', '');
     
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Struk Penjualan</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    @media print { body { margin: 0; } }
-                </style>
-            </head>
-            <body>
-                ${printContent.innerHTML}
-            </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.print();
+    // Open the full receipt page directly in a new window to preserve styles and sizes
+    window.open(`/transaksi/penjualan/${penjualanId}/struk?print=1`, '_blank', 'width=400,height=600');
 }
 
 // Load struk saat modal dibuka

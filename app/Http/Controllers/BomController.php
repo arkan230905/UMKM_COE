@@ -306,7 +306,7 @@ return [
         // Optimized query with specific columns only
         $bopProses = \App\Models\BopProses::where('user_id', auth()->id())
             ->where('is_active', true)
-            ->select('id', 'nama_bop_proses', 'komponen_bop', 'bop_per_unit', 'total_bop_per_produk')
+            ->select('id', 'nama_bop_proses', 'komponen_bahan_pendukung', 'komponen_lainnya', 'total_bop_per_produk')
             ->get();
         
         // Transform data to match expected format
@@ -314,10 +314,10 @@ return [
             return [
                 'id' => $item->id,
                 'nama_bop_proses' => $item->nama_bop_proses ?? 'BOP Proses',
-                'komponen_bop' => $item->komponen_bop ?? [],
-                'bop_per_unit' => $item->bop_per_unit ?? 0,
+                'komponen_bahan_pendukung' => $item->komponen_bahan_pendukung ?? [],
+                'komponen_lainnya' => $item->komponen_lainnya ?? [],
                 'total_bop_per_produk' => $item->total_bop_per_produk ?? 0,
-                'tarif' => $item->bop_per_unit ?? $item->total_bop_per_produk ?? 0,
+                'tarif' => $item->total_bop_per_produk ?? 0,
                 'satuan' => 'Unit',
             ];
         });

@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Models\BiayaBahanBaku;
 use App\Models\Btkl;
 use App\Models\Bop;
+use App\Models\BopProses;
 use App\Models\Produksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,7 +126,10 @@ class HppController extends Controller
             ->with(['jabatan'])
             ->get();
 
-        $bops = Bop::where('user_id', auth()->id())
+        // Get BOP Proses (new structure with komponen_bahan_pendukung & komponen_lainnya)
+        $bops = BopProses::where('user_id', auth()->id())
+            ->where('is_active', true)
+            ->orderBy('nama_bop_proses')
             ->get();
 
         return view('hpp.create', compact(
@@ -150,7 +154,7 @@ class HppController extends Controller
             'btkl_selected' => 'nullable|array',
             'btkl_selected.*' => 'exists:btkls,id',
             'bop_selected' => 'nullable|array',
-            'bop_selected.*' => 'exists:bops,id',
+            'bop_selected.*' => 'exists:bop_proses,id',
         ]);
 
         DB::beginTransaction();
@@ -193,17 +197,18 @@ class HppController extends Controller
                 }
             }
 
-            // Calculate BOP
+            // Calculate BOP using BopProses (new structure)
             $totalBOP = 0;
             if ($request->bop_selected) {
                 foreach ($request->bop_selected as $bopId) {
-                    $bop = Bop::where('id', $bopId)
+                    $bop = BopProses::where('id', $bopId)
                         ->where('user_id', auth()->id())
                         ->first();
                     
                     if ($bop) {
-                        $nominal = $bop->nominal ?? 0;
-                        $totalBOP += $nominal;
+                        // Use total_bop_per_produk from new structure
+                        $nominal = $bop->total_bop_per_produk ?? 0;
+                        $totalBOP += $nominal * $request->jumlah_produk;
 
                         // Save BOP selection
                         $bom->bopSelections()->create([

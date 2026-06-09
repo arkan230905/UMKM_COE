@@ -3061,6 +3061,7 @@ Route::middleware('auth')->group(function () {
         Route::get('api/pembelian/{id}/journal', function($id) {
             $pembelian = \App\Models\Pembelian::where('id', $id)
                 ->where('user_id', auth()->id()) // Multi-tenant security
+                ->with('vendor') // Load vendor relation
                 ->first();
                 
             if (!$pembelian) {
@@ -3090,13 +3091,20 @@ Route::middleware('auth')->group(function () {
                 ];
             });
             
+            // Format tanggal pembelian
+            $tanggalFormatted = $pembelian->tanggal ? 
+                \Carbon\Carbon::parse($pembelian->tanggal)->locale('id')->isoFormat('D MMMM YYYY') : 
+                '-';
+            
             return response()->json([
                 'success' => true,
                 'journals' => $journalsArray,
                 'pembelian' => [
                     'id' => $pembelian->id,
                     'nomor_pembelian' => $pembelian->nomor_pembelian,
-                    'total_harga' => $pembelian->total_harga
+                    'total_harga' => $pembelian->total_harga,
+                    'vendor_name' => $pembelian->vendor ? $pembelian->vendor->nama : '-',
+                    'tanggal' => $tanggalFormatted
                 ]
             ]);
         })->name('api.pembelian.journal');
@@ -3457,6 +3465,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::post('/', [ProduksiController::class, 'store'])->name('store');
             Route::get('/get-bom-details/{produkId}', [ProduksiController::class, 'getBomDetails'])->name('get-bom-details');
             Route::post('/mulai-lagi', [ProduksiController::class, 'mulaiLagi'])->name('mulai-lagi');
+            Route::post('/mulai-hari-ini', [ProduksiController::class, 'mulaiHariIni'])->name('mulai-hari-ini');
             Route::post('/{id}/mulai-produksi', [ProduksiController::class, 'mulaiProduksi'])->name('mulai-produksi');
             Route::get('/{id}/edit', [ProduksiController::class, 'edit'])->name('edit');
             Route::put('/{id}', [ProduksiController::class, 'update'])->name('update');
@@ -3520,7 +3529,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         
         // Laporan Penjualan
         Route::get('/penjualan', [\App\Http\Controllers\LaporanPenjualanController::class, 'index'])->name('penjualan');
-        Route::post('/penjualan/export-pdf', [\App\Http\Controllers\LaporanPenjualanController::class, 'exportPdf'])->name('penjualan.export-pdf');
+        Route::get('/penjualan/export-pdf', [\App\Http\Controllers\LaporanPenjualanController::class, 'exportPdf'])->name('penjualan.export');
         
         // Laporan Retur (now only handles purchase returns, sales returns moved to penjualan tab)
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
@@ -3582,6 +3591,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/jurnal-umum/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportExcel'])->name('jurnal-umum.export-excel');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
+        Route::get('/buku-besar/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportPdf'])->name('buku-besar.export-pdf');
         
         // Neraca Saldo - Updated version (based on General Ledger)
         Route::get('/neraca-saldo', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('neraca-saldo');
@@ -3604,7 +3614,10 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         
         Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
         Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
+        
+        // Akuntansi - Laporan
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
+        Route::match(['get', 'post'], '/laba-rugi/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'labaRugiExportPdf'])->name('laba-rugi.export-pdf');
         
         // Jurnal Penyesuaian Aset
         Route::get('/jurnal-penyesuaian-aset', [\App\Http\Controllers\JurnalPenyesuaianAsetController::class, 'index'])->name('jurnal-penyesuaian-aset');

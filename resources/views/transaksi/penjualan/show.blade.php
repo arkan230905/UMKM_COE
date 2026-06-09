@@ -386,9 +386,8 @@
                                         <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'badge-theme-warning' : 'badge-theme-success' }}">
                                             @switch($penjualan->payment_method ?? '')
                                                 @case('cash') Tunai @break
-                                                @case('transfer') Transfer Bank @break
-                                                @case('credit') Kredit @break
-                                                @default Tidak Diketahui
+                                                @case('transfer') Transfer @break
+                                                @default {{ ucfirst($penjualan->payment_method ?? '') }}
                                             @endswitch
                                         </span>
                                     </div>
@@ -795,7 +794,9 @@
                                                 ];
                                                 
                                                 try {
-                                                    $company = \App\Models\Perusahaan::select('nama', 'alamat', 'telepon')->first();
+                                                    $company = \App\Models\Perusahaan::select('nama', 'alamat', 'telepon')
+                                                        ->where('user_id', auth()->id())
+                                                        ->first();
                                                     if ($company) {
                                                         $dataPerusahaan = $company;
                                                     }
@@ -822,7 +823,7 @@
                                             </div>
                                             <div class="info-row">
                                                 <span>Kasir</span>
-                                                <span>: {{ strtoupper(auth()->user()->name ?? 'TIM COE PROCESS COSTING') }}</span>
+                                                <span>: {{ strtoupper($penjualan->kasir_nama ?? auth()->user()->name ?? 'KASIR') }}</span>
                                             </div>
                                         </div>
                                         
@@ -911,8 +912,7 @@
                                                     @switch($penjualan->payment_method ?? 'cash')
                                                         @case('cash') Tunai @break
                                                         @case('transfer') Transfer Bank @break
-                                                        @case('credit') Kredit @break
-                                                        @default Tunai
+                                                        @default {{ ucfirst($penjualan->payment_method ?? '-') }}
                                                     @endswitch
                                                 </span>
                                             </div>
@@ -1307,182 +1307,7 @@ function showStrukTab() {
 
 function printStruk() {
     try {
-        // Get the struk content
-        const strukContent = document.getElementById('strukContent');
-        if (!strukContent) {
-            alert('Konten struk tidak ditemukan');
-            return;
-        }
-
-        // Create a new window for printing
-        const printWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes');
-        
-        // Write the print content
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Struk Penjualan</title>
-                <style>
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    
-                    body {
-                        font-family: 'Courier New', monospace;
-                        padding: 10px;
-                        background: white;
-                    }
-                    
-                    .struk-container {
-                        width: 280px;
-                        margin: 0 auto;
-                        font-size: 11px;
-                        line-height: 1.4;
-                    }
-                    
-                    .struk-header {
-                        text-align: center;
-                        margin-bottom: 10px;
-                        padding-bottom: 8px;
-                    }
-                    
-                    .company-name {
-                        font-size: 14px;
-                        font-weight: bold;
-                        margin-bottom: 3px;
-                        text-transform: uppercase;
-                    }
-                    
-                    .company-info {
-                        font-size: 9px;
-                        line-height: 1.2;
-                        color: #555;
-                    }
-                    
-                    .divider {
-                        text-align: center;
-                        margin: 8px 0;
-                        font-size: 10px;
-                        color: #666;
-                    }
-                    
-                    .transaction-info {
-                        margin-bottom: 8px;
-                        font-size: 10px;
-                    }
-                    
-                    .info-row {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 2px;
-                    }
-                    
-                    .items-section {
-                        margin-bottom: 8px;
-                    }
-                    
-                    .item {
-                        margin-bottom: 6px;
-                    }
-                    
-                    .item-name {
-                        font-weight: bold;
-                        font-size: 10px;
-                        margin-bottom: 1px;
-                    }
-                    
-                    .item-detail {
-                        display: flex;
-                        justify-content: space-between;
-                        font-size: 9px;
-                    }
-                    
-                    .item-discount {
-                        display: flex;
-                        justify-content: space-between;
-                        font-size: 9px;
-                        color: #666;
-                        font-style: italic;
-                    }
-                    
-                    .summary-section {
-                        padding-top: 6px;
-                        margin-bottom: 8px;
-                    }
-                    
-                    .summary-row {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 2px;
-                        font-size: 10px;
-                    }
-                    
-                    .total-section {
-                        margin-bottom: 8px;
-                    }
-                    
-                    .total-row {
-                        display: flex;
-                        justify-content: space-between;
-                        font-weight: bold;
-                        font-size: 12px;
-                        border-top: 1px solid #333;
-                        padding-top: 4px;
-                        margin-top: 4px;
-                    }
-                    
-                    .payment-info {
-                        margin-bottom: 8px;
-                        font-size: 10px;
-                    }
-                    
-                    .footer {
-                        text-align: center;
-                        padding-top: 8px;
-                        font-size: 8px;
-                        color: #666;
-                        line-height: 1.3;
-                    }
-                    
-                    @media print {
-                        @page {
-                            size: 80mm auto;
-                            margin: 5mm;
-                        }
-                        
-                        body {
-                            margin: 0;
-                            padding: 0;
-                        }
-                        
-                        .struk-container {
-                            width: 100%;
-                            margin: 0;
-                        }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="struk-container">
-                    ${strukContent.innerHTML}
-                </div>
-            </body>
-            </html>
-        `);
-        
-        printWindow.document.close();
-        
-        // Wait for content to load, then print and close
-        printWindow.onload = function() {
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
-        };
-        
+        window.open(`/transaksi/penjualan/{{ $penjualan->id }}/struk?print=1`, '_blank', 'width=400,height=600,scrollbars=yes');
     } catch (error) {
         console.error('Error printing struk:', error);
         alert('Terjadi kesalahan saat mencetak. Silakan coba lagi.');

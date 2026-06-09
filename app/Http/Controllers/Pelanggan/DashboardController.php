@@ -15,10 +15,10 @@ class DashboardController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            // Allow public access, tapi jika sudah login sebagai owner/admin, redirect ke dashboard admin
-            if (auth('web')->check() && auth('web')->user()->role !== 'pelanggan') {
-                return redirect('/dashboard');
-            }
+            // Allow public access to customer portal
+            // Jika user login sebagai owner/admin dan akses link toko online, jangan redirect
+            // Biarkan mereka lihat toko mereka sebagai public customer
+            // This allows owner to preview their customer portal
             return $next($request);
         });
     }

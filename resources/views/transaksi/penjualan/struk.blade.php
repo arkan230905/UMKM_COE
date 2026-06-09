@@ -6,7 +6,7 @@
     <title>Struk Penjualan</title>
     <style>
         body {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             font-size: 11px;
             margin: 0;
             padding: 20px;
@@ -19,7 +19,7 @@
             margin: 0 auto;
             padding: 15px 10px;
             background: white;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             min-height: 400px;
         }
         .header {
@@ -51,16 +51,8 @@
             padding: 2px 0;
         }
         .separator {
-            border: none;
-            height: 1px;
-            background: repeating-linear-gradient(
-                90deg,
-                #000,
-                #000 4px,
-                transparent 4px,
-                transparent 8px
-            );
-            margin: 15px 0;
+            border-top: 1px dashed #000;
+            margin: 10px 0;
             clear: both;
         }
         .product-item {
@@ -105,7 +97,7 @@
             font-size: 13px;
             margin-top: 10px;
             padding-top: 8px;
-            border-top: 1px solid #000;
+            border-top: 1px dashed #000;
         }
         .footer {
             text-align: center;
@@ -116,20 +108,26 @@
             padding-top: 10px;
         }
         @media print {
+            @page {
+                size: 58mm auto;
+                margin: 0;
+            }
             body { 
                 padding: 5px;
                 margin: 0;
                 font-size: 10px;
+                width: 58mm;
             }
             .struk-container { 
-                border: none;
+                border: 1px solid #ddd;
                 box-shadow: none;
                 padding: 10px 5px;
                 margin: 0;
-                max-width: 280px;
+                width: 100%;
+                max-width: 58mm;
             }
             .company-name {
-                font-size: 16px;
+                font-size: 14px;
             }
             .product-name {
                 font-size: 11px;
@@ -139,6 +137,14 @@
             }
         }
     </style>
+    @if(request('print') == '1')
+    <script>
+        window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+        }
+    </script>
+    @endif
 </head>
 <body>
     <div class="struk-container">
@@ -161,7 +167,7 @@
                 <span>Tanggal : {{ optional($penjualan->tanggal_transaksi)->format('d/m/Y H:i') }}</span>
             </div>
             <div class="info-row">
-                <span>Kasir : TIM COE PROCESS COSTING</span>
+                <span>Kasir : {{ strtoupper($penjualan->kasir_nama ?? auth()->user()->name ?? 'KASIR') }}</span>
             </div>
         </div>
 
@@ -223,47 +229,48 @@
 
                 $paymentLabel = match($penjualan->payment_method ?? 'cash') {
                     'transfer' => 'Transfer Bank',
-                    'credit'   => 'Kredit',
                     default    => 'Tunai',
                 };
             @endphp
 
             {{-- Subtotal Produk --}}
             <div class="summary-row">
-                <span>Subtotal</span>
+                <span>Subtotal Produk:</span>
                 <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
             </div>
 
-            {{-- Biaya Ongkir --}}
+            {{-- Ongkir --}}
+            @if($biayaOngkir > 0)
             <div class="summary-row">
-                <span>Ongkir</span>
+                <span>Biaya Ongkir:</span>
                 <span>Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</span>
             </div>
+            @endif
 
             {{-- PPN --}}
             <div class="summary-row">
-                <span>PPN</span>
+                <span>Biaya PPN (11%):</span>
                 <span>Rp {{ number_format($ppnAmount, 0, ',', '.') }}</span>
             </div>
 
             {{-- Diskon --}}
-            @if(($penjualan->diskon_nominal ?? 0) > 0)
             <div class="summary-row">
-                <span>Diskon</span>
-                <span>- Rp {{ number_format($penjualan->diskon_nominal, 0, ',', '.') }}</span>
+                <span>Total Diskon:</span>
+                <span>-Rp {{ number_format($penjualan->diskon_nominal ?? 0, 0, ',', '.') }}</span>
             </div>
-            @endif
 
             {{-- Total --}}
             <div class="summary-row total">
-                <span>TOTAL</span>
+                <span>Total Pembayaran:</span>
                 <span>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
             </div>
 
+        <div class="separator"></div>
+
             {{-- Metode Pembayaran --}}
-            <div class="summary-row">
+            <div class="summary-row" style="margin-top: 15px;">
                 <span>Pembayaran</span>
-                <span>{{ $paymentLabel }}</span>
+                <span>: {{ $paymentLabel }}</span>
             </div>
         </div>
 
@@ -273,7 +280,6 @@
         <!-- Footer -->
         <div class="footer">
             <div>Terima kasih atas kunjungan Anda!</div>
-            <div>Barang yang sudah dibeli tidak bisa dikembalikan</div>
         </div>
     </div>
 

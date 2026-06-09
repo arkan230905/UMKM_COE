@@ -748,7 +748,7 @@ class LaporanController extends Controller
                                     $dailyInQty = -(float)$m->qty;
                                     $dailyInNilai = -(float)($m->total_cost ?? 0);
                                 }
-                            } elseif ($m->ref_type === 'production' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                            } elseif (in_array($m->ref_type, ['production', 'produksi']) && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
                                 // Production consumption - show in produksi column ONLY
                                 $dailyOutQty = (float)$m->qty;
                                 $dailyOutNilai = (float)($m->total_cost ?? 0);
@@ -862,11 +862,11 @@ class LaporanController extends Controller
                         }
                     } elseif ($tipe == 'bahan_pendukung') {
                         foreach ($bahanPendukungs as $bp) {
-                            $stockIn = StockMovement::where('item_type', 'bahan_pendukung')
+                            $stockIn = StockMovement::where('item_type', 'support')
                                 ->where('item_id', $bp->id)
                                 ->where('direction', 'in')
                                 ->sum('qty');
-                            $stockOut = StockMovement::where('item_type', 'bahan_pendukung')
+                            $stockOut = StockMovement::where('item_type', 'support')
                                 ->where('item_id', $bp->id)
                                 ->where('direction', 'out')
                                 ->sum('qty');

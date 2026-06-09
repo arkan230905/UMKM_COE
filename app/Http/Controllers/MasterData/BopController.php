@@ -21,11 +21,8 @@ class BopController extends Controller
         try {
 
             // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only
-            $bopProses = BopProses::with(['prosesProduksi' => function($query) {
-                $query->where('user_id', auth()->id());
-            }])
-                ->where('user_id', auth()->id())
-->where('is_active', true)
+            $bopProses = BopProses::where('user_id', auth()->id())
+                ->where('is_active', true)
                 ->orderBy('id')
                 ->get();
 
@@ -93,6 +90,11 @@ class BopController extends Controller
                 \Log::error('Error loading BebanOperasional: ' . $bebanError->getMessage());
             }
 
+            // 🔒 SECURITY: Get bahan pendukung filtered by user_id
+            $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())
+                ->orderBy('nama_bahan')
+                ->get();
+
             return view('master-data.bop.index', compact(
                 'bopProses',
                 'prosesProduksis',
@@ -101,7 +103,8 @@ class BopController extends Controller
                 'jumlahBopLainnya',
                 'akunBeban',
                 'btklData',
-                'bebanOperasional'
+                'bebanOperasional',
+                'bahanPendukungs'
             ));
             
         } catch (\Exception $e) {
@@ -400,15 +403,9 @@ class BopController extends Controller
     public function showProsesModal($id)
     {
         try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            $bopProses = BopProses::findOrFail($id);
             
-            // Get matching BTKL data based on process name (only if prosesProduksi exists)
-            $btkl = null;
-            if ($bopProses->prosesProduksi) {
-                $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
-            }
-            
-            return view('master-data.bop.show-proses-modal', compact('bopProses', 'btkl'));
+            return view('master-data.bop.show-proses-modal', compact('bopProses'));
             
         } catch (\Exception $e) {
             return response()->json([
@@ -425,7 +422,7 @@ class BopController extends Controller
     public function editProses($id)
     {
         try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            $bopProses = BopProses::findOrFail($id);
             return view('master-data.bop.edit-proses', compact('bopProses'));
             
         } catch (\Exception $e) {
@@ -648,7 +645,7 @@ class BopController extends Controller
             $request->validate([
                 'nama_bop_proses' => 'required|string|max:255',
                 'komponen_name' => 'required|array|min:1',
-                'komponen_name.*' => 'required|string|max:255',
+                'komponen_name.*' => 'required',
                 'komponen_rate' => 'required|array|min:1',
                 'komponen_rate.*' => 'required|numeric|min:0.01',
             ], [
@@ -662,55 +659,88 @@ class BopController extends Controller
 
             DB::beginTransaction();
 
-            // Build components array
-            $components = [];
+            // ========================================
+            // SEPARATE: BAHAN PENDUKUNG & LAINNYA
+            // ========================================
+            $komponenBahanPendukung = [];
+            $komponenLainnya = [];
+            
             $komponenNames = $request->input('komponen_name', []);
             $komponenRates = $request->input('komponen_rate', []);
             $komponenDescs = $request->input('komponen_desc', []);
             $komponenCoaDebits = $request->input('komponen_coa_debit', []);
             $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
 
+            // Get all bahan pendukung untuk matching
+            $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())->get();
+            
             foreach ($komponenNames as $index => $name) {
-                if (!empty(trim($name)) && isset($komponenRates[$index]) && round((float)$komponenRates[$index], 2) > 0) {
-                    $components[] = [
-                        'component' => trim($name),
-                        'rate_per_hour' => round((float)$komponenRates[$index], 2),
-                        'description' => $komponenDescs[$index] ?? '',
+                $rate = round((float)($komponenRates[$index] ?? 0), 2);
+                
+                if (empty($name) || $rate <= 0) {
+                    continue; // Skip empty or zero rate
+                }
+                
+                // Check if this is a bahan pendukung ID (numeric)
+                if (is_numeric($name)) {
+                    // This is from dropdown (bahan pendukung)
+                    $bahan = $bahanPendukungs->firstWhere('id', $name);
+                    
+                    if ($bahan) {
+                        $komponenBahanPendukung[] = [
+                            'bahan_pendukung_id' => (int)$bahan->id,
+                            'nama' => $bahan->nama_bahan,
+                            'qty_per_produk' => 1, // Default 1, bisa diubah nanti jika perlu
+                            'harga_satuan' => $rate,
+                            'total' => $rate,
+                            'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
+                            'coa_kredit' => $komponenCoaKredits[$index] ?? '530',
+                            'keterangan' => $komponenDescs[$index] ?? ''
+                        ];
+                        
+                        \Log::info('BOP - Bahan Pendukung detected', [
+                            'id' => $bahan->id,
+                            'nama' => $bahan->nama_bahan,
+                            'rate' => $rate
+                        ]);
+                    }
+                } else {
+                    // This is manual input (komponen lainnya)
+                    $komponenLainnya[] = [
+                        'nama_komponen' => trim($name),
+                        'nilai_per_produk' => $rate,
                         'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
-                        'coa_kredit' => $komponenCoaKredits[$index] ?? '510',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '550',
+                        'keterangan' => $komponenDescs[$index] ?? ''
                     ];
+                    
+                    \Log::info('BOP - Komponen Lainnya detected', [
+                        'nama' => trim($name),
+                        'rate' => $rate
+                    ]);
                 }
             }
 
-            if (empty($components)) {
+            // Validate at least one component
+            if (empty($komponenBahanPendukung) && empty($komponenLainnya)) {
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
             }
 
-            // Calculate values with proper rounding
-            $totalBopPerProduk = 0;
-            foreach ($components as $comp) {
-                $totalBopPerProduk += round((float)$comp['rate_per_hour'], 2);
-            }
-            $totalBopPerProduk = round($totalBopPerProduk, 2);
-            $bopPerUnit = $totalBopPerProduk;
+            // Calculate totals
+            $totalBahanPendukung = array_sum(array_column($komponenBahanPendukung, 'total'));
+            $totalLainnya = array_sum(array_column($komponenLainnya, 'nilai_per_produk'));
+            $totalBopPerProduk = round($totalBahanPendukung + $totalLainnya, 2);
 
             // Prepare data for insert
             $insertData = [
+                'user_id' => auth()->id(),
                 'nama_bop_proses' => $request->input('nama_bop_proses') ?: 'BOP Proses',
-                'komponen_bop' => $components,
-                'total_bop_per_jam' => $totalBopPerProduk,
-                'bop_per_unit' => $bopPerUnit,
+                'komponen_bahan_pendukung' => !empty($komponenBahanPendukung) ? $komponenBahanPendukung : null,
+                'komponen_lainnya' => !empty($komponenLainnya) ? $komponenLainnya : null,
+                'total_bop_per_produk' => $totalBopPerProduk,
                 'keterangan' => $request->input('keterangan') ?: "BOP Proses",
                 'is_active' => true,
-                'total_bop_per_produk' => $totalBopPerProduk,
-                'total_biaya_per_produk' => $bopPerUnit,
             ];
-            
-            // Add periode if column exists
-            $periodeColumns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'periode'");
-            if (!empty($periodeColumns)) {
-                $insertData['periode'] = date('Y-m');
-            }
 
             // Create BOP Proses
             $bopProses = BopProses::create($insertData);
@@ -718,15 +748,20 @@ class BopController extends Controller
             \Log::info('BOP Store - Success', [
                 'id' => $bopProses->id,
                 'nama_bop_proses' => $bopProses->nama_bop_proses,
-                'bop_per_unit' => $bopProses->bop_per_unit,
-                'components_count' => count($components)
+                'total_bop_per_produk' => $totalBopPerProduk,
+                'bahan_pendukung_count' => count($komponenBahanPendukung),
+                'lainnya_count' => count($komponenLainnya),
+                'komponen_bahan_pendukung' => $komponenBahanPendukung,
+                'komponen_lainnya' => $komponenLainnya
             ]);
 
             DB::commit();
 
             return redirect()
                 ->route('master-data.bop.index')
-                ->with('success', 'BOP Proses berhasil ditambahkan dengan ' . count($components) . ' komponen.');
+                ->with('success', 'BOP Proses berhasil ditambahkan dengan ' . 
+                    count($komponenBahanPendukung) . ' bahan pendukung dan ' . 
+                    count($komponenLainnya) . ' komponen lainnya.');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('BOP Store - Validation Error', [
@@ -764,7 +799,7 @@ class BopController extends Controller
         $validated = $request->validate([
             'nama_bop_proses' => 'required|string|max:255',
             'komponen_name' => 'required|array|min:1',
-            'komponen_name.*' => 'required|string|max:255',
+            'komponen_name.*' => 'required',
             'komponen_rate' => 'required|array|min:1',
             'komponen_rate.*' => 'required|numeric|min:0.01',
             'komponen_desc' => 'nullable|array',
@@ -784,62 +819,102 @@ class BopController extends Controller
 
             $bopProses = BopProses::findOrFail($id);
             
-            // Update nama_bop_proses
-            $bopProses->nama_bop_proses = $validated['nama_bop_proses'];
+            // ========================================
+            // SEPARATE: BAHAN PENDUKUNG & LAINNYA
+            // ========================================
+            $komponenBahanPendukung = [];
+            $komponenLainnya = [];
             
-            // Build components array from form data
-            $components = [];
+            $komponenNames = $validated['komponen_name'];
+            $komponenRates = $validated['komponen_rate'];
+            $komponenDescs = $validated['komponen_desc'] ?? [];
             $komponenCoaDebits = $request->input('komponen_coa_debit', []);
             $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
+
+            // Get all bahan pendukung untuk matching
+            $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())->get();
             
-            foreach ($validated['komponen_name'] as $index => $name) {
-                $rate = round((float)($validated['komponen_rate'][$index] ?? 0), 2);
-                $desc = $validated['komponen_desc'][$index] ?? '';
+            foreach ($komponenNames as $index => $name) {
+                $rate = round((float)($komponenRates[$index] ?? 0), 2);
                 
-                if (!empty(trim($name)) && $rate > 0) {
-                    $components[] = [
-                        'component' => trim($name),
-                        'rate_per_hour' => $rate,
-                        'description' => $desc,
+                if (empty($name) || $rate <= 0) {
+                    continue; // Skip empty or zero rate
+                }
+                
+                // Check if this is a bahan pendukung ID (numeric)
+                if (is_numeric($name)) {
+                    // This is from dropdown (bahan pendukung)
+                    $bahan = $bahanPendukungs->firstWhere('id', $name);
+                    
+                    if ($bahan) {
+                        $komponenBahanPendukung[] = [
+                            'bahan_pendukung_id' => (int)$bahan->id,
+                            'nama' => $bahan->nama_bahan,
+                            'qty_per_produk' => 1, // Default 1
+                            'harga_satuan' => $rate,
+                            'total' => $rate,
+                            'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
+                            'coa_kredit' => $komponenCoaKredits[$index] ?? '530',
+                            'keterangan' => $komponenDescs[$index] ?? ''
+                        ];
+                    }
+                } else {
+                    // This is manual input (komponen lainnya)
+                    $komponenLainnya[] = [
+                        'nama_komponen' => trim($name),
+                        'nilai_per_produk' => $rate,
                         'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
-                        'coa_kredit' => $komponenCoaKredits[$index] ?? '210',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '550',
+                        'keterangan' => $komponenDescs[$index] ?? ''
                     ];
                 }
             }
 
-            if (empty($components)) {
+            // Validate at least one component
+            if (empty($komponenBahanPendukung) && empty($komponenLainnya)) {
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
             }
 
-            // Calculate values with proper rounding - using per-product basis
-            $totalBopPerProduk = 0;
-            foreach ($components as $comp) {
-                $totalBopPerProduk += round((float)$comp['rate_per_hour'], 2);
-            }
-            $totalBopPerProduk = round($totalBopPerProduk, 2);
-            
-            // BOP per unit is same as total BOP per produk (no division by capacity)
-            $bopPerUnit = $totalBopPerProduk;
-            
-            // For backward compatibility, store total_bop_per_jam as the per-product total
-            $totalBopPerJam = $totalBopPerProduk;
+            // Calculate totals
+            $totalBahanPendukung = array_sum(array_column($komponenBahanPendukung, 'total'));
+            $totalLainnya = array_sum(array_column($komponenLainnya, 'nilai_per_produk'));
+            $totalBopPerProduk = round($totalBahanPendukung + $totalLainnya, 2);
 
             // Update BOP Proses
-            $bopProses->update([
-                'komponen_bop' => $components,
-                'total_bop_per_jam' => $totalBopPerJam,
-                'bop_per_unit' => $bopPerUnit,
+            $updateData = [
+                'nama_bop_proses' => $validated['nama_bop_proses'],
+                'komponen_bahan_pendukung' => !empty($komponenBahanPendukung) ? $komponenBahanPendukung : null,
+                'komponen_lainnya' => !empty($komponenLainnya) ? $komponenLainnya : null,
+                'total_bop_per_produk' => $totalBopPerProduk,
                 'keterangan' => $validated['keterangan'] ?? null,
+            ];
+            
+            $bopProses->update($updateData);
+
+            \Log::info('BOP Update - Success', [
+                'id' => $bopProses->id,
+                'nama_bop_proses' => $bopProses->nama_bop_proses,
+                'total_bop_per_produk' => $totalBopPerProduk,
+                'bahan_pendukung_count' => count($komponenBahanPendukung),
+                'lainnya_count' => count($komponenLainnya),
             ]);
 
             DB::commit();
 
             return redirect()
                 ->route('master-data.bop.index')
-                ->with('success', 'BOP Proses berhasil diperbarui dengan ' . count($components) . ' komponen.');
+                ->with('success', 'BOP Proses berhasil diperbarui dengan ' . 
+                    count($komponenBahanPendukung) . ' bahan pendukung dan ' . 
+                    count($komponenLainnya) . ' komponen lainnya.');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('BOP Update - Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             
             return back()
                 ->withInput()
@@ -853,7 +928,7 @@ class BopController extends Controller
     public function getBopProses($id)
     {
         try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            $bopProses = BopProses::findOrFail($id);
             
             return response()->json([
                 'success' => true,

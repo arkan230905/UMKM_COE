@@ -601,27 +601,54 @@
 
 <!-- Journal Modal -->
 <div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="journalModalLabel">
-                    <i class="fas fa-book me-2"></i>Jurnal Pembelian
-                </h5>
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content rounded-4 shadow-lg border-0">
+            <div class="modal-header border-0 pb-2 pt-4 px-4">
+                <h4 class="modal-title fw-bold" id="journalModalLabel" style="color: #1F2937;">
+                    Jurnal Pembelian
+                </h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body px-4 pt-2">
+                <!-- Transaction Info Card -->
+                <div class="card border rounded-3 mb-4" style="background-color: #ffffff; border-color: #E5E7EB !important;">
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-1" style="font-size: 0.75rem; font-weight: 500;">Nomor Pembelian</small>
+                                    <span class="fw-bold fs-5" style="color: #1F2937;">{{ $pembelian->nomor_pembelian }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-1" style="font-size: 0.75rem; font-weight: 500;">Vendor</small>
+                                    <span class="fw-semibold" style="color: #6B4F3A; font-size: 0.95rem;">{{ $pembelian->vendor ? $pembelian->vendor->nama : '-' }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex flex-column">
+                                    <small class="text-muted mb-1" style="font-size: 0.75rem; font-weight: 500;">Tanggal</small>
+                                    <span class="fw-semibold" style="color: #1F2937; font-size: 0.95rem;">{{ $pembelian->tanggal ? \Carbon\Carbon::parse($pembelian->tanggal)->locale('id')->isoFormat('D MMMM YYYY') : '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Journal Table -->
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped align-middle">
-                        <thead class="table-dark">
+                    <table class="table align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+                        <thead style="background-color: #F8F6F3;">
                             <tr>
-                                <th>Tanggal</th>
-                                <th>Akun</th>
-                                <th>Keterangan</th>
-                                <th class="text-end">Debet</th>
-                                <th class="text-end">Kredit</th>
+                                <th class="border-0 py-3 px-3" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Tanggal</th>
+                                <th class="border-0 py-3 px-3" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Akun</th>
+                                <th class="border-0 py-3 px-3" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Keterangan</th>
+                                <th class="border-0 py-3 px-3 text-end" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Debit</th>
+                                <th class="border-0 py-3 px-3 text-end" style="color: #6B4F3A; font-weight: 600; font-size: 0.875rem;">Kredit</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody style="background-color: #ffffff;">
                             @php
                                 // Get actual journal entries for this purchase from jurnal_umum table
                                 $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
@@ -640,25 +667,31 @@
                                         $totalDebit += $entry->debit;
                                         $totalCredit += $entry->kredit;
                                     @endphp
-                                    <tr>
-                                        <td>{{ $entry->tanggal ? \Carbon\Carbon::parse($entry->tanggal)->format('d-m-Y') : '-' }}</td>
-                                        <td>
+                                    <tr style="border-bottom: 1px solid #E5E7EB;">
+                                        <td class="px-3 py-3" style="color: #6B7280; font-size: 0.875rem;">
+                                            {{ $entry->tanggal ? \Carbon\Carbon::parse($entry->tanggal)->locale('id')->isoFormat('D MMMM YYYY') : '-' }}
+                                        </td>
+                                        <td class="px-3 py-3">
                                             @if($entry->coa)
-                                                <span class="badge bg-primary">{{ $entry->coa->nama_akun }}</span><br>
-                                                <small class="text-muted">{{ $entry->coa->kode_akun }}</small>
+                                                <span class="d-block fw-semibold" style="color: #1F2937; font-size: 0.9rem; margin-bottom: 0.25rem;">
+                                                    {{ $entry->coa->nama_akun }}
+                                                </span>
+                                                <span class="d-block" style="color: #6B7280; font-size: 0.8rem;">
+                                                    {{ $entry->coa->kode_akun }}
+                                                </span>
                                             @else
-                                                <span class="badge bg-secondary">COA tidak ditemukan</span>
+                                                <span class="d-block fw-semibold text-muted" style="font-size: 0.9rem;">COA tidak ditemukan</span>
                                             @endif
                                         </td>
-                                        <td>{{ $entry->keterangan }}</td>
-                                        <td class="text-end">
+                                        <td class="px-3 py-3" style="color: #6B7280; font-size: 0.875rem;">{{ $entry->keterangan }}</td>
+                                        <td class="text-end px-3 py-3" style="color: #1F2937; font-weight: 500; font-size: 0.875rem;">
                                             @if($entry->debit > 0)
                                                 Rp {{ number_format($entry->debit, 0, ',', '.') }}
                                             @else
                                                 -
                                             @endif
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end px-3 py-3" style="color: #1F2937; font-weight: 500; font-size: 0.875rem;">
                                             @if($entry->kredit > 0)
                                                 Rp {{ number_format($entry->kredit, 0, ',', '.') }}
                                             @else
@@ -667,31 +700,44 @@
                                         </td>
                                     </tr>
                                 @endforeach
-                                
-                                <!-- Total Row -->
-                                <tr class="table-secondary fw-bold">
-                                    <td colspan="3" class="text-end">Total:</td>
-                                    <td class="text-end">Rp {{ number_format($totalDebit, 0, ',', '.') }}</td>
-                                    <td class="text-end">Rp {{ number_format($totalCredit, 0, ',', '.') }}</td>
-                                </tr>
                             @else
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">
+                                    <td colspan="5" class="text-center text-muted py-5 border-bottom" style="border-color: #E5E7EB !important;">
                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                         Jurnal belum dibuat untuk pembelian ini
                                     </td>
                                 </tr>
                             @endif
                         </tbody>
+                        <tfoot style="background-color: #F8F6F3;">
+                            <tr class="fw-bold">
+                                <td colspan="3" class="text-end py-3 px-3 border-0" style="color: #1F2937; font-size: 0.95rem;">Total:</td>
+                                <td class="text-end py-3 px-3 border-0" style="color: #1F2937; font-size: 0.95rem;">Rp {{ number_format($totalDebit, 0, ',', '.') }}</td>
+                                <td class="text-end py-3 px-3 border-0" style="color: #1F2937; font-size: 0.95rem;">Rp {{ number_format($totalCredit, 0, ',', '.') }}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            <div class="modal-footer border-0 px-4 pb-4 pt-3">
+                <button type="button" class="btn btn-secondary px-4 rounded-3" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
 </div>
+
+@push('styles')
+<style>
+    /* Modern Journal Modal Styles */
+    #journalModal .modal-content {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    #journalModal tbody tr:hover {
+        background-color: #F9FAFB !important;
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>

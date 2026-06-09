@@ -124,12 +124,15 @@
             {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
         </div>
     </div>
-    <form method="GET" class="lr-filter">
+    <form method="GET" class="lr-filter no-print">
         <div>
             <label>Periode</label>
             <input type="month" name="periode" value="{{ $periode }}">
         </div>
         <button type="submit" class="btn-show">Tampilkan</button>
+        <a href="{{ route('akuntansi.laba-rugi.export-pdf', ['periode' => $periode]) }}" class="btn-show no-print" style="background-color: #dc3545; color: white; margin-left: 10px; border: none; padding: 10px 20px; border-radius: 5px; display: inline-flex; align-items: center; text-decoration: none;">
+            <i class="fas fa-print" style="margin-right: 5px;"></i> Cetak PDF
+        </a>
     </form>
 </div>
 
@@ -297,4 +300,20 @@
 
 </div>{{-- end lr-wrap --}}
 </div>{{-- end lr --}}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .lr-summary, .lr-card, .lr-hasil {
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+        }
+    }
+</style>
+
 @endsection

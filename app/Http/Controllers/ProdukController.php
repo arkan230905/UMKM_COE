@@ -39,7 +39,22 @@ class ProdukController extends Controller
         }
         
         if ($statusFilter) {
-            $query->where('status', $statusFilter);
+            if ($statusFilter === 'aktif') {
+                $query->where(function($q) {
+                    $q->where('stok', '>', 0)
+                      ->orWhere('is_unlimited_stok', 1);
+                });
+            } elseif ($statusFilter === 'habis') {
+                $query->where(function($q) {
+                    $q->where(function($stokQ) {
+                        $stokQ->where('stok', '<=', 0)
+                              ->orWhereNull('stok');
+                    })->where(function($sub) {
+                        $sub->where('is_unlimited_stok', 0)
+                            ->orWhereNull('is_unlimited_stok');
+                    });
+                });
+            }
         }
         
         $produks = $query->get();
@@ -128,7 +143,7 @@ class ProdukController extends Controller
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|max:10240',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             'harga_jual' => 'required|numeric|min:0',
             'hpp' => 'nullable|numeric|min:0',
             'margin_percent' => 'nullable|numeric|min:0',
@@ -141,10 +156,16 @@ class ProdukController extends Controller
         $fotoPath = null;
         if ($request->hasFile('foto')) {
             try {
-                // Ensure directory exists
-                \Storage::disk('public')->makeDirectory('produk', 0755, true);
-                // Store file using Laravel Storage
-                $fotoPath = $request->file('foto')->store('produk', 'public');
+                $file = $request->file('foto');
+                $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('storage/produk');
+                
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+                
+                $file->move($destinationPath, $filename);
+                $fotoPath = 'produk/' . $filename;
             } catch (\Exception $e) {
                 \Log::error('Foto upload error: ' . $e->getMessage());
                 // Continue without photo if upload fails
@@ -251,22 +272,29 @@ class ProdukController extends Controller
         // Handle photo-only update (for AJAX requests from kelola-catalog)
         if ($request->ajax() && $request->hasFile('foto') && !$request->has('nama_produk')) {
             $request->validate([
-                'foto' => 'required|image|max:10240',
+                'foto' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             ]);
 
             try {
                 // Delete old photo if exists
                 if ($produk->foto) {
-                    $oldPhotoPath = 'public/' . $produk->foto;
-                    if (\Storage::exists($oldPhotoPath)) {
-                        \Storage::delete($oldPhotoPath);
+                    $oldPhotoPath = public_path('storage/' . $produk->foto);
+                    if (file_exists($oldPhotoPath)) {
+                        @unlink($oldPhotoPath);
                     }
                 }
 
-                // Ensure directory exists
-                \Storage::disk('public')->makeDirectory('produk', 0755, true);
-                // Store new photo
-                $fotoPath = $request->file('foto')->store('produk', 'public');
+                $file = $request->file('foto');
+                $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('storage/produk');
+                
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+                
+                $file->move($destinationPath, $filename);
+                $fotoPath = 'produk/' . $filename;
+                
                 $produk->update(['foto' => $fotoPath]);
 
                 return response()->json(['success' => true, 'message' => 'Foto produk berhasil diperbarui.']);
@@ -281,7 +309,7 @@ class ProdukController extends Controller
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|max:10240',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             'harga_jual' => 'required|string',
             'hpp' => 'nullable|numeric|min:0',
             'hpp_calculated' => 'nullable|numeric|min:0',
@@ -325,34 +353,26 @@ class ProdukController extends Controller
             
             // Delete old photo if exists
             if ($produk->foto) {
-                $oldPhotoPath = 'produk/' . basename($produk->foto);
-                \Log::info('Deleting old photo: ' . $oldPhotoPath);
-                
-                // Try multiple path approaches
-                $pathsToDelete = [
-                    'public/' . $produk->foto,
-                    'produk/' . basename($produk->foto),
-                    $produk->foto
-                ];
-                
-                foreach ($pathsToDelete as $path) {
-                    if (\Storage::disk('public')->exists($path)) {
-                        \Storage::disk('public')->delete($path);
-                        \Log::info('Old photo deleted successfully: ' . $path);
-                        break;
-                    }
+                $oldPhotoPath = public_path('storage/' . $produk->foto);
+                if (file_exists($oldPhotoPath)) {
+                    @unlink($oldPhotoPath);
+                    \Log::info('Old photo deleted successfully: ' . $oldPhotoPath);
                 }
             }
             
             try {
-                // Ensure directory exists
-                \Storage::disk('public')->makeDirectory('produk', 0755, true);
-                // Store new photo with explicit disk
-                $storedPath = $request->file('foto')->store('produk', 'public');
-                $data['foto'] = $storedPath;
+                $file = $request->file('foto');
+                $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                $destinationPath = public_path('storage/produk');
                 
-                \Log::info('New photo stored at: ' . $storedPath);
-                \Log::info('Storage exists check: ' . (\Storage::disk('public')->exists($storedPath) ? 'YES' : 'NO'));
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+                
+                $file->move($destinationPath, $filename);
+                $data['foto'] = 'produk/' . $filename;
+                
+                \Log::info('New photo stored at: ' . $data['foto']);
             } catch (\Exception $e) {
                 \Log::error('Foto upload error: ' . $e->getMessage());
                 // Continue without photo if upload fails

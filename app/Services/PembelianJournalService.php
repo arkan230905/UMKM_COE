@@ -174,7 +174,25 @@ class PembelianJournalService
         $coaName = null;
         $memo = '';
         
+        // ==========================================
+        // ENHANCED LOGGING FOR DEBUGGING
+        // ==========================================
+        Log::info('[PembelianJournal] getCoaForItem START', [
+            'detail_id' => $detail->id ?? 'unknown',
+            'bahan_baku_id' => $detail->bahan_baku_id,
+            'bahan_pendukung_id' => $detail->bahan_pendukung_id,
+            'has_bahanBaku_relation' => $detail->relationLoaded('bahanBaku'),
+            'has_bahanPendukung_relation' => $detail->relationLoaded('bahanPendukung'),
+        ]);
+        
         if ($detail->bahan_baku_id && $detail->bahanBaku) {
+            Log::info('[PembelianJournal] Processing Bahan Baku', [
+                'bahan_baku_id' => $detail->bahan_baku_id,
+                'nama_bahan' => $detail->bahanBaku->nama_bahan,
+                'coa_persediaan_id' => $detail->bahanBaku->coa_persediaan_id,
+                'user_id' => auth()->id()
+            ]);
+            
             // WAJIB gunakan COA Persediaan spesifik dari bahan baku
             if ($detail->bahanBaku->coa_persediaan_id) {
                 // coa_persediaan_id berisi kode COA, bukan ID COA
@@ -182,19 +200,49 @@ class PembelianJournalService
                 $coa = Coa::where('kode_akun', $detail->bahanBaku->coa_persediaan_id)
                     ->where('user_id', auth()->id())
                     ->first();
+                
+                Log::info('[PembelianJournal] COA Query Result', [
+                    'searching_kode_akun' => $detail->bahanBaku->coa_persediaan_id,
+                    'coa_found' => $coa ? true : false,
+                    'coa_id' => $coa ? $coa->id : null,
+                    'coa_nama' => $coa ? $coa->nama_akun : null
+                ]);
+                
                 if ($coa) {
                     $coaId = $coa->id;
                     $coaCode = $coa->kode_akun;
                     $coaName = $coa->nama_akun;
                     $memo = $coa->nama_akun; // Langsung pakai nama COA spesifik
+                    
+                    Log::info('[PembelianJournal] ✓ Bahan Baku COA Found', [
+                        'coa_id' => $coaId,
+                        'coa_code' => $coaCode,
+                        'coa_name' => $coaName
+                    ]);
                 } else {
+                    Log::error('[PembelianJurnal] ✗ COA Not Found', [
+                        'bahan' => $detail->bahanBaku->nama_bahan,
+                        'coa_persediaan_id' => $detail->bahanBaku->coa_persediaan_id,
+                        'user_id' => auth()->id()
+                    ]);
                     throw new \Exception("COA Persediaan untuk bahan baku '{$detail->bahanBaku->nama_bahan}' tidak ditemukan (Kode: {$detail->bahanBaku->coa_persediaan_id})");
                 }
             } else {
+                Log::error('[PembelianJurnal] ✗ COA Persediaan ID NULL', [
+                    'bahan' => $detail->bahanBaku->nama_bahan,
+                    'bahan_id' => $detail->bahan_baku_id
+                ]);
                 throw new \Exception("Bahan baku '{$detail->bahanBaku->nama_bahan}' belum memiliki COA Persediaan. Silakan set di master data bahan baku.");
             }
             
         } elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
+            Log::info('[PembelianJournal] Processing Bahan Pendukung', [
+                'bahan_pendukung_id' => $detail->bahan_pendukung_id,
+                'nama_bahan' => $detail->bahanPendukung->nama_bahan,
+                'coa_persediaan_id' => $detail->bahanPendukung->coa_persediaan_id,
+                'user_id' => auth()->id()
+            ]);
+            
             // WAJIB gunakan COA Persediaan spesifik dari bahan pendukung
             if ($detail->bahanPendukung->coa_persediaan_id) {
                 // coa_persediaan_id berisi kode COA, bukan ID COA
@@ -202,21 +250,56 @@ class PembelianJournalService
                 $coa = Coa::where('kode_akun', $detail->bahanPendukung->coa_persediaan_id)
                     ->where('user_id', auth()->id())
                     ->first();
+                
+                Log::info('[PembelianJournal] COA Query Result', [
+                    'searching_kode_akun' => $detail->bahanPendukung->coa_persediaan_id,
+                    'coa_found' => $coa ? true : false,
+                    'coa_id' => $coa ? $coa->id : null,
+                    'coa_nama' => $coa ? $coa->nama_akun : null
+                ]);
+                
                 if ($coa) {
                     $coaId = $coa->id;
                     $coaCode = $coa->kode_akun;
                     $coaName = $coa->nama_akun;
                     $memo = $coa->nama_akun; // Langsung pakai nama COA spesifik
+                    
+                    Log::info('[PembelianJournal] ✓ Bahan Pendukung COA Found', [
+                        'coa_id' => $coaId,
+                        'coa_code' => $coaCode,
+                        'coa_name' => $coaName
+                    ]);
                 } else {
+                    Log::error('[PembelianJurnal] ✗ COA Not Found', [
+                        'bahan' => $detail->bahanPendukung->nama_bahan,
+                        'coa_persediaan_id' => $detail->bahanPendukung->coa_persediaan_id,
+                        'user_id' => auth()->id()
+                    ]);
                     throw new \Exception("COA Persediaan untuk bahan pendukung '{$detail->bahanPendukung->nama_bahan}' tidak ditemukan (Kode: {$detail->bahanPendukung->coa_persediaan_id})");
                 }
             } else {
+                Log::error('[PembelianJurnal] ✗ COA Persediaan ID NULL', [
+                    'bahan' => $detail->bahanPendukung->nama_bahan,
+                    'bahan_id' => $detail->bahan_pendukung_id
+                ]);
                 throw new \Exception("Bahan pendukung '{$detail->bahanPendukung->nama_bahan}' belum memiliki COA Persediaan. Silakan set di master data bahan pendukung.");
             }
             
         } else {
+            Log::error('[PembelianJurnal] ✗ Invalid Detail - No Bahan', [
+                'detail_id' => $detail->id ?? 'unknown',
+                'bahan_baku_id' => $detail->bahan_baku_id,
+                'bahan_pendukung_id' => $detail->bahan_pendukung_id
+            ]);
             throw new \Exception("Detail pembelian tidak memiliki bahan baku atau bahan pendukung yang valid");
         }
+        
+        Log::info('[PembelianJournal] getCoaForItem END', [
+            'coa_id' => $coaId,
+            'coa_code' => $coaCode,
+            'coa_name' => $coaName,
+            'memo' => $memo
+        ]);
         
         return [
             'coa_id' => $coaId,

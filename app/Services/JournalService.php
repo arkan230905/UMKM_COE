@@ -284,12 +284,25 @@ class JournalService
         // (diskon sudah tercermin di subtotalNet)
         $grandTotal = round($subtotalNet + $biayaPPN + $biayaOngkir);
 
+        // Get product name(s) for the memo
+        $productNames = [];
+        if ($penjualan->details && $penjualan->details->count() > 0) {
+            foreach ($penjualan->details as $d) {
+                if ($d->produk) {
+                    $productNames[] = $d->produk->nama_produk;
+                }
+            }
+        } elseif ($penjualan->produk) {
+            $productNames[] = $penjualan->produk->nama_produk;
+        }
+        $productNamesStr = implode(', ', array_unique($productNames));
+
         // ── DEBIT: Kas / Bank / Piutang ──────────────────────────────────────
         $debitCoa  = $validation['accounts']['debit'];
         $debitMemo = match ($penjualan->payment_method ?? 'cash') {
-            'transfer' => 'Penerimaan transfer penjualan - ' . $debitCoa->nama_akun,
-            'credit'   => 'Penjualan kredit - ' . $debitCoa->nama_akun,
-            default    => 'Penerimaan tunai penjualan - ' . $debitCoa->nama_akun,
+            'transfer' => 'Penerimaan transfer penjualan ' . ($productNamesStr ?: 'produk') . ' - ' . $debitCoa->nama_akun,
+            'credit'   => 'Penjualan kredit ' . ($productNamesStr ?: 'produk') . ' - ' . $debitCoa->nama_akun,
+            default    => 'Penerimaan tunai penjualan ' . ($productNamesStr ?: 'produk') . ' - ' . $debitCoa->nama_akun,
         };
 
         $lines[] = [
@@ -312,33 +325,49 @@ class JournalService
 
         // ── KREDIT: Penjualan ────────────────────────────────────────────────
         $penjualanCoa = $validation['accounts']['penjualan'];
-        // Jika ada akun Diskon Penjualan → kredit nilai GROSS (sebelum diskon),
-        // karena diskon sudah dicatat terpisah di sisi Debit.
-        // Jika tidak ada akun Diskon → kredit nilai NET (setelah diskon).
-        $nilaiPenjualan = ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan']))
-            ? round($subtotalGross)
-            : round($subtotalNet);
-
-        // Get product name(s) for the memo
-        $productNames = [];
+        
         if ($penjualan->details && $penjualan->details->count() > 0) {
             foreach ($penjualan->details as $d) {
-                if ($d->produk) {
-                    $productNames[] = $d->produk->nama_produk;
+                $diskonBaris = (float)($d->diskon_nominal ?? 0);
+                if ($diskonBaris == 0 && ($d->diskon_persen ?? 0) > 0) {
+                    $diskonBaris = round((float)$d->harga_satuan * (float)$d->jumlah * (float)$d->diskon_persen / 100);
                 }
-            }
-        } elseif ($penjualan->produk) {
-            $productNames[] = $penjualan->produk->nama_produk;
-        }
-        $productNamesStr = implode(', ', array_unique($productNames));
-        $penjualanMemo = 'Pendapatan penjualan - ' . ($productNamesStr ?: 'produk');
+                $subtotalBaris  = (float)($d->subtotal ?? ((float)$d->harga_satuan * (float)$d->jumlah - $diskonBaris));
+                $grossBaris     = $subtotalBaris + $diskonBaris;
 
-        $lines[] = [
-            'code'   => $penjualanCoa->kode_akun,
-            'debit'  => 0,
-            'credit' => $nilaiPenjualan,
-            'memo'   => $penjualanMemo,
-        ];
+                $nilaiBaris = ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan']))
+                    ? round($grossBaris)
+                    : round($subtotalBaris);
+
+                $productName = $d->produk ? $d->produk->nama_produk : 'produk';
+                
+                $specificCoa = \App\Models\Coa::withoutGlobalScopes()
+                    ->whereIn('tipe_akun', ['Revenue', 'Pendapatan'])
+                    ->where('nama_akun', 'like', '%Penjualan%' . $productName . '%')
+                    ->when($userId, fn($q) => $q->where('user_id', $userId))
+                    ->first();
+                
+                $useCoa = $specificCoa ?? $penjualanCoa;
+
+                $lines[] = [
+                    'code'   => $useCoa->kode_akun,
+                    'debit'  => 0,
+                    'credit' => $nilaiBaris,
+                    'memo'   => 'Pendapatan penjualan - ' . $productName,
+                ];
+            }
+        } else {
+            $nilaiPenjualan = ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan']))
+                ? round($subtotalGross)
+                : round($subtotalNet);
+
+            $lines[] = [
+                'code'   => $penjualanCoa->kode_akun,
+                'debit'  => 0,
+                'credit' => $nilaiPenjualan,
+                'memo'   => 'Pendapatan penjualan - ' . ($productNamesStr ?: 'produk'),
+            ];
+        }
 
         // ── KREDIT: PPN Keluaran ─────────────────────────────────────────────
         if ($biayaPPN > 0 && isset($validation['accounts']['ppn_keluaran'])) {
@@ -490,13 +519,14 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         if ($totalHPP > 0) {
             // Get HPP COA - use getOrCreateCoaHpp to find or create the account
             $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            $formattedQty = (float)$qty;
             
             // Debit HPP account
             $lines[] = [
                 'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
-                'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
+                'memo' => "HPP untuk {$product->nama_produk} ({$formattedQty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
             ];
             
             // Credit persediaan barang jadi
@@ -505,7 +535,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
                 'code' => $persediaanCOA,
                 'debit' => 0,
                 'credit' => $totalHPP,
-                'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
+                'memo' => "Keluar persediaan - {$product->nama_produk} ({$formattedQty} pcs)"
             ];
         }
 
@@ -548,13 +578,14 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         if ($totalHPP > 0) {
             // Get HPP COA - use getOrCreateCoaHpp to find or create the account
             $hppCoaCode = $this->getOrCreateCoaHpp($product, $penjualan->user_id);
+            $formattedQty = (float)$qty;
             
             // Debit HPP account
             $lines[] = [
                 'code' => $hppCoaCode,
                 'debit' => $totalHPP,
                 'credit' => 0,
-                'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
+                'memo' => "HPP untuk {$product->nama_produk} ({$formattedQty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
             ];
             
             // Credit persediaan barang jadi
@@ -563,7 +594,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
                 'code' => $persediaanCOA,
                 'debit' => 0,
                 'credit' => $totalHPP,
-                'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
+                'memo' => "Keluar persediaan - {$product->nama_produk} ({$formattedQty} pcs)"
             ];
             
             \Log::info('HPP lines created for single item', ['lines_count' => count($lines)]);
@@ -808,5 +839,67 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
                    $pelunasanUtang->tanggal;
         
         $service->post($tanggal, 'debt_payment', $pelunasanUtang->id, $memo, $lines);
+    }
+
+    public static function createJournalFromReturRefund($returPenjualan): void
+    {
+        $service = new static();
+        
+        $service->deleteByRef('sales_return', $returPenjualan->id);
+        
+        $lines = [];
+        $amount = $returPenjualan->total_retur;
+        $userId = $returPenjualan->user_id ?? auth()->id();
+
+        // Debit COA Retur Penjualan (411)
+        $coaRetur = Coa::where('user_id', $userId)
+            ->where(function($q) {
+                $q->where('kode_akun', 'like', '411%')
+                  ->orWhere('nama_akun', 'like', '%Retur Penjualan%');
+            })
+            ->first();
+        $kodeCoaRetur = $coaRetur ? $coaRetur->kode_akun : '411';
+
+        $lines[] = [
+            'code' => $kodeCoaRetur,
+            'debit' => $amount,
+            'credit' => 0,
+            'memo' => 'Retur Penjualan (Refund) - ' . $returPenjualan->nomor_retur
+        ];
+
+        // Credit COA Kas/Bank
+        $kodeKasBank = '112'; // Default Kas
+        if ($returPenjualan->metode_refund === 'transfer' && $returPenjualan->bank_refund_id) {
+            $coaBank = Coa::find($returPenjualan->bank_refund_id);
+            if ($coaBank) {
+                $kodeKasBank = $coaBank->kode_akun;
+            }
+        } else {
+            // Default to Kas COA
+            $coaKas = Coa::where('user_id', $userId)
+                ->whereIn('tipe_akun', ['Asset', 'Aset'])
+                ->where(function($q) {
+                    $q->where('nama_akun', 'like', '%kas%')
+                      ->where('nama_akun', 'not like', '%bank%');
+                })
+                ->orWhere('kode_akun', '112')
+                ->first();
+            if ($coaKas) {
+                $kodeKasBank = $coaKas->kode_akun;
+            }
+        }
+
+        $lines[] = [
+            'code' => $kodeKasBank,
+            'debit' => 0,
+            'credit' => $amount,
+            'memo' => 'Pengembalian Dana Kas/Bank - ' . $returPenjualan->nomor_retur
+        ];
+
+        $tanggal = $returPenjualan->tanggal instanceof \Carbon\Carbon ? 
+                   $returPenjualan->tanggal->format('Y-m-d') : 
+                   $returPenjualan->tanggal;
+
+        $service->postWithUser($tanggal, 'sales_return', $returPenjualan->id, 'Retur Penjualan Refund #' . $returPenjualan->nomor_retur, $lines, $userId);
     }
 }

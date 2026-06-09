@@ -356,6 +356,24 @@ $(document).ready(function() {
             return false;
         }
 
+        const jenisRetur = $('#jenis_retur').val();
+        if (jenisRetur === 'refund') {
+            const metodeRefund = $('input[name="metode_refund"]:checked').val();
+            if (!metodeRefund) {
+                e.preventDefault();
+                alert('Pilih Metode Pengembalian Dana untuk jenis retur Refund');
+                return false;
+            }
+            if (metodeRefund === 'transfer') {
+                if (!$('#bank_refund_id').val() || !$('#bank_tujuan_refund').val() || !$('#nama_penerima_refund').val()) {
+                    e.preventDefault();
+                    alert('Harap lengkapi data Sumber Dana, Bank Tujuan, dan Nama Penerima untuk metode transfer');
+                    return false;
+                }
+            }
+        }
+
+
         let valid = true;
         $('.qty-retur').each(function() {
             const qty = parseFloat($(this).val());
