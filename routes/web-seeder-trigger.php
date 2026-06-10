@@ -46,6 +46,11 @@ Route::get('/run-seeders-now', function () {
         Artisan::call('db:seed', ['--class' => 'CoaAyamSeeder']);
         $results[] = '✅ CoaAyamSeeder completed: ' . Artisan::output();
 
+        // 1b. CoaJagungSeeder (NEW)
+        $results[] = '<br>🌽 Running CoaJagungSeeder...';
+        Artisan::call('db:seed', ['--class' => 'CoaJagungSeeder']);
+        $results[] = '✅ CoaJagungSeeder completed: ' . Artisan::output();
+
         // 2. FixMissingWipCoasForUsers
         $results[] = '<br>🔧 Running FixMissingWipCoasForUsers...';
         Artisan::call('db:seed', ['--class' => 'FixMissingWipCoasForUsers']);
