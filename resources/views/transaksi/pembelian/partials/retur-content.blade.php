@@ -12,6 +12,7 @@
             'returs' => $returs,
             'showCreateButton' => false,
             'showTitle' => false,
+            'showSuccessAlert' => false,
             'tableClass' => 'table table-hover align-middle mb-0'
         ])
     </div>

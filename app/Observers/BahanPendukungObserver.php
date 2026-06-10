@@ -51,7 +51,7 @@ class BahanPendukungObserver
             return;
         }
 
-        $coaKode = $this->getCoaKodeFromName($bahanPendukung->nama_bahan);
+        $coaKode = $this->getCoaKodeFromName($bahanPendukung->nama_bahan, $bahanPendukung->user_id);
         
         // Find COA for this user
         $coa = \App\Models\Coa::where('kode_akun', $coaKode)
@@ -83,22 +83,37 @@ class BahanPendukungObserver
     
     /**
      * Determine COA code based on item name
+     * Updated for JASUKE (Jagung Susu Keju) business - but flexible for any COA structure
+     * 
+     * Algorithm:
+     * 1. Try exact/partial name match with child COA (1151, 1152, 1153, etc)
+     * 2. If no match, use parent COA (115)
      */
-    private function getCoaKodeFromName(string $nama): string
+    private function getCoaKodeFromName(string $nama, int $userId): string
     {
         $nama = strtolower($nama);
         
-        // Specific mappings
-        if (str_contains($nama, 'air')) return '1150';
-        if (str_contains($nama, 'minyak')) return '1151';
-        if (str_contains($nama, 'tepung terigu')) return '1152';
-        if (str_contains($nama, 'tepung maizena') || str_contains($nama, 'maizena')) return '1153';
-        if (str_contains($nama, 'lada')) return '1154';
-        if (str_contains($nama, 'kaldu')) return '1155';
-        if (str_contains($nama, 'bawang putih')) return '1156';
-        if (str_contains($nama, 'kemasan')) return '1157';
+        // Get all available child COAs for Bahan Pendukung from user's COA list
+        $childCoas = \App\Models\Coa::where('user_id', $userId)
+            ->where('kode_akun', 'LIKE', '115%')
+            ->where('kode_akun', '!=', '115') // Exclude parent
+            ->get();
         
-        // Default: Generic Persediaan Bahan Pendukung
+        // Try to find best match based on COA name
+        foreach ($childCoas as $coa) {
+            $coaNama = strtolower($coa->nama_akun);
+            
+            // Extract keywords from COA name (after "Pers. Bahan Pendukung")
+            $keywords = str_replace(['pers. bahan pendukung', 'persediaan bahan pendukung', 'pers.', 'persediaan'], '', $coaNama);
+            $keywords = trim($keywords);
+            
+            // Check if item name contains the COA keyword
+            if (!empty($keywords) && str_contains($nama, $keywords)) {
+                return $coa->kode_akun;
+            }
+        }
+        
+        // Default: Generic Persediaan Bahan Pendukung (parent account)
         return '115';
     }
     

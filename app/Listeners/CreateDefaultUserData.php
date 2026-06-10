@@ -31,12 +31,10 @@ class CreateDefaultUserData
         
         // NOTE: Bahan Baku dan Bahan Pendukung TIDAK di-seed otomatis
         // User harus membuat Bahan Baku/Pendukung sendiri sesuai kebutuhan bisnis mereka
-        // Saat create, Observer akan auto-assign COA berdasarkan nama item
+        // Saat create, Observer akan auto-assign COA berdasarkan nama item yang match
         
         // NOTE: Jabatan TIDAK di-seed otomatis
         // User harus membuat Jabatan sendiri sesuai kebutuhan bisnis mereka
-        // Uncomment baris di bawah jika ingin auto-seed Jabatan:
-        // $jabatanSeeder = new \Database\Seeders\DefaultJabatanSeeder();
-        // $jabatanSeeder->run($event->user->id);
     }
 }
+

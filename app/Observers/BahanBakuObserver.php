@@ -40,7 +40,7 @@ class BahanBakuObserver
         }
 
         // Try to find specific COA based on item name
-        $coaKode = $this->getCoaKodeFromName($bahanBaku->nama_bahan);
+        $coaKode = $this->getCoaKodeFromName($bahanBaku->nama_bahan, $bahanBaku->user_id);
         
         // Find COA for this user
         $coa = Coa::where('kode_akun', $coaKode)
@@ -72,18 +72,37 @@ class BahanBakuObserver
 
     /**
      * Determine COA code based on item name
+     * Updated for JASUKE (Jagung Susu Keju) business - but flexible for any COA structure
+     * 
+     * Algorithm:
+     * 1. Try exact/partial name match with child COA (1141, 1142, etc)
+     * 2. If no match, use parent COA (114)
      */
-    private function getCoaKodeFromName(string $nama): string
+    private function getCoaKodeFromName(string $nama, int $userId): string
     {
         $nama = strtolower($nama);
         
-        // Specific mappings
-        if (str_contains($nama, 'ayam potong')) return '1141';
-        if (str_contains($nama, 'ayam kampung')) return '1142';
-        if (str_contains($nama, 'bebek')) return '1143';
-        if (str_contains($nama, 'ayam')) return '1144'; // Ayam lainnya
+        // Get all available child COAs for Bahan Baku from user's COA list
+        $childCoas = Coa::where('user_id', $userId)
+            ->where('kode_akun', 'LIKE', '114%')
+            ->where('kode_akun', '!=', '114') // Exclude parent
+            ->get();
         
-        // Default: Generic Persediaan Bahan Baku
+        // Try to find best match based on COA name
+        foreach ($childCoas as $coa) {
+            $coaNama = strtolower($coa->nama_akun);
+            
+            // Extract keywords from COA name (after "Pers. Bahan Baku")
+            $keywords = str_replace(['pers. bahan baku', 'persediaan bahan baku', 'pers.', 'persediaan'], '', $coaNama);
+            $keywords = trim($keywords);
+            
+            // Check if item name contains the COA keyword
+            if (!empty($keywords) && str_contains($nama, $keywords)) {
+                return $coa->kode_akun;
+            }
+        }
+        
+        // Default: Generic Persediaan Bahan Baku (parent account)
         return '114';
     }
 
