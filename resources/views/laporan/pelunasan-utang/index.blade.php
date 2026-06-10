@@ -10,14 +10,11 @@
             <h3 class="mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Laporan Pelunasan Utang</h3>
             <p class="text-muted mb-0">Pantau dan kelola pelunasan utang pembelian</p>
         </div>
-        <div class="d-flex gap-2">
+        <div>
             <a href="{{ route('laporan.export.pelunasan-utang', array_merge(request()->all(), ['export' => 'pdf'])) }}" 
                class="btn btn-danger btn-sm" target="_blank">
                 <i class="fas fa-file-pdf me-2"></i>Export PDF
             </a>
-            <button class="btn btn-success btn-sm" onclick="window.print()">
-                <i class="fas fa-print me-2"></i>Print
-            </button>
         </div>
     </div>
 
@@ -158,11 +155,20 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-info" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#detailModal{{ $item->id }}">
-                                    <i class="fas fa-eye"></i> Detail
-                                </button>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-info" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#detailModal{{ $item->id }}"
+                                            title="Lihat Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <a href="{{ route('laporan.pelunasan-utang.cetak-invoice', $item->id) }}" 
+                                       class="btn btn-outline-secondary" 
+                                       target="_blank"
+                                       title="Cetak Invoice">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
 
@@ -278,3 +284,36 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    /* Custom button styling for invoice actions */
+    .btn-outline-info:hover {
+        background-color: #0dcaf0;
+        border-color: #0dcaf0;
+        color: #fff;
+    }
+    
+    .btn-outline-secondary {
+        color: #6B4F3A;
+        border-color: #8B6A4E;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #6B4F3A;
+        border-color: #6B4F3A;
+        color: #fff;
+    }
+    
+    .btn-group-sm > .btn {
+        transition: all 0.2s ease;
+    }
+    
+    /* Print styles */
+    @media print {
+        .btn, .card-header button, nav, .breadcrumb {
+            display: none !important;
+        }
+    }
+</style>
+@endpush

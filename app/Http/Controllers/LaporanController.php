@@ -1654,6 +1654,42 @@ class LaporanController extends Controller
         ]);
     }
 
+    /**
+     * Cetak Invoice Pelunasan Utang
+     */
+    public function cetakInvoicePelunasanUtang($id)
+    {
+        // MULTI-TENANT: Get pelunasan utang with relations
+        $pelunasanUtang = \App\Models\PelunasanUtang::with([
+            'pembelian.vendor',
+            'pembelian.details.bahanBaku.satuan',
+            'pembelian.details.bahanPendukung.satuan',
+            'akunKas',
+            'coaPelunasan'
+        ])
+        ->where('user_id', auth()->id())
+        ->findOrFail($id);
+
+        // Calculate amounts
+        $totalTagihan = $pelunasanUtang->pembelian->total_harga ?? 0;
+        $totalRefund = $pelunasanUtang->pembelian->total_refund ?? 0;
+        $totalDibayar = $pelunasanUtang->jumlah;
+        $sisaUtang = $pelunasanUtang->pembelian->sisa_pembayaran ?? 0;
+
+        // Generate PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.invoice', [
+            'pelunasanUtang' => $pelunasanUtang,
+            'totalTagihan' => $totalTagihan,
+            'totalRefund' => $totalRefund,
+            'totalDibayar' => $totalDibayar,
+            'sisaUtang' => $sisaUtang
+        ]);
+
+        $filename = 'invoice-pelunasan-utang-' . $pelunasanUtang->kode_transaksi . '.pdf';
+        
+        return $pdf->stream($filename);
+    }
+
     // === LAPORAN ALIRAN KAS DAN BANK ===
     public function laporanAliranKas(Request $request)
     {

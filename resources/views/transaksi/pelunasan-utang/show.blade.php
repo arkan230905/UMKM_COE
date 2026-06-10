@@ -12,9 +12,6 @@
             <a href="{{ route('transaksi.pelunasan-utang.index') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Kembali
             </a>
-            <button onclick="window.print()" class="btn btn-warning">
-                <i class="fas fa-print me-2"></i>Cetak
-            </button>
         </div>
     </div>
 
@@ -119,72 +116,47 @@
     </div>
 
     <div class="row mt-4">
-        <div class="col-md-6">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Informasi Pembayaran</h5>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <h6 class="text-muted">Akun Kas</h6>
-                        <p class="mb-0">
-                            @if($pelunasanUtang->akunKas)
-                                <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama_akun }}
-                            @else
-                                <span class="text-muted">Akun Kas tidak ditemukan</span>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-muted">Akun Kas</h6>
+                                <p class="mb-0">
+                                    @if($pelunasanUtang->akunKas)
+                                        <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama_akun }}
+                                    @else
+                                        <span class="text-muted">Akun Kas tidak ditemukan</span>
+                                    @endif
+                                </p>
+                            </div>
+                            
+                            @if($pelunasanUtang->coaPelunasan)
+                            <div class="mb-3">
+                                <h6 class="text-muted">COA Pelunasan</h6>
+                                <p class="mb-0">
+                                    <strong>{{ $pelunasanUtang->coaPelunasan->kode_akun }}</strong> - {{ $pelunasanUtang->coaPelunasan->nama_akun }}
+                                </p>
+                            </div>
                             @endif
-                        </p>
-                    </div>
-                    
-                    @if($pelunasanUtang->coaPelunasan)
-                    <div class="mb-3">
-                        <h6 class="text-muted">COA Pelunasan</h6>
-                        <p class="mb-0">
-                            <strong>{{ $pelunasanUtang->coaPelunasan->kode_akun }}</strong> - {{ $pelunasanUtang->coaPelunasan->nama_akun }}
-                        </p>
-                    </div>
-                    @endif
-                    
-                    <div class="mb-3">
-                        <h6 class="text-muted">Tanggal Pembayaran</h6>
-                        <p class="mb-0">{{ $pelunasanUtang->tanggal->format('d F Y') }}</p>
-                    </div>
-                    
-                    @if($pelunasanUtang->keterangan)
-                    <div class="mb-3">
-                        <h6 class="text-muted">Keterangan</h6>
-                        <p class="mb-0">{{ $pelunasanUtang->keterangan }}</p>
-                    </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Jurnal</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Akun</th>
-                                    <th class="text-end">Debit</th>
-                                    <th class="text-end">Kredit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($pelunasanUtang->jurnals as $jurnal)
-                                <tr>
-                                    <td>{{ $jurnal->coa->kode_akun }} - {{ $jurnal->coa->nama }}</td>
-                                    <td class="text-end">{{ $jurnal->debit ? 'Rp ' . number_format($jurnal->debit, 0, ',', '.') : '-' }}</td>
-                                    <td class="text-end">{{ $jurnal->kredit ? 'Rp ' . number_format($jurnal->kredit, 0, ',', '.') : '-' }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <h6 class="text-muted">Tanggal Pembayaran</h6>
+                                <p class="mb-0">{{ $pelunasanUtang->tanggal->format('d F Y') }}</p>
+                            </div>
+                            
+                            @if($pelunasanUtang->keterangan)
+                            <div class="mb-3">
+                                <h6 class="text-muted">Keterangan</h6>
+                                <p class="mb-0">{{ $pelunasanUtang->keterangan }}</p>
+                            </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
