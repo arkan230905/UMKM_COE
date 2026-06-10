@@ -3542,6 +3542,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/penggajian', [LaporanController::class, 'laporanPenggajian'])->name('penggajian');
         Route::get('/pembayaran-beban', [LaporanController::class, 'laporanPembayaranBeban'])->name('pembayaran-beban');
         Route::get('/pelunasan-utang', [LaporanController::class, 'laporanPelunasanUtang'])->name('pelunasan-utang');
+        Route::get('/pelunasan-utang/{id}/cetak-invoice', [LaporanController::class, 'cetakInvoicePelunasanUtang'])->name('pelunasan-utang.cetak-invoice');
         Route::get('/aliran-kas', [LaporanController::class, 'laporanAliranKas'])->name('aliran-kas');
         
         // Laporan Kas & Bank

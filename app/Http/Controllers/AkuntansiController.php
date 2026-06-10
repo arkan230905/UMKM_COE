@@ -687,6 +687,56 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
     }
 
     /**
+     * Export Laporan Posisi Keuangan ke PDF
+     */
+    public function laporanPosisiKeuanganPdf(Request $request)
+    {
+        // Gunakan format bulan/tahun seperti neraca saldo untuk konsistensi
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
+        
+        // Validasi range
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = date('m');
+        }
+        if ($tahun < 2020 || $tahun > 2030) {
+            $tahun = date('Y');
+        }
+        
+        // Ensure bulan is zero-padded
+        $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
+        
+        // Hitung periode - sama seperti neraca saldo
+        $tanggalAwal = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $tanggalAkhir = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+
+        // Gunakan NeracaService untuk konsistensi dengan neraca saldo
+        $neracaService = app(\App\Services\NeracaService::class);
+        $neraca = $neracaService->generateLaporanPosisiKeuangan($tanggalAwal, $tanggalAkhir);
+        
+        // Hitung Laba/Rugi Bersih dari Laporan Laba Rugi untuk periode yang sama
+        $labaRugiData = $this->calculateLabaRugiBersih($tanggalAwal, $tanggalAkhir);
+        $labaRugiBersih = $labaRugiData['laba_bersih'];
+        
+        // Tambahkan data laba/rugi ke neraca
+        $neraca['laba_rugi_berjalan'] = $labaRugiBersih;
+        $neraca['laba_rugi_akun_nama'] = $labaRugiBersih >= 0 ? 'Laba Berjalan' : 'Rugi Berjalan';
+        $neraca['total_ekuitas_with_laba_rugi'] = $neraca['ekuitas']['total'] + $labaRugiBersih;
+        $neraca['total_kewajiban_ekuitas'] = $neraca['kewajiban']['total'] + $neraca['total_ekuitas_with_laba_rugi'];
+        
+        // Update status keseimbangan
+        $neraca['neraca_seimbang'] = abs($neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas']) < 0.01;
+        $neraca['selisih'] = $neraca['aset']['total_aset'] - $neraca['total_kewajiban_ekuitas'];
+
+        // Generate PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('akuntansi.laporan_posisi_keuangan_pdf', compact('neraca', 'bulan', 'tahun'));
+        
+        $filename = 'laporan-posisi-keuangan-' . $bulan . '-' . $tahun . '.pdf';
+        
+        return $pdf->stream($filename);
+    }
+
+    /**
      * Hitung Laba/Rugi Bersih untuk periode tertentu
      * Digunakan untuk Laporan Posisi Keuangan
      */

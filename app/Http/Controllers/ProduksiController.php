@@ -239,14 +239,18 @@ class ProduksiController extends Controller
                     }
                 }
                 
-                // Check Bahan Pendukung (NEW)
+                // Check Bahan Pendukung (NEW) - Using NOMINAL/VALUE instead of QTY
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
-                    $qtyResepTotal = $detail->qty_resep;
-                    $available = (float)($bahan->saldo_awal ?? 0); // Bahan Pendukung uses saldo_awal as stock
+                    $qtyButuh = $detail->qty_resep; // Qty yang dibutuhkan
+                    $hargaSatuan = $bahan->harga_satuan ?? 0; // Harga per unit
+                    $nominalButuh = $qtyButuh * $hargaSatuan; // Total nilai yang dibutuhkan (Rp)
                     
-                    if ($available + 1e-9 < $qtyResepTotal) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh " . number_format($qtyResepTotal, 2) . ", tersedia " . number_format($available, 2);
+                    $stokQty = (float)($bahan->saldo_awal ?? 0); // Stok dalam qty
+                    $nominalTersedia = $stokQty * $hargaSatuan; // Total nilai tersedia (Rp)
+                    
+                    if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.');
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
@@ -296,15 +300,24 @@ class ProduksiController extends Controller
                     ]);
                 }
                 
-                // Reduce Bahan Pendukung stock (NEW)
+                // Reduce Bahan Pendukung stock (NEW) - Based on NOMINAL/VALUE
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
-                    $qtyResepTotal = $detail->qty_resep;
+                    $qtyButuh = $detail->qty_resep; // Qty yang dibutuhkan dari resep
+                    $hargaSatuan = $bahan->harga_satuan ?? 0; // Harga per unit
+                    $nominalDigunakan = $qtyButuh * $hargaSatuan; // Total nilai yang digunakan (Rp)
+                    
+                    // Hitung qty yang harus dikurangi berdasarkan nominal
+                    if ($hargaSatuan > 0) {
+                        $qtyDikurangi = $nominalDigunakan / $hargaSatuan; // Convert nominal ke qty
+                    } else {
+                        $qtyDikurangi = $qtyButuh; // Fallback jika harga satuan 0
+                    }
                     
                     // IMPORTANT: Update saldo_awal (stock) directly in database
                     \DB::table('bahan_pendukungs')
                         ->where('id', $bahan->id)
-                        ->decrement('saldo_awal', $qtyResepTotal);
+                        ->decrement('saldo_awal', $qtyDikurangi);
                     
                     // Refresh model
                     $bahan->refresh();
@@ -315,11 +328,11 @@ class ProduksiController extends Controller
                         'item_id' => $bahan->id,
                         'tanggal' => now()->format('Y-m-d'),
                         'direction' => 'out',
-                        'qty' => $qtyResepTotal,
-                        'satuan' => 'Unit', // Default satuan
-                        'unit_cost' => $detail->harga_satuan,
-                        'total_cost' => $detail->subtotal,
-                        'keterangan' => "Produksi {$produk->nama_produk} (BOP) - {$produksi->id}",
+                        'qty' => $qtyDikurangi,
+                        'satuan' => $bahan->satuanRelation->nama ?? 'Unit', // Get proper unit name
+                        'unit_cost' => $hargaSatuan,
+                        'total_cost' => $nominalDigunakan, // Use nominal as total cost
+                        'keterangan' => "Produksi {$produk->nama_produk} (BOP) - Nominal Rp " . number_format($nominalDigunakan, 0, ',', '.') . " - {$produksi->id}",
                         'ref_type' => 'produksi',
                         'ref_id' => $produksi->id,
                     ]);
