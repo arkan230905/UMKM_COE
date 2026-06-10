@@ -1558,6 +1558,9 @@ class PenggajianController extends Controller
             // Get all jabatan/kualifikasi data
             $jabatans = \App\Models\Jabatan::all();
             
+            // Add resolved kualifikasi
+            $resolvedJab = $this->resolvePegawaiJabatan($pegawai);
+            
             return response()->json([
                 'pegawai' => [
                     'id' => $pegawai->id,
@@ -1581,10 +1584,10 @@ class PenggajianController extends Controller
                         'user_id' => $j->user_id,
                     ];
                 }),
-                'resolved_kualifikasi' => $this->resolvePegawaiJabatan($pegawai) ? [
-                    'nama' => $this->resolvePegawaiJabatan($pegawai)->nama,
-                    'tarif_produk' => $this->resolvePegawaiJabatan($pegawai)->tarif_produk,
-                    'asuransi' => $this->resolvePegawaiJabatan($pegawai)->asuransi,
+                'resolved_kualifikasi' => $resolvedJab ? [
+                    'nama' => $resolvedJab->nama,
+                    'tarif_produk' => $resolvedJab->tarif_produk,
+                    'asuransi' => $resolvedJab->asuransi,
                 ] : null,
                 'timestamp' => now()->toISOString()
             ]);
