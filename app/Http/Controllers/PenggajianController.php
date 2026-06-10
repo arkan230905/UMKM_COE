@@ -1143,7 +1143,7 @@ class PenggajianController extends Controller
     private function resolveProdukPayrollDetail(Penggajian $penggajian): array
     {
         $pegawai = $penggajian->pegawai;
-        $kualifikasi = $this->resolvePegawaiKualifikasi($pegawai);
+        $kualifikasi = $this->resolvePegawaiJabatan($pegawai);
 
         $tarifProduk = $this->firstPositiveNumber([
             $penggajian->tarif_produk,
@@ -1580,10 +1580,10 @@ class PenggajianController extends Controller
                         'user_id' => $j->user_id,
                     ];
                 }),
-                'resolved_kualifikasi' => $this->resolvePegawaiKualifikasi($pegawai) ? [
-                    'nama' => $this->resolvePegawaiKualifikasi($pegawai)->nama,
-                    'tarif_produk' => $this->resolvePegawaiKualifikasi($pegawai)->tarif_produk,
-                    'asuransi' => $this->resolvePegawaiKualifikasi($pegawai)->asuransi,
+                'resolved_kualifikasi' => $this->resolvePegawaiJabatan($pegawai) ? [
+                    'nama' => $this->resolvePegawaiJabatan($pegawai)->nama,
+                    'tarif_produk' => $this->resolvePegawaiJabatan($pegawai)->tarif_produk,
+                    'asuransi' => $this->resolvePegawaiJabatan($pegawai)->asuransi,
                 ] : null,
                 'timestamp' => now()->toISOString()
             ]);
