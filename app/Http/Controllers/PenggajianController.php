@@ -258,9 +258,9 @@ class PenggajianController extends Controller
                 $jabatanNama = $jabatan->nama ?? 'Unknown';
             } else {
                 // Fallback to pegawai stored values
-                $tarif = (int) ($pegawai->tarif_per_jam ?? 0);
+                $tarif = (int) ($pegawai->tarif_per_jam ?? $pegawai->tarif ?? 0);
                 $gajiPokok = (int) ($pegawai->gaji_pokok ?? 0);
-                $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? 0);
+                $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? $pegawai->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($pegawai->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($pegawai->tunjangan_konsumsi ?? 0);
                 $asuransi = (int) ($pegawai->asuransi ?? 0);
@@ -287,6 +287,7 @@ class PenggajianController extends Controller
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
                 'jabatan_nama' => $jabatanNama,
+                'kualifikasi_nama' => $jabatanNama, // For backward compatibility with form JS
                 'kategori' => $kategoriInternal // Simplified to BTKL or BTKTI
             ];
             
