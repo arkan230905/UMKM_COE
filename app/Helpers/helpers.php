@@ -88,3 +88,17 @@ if (!function_exists('format_number_smart')) {
         }
     }
 }
+
+/**
+ * Format number to Indonesian Rupiah format
+ * 
+ * @param float|int $number
+ * @param int $decimals Number of decimal places (default: 0)
+ * @return string Formatted rupiah string with "Rp" prefix
+ */
+if (!function_exists('format_rupiah')) {
+    function format_rupiah($number, $decimals = 0)
+    {
+        return 'Rp ' . number_format($number, $decimals, ',', '.');
+    }
+}
