@@ -161,10 +161,22 @@ class ProduksiController extends Controller
             $totalBOPTotal = $totalBOP * $qtyProd;
             $totalBiaya = $totalBahan + $totalBTKLTotal + $totalBOPTotal;
 
+            // Determine COA Persediaan Barang Jadi
+            // Priority: 1) User selection, 2) Product's COA, 3) Default COA 1161
+            $coaBarangJadiId = $request->coa_persediaan_barang_jadi_id;
+            if (!$coaBarangJadiId && $produk->coa_persediaan_id) {
+                $coaBarangJadiId = $produk->coa_persediaan_id; // Use product's COA
+            }
+            if (!$coaBarangJadiId) {
+                // Fallback to default: find COA with code 1161 or 116
+                $coaBarangJadiId = $this->getCoaIdByKodeForUser('1161', $user_id) 
+                    ?? $this->getCoaIdByKodeForUser('116', $user_id);
+            }
+
             // Create production record
             $produksi = Produksi::create([
                 'produk_id' => $produk->id,
-                'coa_persediaan_barang_jadi_id' => $request->coa_persediaan_barang_jadi_id,
+                'coa_persediaan_barang_jadi_id' => $coaBarangJadiId,
                 'tanggal' => $tanggal,
                 'jumlah_produksi_bulanan' => $request->jumlah_produksi_bulanan,
                 'hari_produksi_bulanan' => $request->hari_produksi_bulanan,
@@ -173,7 +185,7 @@ class ProduksiController extends Controller
                 'total_bahan' => $totalBahan,
                 'total_btkl' => $totalBTKLTotal,
                 'total_bop' => $totalBOPTotal,
-'total_biaya' => $totalBiaya,
+                'total_biaya' => $totalBiaya,
                 'status' => 'draft',
                 'user_id' => $user_id,
             ]);
