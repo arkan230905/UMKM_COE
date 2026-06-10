@@ -15,8 +15,8 @@ class CoaJagungSeeder extends Seeder
      */
     public function run()
     {
-        // User ID 0 = Template untuk semua user baru
-        $userId = 0;
+        // User ID NULL = Template untuk semua user baru (bukan 0, karena foreign key constraint)
+        $userId = null;
         
         $coaData = [
             // 1. Diskon Pembelian (Biaya/Expense)
