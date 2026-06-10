@@ -150,6 +150,68 @@ Route::get('/check-seeders-status', function () {
     ]);
 });
 
+Route::get('/fix-perusahaan-migration-now', function () {
+    // EMERGENCY: Run migration without authentication
+    // This is temporary endpoint to fix perusahaan table structure
+    
+    set_time_limit(120);
+    
+    $results = [];
+    
+    try {
+        $results[] = '🔧 EMERGENCY MIGRATION FIX';
+        $results[] = '========================';
+        $results[] = '';
+        
+        // Check if user_id column exists
+        $hasUserIdColumn = Schema::hasColumn('perusahaan', 'user_id');
+        
+        if ($hasUserIdColumn) {
+            $results[] = '✅ Column user_id already exists in perusahaan table';
+        } else {
+            $results[] = '⚠️ Column user_id NOT found in perusahaan table';
+            $results[] = '🔄 Running migration to add user_id column...';
+            
+            // Run ONLY the specific migration
+            Artisan::call('migrate', [
+                '--path' => 'database/migrations/2026_05_07_090000_add_user_id_to_perusahaan_table.php',
+                '--force' => true
+            ]);
+            
+            $results[] = '✅ Migration completed: ' . Artisan::output();
+            
+            // Verify
+            $hasUserIdColumn = Schema::hasColumn('perusahaan', 'user_id');
+            if ($hasUserIdColumn) {
+                $results[] = '✅ VERIFIED: Column user_id now exists!';
+            } else {
+                $results[] = '❌ ERROR: Column user_id still not found after migration';
+            }
+        }
+        
+        $results[] = '';
+        $results[] = '✅ Migration check completed!';
+        $results[] = '📝 You can now register new users without error.';
+        $results[] = '';
+        $results[] = '⚠️ IMPORTANT: Delete this route after use!';
+        
+        return response('<html><head><title>Emergency Migration Fix</title></head><body style="font-family: monospace; padding: 20px;"><pre>' 
+            . implode("\n", $results) 
+            . '</pre></body></html>');
+            
+    } catch (\Exception $e) {
+        $results[] = '';
+        $results[] = '❌ ERROR: ' . $e->getMessage();
+        $results[] = '';
+        $results[] = 'Stack trace:';
+        $results[] = $e->getTraceAsString();
+        
+        return response('<html><head><title>Migration Error</title></head><body style="font-family: monospace; padding: 20px; background: #fee;"><pre>' 
+            . implode("\n", $results) 
+            . '</pre></body></html>', 500);
+    }
+});
+
 Route::get('/clear-cache-now', function () {
     // Clear all caches - useful after deployment
     if (!auth()->check()) {

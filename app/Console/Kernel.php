@@ -13,6 +13,7 @@ class Kernel extends ConsoleKernel
      * @var array<int, class-string>
      */
     protected $commands = [
+        \App\Console\Commands\ResetCoaJasuke::class,
         \App\Console\Commands\StockBackfillPembelian::class,
         \App\Console\Commands\SyncAccounts::class,
         \App\Console\Commands\FixDepreciationDiscrepancy::class,
