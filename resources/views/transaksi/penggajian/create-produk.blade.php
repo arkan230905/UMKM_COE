@@ -341,7 +341,7 @@
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                // Gunakan nilai asuransi dari API, bahkan jika 0 (hanya asuransi yang pakai ??)
+                // Gunakan nilai asuransi dari API, bahkan jika 0
                 document.getElementById('bpjs').value = parseInt(data.asuransi) ?? 0;
                 
                 updateTotalProduk();
