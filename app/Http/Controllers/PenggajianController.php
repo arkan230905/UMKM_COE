@@ -1175,27 +1175,48 @@ class PenggajianController extends Controller
         ];
     }
 
-    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Jabatan
+    /**
+     * Resolve pegawai's jabatan/kualifikasi data
+     * UPDATED: Now uses KualifikasiTenagaKerja (new system) instead of Jabatan (old system)
+     */
+    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\KualifikasiTenagaKerja
     {
         if (!$pegawai) {
             return null;
         }
 
+        // Try to get from kualifikasiRelasi first (new system)
+        if ($pegawai->kualifikasiRelasi) {
+            return $pegawai->kualifikasiRelasi;
+        }
+
+        // Fallback: Try to get from jabatanRelasi (compatibility)
         if ($pegawai->jabatanRelasi) {
             return $pegawai->jabatanRelasi;
         }
 
-        $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
+        // Query kualifikasi_tenaga_kerja table
+        $query = \App\Models\KualifikasiTenagaKerja::where('user_id', $pegawai->user_id ?? auth()->id());
 
-        if ($pegawai->jabatan_id) {
-            $jabatan = (clone $query)->find($pegawai->jabatan_id);
-            if ($jabatan) {
-                return $jabatan;
+        // Try by kualifikasi_id
+        if ($pegawai->kualifikasi_id) {
+            $kualifikasi = (clone $query)->find($pegawai->kualifikasi_id);
+            if ($kualifikasi) {
+                return $kualifikasi;
             }
         }
 
+        // Try by jabatan_id (for backward compatibility)
+        if ($pegawai->jabatan_id) {
+            $kualifikasi = (clone $query)->find($pegawai->jabatan_id);
+            if ($kualifikasi) {
+                return $kualifikasi;
+            }
+        }
+
+        // Try by nama (for backward compatibility)
         if (!empty($pegawai->jabatan)) {
-            return (clone $query)->where('nama', $pegawai->jabatan)->first();
+            return (clone $query)->where('nama_kualifikasi', $pegawai->jabatan)->first();
         }
 
         return null;
