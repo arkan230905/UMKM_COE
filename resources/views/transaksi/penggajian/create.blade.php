@@ -195,6 +195,7 @@
                             <span class="input-group-text">Rp</span>
                             <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control" value="150000" min="0" oninput="hitungOtomatis()">
                         </div>
+                        <small class="form-text text-muted d-block mt-1">Default: 150.000</small>
                     </div>
 
                     <div class="col-md-6">
@@ -203,6 +204,7 @@
                             <span class="input-group-text">Rp</span>
                             <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control" value="375000" min="0" oninput="hitungOtomatis()">
                         </div>
+                        <small class="form-text text-muted d-block mt-1">Default: 375.000</small>
                     </div>
 
                     <div class="col-md-6">
