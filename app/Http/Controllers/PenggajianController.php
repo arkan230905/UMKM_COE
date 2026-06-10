@@ -254,16 +254,20 @@ class PenggajianController extends Controller
                 $tunjanganJabatan = (int) ($jabatan->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($jabatan->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($jabatan->tunjangan_konsumsi ?? 0);
+                // CRITICAL: Asuransi HARUS dari kualifikasi (jabatan), bukan pegawai table
+                // Kualifikasi adalah source of truth
                 $asuransi = (int) ($jabatan->asuransi ?? 0);
                 $jabatanNama = $jabatan->nama ?? 'Unknown';
             } else {
-                // Fallback to pegawai stored values
+                // Fallback to pegawai stored values - tapi TETAP asuransi dari jabatan
                 $tarif = (int) ($pegawai->tarif_per_jam ?? $pegawai->tarif ?? 0);
                 $gajiPokok = (int) ($pegawai->gaji_pokok ?? 0);
                 $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? $pegawai->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($pegawai->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($pegawai->tunjangan_konsumsi ?? 0);
-                $asuransi = (int) ($pegawai->asuransi ?? 0);
+                // Even in fallback, asuransi should be 0 by default
+                // Do NOT use pegawai.asuransi column, that's legacy
+                $asuransi = 0;
                 $jabatanNama = $pegawai->jabatan ?? 'Staff';
             }
             
@@ -1558,6 +1562,9 @@ class PenggajianController extends Controller
             // Get all jabatan/kualifikasi data
             $jabatans = \App\Models\Jabatan::all();
             
+            // Add resolved kualifikasi
+            $resolvedJab = $this->resolvePegawaiJabatan($pegawai);
+            
             return response()->json([
                 'pegawai' => [
                     'id' => $pegawai->id,
@@ -1581,10 +1588,10 @@ class PenggajianController extends Controller
                         'user_id' => $j->user_id,
                     ];
                 }),
-                'resolved_kualifikasi' => $this->resolvePegawaiJabatan($pegawai) ? [
-                    'nama' => $this->resolvePegawaiJabatan($pegawai)->nama,
-                    'tarif_produk' => $this->resolvePegawaiJabatan($pegawai)->tarif_produk,
-                    'asuransi' => $this->resolvePegawaiJabatan($pegawai)->asuransi,
+                'resolved_kualifikasi' => $resolvedJab ? [
+                    'nama' => $resolvedJab->nama,
+                    'tarif_produk' => $resolvedJab->tarif_produk,
+                    'asuransi' => $resolvedJab->asuransi,
                 ] : null,
                 'timestamp' => now()->toISOString()
             ]);
