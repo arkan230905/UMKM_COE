@@ -64,17 +64,6 @@
         </div>
     @endif
 
-    <div class="alert alert-info">
-        <h6><i class="fas fa-info-circle me-2"></i>Panduan Pengisian Retur:</h6>
-        <ul class="mb-0">
-            <li><strong>Jenis Retur:</strong> Pilih "Tukar Barang" atau "Refund"</li>
-            <li><strong>Alasan Retur:</strong> Wajib diisi (contoh: "Barang rusak", "Salah kirim")</li>
-            <li><strong>Qty Retur:</strong> Masukkan jumlah yang akan diretur (harus lebih dari 0)</li>
-            <li><strong>Item yang Tidak Diretur:</strong> Biarkan qty retur kosong atau 0, item tersebut tidak akan masuk ke data retur</li>
-            <li><strong>Contoh:</strong> Jika hanya ingin retur Jagung 5 kg, isi qty retur Jagung = 5, biarkan Ketan kosong/0</li>
-        </ul>
-    </div>
-
     <form action="{{ route('transaksi.retur-pembelian.store') }}" method="POST" id="returForm">
         @csrf
         
