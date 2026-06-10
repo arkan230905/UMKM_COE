@@ -270,6 +270,8 @@ class LaporanKasBankController extends Controller
                     // Check ref type match
                     $refTypeMatch = (
                         ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'purchase') ||
+                        ($jl->tipe_referensi === 'pembelian' && $ju->tipe_referensi === 'pembelian') ||
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
                         ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
@@ -292,7 +294,19 @@ class LaporanKasBankController extends Controller
                         }
                     }
                     
-                    if ($refTypeMatch || $penjualanMatch) {
+                    // Check pembelian match by ID
+                    $pembelianMatch = false;
+                    if (($jl->tipe_referensi === 'purchase' || $jl->tipe_referensi === 'pembelian') && 
+                        ($ju->tipe_referensi === 'pembelian' || $ju->tipe_referensi === 'purchase')) {
+                        if (preg_match('/purchase#(\d+)|pembelian#(\d+)|PB-(\d+)/', $ju->referensi, $matches)) {
+                            $pembelianId = (int)($matches[1] ?? $matches[2] ?? $matches[3] ?? 0);
+                            if ($pembelianId > 0 && $jl->referensi == $pembelianId) {
+                                $pembelianMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch || $pembelianMatch) {
                         // Mark the old system transaction for removal
                         $duplicateKey = $ju->tanggal . '_' . $ju->referensi . '_' . $ju->debit;
                         $duplicatesToRemove->push($duplicateKey);
@@ -437,6 +451,8 @@ class LaporanKasBankController extends Controller
                     // Check ref type match
                     $refTypeMatch = (
                         ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'purchase') ||
+                        ($jl->tipe_referensi === 'pembelian' && $ju->tipe_referensi === 'pembelian') ||
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
                         ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
@@ -459,7 +475,19 @@ class LaporanKasBankController extends Controller
                         }
                     }
                     
-                    if ($refTypeMatch || $penjualanMatch) {
+                    // Check pembelian match by ID
+                    $pembelianMatch = false;
+                    if (($jl->tipe_referensi === 'purchase' || $jl->tipe_referensi === 'pembelian') && 
+                        ($ju->tipe_referensi === 'pembelian' || $ju->tipe_referensi === 'purchase')) {
+                        if (preg_match('/purchase#(\d+)|pembelian#(\d+)|PB-(\d+)/', $ju->referensi, $matches)) {
+                            $pembelianId = (int)($matches[1] ?? $matches[2] ?? $matches[3] ?? 0);
+                            if ($pembelianId > 0 && $jl->referensi == $pembelianId) {
+                                $pembelianMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch || $pembelianMatch) {
                         // Mark the old system transaction for removal
                         $duplicateKey = $ju->tanggal . '_' . $ju->referensi . '_' . $ju->kredit;
                         $duplicatesToRemove->push($duplicateKey);
@@ -527,7 +555,9 @@ class LaporanKasBankController extends Controller
             switch ($refType) {
                 case 'sale':
                 case 'penjualan':
-                    $sale = \App\Models\Penjualan::find($refId);
+                    $sale = \App\Models\Penjualan::where('id', $refId)
+                        ->where('user_id', auth()->id())
+                        ->first();
                     if ($sale) {
                         return [
                             'nomor_transaksi' => $sale->nomor_penjualan ?? "PJ-{$refId}",
@@ -535,18 +565,32 @@ class LaporanKasBankController extends Controller
                             'keterangan' => 'Penjualan ' . ucfirst($sale->payment_method ?? 'cash')
                         ];
                     }
+                    // Fallback if sale not found
+                    return [
+                        'nomor_transaksi' => "PJ-{$refId}",
+                        'jenis' => 'Penjualan',
+                        'keterangan' => 'Penjualan'
+                    ];
                     break;
                     
                 case 'purchase':
                 case 'pembelian':
-                    $purchase = \App\Models\Pembelian::find($refId);
+                    $purchase = \App\Models\Pembelian::where('id', $refId)
+                        ->where('user_id', auth()->id())
+                        ->first();
                     if ($purchase) {
                         return [
                             'nomor_transaksi' => $purchase->nomor_pembelian ?? "PB-{$refId}",
                             'jenis' => 'Pembelian',
-                            'keterangan' => 'Pembelian ' . ucfirst($purchase->payment_method ?? 'cash')
+                            'keterangan' => 'Pembelian ' . ($purchase->vendor->nama ?? '') . ' - ' . ucfirst($purchase->payment_method ?? 'cash')
                         ];
                     }
+                    // Fallback if purchase not found
+                    return [
+                        'nomor_transaksi' => "PB-{$refId}",
+                        'jenis' => 'Pembelian',
+                        'keterangan' => 'Pembelian'
+                    ];
                     break;
                     
                 case 'expense_payment':
