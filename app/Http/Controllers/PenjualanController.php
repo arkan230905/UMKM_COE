@@ -764,20 +764,17 @@ class PenjualanController extends Controller
             }
             
             // Resolve coa_id dari sumber_dana (kode akun yang dipilih user)
-            $sumberDanaKode = $paymentData['sumber_dana'] ?? null;
+            $sumberDanaKode = $request->input('sumber_dana') ?? $paymentData['sumber_dana'] ?? null;
             $coaId = null;
             if ($sumberDanaKode) {
                 $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)->first();
                 $coaId = $coaRecord?->id;
-            }
-
-            // Create penjualan header
+            }            // Create penjualan header
             $penjualan = Penjualan::create([
-
                 'user_id' => auth()->id(), // CRITICAL: Set user_id
                 'tanggal' => $tanggal,
                 'payment_method' => $request->input('payment_method'),
-                'payment_status' => 'paid', // CRITICAL: Set to paid so boot() method creates journal
+                'payment_status' => 'pending', // Set to pending initially to prevent journal creation before details exist
                 'payment_confirmed_at' => now(),
                 'coa_id'         => $coaId,
                 'jumlah'         => collect($items)->sum('jumlah'),
@@ -824,6 +821,9 @@ class PenjualanController extends Controller
                     'catatan_pembayaran' => $request->input('catatan'),
                 ]);
             }
+            
+            // Update status to paid to trigger journal creation now that details exist
+            $penjualan->update(['payment_status' => 'paid']);
             
             // Clear session
             session()->forget('penjualan_payment_data');

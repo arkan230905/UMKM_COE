@@ -326,50 +326,75 @@
                                 <h6 class="mb-0 text-theme fw-bold"><i class="fas fa-university me-2"></i>Detail Pembayaran Transfer</h6>
                             </div>
                             <div class="card-body p-4">
-                                <!-- Bank Information -->
-                                <div class="mb-4">
-                                    <h6 class="fw-bold mb-3">Transfer Ke Rekening Berikut:</h6>
-                                    <div class="row">
-                                        @forelse($bank_accounts as $bank)
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card h-100 border" style="border-radius: 12px; background-color: #fdfbf7;">
-                                                <div class="card-body">
-                                                    <div class="mb-2">
-                                                        <small class="text-muted">Bank</small>
-                                                        <div class="fw-bold">{{ $bank->nama_akun }}</div>
+                                <!-- Form Pembayaran Transfer -->
+                                <form id="form-transfer-payment" method="POST" action="{{ route('transaksi.penjualan.confirm-payment') }}" enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="hidden" name="payment_method" value="transfer">
+                                    <input type="hidden" name="payment_data" value="{{ json_encode($payment_data) }}">
+
+                                    <!-- Bank Information -->
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold mb-3">Pilih Rekening Tujuan Transfer:</h6>
+                                        <div class="row">
+                                            @forelse($bank_accounts as $index => $bank)
+                                            <div class="col-md-6 mb-3">
+                                                <label class="w-100" style="cursor: pointer;">
+                                                    <input type="radio" name="sumber_dana" value="{{ $bank->kode_akun }}" class="d-none bank-selector" required {{ $index === 0 ? 'checked' : '' }}>
+                                                    <div class="card h-100 border bank-card transition-all" style="border-radius: 12px; background-color: #fdfbf7;">
+                                                        <div class="card-body position-relative">
+                                                            <div class="position-absolute top-0 end-0 p-3">
+                                                                <div class="check-circle" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center;">
+                                                                    <i class="fas fa-check text-white" style="font-size: 12px; display: none;"></i>
+                                                                </div>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <small class="text-muted">Bank</small>
+                                                                <div class="fw-bold">{{ $bank->nama_akun }}</div>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <small class="text-muted">Nomor Rekening</small>
+                                                                <div class="fw-bold font-monospace">{{ $bank->nomor_rekening ?? 'N/A' }}</div>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <small class="text-muted">Atas Nama</small>
+                                                                <div class="fw-bold">{{ $bank->atas_nama ?? 'N/A' }}</div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div class="mb-2">
-                                                        <small class="text-muted">Nomor Rekening</small>
-                                                        <div class="fw-bold font-monospace">{{ $bank->nomor_rekening ?? 'N/A' }}</div>
-                                                    </div>
-                                                    <div class="mb-2">
-                                                        <small class="text-muted">Atas Nama</small>
-                                                        <div class="fw-bold">{{ $bank->atas_nama ?? 'N/A' }}</div>
-                                                    </div>
+                                                </label>
+                                            </div>
+                                            @empty
+                                            <div class="col-12">
+                                                <div class="alert alert-warning">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    Tidak ada data bank yang tersedia. Silakan lengkapi nomor rekening di menu Tentang Perusahaan.
                                                 </div>
                                             </div>
+                                            @endforelse
                                         </div>
-                                        @empty
-                                        <div class="col-12">
-                                            <div class="alert alert-warning">
-                                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                                Tidak ada data bank yang tersedia
-                                            </div>
-                                        </div>
-                                        @endforelse
                                     </div>
-                                </div>
+
+                                    <style>
+                                    .bank-card { transition: all 0.2s ease-in-out; }
+                                    .bank-selector:checked + .bank-card {
+                                        border-color: var(--brown) !important;
+                                        background-color: rgba(138, 107, 72, 0.05) !important;
+                                        box-shadow: 0 4px 12px rgba(138, 107, 72, 0.15);
+                                    }
+                                    .bank-selector:checked + .bank-card .check-circle {
+                                        background-color: var(--brown);
+                                        border-color: var(--brown) !important;
+                                    }
+                                    .bank-selector:checked + .bank-card .check-circle i {
+                                        display: block !important;
+                                    }
+                                    </style>
 
                                 <hr>
 
                                 <!-- Upload Bukti Pembayaran -->
                                 <div class="mb-4">
                                     <h6 class="fw-bold mb-3">Bukti Pembayaran</h6>
-                                    <form id="form-transfer-payment" method="POST" action="{{ route('transaksi.penjualan.confirm-payment') }}" enctype="multipart/form-data">
-                                        @csrf
-                                        <input type="hidden" name="payment_method" value="transfer">
-                                        <input type="hidden" name="payment_data" value="{{ json_encode($payment_data) }}">
-
                                         <div class="mb-3">
                                             <label class="form-label">Upload Bukti Transfer</label>
                                             <input type="file" name="bukti_pembayaran" class="form-control" 
