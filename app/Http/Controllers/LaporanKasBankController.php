@@ -275,6 +275,8 @@ class LaporanKasBankController extends Controller
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
                         ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'expense_payment') ||
+                        ($jl->tipe_referensi === 'pembayaran_beban' && $ju->tipe_referensi === 'pembayaran_beban') ||
                         ($jl->tipe_referensi === 'penggajian' && $ju->tipe_referensi === 'penggajian')
                     );
                     
@@ -306,7 +308,19 @@ class LaporanKasBankController extends Controller
                         }
                     }
                     
-                    if ($refTypeMatch || $penjualanMatch || $pembelianMatch) {
+                    // Check expense payment match by ID
+                    $expenseMatch = false;
+                    if (($jl->tipe_referensi === 'expense_payment' || $jl->tipe_referensi === 'pembayaran_beban') && 
+                        ($ju->tipe_referensi === 'pembayaran_beban' || $ju->tipe_referensi === 'expense_payment')) {
+                        if (preg_match('/expense_payment#(\d+)|pembayaran_beban#(\d+)|BP-(\d+)|PS-(\d+)/', $ju->referensi, $matches)) {
+                            $expenseId = (int)($matches[1] ?? $matches[2] ?? $matches[3] ?? $matches[4] ?? 0);
+                            if ($expenseId > 0 && $jl->referensi == $expenseId) {
+                                $expenseMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch || $pembelianMatch || $expenseMatch) {
                         // Mark the old system transaction for removal
                         $duplicateKey = $ju->tanggal . '_' . $ju->referensi . '_' . $ju->debit;
                         $duplicatesToRemove->push($duplicateKey);
@@ -456,6 +470,8 @@ class LaporanKasBankController extends Controller
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'sale') ||
                         ($jl->tipe_referensi === 'sale' && $ju->tipe_referensi === 'penjualan') ||
                         ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->tipe_referensi === 'expense_payment' && $ju->tipe_referensi === 'expense_payment') ||
+                        ($jl->tipe_referensi === 'pembayaran_beban' && $ju->tipe_referensi === 'pembayaran_beban') ||
                         ($jl->tipe_referensi === 'penggajian' && $ju->tipe_referensi === 'penggajian')
                     );
                     
@@ -487,7 +503,19 @@ class LaporanKasBankController extends Controller
                         }
                     }
                     
-                    if ($refTypeMatch || $penjualanMatch || $pembelianMatch) {
+                    // Check expense payment match by ID
+                    $expenseMatch = false;
+                    if (($jl->tipe_referensi === 'expense_payment' || $jl->tipe_referensi === 'pembayaran_beban') && 
+                        ($ju->tipe_referensi === 'pembayaran_beban' || $ju->tipe_referensi === 'expense_payment')) {
+                        if (preg_match('/expense_payment#(\d+)|pembayaran_beban#(\d+)|BP-(\d+)|PS-(\d+)/', $ju->referensi, $matches)) {
+                            $expenseId = (int)($matches[1] ?? $matches[2] ?? $matches[3] ?? $matches[4] ?? 0);
+                            if ($expenseId > 0 && $jl->referensi == $expenseId) {
+                                $expenseMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch || $pembelianMatch || $expenseMatch) {
                         // Mark the old system transaction for removal
                         $duplicateKey = $ju->tanggal . '_' . $ju->referensi . '_' . $ju->kredit;
                         $duplicatesToRemove->push($duplicateKey);
