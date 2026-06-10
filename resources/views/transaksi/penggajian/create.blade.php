@@ -209,7 +209,7 @@
                         <label for="bpjs" class="form-label">Asuransi BPJS</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="100000" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
                 </div>
@@ -286,7 +286,7 @@
         document.getElementById('tunj_jabatan').value = 0;
         document.getElementById('tunj_transport').value = 150000;
         document.getElementById('tunj_konsumsi').value = 375000;
-        document.getElementById('bpjs').value = 100000;
+        document.getElementById('bpjs').value = 0;
         document.getElementById('display_gaji_mentah').value = '0';
         document.getElementById('display_gaji_final').value = '0';
         document.getElementById('display_total_gaji').textContent = 'Rp 0';
@@ -323,7 +323,8 @@
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                document.getElementById('bpjs').value = parseInt(data.asuransi) || 100000;
+                // Asuransi dari API, default 0 kalau kosong
+                document.getElementById('bpjs').value = parseInt(data.asuransi) || 0;
                 
                 // Auto-set tarif
                 const tarifField = document.getElementById('tarif_produk_input');
