@@ -15,12 +15,12 @@
     </div>
     <div class="col-md-6 text-end">
       <div class="d-flex gap-2 justify-content-end">
-        <a href="{{ route('akuntansi.buku-besar.export-excel', ['from' => $from, 'to' => $to]) }}" class="btn btn-success btn-sm">
-          <i class="bi bi-file-earmark-excel me-1"></i> Export CSV
+        <a href="{{ route('akuntansi.buku-besar.export-excel', ['from' => $from, 'to' => $to, 'account_code' => $accountCode]) }}" class="btn btn-success btn-sm">
+          <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
         </a>
-        <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-          <i class="bi bi-printer me-1"></i> Cetak
-        </button>
+        <a href="{{ route('akuntansi.buku-besar.export-pdf', ['month' => $month, 'year' => $year, 'account_code' => $accountCode]) }}" class="btn btn-outline-primary btn-sm" target="_blank">
+          <i class="bi bi-printer me-1"></i> Cetak PDF
+        </a>
       </div>
     </div>
   </div>

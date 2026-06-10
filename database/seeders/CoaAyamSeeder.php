@@ -4,191 +4,175 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
-use App\Models\Coa;
+use Carbon\Carbon;
 
-/**
- * COA Seeder untuk Bisnis Ayam Goreng Bundo
- * Backup dari CoaSeeder.php original
- */
 class CoaAyamSeeder extends Seeder
 {
+    /**
+     * Run the database seeder.
+     * 
+     * Seeder ini khusus untuk bisnis AYAM (bukan jagung)
+     * Struktur COA lengkap dengan:
+     * - Aset (Persediaan Bahan Baku Ayam, Bahan Pendukung)
+     * - Kewajiban
+     * - Modal
+     * - Pendapatan (Penjualan Produk Ayam)
+     * - Biaya Produksi (BBB, BTKL, BOP)
+     */
     public function run(): void
     {
-        // COMPLETE COA LIST - Ayam Goreng Bundo
-        // Format: [Nama Akun, Kode Akun, Tipe Akun, Saldo Normal]
+        $now = Carbon::now();
+        
         $coas = [
-            // ASSET (11)
-            ['ASSET', '11', 'Aset', 'debit'],
-            ['Kas Bank', '111', 'Aset', 'debit'],
-            ['Kas', '112', 'Aset', 'debit'],
-            ['Kas Kecil', '113', 'Aset', 'debit'],
+            // ==========================================
+            // ASET (1xxx)
+            // ==========================================
+            ['kode_akun' => '11',   'nama_akun' => 'Aset',                                            'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '111',  'nama_akun' => 'Kas Bank',                                        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1111', 'nama_akun' => 'Bank BCA',                                        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1112', 'nama_akun' => 'Bank Mandiri',                                    'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1113', 'nama_akun' => 'Bank BRI',                                        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '112',  'nama_akun' => 'Kas',                                             'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '113',  'nama_akun' => 'Kas Kecil',                                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
-            // Persediaan Bahan Baku (114x)
-            ['Pers. Bahan Baku', '114', 'Aset', 'debit'],
-            ['Pers. Bahan Baku ayam potong', '1141', 'Aset', 'debit'],
-            ['Pers. Bahan Baku ayam kampung', '1142', 'Aset', 'debit'],
-            ['Pers. Bahan Baku bebek', '1143', 'Aset', 'debit'],
-            ['Pers. Bahan Baku ayam lainnya', '1144', 'Aset', 'debit'],
+            // Persediaan Bahan Baku - AYAM
+            ['kode_akun' => '114',  'nama_akun' => 'Pers. Bahan Baku',                                'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1141', 'nama_akun' => 'Pers. Bahan Baku Ayam Potong',                    'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1142', 'nama_akun' => 'Pers. Bahan Baku Ayam Kampung',                   'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1143', 'nama_akun' => 'Pers. Bahan Baku Bebek',                          'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1144', 'nama_akun' => 'Pers. Bahan Baku Ayam Lainnya',                   'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
-            // Persediaan Bahan Pendukung (115x)
-            ['Pers. Bahan Pendukung', '115', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Air', '1150', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Minyak Goreng', '1151', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Tepung Terigu', '1152', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Tepung Maizena', '1153', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Lada', '1154', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Bubuk Kaldu', '1155', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Bubuk Bawang Putih', '1156', 'Aset', 'debit'],
-            ['Pers. Bahan Pendukung Kemasan', '1157', 'Aset', 'debit'],
+            // Persediaan Bahan Pendukung
+            ['kode_akun' => '115',  'nama_akun' => 'Pers. Bahan Pendukung',                           'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1150', 'nama_akun' => 'Pers. Bahan Pendukung Air',                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1151', 'nama_akun' => 'Pers. Bahan Pendukung Minyak Goreng',             'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1152', 'nama_akun' => 'Pers. Bahan Pendukung Tepung Terigu',             'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1153', 'nama_akun' => 'Pers. Bahan Pendukung Tepung Maizena',            'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1154', 'nama_akun' => 'Pers. Bahan Pendukung Lada',                      'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1155', 'nama_akun' => 'Pers. Bahan Pendukung Bubuk Kaldu',               'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1156', 'nama_akun' => 'Pers. Bahan Pendukung Bubuk Bawang Putih',        'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1157', 'nama_akun' => 'Pers. Bahan Pendukung Kemasan',                   'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
-            // Persediaan Barang Jadi (116x)
-            ['Pers. Barang Jadi', '116', 'Aset', 'debit'],
-            ['Pers. Barang Jadi Ayam Crispy Macdi', '1161', 'Aset', 'debit'],
-            ['Pers. Barang Jadi Ayam Goreng Bundo', '1162', 'Aset', 'debit'],
+            // Persediaan Barang Jadi
+            ['kode_akun' => '116',  'nama_akun' => 'Pers. Barang Jadi',                               'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1161', 'nama_akun' => 'Pers. Barang Jadi Ayam Crispy Macdi',             'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1162', 'nama_akun' => 'Pers. Barang Jadi Ayam Goreng Bundo',             'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
-            // Work In Progress (117x)
-            ['Pers. Barang dalam Proses', '117', 'Aset', 'debit'],
-            ['Pers. Barang Dalam Proses - BBB (WIP BBB)', '1171', 'Aset', 'debit'],
-            ['Pers. Barang Dalam Proses - BTKL (WIP BTKL)', '1172', 'Aset', 'debit'],
-            ['Pers. Barang Dalam Proses - BOP (WIP BOP)', '1173', 'Aset', 'debit'],
+            // Persediaan Barang Dalam Proses (WIP)
+            ['kode_akun' => '117',  'nama_akun' => 'Pers. Barang Dalam Proses',                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1171', 'nama_akun' => 'Pers. Barang Dalam Proses - BBB (WIP BBB)',       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1172', 'nama_akun' => 'Pers. Barang Dalam Proses - BTKL (WIP BTKL)',     'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '1173', 'nama_akun' => 'Pers. Barang Dalam Proses - BOP (WIP BOP)',       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
-            // Aset Lainnya (118-127)
-            ['Piutang', '118', 'Aset', 'debit'],
-            ['Peralatan', '119', 'Aset', 'debit'],
-            ['Akumulasi Penyusutan Peralatan', '120', 'Aset', 'debit'],
-            ['Gedung', '121', 'Aset', 'debit'],
-            ['Akumulasi Penyusutan Gedung', '122', 'Aset', 'debit'],
-            ['Kendaraan', '123', 'Aset', 'debit'],
-            ['Akumulasi Penyusutan Kendaraan', '124', 'Aset', 'debit'],
-            ['Mesin', '125', 'Aset', 'debit'],
-            ['Akumulasi Penyusutan Mesin', '126', 'Aset', 'debit'],
-            ['PPN Masukkan', '127', 'Aset', 'debit'],
+            // Aset Lainnya
+            ['kode_akun' => '118',  'nama_akun' => 'Piutang',                                         'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '119',  'nama_akun' => 'Peralatan',                                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '120',  'nama_akun' => 'Akumulasi Penyusutan Peralatan',                  'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '121',  'nama_akun' => 'Gedung',                                          'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '122',  'nama_akun' => 'Akumulasi Penyusutan Gedung',                     'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '123',  'nama_akun' => 'Kendaraan',                                       'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '124',  'nama_akun' => 'Akumulasi Penyusutan Kendaraan',                  'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '125',  'nama_akun' => 'Mesin',                                           'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '126',  'nama_akun' => 'Akumulasi Penyusutan Mesin',                      'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
+            ['kode_akun' => '127',  'nama_akun' => 'PPN Masukkan',                                    'tipe_akun' => 'Aset',       'saldo_normal' => 'debit'],
             
-            // KEWAJIBAN (21x)
-            ['Hutang', '21', 'Kewajiban', 'kredit'],
-            ['Hutang Usaha', '210', 'Kewajiban', 'kredit'],
-            ['Hutang Gaji', '211', 'Kewajiban', 'kredit'],
-            ['PPN Keluaran', '212', 'Kewajiban', 'kredit'],
+            // ==========================================
+            // KEWAJIBAN (2xxx)
+            // ==========================================
+            ['kode_akun' => '21',   'nama_akun' => 'Hutang',                                          'tipe_akun' => 'Kewajiban',  'saldo_normal' => 'kredit'],
+            ['kode_akun' => '210',  'nama_akun' => 'Hutang Usaha',                                    'tipe_akun' => 'Kewajiban',  'saldo_normal' => 'kredit'],
+            ['kode_akun' => '211',  'nama_akun' => 'Hutang Gaji',                                     'tipe_akun' => 'Kewajiban',  'saldo_normal' => 'kredit'],
+            ['kode_akun' => '212',  'nama_akun' => 'PPN Keluaran',                                    'tipe_akun' => 'Kewajiban',  'saldo_normal' => 'kredit'],
             
-            // MODAL (31x)
-            ['Modal', '31', 'Modal', 'kredit'],
-            ['Modal Usaha', '310', 'Modal', 'kredit'],
-            ['Prive', '311', 'Modal', 'kredit'],
+            // ==========================================
+            // MODAL (3xxx)
+            // ==========================================
+            ['kode_akun' => '31',   'nama_akun' => 'Modal',                                           'tipe_akun' => 'Modal',      'saldo_normal' => 'kredit'],
+            ['kode_akun' => '310',  'nama_akun' => 'Modal Usaha',                                     'tipe_akun' => 'Modal',      'saldo_normal' => 'kredit'],
+            ['kode_akun' => '311',  'nama_akun' => 'Prive',                                           'tipe_akun' => 'Modal',      'saldo_normal' => 'kredit'],
             
-            // PENDAPATAN (41x-43x)
-            ['Penjualan', '41', 'Pendapatan', 'kredit'],
-            ['Penjualan - Produk Ayam Crispy Macdi', '410', 'Pendapatan', 'kredit'],
-            ['Penjualan - Produk Ayam Goreng Bundo', '411', 'Pendapatan', 'kredit'],
-            ['Retur Penjualan', '42', 'Pendapatan', 'kredit'],
-            ['Pendapatan Lain-Lain', '43', 'Pendapatan', 'kredit'],
+            // ==========================================
+            // PENDAPATAN (4xxx)
+            // ==========================================
+            ['kode_akun' => '41',   'nama_akun' => 'Penjualan',                                       'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit'],
+            ['kode_akun' => '410',  'nama_akun' => 'Penjualan - Produk Ayam Crispy Macdi',            'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit'],
+            ['kode_akun' => '411',  'nama_akun' => 'Penjualan - Produk Ayam Goreng Bundo',            'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit'],
+            ['kode_akun' => '42',   'nama_akun' => 'Retur Penjualan',                                 'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit'],
+            ['kode_akun' => '43',   'nama_akun' => 'Pendapatan Lain-Lain',                            'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit'],
             
-            // BIAYA - BBB (51x)
-            ['BBB-Biaya Bahan Baku', '51', 'Biaya', 'debit'],
-            ['BBB-ayam potong', '510', 'Biaya', 'debit'],
-            ['BBB-ayam kampung', '511', 'Biaya', 'debit'],
-            ['BBB-bebek', '512', 'Biaya', 'debit'],
+            // ==========================================
+            // BIAYA PRODUKSI (5xxx)
+            // ==========================================
             
-            // BIAYA - BTKL (52x)
-            ['BTKL-Biaya Tenaga Kerja Langsung', '52', 'Biaya', 'debit'],
-            ['BTKL-Perbumbuan', '520', 'Biaya', 'debit'],
-            ['BTKL-Penggorengan', '521', 'Biaya', 'debit'],
-            ['BTKL-Pengemasan', '522', 'Biaya', 'debit'],
+            // BBB - Biaya Bahan Baku (AYAM)
+            ['kode_akun' => '51',   'nama_akun' => 'BBB - Biaya Bahan Baku',                          'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '510',  'nama_akun' => 'BBB - Ayam Potong',                               'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '511',  'nama_akun' => 'BBB - Ayam Kampung',                              'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '512',  'nama_akun' => 'BBB - Bebek',                                     'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             
-            // BIAYA - BOP (53x)
-            ['BOP-Biaya Overhead Pabrik', '53', 'Biaya', 'debit'],
-            ['BOP-Biaya Bahan Baku Tidak Langsung', '530', 'Biaya', 'debit'],
-            ['BOP-Air', '531', 'Biaya', 'debit'],
-            ['BOP-Minyak Goreng', '532', 'Biaya', 'debit'],
-            ['BOP-Tepung Terigu', '533', 'Biaya', 'debit'],
-            ['BOP-Tepung Maizena', '534', 'Biaya', 'debit'],
-            ['BOP- Lada', '535', 'Biaya', 'debit'],
-            ['BOP- Bubuk Kaldu', '536', 'Biaya', 'debit'],
-            ['BOP- Bubuk Bawang Putih', '537', 'Biaya', 'debit'],
-            ['BOP-Kemasan', '538', 'Biaya', 'debit'],
+            // BTKL - Biaya Tenaga Kerja Langsung
+            ['kode_akun' => '52',   'nama_akun' => 'BTKL - Biaya Tenaga Kerja Langsung',              'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '520',  'nama_akun' => 'BTKL - Perbumbuan',                               'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '521',  'nama_akun' => 'BTKL - Penggorengan',                             'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '522',  'nama_akun' => 'BTKL - Pengemasan',                               'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             
-            // BIAYA - BOP BTKTL (54x)
-            ['BOP BTKTL-Biaya Tenaga Kerja Tidak Langsung', '54', 'Biaya', 'debit'],
-            ['BOP BTKTL - Biaya Pegawai Pemasaran', '540', 'Biaya', 'debit'],
-            ['BOP BTKTL - Biaya Pegawai Kemasan', '541', 'Biaya', 'debit'],
-            ['BOP BTKTL - Biaya Satpam Pabrik', '542', 'Biaya', 'debit'],
-            ['BOP BTKTL - Biaya Cleaning Service', '543', 'Biaya', 'debit'],
-            ['BOP BTKTL - Biaya Mandor', '544', 'Biaya', 'debit'],
-            ['BOP BTKTL - Biaya Pegawai Keuangan', '545', 'Biaya', 'debit'],
-            ['BOP BTKTL - BTKTL Lainnya', '546', 'Biaya', 'debit'],
+            // BOP - Biaya Overhead Pabrik
+            ['kode_akun' => '53',   'nama_akun' => 'BOP - Biaya Overhead Pabrik',                     'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '530',  'nama_akun' => 'BOP - Biaya Bahan Baku Tidak Langsung',           'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '531',  'nama_akun' => 'BOP - Air',                                       'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '532',  'nama_akun' => 'BOP - Minyak Goreng',                             'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '533',  'nama_akun' => 'BOP - Tepung Terigu',                             'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '534',  'nama_akun' => 'BOP - Tepung Maizena',                            'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '535',  'nama_akun' => 'BOP - Lada',                                      'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '536',  'nama_akun' => 'BOP - Bubuk Kaldu',                               'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '537',  'nama_akun' => 'BOP - Bubuk Bawang Putih',                        'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '538',  'nama_akun' => 'BOP - Kemasan',                                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             
-            // BIAYA - BOP TL (55x)
-            ['BOP TL - BOP Tidak Langsung Lainnya', '55', 'Biaya', 'debit'],
-            ['BOP TL - Biaya Listrik', '550', 'Biaya', 'debit'],
-            ['BOP TL - Sewa Tempat', '551', 'Biaya', 'debit'],
-            ['BOP TL - Biaya Penyusutan Gedung', '552', 'Biaya', 'debit'],
-            ['BOP TL - Biaya Penyusutan Peralatan', '553', 'Biaya', 'debit'],
-            ['BOP TL - Biaya Penyusutan Kendaraan', '554', 'Biaya', 'debit'],
-            ['BOP TL - Biaya Penyusutan Mesin', '555', 'Biaya', 'debit'],
-            ['BOP TL - Biaya Air', '556', 'Biaya', 'debit'],
-            ['BOP TL - Lainnya', '557', 'Biaya', 'debit'],
-            ['Beban Transport Pembelian', '558', 'Biaya', 'debit'],
-            ['Diskon Pembelian', '559', 'Biaya', 'debit'],
+            // BOP BTKTL - Biaya Tenaga Kerja Tidak Langsung
+            ['kode_akun' => '54',   'nama_akun' => 'BOP BTKTL - Biaya Tenaga Kerja Tidak Langsung',   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            
+            // BOP - Lainnya
+            ['kode_akun' => '55',   'nama_akun' => 'BOP - Lainnya',                                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '550',  'nama_akun' => 'BOP - Beban Listrik',                             'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '551',  'nama_akun' => 'BOP - Beban Sewa Tempat',                         'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '552',  'nama_akun' => 'BOP - Beban Penyusutan Gedung',                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '553',  'nama_akun' => 'BOP - Beban Penyusutan Peralatan',                'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '554',  'nama_akun' => 'BOP - Beban Penyusutan Kendaraan',                'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '555',  'nama_akun' => 'BOP - Beban Penyusutan Mesin',                    'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '556',  'nama_akun' => 'BOP - Beban Air',                                 'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '557',  'nama_akun' => 'BOP - Lainnya',                                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '558',  'nama_akun' => 'Beban Transport Pembelian',                       'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '559',  'nama_akun' => 'Diskon Pembelian',                                'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            
+            // Harga Pokok Penjualan
+            ['kode_akun' => '56',   'nama_akun' => 'Harga Pokok Penjualan',                           'tipe_akun' => 'Beban',      'saldo_normal' => 'debit'],
         ];
 
-        // Get all users (for multi-tenant support)
-        $users = User::all();
-
-        if ($users->isEmpty()) {
-            $this->command->error('No users found. Please create users first.');
-            return;
+        // Insert data dengan user_id dari auth atau null untuk template
+        foreach ($coas as $coa) {
+            DB::table('coas')->insert([
+                'user_id' => null, // NULL = template global, atau ganti dengan auth()->id() untuk user-specific
+                'company_id' => null,
+                'kode_akun' => $coa['kode_akun'],
+                'nama_akun' => $coa['nama_akun'],
+                'tipe_akun' => $coa['tipe_akun'],
+                'kategori_akun' => '-', // Default: '-' karena NOT NULL
+                'is_akun_header' => 0,
+                'kode_induk' => null,
+                'saldo_normal' => $coa['saldo_normal'],
+                'saldo_awal' => 0.00,
+                'tanggal_saldo_awal' => null,
+                'posted_saldo_awal' => 0,
+                'keterangan' => null,
+                'nomor_rekening' => null,
+                'atas_nama' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
         }
 
-        $this->command->info("========================================");
-        $this->command->info("COA SEEDER - AYAM GORENG BUNDO");
-        $this->command->info("Total COAs: " . count($coas));
-        $this->command->info("Akan menambahkan COA untuk semua user");
-        $this->command->info("========================================\n");
-
-        foreach ($users as $user) {
-            $this->command->info("Processing user: {$user->name} (ID: {$user->id})");
-            
-            $added = 0;
-            $updated = 0;
-            
-            foreach ($coas as $item) {
-                // Check if COA already exists for this user
-                $existing = Coa::where('kode_akun', $item[1])
-                    ->where('user_id', $user->id)
-                    ->first();
-                
-                if ($existing) {
-                    // Update existing COA
-                    $existing->update([
-                        'nama_akun' => $item[0],
-                        'tipe_akun' => $item[2],
-                        'saldo_normal' => $item[3],
-                        'updated_at' => now(),
-                    ]);
-                    $updated++;
-                } else {
-                    // Insert new COA
-                    Coa::create([
-                        'nama_akun' => $item[0],
-                        'kode_akun' => $item[1],
-                        'tipe_akun' => $item[2],
-                        'saldo_normal' => $item[3],
-                        'saldo_awal' => 0,
-                        'user_id' => $user->id,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    $added++;
-                }
-            }
-            
-            $this->command->info("  ✅ {$added} COA ditambahkan, {$updated} COA diupdate\n");
-        }
-
-        $this->command->info("========================================");
-        $this->command->info("✅ COA Seeder completed!");
-        $this->command->info("Total users processed: " . $users->count());
-        $this->command->info("Total COAs per user: " . count($coas));
-        $this->command->info("========================================");
+        $this->command->info('✅ COA Ayam seeder completed successfully!');
+        $this->command->info('📊 Total COA created: ' . count($coas));
+        $this->command->info('🏦 Bank accounts: BCA (1111), Mandiri (1112), BRI (1113)');
     }
 }

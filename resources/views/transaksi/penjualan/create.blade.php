@@ -262,9 +262,8 @@ mark.bg-warning {
             <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
                 <select name="payment_method" id="payment_method_jual" class="form-select" required onchange="toggleSumberDana()">
-                    <option value="cash" selected>Tunai</option>
+                    <option value="cash">Tunai</option>
                     <option value="transfer">Transfer Bank</option>
-                    <option value="credit">Kredit</option>
                 </select>
             </div>
             <div class="col-md-3" id="sumber_dana_wrapper_jual">

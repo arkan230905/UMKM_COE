@@ -26,7 +26,7 @@
                             data-tipe="{{ $p->tipe_akun }}"
                             data-kategori="{{ $p->kategori_akun }}"
                             data-saldo-normal="{{ $p->saldo_normal }}">
-                            {{ str_repeat('—', strlen($p->kode_akun) - 1) }} {{ $p->kode_akun }} - {{ $p->nama_akun }} ({{ $p->tipe_akun }})
+                            {{ str_repeat('—', strlen($p->kode_akun) - 1) }} {{ $p->kode_akun }} - {{ $p->nama_akun }}
                         </option>
                     @endforeach
                 </select>

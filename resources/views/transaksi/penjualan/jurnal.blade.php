@@ -102,9 +102,8 @@
                             <td>
                                 @switch($penjualan->payment_method ?? '')
                                     @case('cash') <span class="badge bg-success">Tunai</span> @break
-                                    @case('transfer') <span class="badge bg-info">Transfer</span> @break
-                                    @case('credit') <span class="badge bg-warning text-dark">Kredit</span> @break
-                                    @default <span class="badge bg-secondary">-</span>
+                                    @case('transfer') <span class="badge bg-info">Transfer Bank</span> @break
+                                    @default <span class="badge bg-secondary">{{ ucfirst($penjualan->payment_method ?? '-') }}</span>
                                 @endswitch
                             </td>
                         </tr>

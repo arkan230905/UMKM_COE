@@ -762,9 +762,7 @@ class AsetController extends Controller
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
             'keterangan' => 'nullable|string',
-            'asset_coa_id' => 'required|exists:coas,id',
-            'accum_depr_coa_id' => 'nullable|exists:coas,id',
-            'expense_coa_id' => 'nullable|exists:coas,id',
+            // COA fields removed - sistem auto-posting akan handle COA otomatis saat posting
         ];
         
         // Field penyusutan
@@ -846,10 +844,7 @@ class AsetController extends Controller
             $aset->keterangan = $request->keterangan;
             $aset->updated_by = auth()->id();
             
-            // Update COA fields
-            $aset->asset_coa_id = $request->asset_coa_id;
-            $aset->accum_depr_coa_id = $request->accum_depr_coa_id;
-            $aset->expense_coa_id = $request->expense_coa_id;
+            // COA fields tidak diupdate - akan di-assign otomatis saat posting berdasarkan kategori aset
             
             if ($disusutkan) {
                 $aset->umur_manfaat = $umurManfaat;

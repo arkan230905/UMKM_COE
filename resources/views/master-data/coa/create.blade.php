@@ -27,7 +27,7 @@
                             data-kategori="{{ $p->kategori_akun }}"
                             data-saldo-normal="{{ $p->saldo_normal }}"
                             {{ old('parent_coa_id') == $p->id ? 'selected' : '' }}>
-                            {{ str_repeat('—', strlen($p->kode_akun) - 1) }} {{ $p->kode_akun }} - {{ $p->nama_akun }} ({{ $p->tipe_akun }})
+                            {{ str_repeat('—', strlen($p->kode_akun) - 1) }} {{ $p->kode_akun }} - {{ $p->nama_akun }}
                         </option>
                     @endforeach
                 </select>

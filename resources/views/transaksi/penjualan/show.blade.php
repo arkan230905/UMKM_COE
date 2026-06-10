@@ -386,9 +386,8 @@
                                         <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'badge-theme-warning' : 'badge-theme-success' }}">
                                             @switch($penjualan->payment_method ?? '')
                                                 @case('cash') Tunai @break
-                                                @case('transfer') Transfer Bank @break
-                                                @case('credit') Kredit @break
-                                                @default Tidak Diketahui
+                                                @case('transfer') Transfer @break
+                                                @default {{ ucfirst($penjualan->payment_method ?? '') }}
                                             @endswitch
                                         </span>
                                     </div>
@@ -913,8 +912,7 @@
                                                     @switch($penjualan->payment_method ?? 'cash')
                                                         @case('cash') Tunai @break
                                                         @case('transfer') Transfer Bank @break
-                                                        @case('credit') Kredit @break
-                                                        @default Tunai
+                                                        @default {{ ucfirst($penjualan->payment_method ?? '-') }}
                                                     @endswitch
                                                 </span>
                                             </div>
