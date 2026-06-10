@@ -180,9 +180,6 @@
                                         <a href="{{ route('akuntansi.jurnal-umum') }}?ref_type=debt_payment&ref_id={{ $item->id }}" class="btn btn-outline-success" title="Lihat Jurnal">
                                             <i class="fas fa-book"></i>
                                         </a>
-                                        <a href="{{ route('transaksi.pelunasan-utang.print', $item->id) }}" class="btn btn-outline-warning" target="_blank" title="Print">
-                                            <i class="fas fa-print"></i>
-                                        </a>
                                         <form action="{{ route('transaksi.pelunasan-utang.destroy', $item->id) }}" 
                                               method="POST" 
                                               class="d-inline"

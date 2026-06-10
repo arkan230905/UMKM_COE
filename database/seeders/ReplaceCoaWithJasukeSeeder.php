@@ -7,12 +7,15 @@ use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Coa;
 
-class JasukeCoaSeeder extends Seeder
+class ReplaceCoaWithJasukeSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->command->info("========================================");
+        $this->command->info("REPLACE COA WITH JASUKE COA");
+        $this->command->info("========================================\n");
+
         // COMPLETE COA LIST - Jasuke (Jagung Susu Keju)
-        // Format: [Nama Akun, Kode Akun, Tipe Akun, Saldo Normal]
         $coas = [
             // ASET
             ['Aset', '11', 'Aset', 'debit'],
@@ -75,43 +78,37 @@ class JasukeCoaSeeder extends Seeder
             ['BOP - Penyusutan Peralatan', '553', 'Biaya', 'debit'],
         ];
 
-        // Get all users (for multi-tenant support)
+        // Get all users
         $users = User::all();
 
         if ($users->isEmpty()) {
-            $this->command->error('No users found. Please create users first.');
+            $this->command->error('❌ No users found!');
             return;
         }
-
-        $this->command->info("========================================");
-        $this->command->info("COA SEEDER - JASUKE (JAGUNG SUSU KEJU)");
-        $this->command->info("Total COAs: " . count($coas));
-        $this->command->info("Akan menambahkan COA untuk semua user");
-        $this->command->info("========================================\n");
 
         foreach ($users as $user) {
             $this->command->info("Processing user: {$user->name} (ID: {$user->id})");
             
-            $added = 0;
-            $updated = 0;
+            // Count existing COA
+            $oldCoaCount = Coa::where('user_id', $user->id)->count();
+            $this->command->warn("  Current COA count: {$oldCoaCount}");
             
-            foreach ($coas as $item) {
-                // Check if COA already exists for this user
-                $existing = Coa::where('kode_akun', $item[1])
-                    ->where('user_id', $user->id)
-                    ->first();
+            // Ask for confirmation (optional - comment out if want auto)
+            // if (!$this->command->confirm("  Delete all COA and replace with Jasuke COA?", false)) {
+            //     $this->command->info("  ⏭️  Skipped\n");
+            //     continue;
+            // }
+            
+            DB::beginTransaction();
+            
+            try {
+                // Step 1: DELETE all existing COA for this user
+                $deleted = Coa::where('user_id', $user->id)->delete();
+                $this->command->info("  🗑️  Deleted {$deleted} old COA");
                 
-                if ($existing) {
-                    // Update existing COA
-                    $existing->update([
-                        'nama_akun' => $item[0],
-                        'tipe_akun' => $item[2],
-                        'saldo_normal' => $item[3],
-                        'updated_at' => now(),
-                    ]);
-                    $updated++;
-                } else {
-                    // Insert new COA
+                // Step 2: INSERT new Jasuke COA
+                $inserted = 0;
+                foreach ($coas as $item) {
                     Coa::create([
                         'nama_akun' => $item[0],
                         'kode_akun' => $item[1],
@@ -122,15 +119,22 @@ class JasukeCoaSeeder extends Seeder
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
-                    $added++;
+                    $inserted++;
                 }
+                
+                DB::commit();
+                
+                $this->command->info("  ✅ Inserted {$inserted} new Jasuke COA");
+                $this->command->info("  ✅ Success!\n");
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $this->command->error("  ❌ Error: " . $e->getMessage() . "\n");
             }
-            
-            $this->command->info("  ✅ {$added} COA ditambahkan, {$updated} COA diupdate\n");
         }
 
         $this->command->info("========================================");
-        $this->command->info("✅ COA Seeder completed!");
+        $this->command->info("✅ Replace COA completed!");
         $this->command->info("Total users processed: " . $users->count());
         $this->command->info("Total COAs per user: " . count($coas));
         $this->command->info("========================================");
