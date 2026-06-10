@@ -1202,44 +1202,31 @@ class PenggajianController extends Controller
      * Resolve pegawai's jabatan/kualifikasi data
      * UPDATED: Now uses KualifikasiTenagaKerja (new system) instead of Jabatan (old system)
      */
-    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\KualifikasiTenagaKerja
+    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Jabatan
     {
         if (!$pegawai) {
             return null;
         }
 
-        // Try to get from kualifikasiRelasi first (new system)
-        if ($pegawai->kualifikasiRelasi) {
-            return $pegawai->kualifikasiRelasi;
-        }
-
-        // Fallback: Try to get from jabatanRelasi (compatibility)
+        // Try to get from jabatanRelasi (new system)
         if ($pegawai->jabatanRelasi) {
             return $pegawai->jabatanRelasi;
         }
 
-        // Query kualifikasi_tenaga_kerja table
-        $query = \App\Models\KualifikasiTenagaKerja::where('user_id', $pegawai->user_id ?? auth()->id());
+        // Query jabatans table
+        $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
 
-        // Try by kualifikasi_id
-        if ($pegawai->kualifikasi_id) {
-            $kualifikasi = (clone $query)->find($pegawai->kualifikasi_id);
-            if ($kualifikasi) {
-                return $kualifikasi;
-            }
-        }
-
-        // Try by jabatan_id (for backward compatibility)
+        // Try by jabatan_id (if it exists in pegawai)
         if ($pegawai->jabatan_id) {
-            $kualifikasi = (clone $query)->find($pegawai->jabatan_id);
-            if ($kualifikasi) {
-                return $kualifikasi;
+            $jabatan = (clone $query)->find($pegawai->jabatan_id);
+            if ($jabatan) {
+                return $jabatan;
             }
         }
 
-        // Try by nama (for backward compatibility)
+        // Try by nama (match pegawai.jabatan string with jabatan.nama)
         if (!empty($pegawai->jabatan)) {
-            return (clone $query)->where('nama_kualifikasi', $pegawai->jabatan)->first();
+            return (clone $query)->where('nama', $pegawai->jabatan)->first();
         }
 
         return null;
