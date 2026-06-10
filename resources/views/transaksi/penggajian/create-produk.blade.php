@@ -128,7 +128,7 @@
                         <label class="form-label">Tarif / Produk <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" id="tarif_produk_input" name="tarif_produk" class="form-control" value="0" min="0" oninput="hitungOtomatis()" required>
+                            <input type="number" id="tarif_produk_input" name="tarif_produk" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()" required>
                         </div>
                         <small class="form-text text-muted d-block mt-1" id="tarif_status"></small>
                     </div>
@@ -185,7 +185,7 @@
                         <label for="tunj_jabatan" class="form-label">Tunjangan Kualifikasi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
 
@@ -193,25 +193,23 @@
                         <label for="tunj_transport" class="form-label">Tunjangan Transport</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control" value="150000" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
                         </div>
-                        <small class="form-text text-muted d-block mt-1">Default: 150.000</small>
                     </div>
 
                     <div class="col-md-6">
                         <label for="tunj_konsumsi" class="form-label">Tunjangan Konsumsi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control" value="375000" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
                         </div>
-                        <small class="form-text text-muted d-block mt-1">Default: 375.000</small>
                     </div>
 
                     <div class="col-md-6">
                         <label for="bpjs" class="form-label">Asuransi BPJS</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="asuransi" id="bpjs" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
                 </div>
@@ -257,7 +255,7 @@
     let TARIF_PRODUK = 0;
     let IS_PRODUKSI = true;
 
-    // Format Rupiah
+    // Format Rupiah dengan titik pemisah ribuan
     function formatRupiah(num) {
         return new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: 0,
@@ -265,12 +263,33 @@
         }).format(num);
     }
 
-    // Parse Rupiah
+    // Parse Rupiah - hapus semua karakter non-digit
     function parseRupiah(str) {
+        return parseInt(str.toString().replace(/\D/g, '')) || 0;
+    }
+
+    // BUG 2 FIX: Setup format/unformat untuk field input-rupiah
+    function setupRupiahFormatting() {
+        document.querySelectorAll('.input-rupiah').forEach(function(input) {
+            // Saat blur (keluar dari field) - format dengan titik
+            input.addEventListener('blur', function() {
+                const raw = parseRupiah(this.value);
+                this.value = raw > 0 ? formatRupiah(raw) : '0';
+            });
+
+            // Saat focus (masuk ke field) - tampil angka murni
+            input.addEventListener('focus', function() {
+                this.value = parseRupiah(this.value);
+            });
+        });
+    }
+
+    // Parse Rupiah (legacy - masih dipakai)
+    function parseRupiahLegacy(str) {
         return parseInt(str.replace(/\D/g, '')) || 0;
     }
 
-    // Clear form state
+    // Clear form state - RESET semua field tunjangan ke 0
     function clearFormState() {
         TARIF_PRODUK = 0;
         IS_PRODUKSI = true;
@@ -282,8 +301,8 @@
         document.getElementById('total_produk').style.backgroundColor = '#fff';
         document.getElementById('tarif_status').textContent = '';
         document.getElementById('tunj_jabatan').value = 0;
-        document.getElementById('tunj_transport').value = 150000;
-        document.getElementById('tunj_konsumsi').value = 375000;
+        document.getElementById('tunj_transport').value = 0; // BUG 1 FIX: Default 0, bukan 150000
+        document.getElementById('tunj_konsumsi').value = 0;  // BUG 1 FIX: Default 0, bukan 375000
         document.getElementById('bpjs').value = 0;
         document.getElementById('display_gaji_mentah').value = '0';
         document.getElementById('display_gaji_final').value = '0';
@@ -306,6 +325,11 @@
             hitungOtomatis();
             return;
         }
+        
+        // BUG 1 FIX: Reset field tunjangan ke 0 dulu sebelum fetch
+        document.getElementById('tunj_jabatan').value = 0;
+        document.getElementById('tunj_transport').value = 0;
+        document.getElementById('tunj_konsumsi').value = 0;
         
         console.log('Fetching data for pegawai:', pegawaiId);
         
@@ -334,16 +358,16 @@
                 const selectKategori = document.getElementById('kategori');
                 if (data.kategori && Array.from(selectKategori.options).some(o => o.value === data.kategori)) {
                     selectKategori.value = data.kategori;
-                    handleKategoriChange(data.kategori, false); // false = jangan fetch tarif ulang karena sudah di atas
+                    handleKategoriChange(data.kategori, false);
                 } else {
                     selectKategori.value = '';
                     IS_PRODUKSI = true;
                 }
                 
+                // BUG 1 FIX: Set tunjangan dari API setelah pegawai dipilih
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
-                document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
-                document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                // Gunakan nilai asuransi dari API
+                document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 0;
+                document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 0;
                 document.getElementById('bpjs').value = parseInt(data.asuransi) || 0;
                 
                 updateTotalProduk();
@@ -468,15 +492,16 @@
     function hitungOtomatis() {
         const totalProduk = parseInt(document.getElementById('total_produk').value) || 0;
         const hariKerja = parseInt(document.getElementById('hari_kerja').value) || 26;
-        const tunjanganJabatan = parseInt(document.getElementById('tunj_jabatan').value) || 0;
-        const tunjanganTransport = parseInt(document.getElementById('tunj_transport').value) || 0;
-        const tunjanganKonsumsi = parseInt(document.getElementById('tunj_konsumsi').value) || 0;
-        const bpjs = parseInt(document.getElementById('bpjs').value) || 0;
+        // BUG 2 FIX: Unformat sebelum hitung
+        const tunjanganJabatan = parseRupiah(document.getElementById('tunj_jabatan').value) || 0;
+        const tunjanganTransport = parseRupiah(document.getElementById('tunj_transport').value) || 0;
+        const tunjanganKonsumsi = parseRupiah(document.getElementById('tunj_konsumsi').value) || 0;
+        const bpjs = parseRupiah(document.getElementById('bpjs').value) || 0;
         const aktifBulat = document.getElementById('aktif_bulat').checked;
         const stepBulat = parseInt(document.getElementById('step_bulat').value) || 100000;
 
-        // Update TARIF_PRODUK dari input field
-        TARIF_PRODUK = parseInt(document.getElementById('tarif_produk_input').value) || 0;
+        // Update TARIF_PRODUK dari input field - unformat juga
+        TARIF_PRODUK = parseRupiah(document.getElementById('tarif_produk_input').value) || 0;
 
         const rataRataHari = hariKerja > 0 ? Math.round(totalProduk / hariKerja) : 0;
         document.getElementById('rata_rata_hari').value = formatRupiah(rataRataHari);
@@ -505,7 +530,7 @@
     document.getElementById('formPenggajian').addEventListener('submit', function(e) {
         const pegawaiId = document.getElementById('pegawai_id').value;
         const totalProduk = parseInt(document.getElementById('total_produk').value) || 0;
-        const tarifProduk = parseInt(document.getElementById('tarif_produk_input').value) || 0;
+        const tarifProduk = parseRupiah(document.getElementById('tarif_produk_input').value) || 0;
 
         if (!pegawaiId) {
             e.preventDefault();
@@ -525,6 +550,12 @@
             return;
         }
 
+        // BUG 2 FIX: Unformat semua field input-rupiah sebelum submit
+        // Agar value yang dikirim ke server adalah integer bersih
+        document.querySelectorAll('.input-rupiah').forEach(function(input) {
+            input.value = parseRupiah(input.value);
+        });
+
         const gajiFinal = parseRupiah(document.getElementById('display_gaji_final').value);
         document.getElementById('h-final').value = gajiFinal;
     });
@@ -533,6 +564,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Form initialized');
         clearFormState();
+        setupRupiahFormatting(); // BUG 2 FIX: Setup format listener
         hitungOtomatis();
     });
 
