@@ -46,6 +46,11 @@ Route::get('/run-seeders-now', function () {
         Artisan::call('db:seed', ['--class' => 'RemoveCoaAyamSeeder']);
         $results[] = '✅ RemoveCoaAyamSeeder completed: ' . Artisan::output();
 
+        // 0c. Cleanup Jasuke specific COA
+        $results[] = '<br>🗑️ Cleaning up Jasuke specific COA (Original, Coklat)...';
+        Artisan::call('db:seed', ['--class' => 'CleanupJasukeSpecificCoa']);
+        $results[] = '✅ CleanupJasukeSpecificCoa completed: ' . Artisan::output();
+
         // 1. CoaAyamSeeder - DISABLED (khusus bisnis ayam saja)
         // $results[] = '🐔 Running CoaAyamSeeder...';
         // Artisan::call('db:seed', ['--class' => 'CoaAyamSeeder']);
