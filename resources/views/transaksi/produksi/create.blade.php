@@ -40,7 +40,11 @@
                         <label class="form-label fw-bold">📋 Akun COA Persediaan Barang Jadi</label>
                         <select name="coa_persediaan_barang_jadi_id" id="coa_persediaan_barang_jadi_id" class="form-select form-select-lg">
                             <option value="">-- Pilih Akun COA --</option>
-                            @foreach(\App\Models\Coa::where('kode_akun', 'like', '11%')->orWhere('nama_akun', 'like', '%Persediaan%')->orWhere('nama_akun', 'like', '%Barang Jadi%')->orderBy('kode_akun')->get() as $coa)
+                            @foreach(\App\Models\Coa::where('user_id', auth()->id())
+                                ->where('kode_akun', 'like', '1%')
+                                ->where('nama_akun', 'like', '%pers%')
+                                ->orderBy('kode_akun')
+                                ->get() as $coa)
                                 <option value="{{ $coa->id }}" {{ $coa->kode_akun == '116' ? 'selected' : '' }}>
                                     {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                 </option>
