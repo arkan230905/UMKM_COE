@@ -1559,3 +1559,54 @@ class PenggajianController extends Controller
         }
     }
 }
+
+    /**
+     * TEST: Direct endpoint to check kualifikasi data
+     */
+    public function testKualifikasiData($pegawaiId)
+    {
+        try {
+            $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
+            
+            // Get all jabatan/kualifikasi data
+            $jabatans = \App\Models\Jabatan::all();
+            
+            return response()->json([
+                'pegawai' => [
+                    'id' => $pegawai->id,
+                    'nama' => $pegawai->nama,
+                    'jabatan_string' => $pegawai->jabatan,
+                    'jabatan_id' => $pegawai->jabatan_id,
+                    'user_id' => $pegawai->user_id,
+                ],
+                'jabatan_relasi' => $pegawai->jabatanRelasi ? [
+                    'id' => $pegawai->jabatanRelasi->id,
+                    'nama' => $pegawai->jabatanRelasi->nama,
+                    'tarif_produk' => $pegawai->jabatanRelasi->tarif_produk,
+                    'asuransi' => $pegawai->jabatanRelasi->asuransi,
+                ] : null,
+                'all_jabatans' => $jabatans->map(function($j) {
+                    return [
+                        'id' => $j->id,
+                        'nama' => $j->nama,
+                        'tarif_produk' => $j->tarif_produk,
+                        'asuransi' => $j->asuransi,
+                        'user_id' => $j->user_id,
+                    ];
+                }),
+                'resolved_jabatan' => $this->resolvePegawaiJabatan($pegawai) ? [
+                    'nama' => $this->resolvePegawaiJabatan($pegawai)->nama,
+                    'tarif_produk' => $this->resolvePegawaiJabatan($pegawai)->tarif_produk,
+                    'asuransi' => $this->resolvePegawaiJabatan($pegawai)->asuransi,
+                ] : null,
+                'timestamp' => now()->toISOString()
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+}
