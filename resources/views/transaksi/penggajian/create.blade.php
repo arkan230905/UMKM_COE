@@ -182,7 +182,7 @@
                 <!-- SECTION 4: TUNJANGAN DAN ASURANSI -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="tunj_jabatan" class="form-label">Tunjangan Jabatan</label>
+                        <label for="tunj_jabatan" class="form-label">Tunjangan Kualifikasi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
                             <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
@@ -333,7 +333,7 @@
                 if (tarifDariKualifikasi > 0) {
                     TARIF_PRODUK = tarifDariKualifikasi;
                     tarifField.value = tarifDariKualifikasi;
-                    tarifStatus.textContent = '✓ Tarif dari kualifikasi pegawai';
+                    tarifStatus.textContent = '✓ Tarif dari kualifikasi: ' + (data.kualifikasi_nama || data.jabatan_nama || 'pegawai');
                     tarifStatus.className = 'form-text text-success d-block mt-1';
                 } else {
                     TARIF_PRODUK = 0;

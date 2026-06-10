@@ -130,7 +130,7 @@
                             <span class="input-group-text">Rp</span>
                             <input type="number" id="tarif_produk_input" name="tarif_produk" class="form-control" value="0" min="0" oninput="hitungOtomatis()" required>
                         </div>
-                        <small class="form-text text-muted d-block mt-1" id="tarif_status">Auto-filled dari kualifikasi, atau input manual jika tidak ada</small>
+                        <small class="form-text text-muted d-block mt-1" id="tarif_status"></small>
                     </div>
 
                     <div class="col-md-6">
@@ -182,7 +182,7 @@
                 <!-- SECTION 4: TUNJANGAN DAN ASURANSI -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="tunj_jabatan" class="form-label">Tunjangan Jabatan</label>
+                        <label for="tunj_jabatan" class="form-label">Tunjangan Kualifikasi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
                             <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
@@ -209,7 +209,7 @@
                         <label for="bpjs" class="form-label">Asuransi BPJS</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="100000" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
                 </div>
@@ -278,11 +278,11 @@
         document.getElementById('status_total_produk').textContent = 'Otomatis jika Produksi (BTKL), atau isi manual';
         document.getElementById('total_produk').readOnly = false;
         document.getElementById('total_produk').style.backgroundColor = '#fff';
-        document.getElementById('tarif_status').textContent = 'Auto-filled dari kualifikasi, atau input manual jika tidak ada';
+        document.getElementById('tarif_status').textContent = '';
         document.getElementById('tunj_jabatan').value = 0;
         document.getElementById('tunj_transport').value = 150000;
         document.getElementById('tunj_konsumsi').value = 375000;
-        document.getElementById('bpjs').value = 100000;
+        document.getElementById('bpjs').value = 0;
         document.getElementById('display_gaji_mentah').value = '0';
         document.getElementById('display_gaji_final').value = '0';
         document.getElementById('display_total_gaji').textContent = 'Rp 0';
@@ -320,12 +320,12 @@
                 if (tarifDariKualifikasi > 0) {
                     TARIF_PRODUK = tarifDariKualifikasi;
                     tarifField.value = tarifDariKualifikasi;
-                    tarifStatus.textContent = '✓ Tarif dari kualifikasi: ' + data.jabatan_nama;
+                    tarifStatus.textContent = '✓ Tarif dari kualifikasi: ' + (data.kualifikasi_nama || data.jabatan_nama || 'pegawai');
                     tarifStatus.className = 'form-text text-success d-block mt-1';
                 } else {
                     TARIF_PRODUK = 0;
                     tarifField.value = 0;
-                    tarifStatus.textContent = 'Tarif dari kualifikasi: ' + data.jabatan_nama;
+                    tarifStatus.textContent = 'Tarif dari kualifikasi: ' + (data.kualifikasi_nama || data.jabatan_nama || 'pegawai');
                     tarifStatus.className = 'form-text text-muted d-block mt-1';
                 }
                 
@@ -341,7 +341,8 @@
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                document.getElementById('bpjs').value = parseInt(data.asuransi) || 100000;
+                // Gunakan nilai asuransi dari API, bahkan jika 0
+                document.getElementById('bpjs').value = parseInt(data.asuransi) ?? 0;
                 
                 updateTotalProduk();
                 hitungOtomatis();

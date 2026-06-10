@@ -3017,6 +3017,7 @@ Route::middleware('auth')->group(function () {
             
             // API untuk data pegawai real-time
             Route::get('/pegawai/{pegawaiId}/data', [PenggajianController::class, 'getEmployeeData'])->name('pegawai.data');
+            Route::get('/pegawai/{pegawaiId}/test-kualifikasi', [PenggajianController::class, 'testKualifikasiData'])->name('pegawai.test-kualifikasi');
             
             // NEW: API untuk penggajian berbasis produk (BTKL)
             Route::post('/api/hitung-produk', [PenggajianController::class, 'hitungGajiProduk'])->name('api.hitung-produk');

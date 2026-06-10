@@ -230,8 +230,24 @@ class PenggajianController extends Controller
                 ->where('user_id', auth()->id())
                 ->findOrFail($pegawaiId);
             
+            \Log::info('getEmployeeData - Pegawai loaded', [
+                'pegawai_id' => $pegawaiId,
+                'nama' => $pegawai->nama,
+                'jabatan_string' => $pegawai->jabatan,
+                'jabatan_id' => $pegawai->jabatan_id,
+                'has_jabatan_relasi' => $pegawai->jabatanRelasi ? 'YES' : 'NO'
+            ]);
+            
             // Get current salary data from qualification (jabatan)
             $jabatan = $this->resolvePegawaiJabatan($pegawai);
+            
+            \Log::info('getEmployeeData - Jabatan resolved', [
+                'jabatan_found' => $jabatan ? 'YES' : 'NO',
+                'jabatan_nama' => $jabatan->nama ?? 'NULL',
+                'tarif_produk' => $jabatan->tarif_produk ?? 'NULL',
+                'asuransi' => $jabatan->asuransi ?? 'NULL'
+            ]);
+            
             if ($jabatan) {
                 $tarif = (int) ($jabatan->tarif_produk ?? 0);
                 $gajiPokok = (int) ($jabatan->gaji_pokok ?? 0);
@@ -239,14 +255,16 @@ class PenggajianController extends Controller
                 $tunjanganTransport = (int) ($jabatan->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($jabatan->tunjangan_konsumsi ?? 0);
                 $asuransi = (int) ($jabatan->asuransi ?? 0);
+                $jabatanNama = $jabatan->nama ?? 'Unknown';
             } else {
                 // Fallback to pegawai stored values
-                $tarif = (int) ($pegawai->tarif_per_jam ?? 0);
+                $tarif = (int) ($pegawai->tarif_per_jam ?? $pegawai->tarif ?? 0);
                 $gajiPokok = (int) ($pegawai->gaji_pokok ?? 0);
-                $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? 0);
+                $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? $pegawai->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($pegawai->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($pegawai->tunjangan_konsumsi ?? 0);
                 $asuransi = (int) ($pegawai->asuransi ?? 0);
+                $jabatanNama = $pegawai->jabatan ?? 'Staff';
             }
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
@@ -259,7 +277,7 @@ class PenggajianController extends Controller
                 $kategoriInternal = $jenis === 'btkl' ? 'BTKL' : 'BTKTL';
             }
 
-            return response()->json([
+            $response = [
                 'tarif' => $tarif,
                 'gaji_pokok' => $gajiPokok,
                 'tunjangan_jabatan' => $tunjanganJabatan,
@@ -268,15 +286,21 @@ class PenggajianController extends Controller
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
-                'jabatan_nama' => $jabatan?->nama ?? $pegawai->jabatan ?? 'Staff',
+                'jabatan_nama' => $jabatanNama,
+                'kualifikasi_nama' => $jabatanNama, // For backward compatibility with form JS
                 'kategori' => $kategoriInternal // Simplified to BTKL or BTKTI
-            ]);
+            ];
+            
+            \Log::info('getEmployeeData - Final response', $response);
+            
+            return response()->json($response);
             
         } catch (\Exception $e) {
             \Log::error('Error in getEmployeeData', [
                 'pegawai_id' => $pegawaiId,
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([
@@ -1120,12 +1144,12 @@ class PenggajianController extends Controller
     private function resolveProdukPayrollDetail(Penggajian $penggajian): array
     {
         $pegawai = $penggajian->pegawai;
-        $jabatan = $this->resolvePegawaiJabatan($pegawai);
+        $kualifikasi = $this->resolvePegawaiJabatan($pegawai);
 
         $tarifProduk = $this->firstPositiveNumber([
             $penggajian->tarif_produk,
-            $jabatan?->tarif_produk,
-            $jabatan?->tarif,
+            $kualifikasi?->tarif_produk,
+            $kualifikasi?->tarif,
             $pegawai?->tarif_per_produk,
             $pegawai?->tarif,
             $pegawai?->tarif_per_jam,
@@ -1175,18 +1199,25 @@ class PenggajianController extends Controller
         ];
     }
 
+    /**
+     * Resolve pegawai's jabatan/kualifikasi data
+     * UPDATED: Now uses KualifikasiTenagaKerja (new system) instead of Jabatan (old system)
+     */
     private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Jabatan
     {
         if (!$pegawai) {
             return null;
         }
 
+        // Try to get from jabatanRelasi (new system)
         if ($pegawai->jabatanRelasi) {
             return $pegawai->jabatanRelasi;
         }
 
+        // Query jabatans table
         $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
 
+        // Try by jabatan_id (if it exists in pegawai)
         if ($pegawai->jabatan_id) {
             $jabatan = (clone $query)->find($pegawai->jabatan_id);
             if ($jabatan) {
@@ -1194,6 +1225,7 @@ class PenggajianController extends Controller
             }
         }
 
+        // Try by nama (match pegawai.jabatan string with jabatan.nama)
         if (!empty($pegawai->jabatan)) {
             return (clone $query)->where('nama', $pegawai->jabatan)->first();
         }
@@ -1512,6 +1544,56 @@ class PenggajianController extends Controller
             DB::rollBack();
             \Log::error('Error posting penggajian to journal: ' . $e->getMessage());
             return back()->with('error', 'Terjadi kesalahan saat posting ke jurnal: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * TEST: Direct endpoint to check kualifikasi data
+     */
+    public function testKualifikasiData($pegawaiId)
+    {
+        try {
+            $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
+            
+            // Get all jabatan/kualifikasi data
+            $jabatans = \App\Models\Jabatan::all();
+            
+            return response()->json([
+                'pegawai' => [
+                    'id' => $pegawai->id,
+                    'nama' => $pegawai->nama,
+                    'jabatan_string' => $pegawai->jabatan,
+                    'jabatan_id' => $pegawai->jabatan_id,
+                    'user_id' => $pegawai->user_id,
+                ],
+                'jabatan_relasi' => $pegawai->jabatanRelasi ? [
+                    'id' => $pegawai->jabatanRelasi->id,
+                    'nama' => $pegawai->jabatanRelasi->nama,
+                    'tarif_produk' => $pegawai->jabatanRelasi->tarif_produk,
+                    'asuransi' => $pegawai->jabatanRelasi->asuransi,
+                ] : null,
+                'all_jabatans' => $jabatans->map(function($j) {
+                    return [
+                        'id' => $j->id,
+                        'nama' => $j->nama,
+                        'tarif_produk' => $j->tarif_produk,
+                        'asuransi' => $j->asuransi,
+                        'user_id' => $j->user_id,
+                    ];
+                }),
+                'resolved_kualifikasi' => $this->resolvePegawaiJabatan($pegawai) ? [
+                    'nama' => $this->resolvePegawaiJabatan($pegawai)->nama,
+                    'tarif_produk' => $this->resolvePegawaiJabatan($pegawai)->tarif_produk,
+                    'asuransi' => $this->resolvePegawaiJabatan($pegawai)->asuransi,
+                ] : null,
+                'timestamp' => now()->toISOString()
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
     }
 }
