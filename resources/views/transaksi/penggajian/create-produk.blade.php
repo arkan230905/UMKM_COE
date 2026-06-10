@@ -130,7 +130,7 @@
                             <span class="input-group-text">Rp</span>
                             <input type="number" id="tarif_produk_input" name="tarif_produk" class="form-control" value="0" min="0" oninput="hitungOtomatis()" required>
                         </div>
-                        <small class="form-text text-muted d-block mt-1" id="tarif_status">Auto-filled dari kualifikasi, atau input manual jika tidak ada</small>
+                        <small class="form-text text-muted d-block mt-1" id="tarif_status"></small>
                     </div>
 
                     <div class="col-md-6">
@@ -278,7 +278,7 @@
         document.getElementById('status_total_produk').textContent = 'Otomatis jika Produksi (BTKL), atau isi manual';
         document.getElementById('total_produk').readOnly = false;
         document.getElementById('total_produk').style.backgroundColor = '#fff';
-        document.getElementById('tarif_status').textContent = 'Auto-filled dari kualifikasi, atau input manual jika tidak ada';
+        document.getElementById('tarif_status').textContent = '';
         document.getElementById('tunj_jabatan').value = 0;
         document.getElementById('tunj_transport').value = 150000;
         document.getElementById('tunj_konsumsi').value = 375000;
