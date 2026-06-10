@@ -242,15 +242,21 @@ class ProduksiController extends Controller
                 // Check Bahan Pendukung (NEW) - Using NOMINAL/VALUE instead of QTY
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
-                    $qtyButuh = $detail->qty_resep; // Qty yang dibutuhkan
-                    $hargaSatuan = $bahan->harga_satuan ?? 0; // Harga per unit
-                    $nominalButuh = $qtyButuh * $hargaSatuan; // Total nilai yang dibutuhkan (Rp)
+                    $qtyButuh = $detail->qty_resep; // Qty yang dibutuhkan (already total for all production)
                     
-                    $stokQty = (float)($bahan->saldo_awal ?? 0); // Stok dalam qty
-                    $nominalTersedia = $stokQty * $hargaSatuan; // Total nilai tersedia (Rp)
+                    // IMPORTANT: Use harga_satuan from bahan_pendukung table (current price), not from detail
+                    $hargaSatuanAktual = $bahan->harga_satuan ?? 0; // Current price per unit from master data
+                    $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Price from HPP at time of production planning
+                    
+                    // Calculate nominal needed using DETAIL price (from HPP) for consistency
+                    $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated: qty * harga from HPP)
+                    
+                    // Calculate nominal available using CURRENT price
+                    $stokQty = (float)($bahan->saldo_awal ?? 0); // Current stock in qty
+                    $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp) using current price
                     
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.');
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . " (dari detail produksi), tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " @ Rp " . number_format($hargaSatuanAktual, 0, ',', '.') . ")";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
@@ -300,18 +306,22 @@ class ProduksiController extends Controller
                     ]);
                 }
                 
-                // Reduce Bahan Pendukung stock (NEW) - Based on NOMINAL/VALUE
+                // Reduce Bahan Pendukung stock (NEW) - Based on NOMINAL/VALUE from detail subtotal
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
-                    $qtyButuh = $detail->qty_resep; // Qty yang dibutuhkan dari resep
-                    $hargaSatuan = $bahan->harga_satuan ?? 0; // Harga per unit
-                    $nominalDigunakan = $qtyButuh * $hargaSatuan; // Total nilai yang digunakan (Rp)
                     
-                    // Hitung qty yang harus dikurangi berdasarkan nominal
-                    if ($hargaSatuan > 0) {
-                        $qtyDikurangi = $nominalDigunakan / $hargaSatuan; // Convert nominal ke qty
+                    // IMPORTANT: Use subtotal from detail (already calculated from HPP)
+                    $nominalDigunakan = $detail->subtotal; // Total nilai yang digunakan (Rp) from production plan
+                    
+                    // Get current price from master data
+                    $hargaSatuanAktual = $bahan->harga_satuan ?? 0; // Current price per unit
+                    
+                    // Calculate qty to deduct based on nominal and current price
+                    if ($hargaSatuanAktual > 0) {
+                        $qtyDikurangi = $nominalDigunakan / $hargaSatuanAktual; // Convert nominal to qty using current price
                     } else {
-                        $qtyDikurangi = $qtyButuh; // Fallback jika harga satuan 0
+                        // Fallback: if no price, use qty from detail
+                        $qtyDikurangi = $detail->qty_resep;
                     }
                     
                     // IMPORTANT: Update saldo_awal (stock) directly in database
@@ -330,9 +340,9 @@ class ProduksiController extends Controller
                         'direction' => 'out',
                         'qty' => $qtyDikurangi,
                         'satuan' => $bahan->satuanRelation->nama ?? 'Unit', // Get proper unit name
-                        'unit_cost' => $hargaSatuan,
-                        'total_cost' => $nominalDigunakan, // Use nominal as total cost
-                        'keterangan' => "Produksi {$produk->nama_produk} (BOP) - Nominal Rp " . number_format($nominalDigunakan, 0, ',', '.') . " - {$produksi->id}",
+                        'unit_cost' => $hargaSatuanAktual,
+                        'total_cost' => $nominalDigunakan, // Use nominal from detail as total cost
+                        'keterangan' => "Produksi {$produk->nama_produk} (BOP) - Nominal Rp " . number_format($nominalDigunakan, 0, ',', '.') . " @ Rp " . number_format($hargaSatuanAktual, 0, ',', '.') . "/unit - {$produksi->id}",
                         'ref_type' => 'produksi',
                         'ref_id' => $produksi->id,
                     ]);
