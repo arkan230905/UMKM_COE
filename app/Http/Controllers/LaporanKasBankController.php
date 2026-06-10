@@ -433,7 +433,7 @@ class LaporanKasBankController extends Controller
                 $jlDate = date('Y-m-d', strtotime($jl->tanggal));
                 $juDate = date('Y-m-d', strtotime($ju->tanggal));
                 
-                if ($jlDate === $juDate && abs($jl->credit - $ju->kredit) < 0.01) {
+                if ($jlDate === $juDate && abs($jl->kredit - $ju->kredit) < 0.01) {
                     // Check ref type match
                     $refTypeMatch = (
                         ($jl->tipe_referensi === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
