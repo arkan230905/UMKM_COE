@@ -67,3 +67,24 @@ if (!function_exists('storage_url')) {
         return asset('storage/' . $path);
     }
 }
+
+/**
+ * Format angka secara smart - hilangkan .00 jika bukan desimal
+ * 
+ * @param float|int $number
+ * @param int $decimals Default decimals if number has decimal
+ * @return string
+ */
+if (!function_exists('format_number_smart')) {
+    function format_number_smart($number, $decimals = 2)
+    {
+        // Cek apakah angka memiliki desimal
+        if ($number == floor($number)) {
+            // Tidak ada desimal, format tanpa desimal
+            return number_format($number, 0, ',', '.');
+        } else {
+            // Ada desimal, format dengan desimal
+            return number_format($number, $decimals, ',', '.');
+        }
+    }
+}

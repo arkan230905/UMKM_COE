@@ -267,7 +267,7 @@
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Jumlah</label>
                         <div class="info-display">
-                            {{ number_format($detail->jumlah, 2) }}
+                            {{ format_number_smart($detail->jumlah) }}
                         </div>
                     </div>
                     
@@ -318,7 +318,7 @@
                                 <label class="form-label small fw-bold">Jumlah dalam Satuan Utama</label>
                                 <div class="info-display bg-light">
                                     <small class="text-muted">Input manual jumlah dalam satuan utama</small><br>
-                                    <strong>{{ number_format($detail->jumlah_satuan_utama ?? 0, 2) }} {{ $detail->satuan_utama ?? '' }}</strong>
+                                    <strong>{{ format_number_smart($detail->jumlah_satuan_utama ?? 0) }} {{ $detail->satuan_utama ?? '' }}</strong>
                                 </div>
                             </div>
                             
@@ -340,10 +340,10 @@
                                     @endphp
                                     @if($isManualInput)
                                         <span class="badge bg-warning text-dark">Manual Input</span><br>
-                                        {{ number_format($detail->jumlah, 2) }} {{ $detail->satuan_nama }} = {{ number_format($manualInput, 2) }} {{ $detail->satuan_utama }}
+                                        {{ format_number_smart($detail->jumlah) }} {{ $detail->satuan_nama }} = {{ format_number_smart($manualInput) }} {{ $detail->satuan_utama }}
                                     @else
                                         <span class="badge bg-info">Otomatis</span><br>
-                                        {{ number_format($detail->jumlah, 2) }} {{ $detail->satuan_nama }} = {{ number_format($calculatedValue, 2) }} {{ $detail->satuan_utama }}
+                                        {{ format_number_smart($detail->jumlah) }} {{ $detail->satuan_nama }} = {{ format_number_smart($calculatedValue) }} {{ $detail->satuan_utama }}
                                     @endif
                                 </div>
                             </div>
@@ -378,7 +378,7 @@
                                 <div class="col-md-4">
                                     <strong>Sub Satuan 1:</strong><br>
                                     @if($item->subSatuan1 && $item->sub_satuan_1_nilai)
-                                        {{ $item->subSatuan1->nama }} (1 {{ $item->satuan->nama ?? $item->satuanRelation->nama ?? 'Unit' }} = {{ number_format($item->sub_satuan_1_nilai, 4) }} {{ $item->subSatuan1->nama }})
+                                        {{ $item->subSatuan1->nama }} (1 {{ $item->satuan->nama ?? $item->satuanRelation->nama ?? 'Unit' }} = {{ format_number_smart($item->sub_satuan_1_nilai, 4) }} {{ $item->subSatuan1->nama }})
                                     @else
                                         <span class="text-muted">Tidak ada</span>
                                     @endif
@@ -386,7 +386,7 @@
                                 <div class="col-md-4">
                                     <strong>Sub Satuan 2:</strong><br>
                                     @if($item->subSatuan2 && $item->sub_satuan_2_nilai)
-                                        {{ $item->subSatuan2->nama }} (1 {{ $item->satuan->nama ?? $item->satuanRelation->nama ?? 'Unit' }} = {{ number_format($item->sub_satuan_2_nilai, 4) }} {{ $item->subSatuan2->nama }})
+                                        {{ $item->subSatuan2->nama }} (1 {{ $item->satuan->nama ?? $item->satuanRelation->nama ?? 'Unit' }} = {{ format_number_smart($item->sub_satuan_2_nilai, 4) }} {{ $item->subSatuan2->nama }})
                                     @else
                                         <span class="text-muted">Tidak ada</span>
                                     @endif
@@ -394,7 +394,7 @@
                                 <div class="col-md-4">
                                     <strong>Sub Satuan 3:</strong><br>
                                     @if($item->subSatuan3 && $item->sub_satuan_3_nilai)
-                                        {{ $item->subSatuan3->nama }} (1 {{ $item->satuan->nama ?? $item->satuanRelation->nama ?? 'Unit' }} = {{ number_format($item->sub_satuan_3_nilai, 4) }} {{ $item->subSatuan3->nama }})
+                                        {{ $item->subSatuan3->nama }} (1 {{ $item->satuan->nama ?? $item->satuanRelation->nama ?? 'Unit' }} = {{ format_number_smart($item->sub_satuan_3_nilai, 4) }} {{ $item->subSatuan3->nama }})
                                     @else
                                         <span class="text-muted">Tidak ada</span>
                                     @endif
@@ -425,7 +425,7 @@
                                     <label class="form-label small fw-bold">Konversi untuk Pembelian Ini</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-info text-white fw-bold">1 {{ $detail->satuan_utama ?? 'Kilogram' }} =</span>
-                                        <div class="form-control fw-bold text-center bg-light">{{ number_format($konversi->faktor_konversi_manual, 2) }}</div>
+                                        <div class="form-control fw-bold text-center bg-light">{{ format_number_smart($konversi->faktor_konversi_manual) }}</div>
                                         <span class="input-group-text bg-success text-white fw-bold">{{ $konversi->satuan_nama }}</span>
                                     </div>
                                     <small class="text-muted">Konversi yang digunakan sesuai kebutuhan pembelian</small>
@@ -437,7 +437,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold">Jumlah dalam Sub Satuan</label>
                                     <div class="form-control fw-bold bg-light">
-                                        {{ number_format($konversi->jumlah_konversi, 2) }}
+                                        {{ format_number_smart($konversi->jumlah_konversi) }}
                                     </div>
                                     <small class="text-muted">Jumlah dalam sub satuan yang dipilih</small>
                                 </div>
@@ -475,19 +475,19 @@
                                 
                                 @if($item->subSatuan1 && $item->sub_satuan_1_nilai)
                                 <br><small class="text-muted">
-                                    = {{ number_format($jumlahSatuanUtama * $item->sub_satuan_1_nilai, 2) }} {{ $item->subSatuan1->nama }} (master: 1:{{ number_format($item->sub_satuan_1_nilai, 4) }})
+                                    = {{ format_number_smart($jumlahSatuanUtama * $item->sub_satuan_1_nilai) }} {{ $item->subSatuan1->nama }} (master: 1:{{ format_number_smart($item->sub_satuan_1_nilai, 4) }})
                                 </small>
                                 @endif
                                 
                                 @if($item->subSatuan2 && $item->sub_satuan_2_nilai)
                                 <br><small class="text-muted">
-                                    = {{ number_format($jumlahSatuanUtama * $item->sub_satuan_2_nilai, 2) }} {{ $item->subSatuan2->nama }} (master: 1:{{ number_format($item->sub_satuan_2_nilai, 4) }})
+                                    = {{ format_number_smart($jumlahSatuanUtama * $item->sub_satuan_2_nilai) }} {{ $item->subSatuan2->nama }} (master: 1:{{ format_number_smart($item->sub_satuan_2_nilai, 4) }})
                                 </small>
                                 @endif
                                 
                                 @if($item->subSatuan3 && $item->sub_satuan_3_nilai)
                                 <br><small class="text-muted">
-                                    = {{ number_format($jumlahSatuanUtama * $item->sub_satuan_3_nilai, 2) }} {{ $item->subSatuan3->nama }} (master: 1:{{ number_format($item->sub_satuan_3_nilai, 4) }})
+                                    = {{ format_number_smart($jumlahSatuanUtama * $item->sub_satuan_3_nilai) }} {{ $item->subSatuan3->nama }} (master: 1:{{ format_number_smart($item->sub_satuan_3_nilai, 4) }})
                                 </small>
                                 @endif
                             </div>
