@@ -28,8 +28,8 @@
                             <td>: <strong>{{ $penggajian->pegawai->nama ?? '-' }}</strong></td>
                         </tr>
                         <tr>
-                            <td>Jabatan</td>
-                            <td>: {{ $penggajian->pegawai->jabatan ?? '-' }}</td>
+                            <td>Kualifikasi</td>
+                            <td>: {{ $penggajian->pegawai->jabatanRelasi->nama ?? $penggajian->pegawai->jabatan ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td>Jenis Pegawai</td>
@@ -102,7 +102,7 @@
                             <td colspan="2"><strong>Tunjangan:</strong></td>
                         </tr>
                         <tr>
-                            <td class="ps-4">&nbsp;&nbsp;• Tunjangan Jabatan</td>
+                            <td class="ps-4">&nbsp;&nbsp;• Tunjangan Kualifikasi</td>
                             <td>: Rp {{ number_format($penggajian->tunjangan_jabatan ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         <tr>

@@ -1143,12 +1143,12 @@ class PenggajianController extends Controller
     private function resolveProdukPayrollDetail(Penggajian $penggajian): array
     {
         $pegawai = $penggajian->pegawai;
-        $jabatan = $this->resolvePegawaiJabatan($pegawai);
+        $kualifikasi = $this->resolvePegawaiKualifikasi($pegawai);
 
         $tarifProduk = $this->firstPositiveNumber([
             $penggajian->tarif_produk,
-            $jabatan?->tarif_produk,
-            $jabatan?->tarif,
+            $kualifikasi?->tarif_produk,
+            $kualifikasi?->tarif,
             $pegawai?->tarif_per_produk,
             $pegawai?->tarif,
             $pegawai?->tarif_per_jam,
@@ -1558,7 +1558,6 @@ class PenggajianController extends Controller
             return back()->with('error', 'Terjadi kesalahan saat posting ke jurnal: ' . $e->getMessage());
         }
     }
-}
 
     /**
      * TEST: Direct endpoint to check kualifikasi data
@@ -1594,10 +1593,10 @@ class PenggajianController extends Controller
                         'user_id' => $j->user_id,
                     ];
                 }),
-                'resolved_jabatan' => $this->resolvePegawaiJabatan($pegawai) ? [
-                    'nama' => $this->resolvePegawaiJabatan($pegawai)->nama,
-                    'tarif_produk' => $this->resolvePegawaiJabatan($pegawai)->tarif_produk,
-                    'asuransi' => $this->resolvePegawaiJabatan($pegawai)->asuransi,
+                'resolved_kualifikasi' => $this->resolvePegawaiKualifikasi($pegawai) ? [
+                    'nama' => $this->resolvePegawaiKualifikasi($pegawai)->nama,
+                    'tarif_produk' => $this->resolvePegawaiKualifikasi($pegawai)->tarif_produk,
+                    'asuransi' => $this->resolvePegawaiKualifikasi($pegawai)->asuransi,
                 ] : null,
                 'timestamp' => now()->toISOString()
             ]);
