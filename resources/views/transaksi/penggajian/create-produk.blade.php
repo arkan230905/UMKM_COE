@@ -185,7 +185,7 @@
                         <label for="tunj_jabatan" class="form-label">Tunjangan Kualifikasi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control" value="0" min="0" oninput="hitungOtomatis()" placeholder="0">
                         </div>
                     </div>
 
@@ -193,23 +193,25 @@
                         <label for="tunj_transport" class="form-label">Tunjangan Transport</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control" value="150000" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control" value="150000" min="0" oninput="hitungOtomatis()" placeholder="150.000">
                         </div>
+                        <small class="form-text text-muted">Format: 150.000</small>
                     </div>
 
                     <div class="col-md-6">
                         <label for="tunj_konsumsi" class="form-label">Tunjangan Konsumsi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control" value="375000" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control" value="375000" min="0" oninput="hitungOtomatis()" placeholder="375.000">
                         </div>
+                        <small class="form-text text-muted">Format: 375.000</small>
                     </div>
 
                     <div class="col-md-6">
                         <label for="bpjs" class="form-label">Asuransi BPJS</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="number" name="asuransi" id="bpjs" class="form-control" value="0" min="0" oninput="hitungOtomatis()" placeholder="0">
                         </div>
                     </div>
                 </div>
@@ -341,8 +343,8 @@
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                // Asuransi BPJS selalu 0, konsisten dengan data kualifikasi
-                document.getElementById('bpjs').value = 0;
+                // Gunakan nilai asuransi dari API
+                document.getElementById('bpjs').value = parseInt(data.asuransi) || 0;
                 
                 updateTotalProduk();
                 hitungOtomatis();
