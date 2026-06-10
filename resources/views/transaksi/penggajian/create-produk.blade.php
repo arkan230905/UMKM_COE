@@ -116,7 +116,7 @@
                     <div class="col-md-6">
                         <label for="rata_rata_hari" class="form-label">Rata-rata / Hari</label>
                         <div class="input-group">
-                            <input type="text" id="rata_rata_hari" class="form-control" readonly value="0">
+                            <input type="text" id="rata_rata_hari" class="form-control" value="0" disabled>
                             <span class="input-group-text">produk/hari</span>
                         </div>
                     </div>
@@ -137,7 +137,7 @@
                         <label class="form-label">Gaji Produksi (Mentah)</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="text" id="display_gaji_mentah" class="form-control" readonly value="0">
+                            <input type="text" id="display_gaji_mentah" class="form-control" value="0" disabled>
                         </div>
                     </div>
 
@@ -174,7 +174,7 @@
                         <label class="form-label">Gaji Produksi Final</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="text" id="display_gaji_final" class="form-control fw-bold text-primary" readonly value="0">
+                            <input type="text" id="display_gaji_final" class="form-control fw-bold text-primary" value="0" disabled>
                         </div>
                     </div>
                 </div>
@@ -341,8 +341,8 @@
                 document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
                 document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 150000;
                 document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 375000;
-                // Gunakan nilai asuransi dari API, bahkan jika 0
-                document.getElementById('bpjs').value = parseInt(data.asuransi) ?? 0;
+                // Asuransi BPJS selalu 0, konsisten dengan data kualifikasi
+                document.getElementById('bpjs').value = 0;
                 
                 updateTotalProduk();
                 hitungOtomatis();
