@@ -2018,6 +2018,38 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function() {
     // Employee data API for penggajian
     Route::get('/api/pegawai/{pegawaiId}/data', [App\Http\Controllers\PenggajianController::class, 'getEmployeeData'])->name('api.pegawai.data');
+    
+    // DEBUG ENDPOINT - remove after fix
+    Route::get('/api/debug/list-pegawai', function() {
+        $pegawais = \App\Models\Pegawai::where('user_id', auth()->id())
+            ->select('id', 'nama', 'jabatan_id', 'asuransi')
+            ->get();
+        return response()->json($pegawais);
+    });
+    
+    Route::get('/api/debug/pegawai/{pegawaiId}', function($pegawaiId) {
+        $pegawai = \App\Models\Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
+        $jabatan = $pegawai->jabatanRelasi;
+        
+        return response()->json([
+            'pegawai' => [
+                'id' => $pegawai->id,
+                'nama' => $pegawai->nama,
+                'user_id' => $pegawai->user_id,
+                'jabatan_id' => $pegawai->jabatan_id,
+                'jabatan_string' => $pegawai->jabatan,
+                'asuransi_in_pegawai_table' => $pegawai->asuransi ?? null,
+            ],
+            'jabatan_relasi' => $jabatan ? [
+                'id' => $jabatan->id,
+                'nama' => $jabatan->nama,
+                'asuransi' => $jabatan->asuransi,
+                'user_id' => $jabatan->user_id,
+            ] : null,
+            'query_result' => $jabatan ? 'HAS jabatanRelasi' : 'NO jabatanRelasi',
+        ]);
+    });
+    
     Route::get('/api/master-kategori/{nama}', [App\Http\Controllers\PenggajianController::class, 'getMasterKategori'])->name('api.master-kategori.data');
     
     // Total produksi API for penggajian
