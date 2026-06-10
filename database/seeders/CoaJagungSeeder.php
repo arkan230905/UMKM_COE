@@ -131,12 +131,27 @@ class CoaJagungSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'user_id' => $userId,
+                'kode_induk' => '111', // Parent: 111
+                'kode_akun' => '1113',
+                'nama_akun' => 'Bank BRI',
+                'tipe_akun' => 'Aset',
+                'kategori_akun' => '-',
+                'is_akun_header' => 0,
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0.00,
+                'tanggal_saldo_awal' => null,
+                'posted_saldo_awal' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
         
         foreach ($coaData as $coa) {
-            // Check if COA already exists for this user
+            // Check if COA already exists (for template user_id = null)
             $exists = DB::table('coas')
-                ->where('user_id', $userId)
+                ->whereNull('user_id')
                 ->where('kode_akun', $coa['kode_akun'])
                 ->exists();
             
