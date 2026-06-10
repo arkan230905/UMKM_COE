@@ -41,12 +41,17 @@ Route::get('/run-seeders-now', function () {
         Artisan::call('migrate', ['--force' => true]);
         $results[] = '✅ Migrations completed: ' . Artisan::output();
 
-        // 1. CoaAyamSeeder
-        $results[] = '🐔 Running CoaAyamSeeder...';
-        Artisan::call('db:seed', ['--class' => 'CoaAyamSeeder']);
-        $results[] = '✅ CoaAyamSeeder completed: ' . Artisan::output();
+        // 0b. Remove COA Ayam (cleanup)
+        $results[] = '<br>🗑️ Removing COA Ayam (tidak seharusnya ada)...';
+        Artisan::call('db:seed', ['--class' => 'RemoveCoaAyamSeeder']);
+        $results[] = '✅ RemoveCoaAyamSeeder completed: ' . Artisan::output();
 
-        // 1b. CoaJagungSeeder (NEW)
+        // 1. CoaAyamSeeder - DISABLED (khusus bisnis ayam saja)
+        // $results[] = '🐔 Running CoaAyamSeeder...';
+        // Artisan::call('db:seed', ['--class' => 'CoaAyamSeeder']);
+        // $results[] = '✅ CoaAyamSeeder completed: ' . Artisan::output();
+
+        // 1b. CoaJagungSeeder
         $results[] = '<br>🌽 Running CoaJagungSeeder...';
         Artisan::call('db:seed', ['--class' => 'CoaJagungSeeder']);
         $results[] = '✅ CoaJagungSeeder completed: ' . Artisan::output();
