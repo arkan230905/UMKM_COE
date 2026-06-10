@@ -12,6 +12,18 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Ensure default company exists first
+        $defaultCompany = DB::table('perusahaan')->where('id', 1)->first();
+        if (!$defaultCompany) {
+            DB::table('perusahaan')->insert([
+                'id' => 1,
+                'nama_perusahaan' => 'Default Company',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            echo "Created default company\n";
+        }
+        
         // Fix users without company association
         $usersWithoutCompany = DB::table('users')
             ->whereNull('company_id')

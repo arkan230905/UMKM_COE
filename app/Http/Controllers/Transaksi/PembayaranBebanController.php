@@ -57,13 +57,12 @@ class PembayaranBebanController extends Controller
             // Load beban operasional data - CRITICAL: Filter by user_id for multi-tenant isolation
             $bebanOperasional = \App\Models\BebanOperasional::where('user_id', auth()->id())->with('coa')->get();
             
-            // Ambil akun beban dari tabel Account (kode diawali angka 5 atau sama dengan 5) - CRITICAL: Use Account model
-            // FIXED: Include akun dengan kode '5' (akun 5) yang tidak match pattern '5%'
-            $coaBebans = Account::where(function($query) {
+            // Ambil akun beban dari tabel COA (kode diawali angka 5) - CRITICAL: Filter by user_id
+            $coaBebans = Coa::where('user_id', auth()->id())
+                ->where(function($query) {
                     $query->where('kode_akun', '=', '5')  // Akun 5 (Beban Umum)
                           ->orWhere('kode_akun', 'like', '5%');  // Akun 5x (Beban spesifik)
                 })
-                ->where('user_id', auth()->id())
                 ->orderBy('kode_akun')
                 ->get();
                 
@@ -115,25 +114,25 @@ class PembayaranBebanController extends Controller
         DB::beginTransaction();
         
         try {
-            // Dapatkan data Account dengan pengecekan yang lebih ketat
-            $beban = Account::where('kode_akun', $request->kode_akun_beban)
+            // Dapatkan data COA dengan pengecekan yang lebih ketat
+            $beban = Coa::where('kode_akun', $request->kode_akun_beban)
                 ->where('user_id', auth()->id())
                 ->first();
             
             // Pilih akun kas berdasarkan metode pembayaran
             if ($request->metode_pembayaran === 'kas') {
-                $kas = Account::where('kode_akun', '112')
+                $kas = Coa::where('kode_akun', '112')
                     ->where('user_id', auth()->id())
                     ->first(); // Kas Tunai
             } else {
-                $kas = Account::where('kode_akun', '111')
+                $kas = Coa::where('kode_akun', '111')
                     ->where('user_id', auth()->id())
                     ->first(); // Kas Bank (Transfer)
             }
             
-            // Validasi Account
+            // Validasi COA
             if (!$beban) {
-                throw new \Exception('Akun beban dengan kode ' . $request->kode_akun_beban . ' tidak ditemukan di database accounts.');
+                throw new \Exception('Akun beban dengan kode ' . $request->kode_akun_beban . ' tidak ditemukan di tabel COA.');
             }
             
             if (!$kas) {
@@ -243,12 +242,12 @@ class PembayaranBebanController extends Controller
         $pembayaran = PembayaranBeban::where('user_id', auth()->id())->findOrFail($id);
         // CRITICAL: Filter by user_id for multi-tenant isolation
         $bebanOperasional = \App\Models\BebanOperasional::where('user_id', auth()->id())->with('coa')->get();
-        // FIXED: Include akun dengan kode '5' (akun 5) yang tidak match pattern '5%'
-        $coaBebans = Account::where(function($query) {
+        // Ambil akun beban dari tabel COA (kode diawali angka 5) - CRITICAL: Filter by user_id
+        $coaBebans = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
                 $query->where('kode_akun', '=', '5')  // Akun 5 (Beban Umum)
                       ->orWhere('kode_akun', 'like', '5%');  // Akun 5x (Beban spesifik)
             })
-            ->where('user_id', auth()->id())
             ->orderBy('kode_akun')
             ->get();
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();

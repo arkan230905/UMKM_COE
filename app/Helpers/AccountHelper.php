@@ -61,10 +61,10 @@ class AccountHelper
      */
     public static function getBankAccountsForTransfer($userId = null)
     {
-        $query = Coa::where('tipe_akun', 'asset')
+        $query = Coa::whereIn('tipe_akun', ['Asset', 'asset', 'Aset', 'ASET', 'Aktiva'])
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%bank%')
-                      ->orWhere('kode_akun', '111');
+                      ->orWhere('kode_akun', 'like', '111%');
             })
             ->whereNotNull('nomor_rekening')
             ->where('nomor_rekening', '!=', '');

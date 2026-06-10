@@ -100,9 +100,8 @@ class ProdukController extends Controller
         $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
-                $query->where('nama_akun', 'LIKE', '%Persediaan%')
-                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
-                      ->orWhere('kode_akun', 'LIKE', '116%');
+                $query->where('nama_akun', 'LIKE', '%pers. barang jadi%')
+                      ->orWhere('nama_akun', 'LIKE', '%persediaan barang jadi%');
             })
             ->select('kode_akun', 'nama_akun')
             ->distinct()
@@ -204,9 +203,8 @@ class ProdukController extends Controller
         $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
-                $query->where('nama_akun', 'LIKE', '%Persediaan%')
-                      ->orWhere('nama_akun', 'LIKE', '%Barang Jadi%')
-                      ->orWhere('kode_akun', 'LIKE', '116%');
+                $query->where('nama_akun', 'LIKE', '%pers. barang jadi%')
+                      ->orWhere('nama_akun', 'LIKE', '%persediaan barang jadi%');
             })
             ->select('kode_akun', 'nama_akun')
             ->distinct()
