@@ -651,17 +651,22 @@ class PenggajianController extends Controller
             // Tentukan akun beban berdasarkan jenis pegawai
             $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
 
+            // PRIORITY: Always use gaji_pokok from database if exists (for produk-based system)
+            // Only calculate from jam kerja if gaji_pokok is 0 (legacy jam-based system)
+            $gajiPokok = $penggajian->gaji_pokok ?? 0;
+
             // Special handling untuk Bagian Gudang
             if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
                 // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
                 $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
-                $gajiDasar = $penggajian->gaji_pokok ?? 0;
+                $gajiDasar = $gajiPokok > 0 ? $gajiPokok : (($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0));
             } else if ($jenisPegawai === 'btkl') {
-                $gajiDasar = ($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0);
                 $coaBebanGaji = $this->getOrCreateCoa('52', 'Beban Tenaga Kerja Langsung', '5');
+                // FIXED: Use gaji_pokok first, fallback to jam kerja calculation
+                $gajiDasar = $gajiPokok > 0 ? $gajiPokok : (($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0));
             } else {
-                $gajiDasar = $penggajian->gaji_pokok ?? 0;
                 $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
+                $gajiDasar = $gajiPokok > 0 ? $gajiPokok : (($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0));
             }
 
             $totalTunjangan = $penggajian->total_tunjangan ?? 0;
