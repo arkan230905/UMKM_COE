@@ -90,6 +90,15 @@ class Produksi extends Model
         return $this->belongsTo(Coa::class, 'coa_persediaan_barang_jadi_id');
     }
 
+    /**
+     * Get journal entries for this production
+     */
+    public function jurnalUmum()
+    {
+        return $this->hasMany(JurnalUmum::class, 'referensi', 'id')
+            ->whereIn('tipe_referensi', ['produksi_bbb', 'produksi_btkl', 'produksi_bop', 'produksi_transfer']);
+    }
+
     // Helper methods for status
     public function isDraft()
     {
