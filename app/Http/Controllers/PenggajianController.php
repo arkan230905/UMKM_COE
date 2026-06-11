@@ -678,7 +678,8 @@ class PenggajianController extends Controller
             // COA untuk komponen lainnya - otomatis buat jika belum ada
             $coaBebanTunjangan = $this->getOrCreateCoa('513', 'Beban Tunjangan', '5');
             $coaBebanBonus = $this->getOrCreateCoa('515', 'Beban Bonus', '5');
-            $coaBebanAsuransi = $this->getOrCreateCoa('514', 'Beban Asuransi', '5');
+            // ASURANSI adalah POTONGAN, bukan beban - dicatat sebagai HUTANG
+            $coaHutangAsuransi = $this->getOrCreateCoa('211', 'Hutang Asuransi', '2');
             $coaPotongan = $this->getOrCreateCoa('516', 'Potongan Gaji', '5');
 
             // Pastikan akun kas/bank valid
@@ -691,30 +692,48 @@ class PenggajianController extends Controller
             \Log::info('Membuat jurnal penggajian dengan detail', [
                 'penggajian_id' => $penggajian->id,
                 'pegawai_id' => $pegawai->id,
+                'gaji_pokok_raw' => $penggajian->gaji_pokok,
                 'gaji_dasar' => $gajiDasar,
                 'total_tunjangan' => $totalTunjangan,
                 'bonus' => $bonus,
                 'asuransi' => $asuransi,
                 'potongan' => $potongan,
                 'total_gaji' => $totalGaji,
-                'coa_beban' => $coaBebanGaji->kode_akun,
+                'coa_beban_gaji_id' => $coaBebanGaji->id ?? 'NULL',
+                'coa_beban' => $coaBebanGaji->kode_akun ?? 'NULL',
                 'coa_kasbank' => $coaKasBank->kode_akun
             ]);
             
             // Buat jurnal entries dengan detail komponen - HANYA yang > 0
             $keterangan = "Penggajian {$pegawai->nama}";
             
-            // DEBIT: Beban Gaji Dasar (HANYA jika > 0)
+            // DEBIT: Beban Gaji Dasar - CRITICAL: MUST CREATE if gaji_dasar > 0
             if ($gajiDasar > 0) {
+                \Log::info('Creating Gaji Pokok journal entry', [
+                    'coa_id' => $coaBebanGaji->id,
+                    'gaji_dasar' => $gajiDasar,
+                    'keterangan' => $keterangan
+                ]);
+                
                 JurnalUmum::create([
                     'coa_id' => $coaBebanGaji->id,
                     'tanggal' => $penggajian->tanggal_penggajian,
                     'keterangan' => $keterangan,
                     'debit' => $gajiDasar,
                     'kredit' => 0,
-                    'referensi' => $penggajian->id,
+                    'referensi' => (string) $penggajian->id,
                     'tipe_referensi' => 'penggajian',
                     'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+                
+                \Log::info('Gaji Pokok journal entry created successfully');
+            } else {
+                \Log::warning('SKIPPING Gaji Pokok journal entry - gaji_dasar is 0', [
+                    'penggajian_id' => $penggajian->id,
+                    'gaji_pokok_from_db' => $penggajian->gaji_pokok,
+                    'tarif_per_jam' => $penggajian->tarif_per_jam,
+                    'total_jam_kerja' => $penggajian->total_jam_kerja
                 ]);
             }
             
@@ -726,23 +745,10 @@ class PenggajianController extends Controller
                     'keterangan' => $keterangan,
                     'debit' => $totalTunjangan,
                     'kredit' => 0,
-                    'referensi' => $penggajian->id,
+                    'referensi' => (string) $penggajian->id,
                     'tipe_referensi' => 'penggajian',
                     'created_by' => auth()->id() ?? 1,
-                ]);
-            }
-            
-            // DEBIT: Beban Asuransi (HANYA jika > 0)
-            if ($asuransi > 0) {
-                JurnalUmum::create([
-                    'coa_id' => $coaBebanAsuransi->id,
-                    'tanggal' => $penggajian->tanggal_penggajian,
-                    'keterangan' => $keterangan,
-                    'debit' => $asuransi,
-                    'kredit' => 0,
-                    'referensi' => $penggajian->id,
-                    'tipe_referensi' => 'penggajian',
-                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
                 ]);
             }
             
@@ -754,23 +760,40 @@ class PenggajianController extends Controller
                     'keterangan' => $keterangan,
                     'debit' => $bonus,
                     'kredit' => 0,
-                    'referensi' => $penggajian->id,
+                    'referensi' => (string) $penggajian->id,
                     'tipe_referensi' => 'penggajian',
                     'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
                 ]);
             }
             
-            // KREDIT: Potongan Gaji (HANYA jika > 0)
+            // KREDIT: Hutang Asuransi (potongan gaji) - HANYA jika > 0
+            if ($asuransi > 0) {
+                JurnalUmum::create([
+                    'coa_id' => $coaHutangAsuransi->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan . ' (Potongan Asuransi)',
+                    'debit' => 0,
+                    'kredit' => $asuransi, // KREDIT untuk hutang asuransi (potongan)
+                    'referensi' => (string) $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+            }
+            
+            // KREDIT: Potongan Gaji lainnya (HANYA jika > 0)
             if ($potongan > 0) {
                 JurnalUmum::create([
                     'coa_id' => $coaPotongan->id,
                     'tanggal' => $penggajian->tanggal_penggajian,
-                    'keterangan' => $keterangan,
+                    'keterangan' => $keterangan . ' (Potongan Lainnya)',
                     'debit' => 0,
                     'kredit' => $potongan, // KREDIT untuk mengurangi beban
-                    'referensi' => $penggajian->id,
+                    'referensi' => (string) $penggajian->id,
                     'tipe_referensi' => 'penggajian',
                     'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
                 ]);
             }
             
@@ -781,16 +804,17 @@ class PenggajianController extends Controller
                 'keterangan' => $keterangan,
                 'debit' => 0,
                 'kredit' => $totalGaji,
-                'referensi' => $penggajian->id,
+                'referensi' => (string) $penggajian->id,
                 'tipe_referensi' => 'penggajian',
                 'created_by' => auth()->id() ?? 1,
+                'user_id' => auth()->id() ?? $penggajian->user_id,
             ]);
             
             // Update saldo COA
             $this->updateCoaSaldo($coaBebanGaji->kode_akun);
             if ($totalTunjangan > 0 && $coaBebanTunjangan) $this->updateCoaSaldo($coaBebanTunjangan->kode_akun);
             if ($bonus > 0 && $coaBebanBonus) $this->updateCoaSaldo($coaBebanBonus->kode_akun);
-            if ($asuransi > 0 && $coaBebanAsuransi) $this->updateCoaSaldo($coaBebanAsuransi->kode_akun);
+            if ($asuransi > 0 && $coaHutangAsuransi) $this->updateCoaSaldo($coaHutangAsuransi->kode_akun);
             if ($potongan > 0 && $coaPotongan) $this->updateCoaSaldo($coaPotongan->kode_akun);
             $this->updateCoaSaldo($coaKasBank->kode_akun);
             

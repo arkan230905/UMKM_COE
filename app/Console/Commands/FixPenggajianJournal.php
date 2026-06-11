@@ -5,118 +5,107 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Penggajian;
 use App\Models\JurnalUmum;
-use App\Models\Coa;
+use App\Models\Pegawai;
 use Illuminate\Support\Facades\DB;
 
 class FixPenggajianJournal extends Command
 {
-    protected $signature = 'fix:penggajian-journal';
-    protected $description = 'Create missing journal entries for penggajian';
+    protected $signature = 'penggajian:fix-journal {penggajian_id?}';
+    protected $description = 'Re-create journal entries for penggajian (fix missing gaji_pokok entries)';
 
     public function handle()
     {
-        $this->info('=== FIXING PENGGAJIAN JOURNAL ENTRIES ===');
+        $penggajianId = $this->argument('penggajian_id');
         
-        try {
-            DB::beginTransaction();
-            
-            // Get all penggajian that haven't been posted to journal
-            $penggajianList = Penggajian::where('status_pembayaran', 'belum_lunas')->get();
-            
-            $this->info("Found " . $penggajianList->count() . " unpaid penggajian records");
-            
-            foreach ($penggajianList as $penggajian) {
-                $this->info("\nProcessing Penggajian ID: {$penggajian->id}");
-                $this->info("Date: {$penggajian->tanggal_penggajian}");
-                $this->info("Total Gaji: " . number_format($penggajian->total_gaji, 0, ',', '.'));
-                
-                // Get pegawai info
-                $pegawai = $penggajian->pegawai;
-                if (!$pegawai) {
-                    $this->error("ERROR: Pegawai not found for penggajian ID {$penggajian->id}");
-                    continue;
-                }
-                
-                $this->info("Pegawai: {$pegawai->nama}");
-                
-                // Check if journal entries already exist
-                $existingJournal = JurnalUmum::where('tipe_referensi', 'penggajian')
-                    ->where('referensi', $penggajian->id)
-                    ->exists();
-                    
-                if ($existingJournal) {
-                    $this->info("Journal entries already exist, skipping...");
-                    continue;
-                }
-                
-                // Get required COA accounts
-                $coaBebanGaji = Coa::where('kode_akun', '52')->first(); // BTKL
-                if (!$coaBebanGaji) {
-                    $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BOP TENAGA KERJA TIDAK LANGSUNG
-                }
-                
-                $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
-                
-                if (!$coaBebanGaji) {
-                    $this->error("ERROR: COA Beban Gaji not found");
-                    continue;
-                }
-                
-                if (!$coaKasBank) {
-                    $this->error("ERROR: COA Kas/Bank not found for code: {$penggajian->coa_kasbank}");
-                    continue;
-                }
-                
-                $this->info("Using Beban Account: {$coaBebanGaji->kode_akun} - {$coaBebanGaji->nama_akun}");
-                $this->info("Using Kas/Bank Account: {$coaKasBank->kode_akun} - {$coaKasBank->nama_akun}");
-                
-                // Create journal entries
-                $keterangan = "Penggajian {$pegawai->nama}";
-                
-                // DEBIT: Beban Gaji
-                JurnalUmum::create([
-                    'coa_id' => $coaBebanGaji->id,
-                    'tanggal' => $penggajian->tanggal_penggajian,
-                    'keterangan' => $keterangan,
-                    'debit' => $penggajian->total_gaji,
-                    'kredit' => 0,
-                    'referensi' => $penggajian->id,
-                    'tipe_referensi' => 'penggajian',
-                    'created_by' => 1,
-                ]);
-                
-                // CREDIT: Kas/Bank
-                JurnalUmum::create([
-                    'coa_id' => $coaKasBank->id,
-                    'tanggal' => $penggajian->tanggal_penggajian,
-                    'keterangan' => $keterangan,
-                    'debit' => 0,
-                    'kredit' => $penggajian->total_gaji,
-                    'referensi' => $penggajian->id,
-                    'tipe_referensi' => 'penggajian',
-                    'created_by' => 1,
-                ]);
-                
-                // Update penggajian status
-                $penggajian->status_pembayaran = 'lunas';
-                $penggajian->tanggal_dibayar = $penggajian->tanggal_penggajian;
-                $penggajian->save();
-                
-                $this->info("✓ Journal entries created successfully");
-                $this->info("✓ Penggajian marked as paid");
-            }
-            
-            DB::commit();
-            $this->info("\n=== ALL DONE SUCCESSFULLY ===");
-            
-            // Show summary
-            $totalJurnalPenggajian = JurnalUmum::where('tipe_referensi', 'penggajian')->count();
-            $this->info("Total penggajian journal entries now: {$totalJurnalPenggajian}");
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->error("\nERROR: " . $e->getMessage());
-            $this->error("Transaction rolled back.");
+        if ($penggajianId) {
+            $penggajians = Penggajian::where('id', $penggajianId)->get();
+        } else {
+            // Fix all penggajian - get the latest ones
+            $penggajians = Penggajian::orderBy('id', 'desc')->take(10)->get();
         }
+        
+        if ($penggajians->count() == 0) {
+            $this->error('No penggajian found!');
+            return 1;
+        }
+        
+        $this->info("Found {$penggajians->count()} penggajian records to fix.");
+        
+        foreach ($penggajians as $pg) {
+            $this->info("\n========================================");
+            $this->info("Processing Penggajian ID: {$pg->id}");
+            
+            try {
+                DB::beginTransaction();
+                
+                // Delete old journal entries
+                $deleted = JurnalUmum::where('tipe_referensi', 'penggajian')
+                    ->where('referensi', (string)$pg->id)
+                    ->delete();
+                
+                $this->info("Deleted {$deleted} old journal entries");
+                
+                // Re-create journal entries using the controller method
+                $pegawai = Pegawai::with('jabatanRelasi')->find($pg->pegawai_id);
+                
+                if (!$pegawai) {
+                    $this->error("Pegawai not found for penggajian ID {$pg->id}");
+                    DB::rollBack();
+                    continue;
+                }
+                
+                $controller = new \App\Http\Controllers\PenggajianController();
+                $reflection = new \ReflectionClass($controller);
+                $method = $reflection->getMethod('createJournalEntry');
+                $method->setAccessible(true);
+                
+                // Call the private method
+                $method->invoke($controller, $pg, $pegawai);
+                
+                DB::commit();
+                
+                $this->info("✅ Journal entries re-created successfully!");
+                
+                // Show the new entries
+                $journals = JurnalUmum::with('coa')
+                    ->where('tipe_referensi', 'penggajian')
+                    ->where('referensi', (string)$pg->id)
+                    ->get();
+                
+                $totalDebit = 0;
+                $totalKredit = 0;
+                
+                foreach ($journals as $j) {
+                    $totalDebit += $j->debit;
+                    $totalKredit += $j->kredit;
+                    
+                    $this->line(sprintf(
+                        "  %-10s %-30s  D: %12s  K: %12s",
+                        $j->coa->kode_akun ?? 'N/A',
+                        substr($j->coa->nama_akun ?? 'N/A', 0, 30),
+                        $j->debit > 0 ? number_format($j->debit, 0) : '-',
+                        $j->kredit > 0 ? number_format($j->kredit, 0) : '-'
+                    ));
+                }
+                
+                $this->info("TOTALS: Debit: " . number_format($totalDebit, 0) . " | Kredit: " . number_format($totalKredit, 0));
+                
+                if ($totalDebit == $totalKredit) {
+                    $this->info("✅ BALANCED!");
+                } else {
+                    $this->error("❌ NOT BALANCED! Diff: " . number_format(abs($totalDebit - $totalKredit), 0));
+                }
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $this->error("Error fixing penggajian ID {$pg->id}: " . $e->getMessage());
+                $this->error($e->getTraceAsString());
+            }
+        }
+        
+        $this->info("\n========================================");
+        $this->info("Done!");
+        
+        return 0;
     }
 }

@@ -1369,7 +1369,7 @@ return response()->json([
                 'keterangan' => 'Konsumsi BBB untuk Produksi ' . $produksi->produk->nama_produk,
                 'debit' => $totalBBB,
                 'kredit' => 0,
-                'referensi' => $produksi->id,
+                'referensi' => (string) $produksi->id,
                 'tipe_referensi' => 'produksi_bbb',
                 'created_by' => $user_id,
             ]);
@@ -1388,7 +1388,7 @@ return response()->json([
                         'keterangan' => 'Konsumsi ' . $bbb['nama'] . ' untuk Produksi',
                         'debit' => 0,
                         'kredit' => $totalBahan,
-                        'referensi' => $produksi->id,
+                        'referensi' => (string) $produksi->id,
                         'tipe_referensi' => 'produksi_bbb',
                         'created_by' => $user_id,
                     ]);
@@ -1406,7 +1406,7 @@ return response()->json([
                 'keterangan' => 'Alokasi BTKL untuk Produksi ' . $produksi->produk->nama_produk,
                 'debit' => $totalBTKL,
                 'kredit' => 0,
-                'referensi' => $produksi->id,
+                'referensi' => (string) $produksi->id,
                 'tipe_referensi' => 'produksi_btkl',
                 'created_by' => $user_id,
             ]);
@@ -1419,7 +1419,7 @@ return response()->json([
                 'keterangan' => 'Hutang Gaji untuk Produksi',
                 'debit' => 0,
                 'kredit' => $totalBTKL,
-                'referensi' => $produksi->id,
+                'referensi' => (string) $produksi->id,
                 'tipe_referensi' => 'produksi_btkl',
                 'created_by' => $user_id,
             ]);
@@ -1435,12 +1435,15 @@ return response()->json([
                 'keterangan' => 'Alokasi BOP untuk Produksi ' . $produksi->produk->nama_produk,
                 'debit' => $totalBOP,
                 'kredit' => 0,
-                'referensi' => $produksi->id,
+                'referensi' => (string) $produksi->id,
                 'tipe_referensi' => 'produksi_bop',
                 'created_by' => $user_id,
             ]);
 
-            // KREDIT: Per komponen BOP
+            // KREDIT: Per komponen BOP - MUST RECORD ALL COMPONENTS
+            $totalKreditBOP = 0;
+            $skippedComponents = [];
+            
             foreach ($hppData['bop_komponen'] as $komponen) {
                 $totalKomponen = $komponen['subtotal'] * $qtyProd;
                 if ($totalKomponen > 0) {
@@ -1461,9 +1464,18 @@ return response()->json([
                     }
                     
                     if (!$coaId) {
-                        \Log::warning("BOP COA not found for komponen {$komponen['nama_komponen']}, skipping journal line", [
-                            'user_id' => $user_id,
+                        $skippedComponents[] = [
+                            'nama' => $komponen['nama_komponen'],
                             'coa_kode' => $coaKode,
+                            'subtotal' => $totalKomponen
+                        ];
+                        
+                        \Log::error("CRITICAL: BOP COA not found - journal will be INCOMPLETE!", [
+                            'user_id' => $user_id,
+                            'produksi_id' => $produksi->id,
+                            'komponen' => $komponen['nama_komponen'],
+                            'coa_kode' => $coaKode,
+                            'subtotal' => $totalKomponen,
                         ]);
                         continue;
                     }
@@ -1475,12 +1487,48 @@ return response()->json([
                         'keterangan' => 'BOP - ' . $komponen['nama_komponen'],
                         'debit' => 0,
                         'kredit' => $totalKomponen,
-                        'referensi' => $produksi->id,
+                        'referensi' => (string) $produksi->id,
                         'tipe_referensi' => 'produksi_bop',
                         'created_by' => $user_id,
                     ]);
+                    
+                    $totalKreditBOP += $totalKomponen;
                 }
             }
+            
+            // CRITICAL VALIDATION: Total kredit BOP MUST equal total BOP
+            if (abs($totalKreditBOP - $totalBOP) > 1) { // Allow 1 rupiah for rounding
+                $errorMsg = "CRITICAL ERROR: BOP journal tidak balance!\n";
+                $errorMsg .= "Total BOP: Rp " . number_format($totalBOP, 2) . "\n";
+                $errorMsg .= "Total Journal Kredit: Rp " . number_format($totalKreditBOP, 2) . "\n";
+                $errorMsg .= "Selisih: Rp " . number_format($totalBOP - $totalKreditBOP, 2) . "\n";
+                
+                if (count($skippedComponents) > 0) {
+                    $errorMsg .= "\nKomponen BOP yang tidak tercatat (COA tidak ditemukan):\n";
+                    foreach ($skippedComponents as $skipped) {
+                        $errorMsg .= "  - {$skipped['nama']} (COA: {$skipped['coa_kode']}): Rp " . number_format($skipped['subtotal'], 0) . "\n";
+                    }
+                    $errorMsg .= "\nSilakan pastikan COA untuk komponen BOP sudah dibuat di Master COA.";
+                }
+                
+                \Log::error("BOP Journal Validation Failed", [
+                    'produksi_id' => $produksi->id,
+                    'total_bop' => $totalBOP,
+                    'total_kredit' => $totalKreditBOP,
+                    'difference' => $totalBOP - $totalKreditBOP,
+                    'skipped_components' => $skippedComponents,
+                ]);
+                
+                throw new \Exception($errorMsg);
+            }
+            
+            \Log::info("BOP journals created successfully", [
+                'produksi_id' => $produksi->id,
+                'total_bop' => $totalBOP,
+                'total_kredit' => $totalKreditBOP,
+                'components_count' => count($hppData['bop_komponen']),
+                'skipped_count' => count($skippedComponents),
+            ]);
         }
 
         // JURNAL 4: Transfer ke Barang Jadi
@@ -1495,7 +1543,7 @@ return response()->json([
                 'keterangan' => 'Transfer WIP ke Barang Jadi - ' . $produksi->produk->nama_produk,
                 'debit' => $totalHPP,
                 'kredit' => 0,
-                'referensi' => $produksi->id,
+                'referensi' => (string) $produksi->id,
                 'tipe_referensi' => 'produksi_transfer',
                 'created_by' => $user_id,
             ]);
@@ -1509,7 +1557,7 @@ return response()->json([
                     'keterangan' => 'Transfer WIP BBB ke Barang Jadi',
                     'debit' => 0,
                     'kredit' => $totalBBB,
-                    'referensi' => $produksi->id,
+                    'referensi' => (string) $produksi->id,
                     'tipe_referensi' => 'produksi_transfer',
                     'created_by' => $user_id,
                 ]);
@@ -1523,7 +1571,7 @@ return response()->json([
                     'keterangan' => 'Transfer WIP BTKL ke Barang Jadi',
                     'debit' => 0,
                     'kredit' => $totalBTKL,
-                    'referensi' => $produksi->id,
+                    'referensi' => (string) $produksi->id,
                     'tipe_referensi' => 'produksi_transfer',
                     'created_by' => $user_id,
                 ]);
@@ -1538,7 +1586,7 @@ return response()->json([
                     'keterangan' => 'Transfer WIP BOP ke Barang Jadi',
                     'debit' => 0,
                     'kredit' => $totalBOP,
-                    'referensi' => $produksi->id,
+                    'referensi' => (string) $produksi->id,
                     'tipe_referensi' => 'produksi_transfer',
                     'created_by' => $user_id,
                 ]);
