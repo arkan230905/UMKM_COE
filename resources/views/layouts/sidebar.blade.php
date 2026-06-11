@@ -123,16 +123,16 @@
         </div>
 
         {{-- Catalog - Kelola Catalog menu removed, hanya ada Lihat Toko Online --}}
+        @php
+            $userCompany = auth()->check() ? \App\Models\Perusahaan::find(auth()->user()->perusahaan_id) : null;
+            $userCompanySlug = $userCompany ? \App\Helpers\PerusahaanHelper::getSlug($userCompany) : null;
+        @endphp
         <button class="sb-collapse {{ request()->is($userCompanySlug . '/pelanggan*') ? 'open' : '' }}" data-target="menu-catalog">
             <i class="fas fa-store"></i>
             <span>Toko Online</span>
             <i class="fas fa-chevron-down sb-arrow"></i>
         </button>
         <div class="sb-submenu {{ request()->is($userCompanySlug . '/pelanggan*') ? 'show' : '' }}" id="menu-catalog">
-            @php
-                $userCompany = auth()->check() ? \App\Models\Perusahaan::find(auth()->user()->perusahaan_id) : null;
-                $userCompanySlug = $userCompany ? \App\Helpers\PerusahaanHelper::getSlug($userCompany) : null;
-            @endphp
             @if($userCompanySlug)
             <a href="{{ url($userCompanySlug . '/pelanggan/dashboard') }}" target="_blank" class="sb-sub">Lihat Toko Online</a>
             @endif
