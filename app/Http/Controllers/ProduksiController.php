@@ -535,9 +535,27 @@ class ProduksiController extends Controller
             ->where('user_id', auth()->id())
             ->where('status', 'selesai')
             ->count();
+        
+        $totalProsesKeseluruhan = \App\Models\ProduksiProses::where('produksi_id', $produksi->id)
+            ->where('user_id', auth()->id())
+            ->count();
 
-        // Only complete if total_proses is set and all processes are done
-        if ($produksi->total_proses > 0 && $totalProsesSelesai >= $produksi->total_proses) {
+        // Log for debugging
+        \Log::info('Checking production completion', [
+            'produksi_id' => $produksi->id,
+            'total_proses_selesai' => $totalProsesSelesai,
+            'total_proses_keseluruhan' => $totalProsesKeseluruhan,
+            'total_proses_field' => $produksi->total_proses,
+            'current_status' => $produksi->status
+        ]);
+
+        // Update total_proses jika tidak sesuai dengan proses yang sebenarnya ada
+        if ($produksi->total_proses != $totalProsesKeseluruhan) {
+            $produksi->total_proses = $totalProsesKeseluruhan;
+        }
+
+        // Complete production if all processes are done
+        if ($totalProsesKeseluruhan > 0 && $totalProsesSelesai >= $totalProsesKeseluruhan) {
             // Semua proses selesai - SEKARANG baru tambahkan stok produk jadi
             $this->completeProduction($produksi);
         }
