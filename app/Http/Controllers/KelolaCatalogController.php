@@ -30,7 +30,7 @@ class KelolaCatalogController extends Controller
         // Get products for preview
         $produks = collect();
         if ($company) {
-            $produks = Produk::with(['bomJobCosting'])
+            $produks = Produk::with(['boms', 'kategori', 'satuan'])
                 ->where('show_in_catalog', true)
                 ->orderBy('nama_produk', 'asc')
                 ->get();
