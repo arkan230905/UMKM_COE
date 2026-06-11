@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::table('produks', function (Blueprint $table) {
             // Add show_in_catalog column - default 1 (show in catalog)
-            $table->boolean('show_in_catalog')->default(1)->after('foto_produk');
+            // Place after 'foto' column if exists, otherwise just add it
+            if (Schema::hasColumn('produks', 'foto')) {
+                $table->boolean('show_in_catalog')->default(1)->after('foto');
+            } else {
+                $table->boolean('show_in_catalog')->default(1);
+            }
         });
     }
 
