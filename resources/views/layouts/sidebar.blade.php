@@ -122,14 +122,13 @@
             <a href="{{ route('profil-admin') }}" class="sb-sub {{ request()->is('profile*') ? 'active' : '' }}">Profil</a>
         </div>
 
-        {{-- Catalog --}}
-        <button class="sb-collapse {{ request()->is('kelola-catalog*') ? 'open' : '' }}" data-target="menu-catalog">
+        {{-- Catalog - Kelola Catalog menu removed, hanya ada Lihat Toko Online --}}
+        <button class="sb-collapse {{ request()->is($userCompanySlug . '/pelanggan*') ? 'open' : '' }}" data-target="menu-catalog">
             <i class="fas fa-store"></i>
-            <span>Catalog</span>
+            <span>Toko Online</span>
             <i class="fas fa-chevron-down sb-arrow"></i>
         </button>
-        <div class="sb-submenu {{ request()->is('kelola-catalog*') ? 'show' : '' }}" id="menu-catalog">
-            <a href="{{ route('kelola-catalog.index') }}" class="sb-sub {{ request()->is('kelola-catalog*') ? 'active' : '' }}">Kelola Catalog</a>
+        <div class="sb-submenu {{ request()->is($userCompanySlug . '/pelanggan*') ? 'show' : '' }}" id="menu-catalog">
             @php
                 $userCompany = auth()->check() ? \App\Models\Perusahaan::find(auth()->user()->perusahaan_id) : null;
                 $userCompanySlug = $userCompany ? \App\Helpers\PerusahaanHelper::getSlug($userCompany) : null;
