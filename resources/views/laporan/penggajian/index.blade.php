@@ -34,10 +34,10 @@
                                     <th>No</th>
                                     <th>Periode</th>
                                     <th>Nama Pegawai</th>
-                                    <th>Jenis</th>
+                                    <th>Kategori</th>
                                     <th>Tanggal</th>
-                                    <th>Gaji Pokok / Tarif</th>
-                                    <th>Jam Kerja</th>
+                                    <th>Total Produksi</th>
+                                    <th>Gaji Pokok</th>
                                     <th>Tunjangan</th>
                                     <th>Asuransi</th>
                                     <th>Bonus</th>
@@ -61,20 +61,12 @@
                                     </td>
                                     <td>{{ $penggajian->tanggal_penggajian ? \Carbon\Carbon::parse($penggajian->tanggal_penggajian)->format('d-m-Y') : '-' }}</td>
                                     <td class="text-right">
-                                        @if($jenis === 'BTKL')
-                                            Rp {{ number_format($penggajian->tarif_per_jam ?? 0, 0, ',', '.') }}/jam
-                                        @else
-                                            Rp {{ number_format($penggajian->gaji_pokok ?? 0, 0, ',', '.') }}
-                                        @endif
+                                        {{ number_format($penggajian->total_produk_bulan ?? 0, 0) }} produk
                                     </td>
                                     <td class="text-right">
-                                        @if($jenis === 'BTKL')
-                                            {{ number_format($penggajian->total_jam_kerja ?? 0, 0) }} Jam
-                                        @else
-                                            -
-                                        @endif
+                                        Rp {{ number_format($penggajian->gaji_pokok ?? 0, 0, ',', '.') }}
                                     </td>
-                                    <td class="text-right">Rp {{ number_format($penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                                    <td class="text-right">Rp {{ number_format($penggajian->total_tunjangan ?? 0, 0, ',', '.') }}</td>
                                     <td class="text-right">Rp {{ number_format($penggajian->asuransi ?? 0, 0, ',', '.') }}</td>
                                     <td class="text-right">Rp {{ number_format($penggajian->bonus ?? 0, 0, ',', '.') }}</td>
                                     <td class="text-right">Rp {{ number_format($penggajian->potongan ?? 0, 0, ',', '.') }}</td>

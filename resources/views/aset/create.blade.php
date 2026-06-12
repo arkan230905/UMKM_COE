@@ -55,6 +55,30 @@
                         <input type="text" name="nama_aset" class="form-control" required value="{{ old('nama_aset') }}">
                     </div>
 
+                    <!-- NEW FIELDS: Jenis Perolehan & Sumber Dana -->
+                    <div class="col-12 mb-2 mt-4"><h6 class="border-bottom pb-2">Jenis dan Sumber Perolehan</h6></div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Jenis Perolehan *</label>
+                        <select name="jenis_perolehan" id="jenis_perolehan" class="form-select" required>
+                            <option value="">-- Pilih Jenis Perolehan --</option>
+                            <option value="pembelian_baru" {{ old('jenis_perolehan') == 'pembelian_baru' ? 'selected' : '' }}>Pembelian Baru</option>
+                            <option value="saldo_awal" {{ old('jenis_perolehan') == 'saldo_awal' ? 'selected' : '' }}>Saldo Awal (Aset Lama)</option>
+                        </select>
+                        <div class="form-text">Pembelian Baru: Aset baru yang dibeli. Saldo Awal: Aset yang sudah ada di tahun sebelumnya.</div>
+                    </div>
+
+                    <div class="col-md-4" id="container_sumber_dana" style="display: none;">
+                        <label class="form-label" id="label_sumber_dana">Sumber Dana Perolehan *</label>
+                        <select name="sumber_dana_coa_id" id="sumber_dana_coa_id" class="form-select">
+                            <option value="">-- Pilih Sumber Dana --</option>
+                            @foreach($coaAsets as $coa)
+                                <option value="{{ $coa->id }}" {{ old('sumber_dana_coa_id') == $coa->id ? 'selected' : '' }}>{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Pilih Kas, Bank, Utang, atau sumber dana lainnya.</div>
+                    </div>
+
                     <!-- Perolehan -->
                     <div class="col-12 mb-2 mt-4"><h6 class="border-bottom pb-2">Data Perolehan</h6></div>
 

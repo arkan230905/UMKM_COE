@@ -1209,5 +1209,7 @@ function deleteJenisAset(id, nama) {
         alert('Terjadi kesalahan saat menghapus jenis aset');
     });
 }
+
+
 </script>
 @endsection

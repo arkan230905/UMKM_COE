@@ -38,6 +38,23 @@ class AssetResource extends Resource
                 ->relationship('kategori', 'nama')
                 ->searchable()
                 ->required(),
+            Forms\Components\Select::make('jenis_perolehan')
+                ->label('Jenis Perolehan')
+                ->options([
+                    'pembelian_baru' => 'Pembelian Baru',
+                    'saldo_awal' => 'Saldo Awal',
+                ])
+                ->default('pembelian_baru')
+                ->required()
+                ->helperText('Pilih "Pembelian Baru" untuk posting ke jurnal, atau "Saldo Awal" jika aset sudah ada di awal periode'),
+            Forms\Components\Select::make('sumber_dana_coa_id')
+                ->label('Sumber Dana (COA)')
+                ->options(fn () => Coa::where('user_id', auth()->id())
+                    ->whereIn('tipe_akun', ['Aset', 'Liabilitas', 'Modal'])
+                    ->pluck('nama_akun', 'id'))
+                ->searchable()
+                ->visible(fn (Forms\Get $get) => $get('jenis_perolehan') === 'pembelian_baru')
+                ->helperText('Pilih sumber dana: Kas/Bank (jika bayar tunai), Utang (jika utang), atau Modal (jika dari modal perusahaan)'),
             Forms\Components\DatePicker::make('tanggal_perolehan')
                 ->label('Tanggal Perolehan')
                 ->required(),
@@ -100,6 +117,13 @@ class AssetResource extends Resource
                 Tables\Columns\TextColumn::make('kategori.nama')
                     ->label('Kategori')
                     ->sortable(),
+                Tables\Columns\BadgeColumn::make('jenis_perolehan')
+                    ->label('Jenis Perolehan')
+                    ->colors([
+                        'success' => 'pembelian_baru',
+                        'info' => 'saldo_awal',
+                    ])
+                    ->formatStateUsing(fn ($state) => $state === 'pembelian_baru' ? 'Pembelian Baru' : 'Saldo Awal'),
                 Tables\Columns\TextColumn::make('tanggal_perolehan')
                     ->label('Tanggal Perolehan')
                     ->date()

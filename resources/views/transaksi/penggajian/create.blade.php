@@ -70,8 +70,13 @@
                         <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required>
                             <option value="">-- Pilih --</option>
                             @foreach ($kasbank as $kb)
+                                @php
+                                    $labelStr = strtolower($kb->nama_akun);
+                                    if (str_contains($labelStr, 'kas kecil')) continue;
+                                    $label = str_contains($labelStr, 'bank') ? 'Transfer Bank' : 'Tunai';
+                                @endphp
                                 <option value="{{ $kb->kode_akun }}">
-                                    {{ $kb->nama_akun }}
+                                    {{ $label }}
                                 </option>
                             @endforeach
                         </select>
@@ -128,7 +133,7 @@
                         <label class="form-label">Tarif / Produk <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" id="tarif_produk_input" name="tarif_produk" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()" required>
+                            <input type="text" id="tarif_produk_input" name="tarif_produk" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()" required>
                         </div>
                         <small class="form-text text-muted d-block mt-1" id="tarif_status">Auto-filled dari kualifikasi, atau input manual jika tidak ada</small>
                     </div>
@@ -185,7 +190,7 @@
                         <label for="tunj_jabatan" class="form-label">Tunjangan Kualifikasi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
 
@@ -193,7 +198,7 @@
                         <label for="tunj_transport" class="form-label">Tunjangan Transport</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="tunjangan_transport" id="tunj_transport" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
 
@@ -201,7 +206,7 @@
                         <label for="tunj_konsumsi" class="form-label">Tunjangan Konsumsi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
 
@@ -209,7 +214,7 @@
                         <label for="bpjs" class="form-label">Asuransi BPJS</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="asuransi" id="bpjs" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="asuransi" id="bpjs" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
                     </div>
                 </div>
@@ -334,11 +339,11 @@
                 GAJI_POKOK = parseInt(data.gaji_pokok) || 0;
                 
                 // Set default tunjangan dan asuransi
-                document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
-                document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 0;
-                document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 0;
+                document.getElementById('tunj_jabatan').value = formatRupiah(parseInt(data.tunjangan_jabatan) || 0);
+                document.getElementById('tunj_transport').value = formatRupiah(parseInt(data.tunjangan_transport) || 0);
+                document.getElementById('tunj_konsumsi').value = formatRupiah(parseInt(data.tunjangan_konsumsi) || 0);
                 // Asuransi dari API, default 0 kalau kosong
-                document.getElementById('bpjs').value = parseInt(data.asuransi) || 0;
+                document.getElementById('bpjs').value = formatRupiah(parseInt(data.asuransi) || 0);
                 
                 // Auto-set tarif
                 const tarifField = document.getElementById('tarif_produk_input');
@@ -347,7 +352,7 @@
                 
                 if (tarifDariKualifikasi > 0) {
                     TARIF_PRODUK = tarifDariKualifikasi;
-                    tarifField.value = tarifDariKualifikasi;
+                    tarifField.value = formatRupiah(tarifDariKualifikasi);
                     tarifStatus.textContent = '✓ Tarif dari kualifikasi: ' + (data.kualifikasi_nama || data.jabatan_nama || 'pegawai');
                     tarifStatus.className = 'form-text text-success d-block mt-1';
                 } else {
@@ -508,12 +513,12 @@
         const tunjanganJabatan = parseRupiah(document.getElementById('tunj_jabatan').value) || 0;
         const tunjanganTransport = parseRupiah(document.getElementById('tunj_transport').value) || 0;
         const tunjanganKonsumsi = parseRupiah(document.getElementById('tunj_konsumsi').value) || 0;
-        const bpjs = parseInt(document.getElementById('bpjs').value) || 0;
+        const bpjs = parseRupiah(document.getElementById('bpjs').value) || 0;
         const aktifBulat = document.getElementById('aktif_bulat').checked;
         const stepBulat = parseInt(document.getElementById('step_bulat').value) || 100000;
 
         // Update TARIF_PRODUK dari input field
-        TARIF_PRODUK = parseInt(document.getElementById('tarif_produk_input').value) || 0;
+        TARIF_PRODUK = parseRupiah(document.getElementById('tarif_produk_input').value) || 0;
 
         const rataRataHari = hariKerja > 0 ? Math.round(totalProduk / hariKerja) : 0;
         document.getElementById('rata_rata_hari').value = formatRupiah(rataRataHari);

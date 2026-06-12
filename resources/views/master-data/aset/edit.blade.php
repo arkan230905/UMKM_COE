@@ -431,6 +431,7 @@
                     @enderror
                 </div>
 
+                <!-- NEW: Jenis Perolehan & Akun Kredit (hanya untuk Pembelian Baru) -->
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="harga_perolehan" class="form-label text-dark">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
@@ -980,6 +981,22 @@ function deleteJenisAset(id, nama) {
         console.error('Error:', error);
         alert('Terjadi kesalahan saat menghapus jenis aset');
     });
+}
+
+// Toggle Akun Kredit field based on Jenis Perolehan
+function toggleAkunKredit() {
+    const jenisPerolehan = document.getElementById('jenis_perolehan').value;
+    const containerAkunKredit = document.getElementById('container_akun_kredit');
+    const fieldAkunKredit = document.getElementById('sumber_dana_coa_id');
+    
+    if (jenisPerolehan === 'pembelian_baru') {
+        containerAkunKredit.style.display = 'block';
+        fieldAkunKredit.required = true;
+    } else {
+        containerAkunKredit.style.display = 'none';
+        fieldAkunKredit.required = false;
+        fieldAkunKredit.value = '';
+    }
 }
 </script>
 @endsection

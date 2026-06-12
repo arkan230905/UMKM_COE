@@ -2181,10 +2181,13 @@ Route::middleware('auth')->group(function () {
         // Individual depreciation posting route
         Route::post('aset/{aset}/post-depreciation', [AsetController::class, 'postIndividualDepreciation'])->name('aset.post-depreciation');
         
-        // NEW: Posting aset (perolehan + penyusutan bulan berjalan)
+        // NEW: Posting aset (save data & activate depreciation for JP)
         Route::post('aset/{id}/post', [AsetController::class, 'postAset'])->name('aset.post');
         
-        // Asset acquisition posting routes
+        // NEW: Posting aset depreciation to Jurnal Penyesuaian 
+        Route::post('aset/{id}/post-depreciation', [AsetController::class, 'postDepreciation'])->name('aset.post-depreciation');
+        
+        // Asset acquisition posting routes (deprecated but keeping for backward compatibility)
         Route::post('aset/{aset}/post-to-journal', [AsetController::class, 'postAssetToJournal'])->name('aset.post-to-journal');
         Route::post('aset/{aset}/unpost-from-journal', [AsetController::class, 'unpostAssetFromJournal'])->name('aset.unpost-from-journal');
         
