@@ -165,7 +165,7 @@
 @push('scripts')
 <script>
 document.getElementById('btnPostingJurnal')?.addEventListener('click', function() {
-    if (!confirm('Apakah Anda yakin ingin memposting jurnal penyesuaian ini ke neraca saldo?\n\nSetelah diposting, jurnal akan masuk ke dalam laporan keuangan.')) {
+    if (!confirm('Apakah Anda yakin ingin memposting jurnal penyesuaian ini ke neraca saldo?')) {
         return;
     }
     

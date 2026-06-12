@@ -19,7 +19,7 @@
                 
                 @if(!$aset->is_posted)
                     <button id="btnPosting" onclick="postAset()" style="padding: 10px 20px; background-color: #10b981; color: white; border: none; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; cursor: pointer;">
-                        <i class="fas fa-paper-plane me-2"></i>Posting
+                        <i class="fas fa-paper-plane me-2"></i>Posting ke Jurnal Penyesuaian
                     </button>
                 @endif
                 
@@ -225,15 +225,19 @@
             <!-- JADWAL PENYUSUTAN CARD -->
             <div style="background-color: #FFFFFF; border: 0.5px solid #e0d8ce; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                 <!-- Header Card -->
-                <div style="padding: 16px; border-bottom: 0.5px solid #e0d8ce; background-color: #FFFFFF;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: #5a3a1a; margin: 0;">
+                <div style="padding: 16px; border-bottom: 0.5px solid #e0d8ce; background-color: #FFFFFF; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #5a3a1a; margin: 0;" id="jadwalTitle">
                         <i class="fas fa-calendar me-2"></i>Jadwal Penyusutan Per Bulan
                     </h3>
+                    <select id="jadwalTipe" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #e0d8ce; font-size: 13px;" onchange="toggleJadwal(this.value)">
+                        <option value="bulan">Per Bulan</option>
+                        <option value="tahun">Per Tahun</option>
+                    </select>
                 </div>
                 
                 <!-- Isi Card -->
                 <div style="padding: 16px;">
-                    <div style="overflow-x: auto;">
+                    <div style="overflow-x: auto;" id="tableBulan">
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="background-color: #5a3a1a; color: white;">
@@ -259,6 +263,34 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Tabel Per Tahun -->
+                    <div style="overflow-x: auto; display: none;" id="tableTahun">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background-color: #5a3a1a; color: white;">
+                                    <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600;">Tahun</th>
+                                    <th style="padding: 12px; text-align: right; font-size: 12px; font-weight: 600;">Penyusutan</th>
+                                    <th style="padding: 12px; text-align: right; font-size: 12px; font-weight: 600;">Akumulasi Penyusutan</th>
+                                    <th style="padding: 12px; text-align: right; font-size: 12px; font-weight: 600;">Nilai Buku</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($depreciationDataTahun as $index => $row)
+                                    <tr style="border-bottom: 0.5px solid #e0d8ce;">
+                                        <td style="padding: 12px; font-size: 13px; color: #1a1a2e;">{{ $row['tahun'] }}</td>
+                                        <td style="padding: 12px; text-align: right; font-size: 13px; color: #1a1a2e;">Rp {{ number_format($row['penyusutan'], 0, ',', '.') }}</td>
+                                        <td style="padding: 12px; text-align: right; font-size: 13px; color: #1a1a2e;">Rp {{ number_format($row['akumulasi_penyusutan'], 0, ',', '.') }}</td>
+                                        <td style="padding: 12px; text-align: right; font-size: 13px; color: #1a1a2e; font-weight: 500;">Rp {{ number_format($row['nilai_buku'], 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" style="padding: 20px; text-align: center; color: #9ca3af; font-size: 13px;">Belum ada jadwal penyusutan</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -271,16 +303,28 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Metode Penyusutan:', metodePenyusutan);
 });
 
+function toggleJadwal(tipe) {
+    if (tipe === 'tahun') {
+        document.getElementById('tableBulan').style.display = 'none';
+        document.getElementById('tableTahun').style.display = 'block';
+        document.getElementById('jadwalTitle').innerHTML = '<i class="fas fa-calendar me-2"></i>Jadwal Penyusutan Per Tahun';
+    } else {
+        document.getElementById('tableTahun').style.display = 'none';
+        document.getElementById('tableBulan').style.display = 'block';
+        document.getElementById('jadwalTitle').innerHTML = '<i class="fas fa-calendar me-2"></i>Jadwal Penyusutan Per Bulan';
+    }
+}
+
 // Function untuk posting aset
 function postAset() {
-    if (!confirm('Apakah Anda yakin ingin memposting aset ini?\n\nSetelah diposting, sistem akan:\n1. Mencatat jurnal perolehan aset ke Jurnal Umum\n2. Mencatat jurnal penyusutan bulan berjalan ke Jurnal Penyesuaian\n3. Status aset berubah menjadi "Sudah Posting"')) {
+    if (!confirm('Apakah Anda yakin ingin memposting aset ini ke Jurnal Penyesuaian?')) {
         return;
     }
     
     const btn = document.getElementById('btnPosting');
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memposting...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
     }
     
     fetch('{{ route("master-data.aset.post", $aset->id) }}', {
@@ -294,24 +338,25 @@ function postAset() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ ' + data.message + '\n\nPerolehan: ' + (data.data?.perolehan || '-') + '\nPenyusutan: ' + (data.data?.penyusutan || '-'));
+            alert('✅ ' + data.message);
             window.location.reload();
         } else {
-            alert('❌ ' + (data.message || 'Terjadi kesalahan saat posting aset'));
+            alert('❌ ' + (data.message || 'Terjadi kesalahan saat menyimpan aset'));
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Posting';
+                btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Posting ke Jurnal Penyesuaian';
             }
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('❌ Terjadi kesalahan saat posting aset. Silakan coba lagi.');
+        alert('❌ Terjadi kesalahan saat menyimpan aset. Silakan coba lagi.');
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Posting';
+            btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Posting ke Jurnal Penyesuaian';
         }
     });
 }
+
 </script>
 @endsection

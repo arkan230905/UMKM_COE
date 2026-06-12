@@ -17,12 +17,12 @@ use Carbon\Carbon;
 class AsetController extends Controller
 {
     protected $depreciationService;
-    
+
     public function __construct(DepreciationCalculationService $depreciationService)
     {
         $this->depreciationService = $depreciationService;
     }
-    
+
     /**
      * Display a listing of the assets.
      */
@@ -32,7 +32,7 @@ class AsetController extends Controller
         $query = Aset::with([
             'kategori.jenisAset',
             'assetCoa',
-            'accumDepreciationCoa', 
+            'accumDepreciationCoa',
             'expenseCoa'
         ])->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
 
@@ -64,16 +64,16 @@ class AsetController extends Controller
 
         // Get paginated results - oldest first by creation date (newest at bottom)
         $asets = $query->orderBy('created_at', 'asc')->paginate(10)->withQueryString();
-        
+
         // Update nilai buku real-time untuk setiap aset dan hitung data penyusutan
         $currentMonth = now()->format('Y-m');
         foreach ($asets as $aset) {
             // Update nilai buku berdasarkan bulan saat ini
             $aset->updateNilaiBukuRealTime();
-            
+
             // Calculate monthly depreciation using CORRECT method for each asset
             $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
-            
+
             if ($aset->umur_manfaat > 0 && $totalPerolehan > 0) {
                 // Ambil langsung dari DB — sudah dihitung dengan rumus yang benar
                 $penyusutanPerBulan = (float)($aset->getAttributes()['penyusutan_per_bulan'] ?? 0);
@@ -101,25 +101,40 @@ class AsetController extends Controller
             } else {
                 $penyusutanPerBulan = 0;
             }
-            
+
             $aset->monthly_depreciation = $penyusutanPerBulan;
+
+            // Check if already posted this month - PERBAIKAN: cek dari Neraca Saldo langsung
+            $currentMonth = now()->format('Y-m');
             
-            // Check if already posted this month using modern journal system (jurnal_umum)
-            $aset->is_posted_this_month = \DB::table('jurnal_umum')
-                ->where('tipe_referensi', 'depreciation')
-                ->where('referensi', 'ASET-' . $aset->id)
-                ->where('user_id', $user->id)
-                ->whereYear('tanggal', now()->year)
-                ->whereMonth('tanggal', now()->month)
-                ->exists();
+            // Cek apakah sudah ada posting penyusutan untuk bulan ini berdasarkan COA update
+            $isPostedThisMonth = false;
+            
+            // Method 1: Cek dari log jurnal umum dengan tipe_referensi 'depreciation'
+            if (\Schema::hasTable('jurnal_umum')) {
+                $isPostedThisMonth = \DB::table('jurnal_umum')
+                    ->where('tipe_referensi', 'depreciation')
+                    ->where('referensi', 'ASET-' . $aset->id)
+                    ->where('user_id', auth()->id())
+                    ->where('tanggal', 'LIKE', $currentMonth . '%')
+                    ->exists();
+            }
+            
+            // Method 2: Fallback - cek dari posted_at field (untuk backward compatibility)
+            if (!$isPostedThisMonth && isset($aset->getAttributes()['posted_at']) && $aset->posted_at) {
+                $lastPostedMonth = \Carbon\Carbon::parse($aset->posted_at)->format('Y-m');
+                $isPostedThisMonth = ($lastPostedMonth === $currentMonth);
+            }
+            
+            $aset->is_posted_this_month = $isPostedThisMonth;
         }
-        
+
         // Get filter options - Add user_id filters
         $jenisAsets = JenisAset::with(['kategories' => function($query) use ($user) {
             $query->where('user_id', $user->id);
         }])->get();
-        $kategoriAsets = $request->has('jenis_aset') 
-            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->where('user_id', $user->id)->get() 
+        $kategoriAsets = $request->has('jenis_aset')
+            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->where('user_id', $user->id)->get()
             : collect();
 
         return view('master-data.aset.index', compact('asets', 'jenisAsets', 'kategoriAsets'));
@@ -139,7 +154,7 @@ class AsetController extends Controller
             'saldo_menurun' => 'Saldo Menurun',
             'sum_of_years_digits' => 'Jumlah Angka Tahun',
         ];
-        
+
         // Load jenis aset list for custom asset types feature
         $jenisAsetList = JenisAset::where(function($query) {
                 $query->where('user_id', auth()->id())
@@ -148,7 +163,7 @@ class AsetController extends Controller
             ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
             ->orderBy('nama')
             ->get();
-        
+
         // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
         $coaAsets = Coa::where('user_id', auth()->id())
             ->where(function($query) {
@@ -158,12 +173,12 @@ class AsetController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-            
+
         // If no asset accounts found, get all user's COA as fallback
         if ($coaAsets->isEmpty()) {
             $coaAsets = Coa::where('user_id', auth()->id())->orderBy('kode_akun')->get();
         }
-            
+
         $coaAkumulasi = Coa::where('user_id', auth()->id())
             ->where(function($query) {
                 $query->where('nama_akun', 'LIKE', '%akumulasi%')
@@ -171,7 +186,7 @@ class AsetController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-            
+
         $coaBeban = Coa::where('user_id', auth()->id())
             ->where(function($query) {
                 $query->where('nama_akun', 'LIKE', '%penyusutan%')
@@ -180,14 +195,14 @@ class AsetController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-        
+
         return view('master-data.aset.create', compact(
             'jenisAsets',
             'jenisAsetList', // Add this for custom asset types
-            'kodeAset', 
+            'kodeAset',
             'metodePenyusutan',
             'coaAsets',
-            'coaAkumulasi', 
+            'coaAkumulasi',
             'coaBeban'
         ));
     }
@@ -197,13 +212,12 @@ class AsetController extends Controller
      */
     public function store(Request $request)
     {
-        // REFACTOR: Removed jenis_aset validation - Semua aset adalah aset tetap
+        // REFACTOR: Logic berdasarkan jenis perolehan
         $jenisAset = 'aset-tetap'; // Hardcoded karena semua aset = aset tetap
         $disusutkan = true; // Semua aset tetap disusutkan
-        
-        // Validation rules dasar (COA fields dihapus karena akan di-assign otomatis saat posting)
+
+        // Validation rules dasar
         $rules = [
-            // REFACTOR: Removed 'jenis_aset' validation
             'nama_aset' => 'required|string|max:255',
             'kategori_aset_id' => 'required|exists:kategori_asets,id',
             'harga_perolehan' => 'required|numeric|min:0',
@@ -211,14 +225,14 @@ class AsetController extends Controller
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
             'keterangan' => 'nullable|string',
-            // COA fields tidak diperlukan lagi - akan di-assign otomatis saat posting
         ];
-        
-        // Tambah validation untuk penyusutan/amortisasi
+
+        // Validasi khusus untuk pembelian baru (dihapus sesuai permintaan, karena tidak ada JU)
+        // (Tidak ada sumber dana yang perlu diinput)
+
+        // Tambah validation untuk penyusutan
         if ($disusutkan) {
-            if ($jenisAset === 'aset-tetap') {
-                $rules['nilai_residu'] = 'required|numeric|min:0';
-            }
+            $rules['nilai_residu'] = 'required|numeric|min:0';
             $rules['umur_manfaat'] = 'required|integer|min:1|max:100';
             $rules['metode_penyusutan'] = 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits';
             $rules['tarif_penyusutan'] = 'nullable|numeric|min:0|max:200';
@@ -229,70 +243,60 @@ class AsetController extends Controller
                 $rules['tanggal_perolehan'] = 'nullable|date';
             }
         }
-        
+
         $validated = $request->validate($rules);
 
         try {
             DB::beginTransaction();
-            
+
             // Calculate total perolehan
             $hargaPerolehan = (float) $request->harga_perolehan;
             $biayaPerolehan = (float) $request->biaya_perolehan;
             $totalPerolehan = $hargaPerolehan + $biayaPerolehan;
-            
+
             // Initialize penyusutan variables
             $penyusutanPerTahun = 0;
             $penyusutanPerBulan = 0;
-            $nilaiResidu = 0;
-            $umurManfaat = 0;
-            $metodePenyusutan = 'garis_lurus'; // Default valid enum untuk database
-            
-            // Calculate depreciation/amortization only if active
-            if ($disusutkan) {
-                $nilaiResidu     = $jenisAset === 'aset-tetap' ? (float) $request->nilai_residu : 0;
-                $umurManfaat     = (int) $request->umur_manfaat;
-                $metodePenyusutan = $request->metode_penyusutan;
+            $nilaiResidu = (float) $request->nilai_residu ?? 0;
+            $umurManfaat = (int) $request->umur_manfaat;
+            $metodePenyusutan = $request->metode_penyusutan ?? 'garis_lurus';
 
+            // Calculate depreciation
+            if ($disusutkan && $umurManfaat > 0) {
                 // Tentukan bulan tersisa di tahun pertama
                 $tglMulai = $request->tanggal_akuisisi ?: $request->tanggal_beli;
                 $startDate = $tglMulai ? \Carbon\Carbon::parse($tglMulai) : now();
                 if ($startDate->day > 15) $startDate = $startDate->addMonthNoOverflow()->startOfMonth();
-                $bulanTersisa = 13 - $startDate->month; // Sep=9 → 4 bulan
+                $bulanTersisa = 13 - $startDate->month;
 
                 if ($metodePenyusutan === 'garis_lurus') {
                     $penyusutanPerTahun = ($totalPerolehan - $nilaiResidu) / $umurManfaat;
-                    // Tahun pertama pro-rata, per bulan = depr_tahun_pertama / bulan_tersisa
-                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $deprTahunPertama = $penyusutanPerTahun * ($bulanTersisa / 12);
                     $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
-
                 } elseif ($metodePenyusutan === 'saldo_menurun') {
-                    // DDB: tarif = 2/umur, beban tahunan penuh = book_value × tarif
-                    $tarif              = 2 / $umurManfaat;
-                    $penyusutanPerTahun = $totalPerolehan * $tarif; // tahun penuh tahun 1
-                    // Tahun pertama pro-rata
-                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
-                    // Per bulan = depr_tahun_pertama / bulan_tersisa (konsisten)
+                    $tarif = 2 / $umurManfaat;
+                    $penyusutanPerTahun = $totalPerolehan * $tarif;
+                    $deprTahunPertama = $penyusutanPerTahun * ($bulanTersisa / 12);
                     $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
-
-                } else {
-                    // Sum of years digits
-                    $sumOfYears         = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                } else { // sum_of_years_digits
+                    $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
                     $penyusutanPerTahun = (($totalPerolehan - $nilaiResidu) * $umurManfaat) / $sumOfYears;
-                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $deprTahunPertama = $penyusutanPerTahun * ($bulanTersisa / 12);
                     $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
                 }
             }
-            
-            // Create the asset — generate kode_aset secara global & aman terhadap race condition
-            $aset = new Aset();
+
+            // Generate kode aset
             $attempts = 0;
             do {
                 $kodeAset = Aset::generateKodeAset();
-                $exists   = Aset::where('kode_aset', $kodeAset)->exists();
+                $exists = Aset::where('kode_aset', $kodeAset)->exists();
                 $attempts++;
             } while ($exists && $attempts < 5);
+
+            // Create asset
+            $aset = new Aset();
             $aset->kode_aset = $kodeAset;
-            $aset->jenis_aset = $jenisAset;
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
             $aset->harga_perolehan = $hargaPerolehan;
@@ -301,53 +305,35 @@ class AsetController extends Controller
             $aset->umur_manfaat = $umurManfaat;
             $aset->metode_penyusutan = $metodePenyusutan;
             $aset->tarif_penyusutan = $request->tarif_penyusutan;
+            $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
+            $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
+            $aset->akumulasi_penyusutan = 0;
+            $aset->nilai_buku = $totalPerolehan;
+            $aset->tanggal_beli = $request->tanggal_beli;
+            $aset->tanggal_akuisisi = $request->tanggal_akuisisi ?: $request->tanggal_beli;
+            $aset->status = 'aktif';
+            $aset->keterangan = $request->keterangan;
+            $aset->user_id = auth()->id();
+            $aset->updated_by = auth()->id();
+            
+            // Set basic asset properties without jenis_perolehan
+            // (Sekarang semua aset langsung bisa diposting untuk penyusutan)
+
             if (Schema::hasColumn('asets', 'bulan_mulai')) {
                 $aset->bulan_mulai = $request->bulan_mulai ?? 1;
             }
             if (Schema::hasColumn('asets', 'tanggal_perolehan')) {
                 $aset->tanggal_perolehan = $request->tanggal_perolehan;
             }
-            
-            if ($jenisAset === 'aset-tidak-berwujud') {
-                $aset->amortisasi_per_tahun = round($penyusutanPerTahun, 2);
-                $aset->akumulasi_amortisasi = 0;
-                $aset->penyusutan_per_tahun = 0;
-                $aset->penyusutan_per_bulan = 0;
-                $aset->akumulasi_penyusutan = 0;
-            } else {
-                $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
-                $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
-                $aset->akumulasi_penyusutan = 0;
-                $aset->amortisasi_per_tahun = 0;
-                $aset->akumulasi_amortisasi = 0;
-            }
-            
-            $aset->nilai_buku = $totalPerolehan;
-            $aset->tanggal_beli = $request->tanggal_beli;
-            $aset->tanggal_akuisisi = $request->tanggal_akuisisi ?: $request->tanggal_beli;
-            $aset->status = 'aktif';
-            $aset->keterangan = $request->keterangan;
-            $aset->user_id = auth()->id(); // 🔒 SECURITY: CRITICAL - Set user_id for multi-tenant
-            $aset->updated_by = auth()->id();
-            
-            // COA fields akan di-assign otomatis saat posting, jadi tidak perlu di-set di sini
-            // $aset->asset_coa_id = null;
-            // $aset->accum_depr_coa_id = null;
-            // $aset->expense_coa_id = null;
-            
+
             $aset->save();
-            
+
             DB::commit();
-            
-            $successMessage = 'Aset berhasil ditambahkan';
-            if ($disusutkan) {
-                $successMessage .= ' dengan penyusutan per bulan: Rp ' . number_format($penyusutanPerBulan, 2) . ' dan per tahun: Rp ' . number_format($penyusutanPerTahun, 2);
-                $successMessage .= '. Silakan klik tombol "Posting" untuk mencatat jurnal perolehan dan penyusutan.';
-            }
-            
+
+            $successMessage = 'Aset berhasil disimpan';
             return redirect()->route('master-data.aset.index')
                 ->with('success', $successMessage);
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('AsetController@store failed', [
@@ -370,22 +356,71 @@ class AsetController extends Controller
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
         }
-        
+
         // Load relasi kategori dan jenis aset
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
-        
+
         // Update nilai buku berdasarkan bulan saat ini
         $aset->updateNilaiBukuRealTime();
-        
+
         // Hitung total perolehan
         $totalPerolehan = (float)$aset->harga_perolehan + (float)($aset->biaya_perolehan ?? 0);
-        
+
         // Generate jadwal penyusutan per bulan
         $depreciationData = $this->depreciationService->generateMonthlySchedule($aset);
-        
+
+        // Group into yearly data
+        $depreciationDataTahun = [];
+        $currentYear = null;
+        $yearlyDepr = 0;
+        $lastAcc = 0;
+        $lastBook = $totalPerolehan;
+
+        foreach ($depreciationData as $row) {
+            if ($row['tahun_bulan'] === 'HP') {
+                $depreciationDataTahun[] = [
+                    'tahun' => 'HP',
+                    'penyusutan' => 0,
+                    'akumulasi_penyusutan' => 0,
+                    'nilai_buku' => $row['nilai_buku']
+                ];
+                continue;
+            }
+
+            // Extract year from 'Jan 2023' -> '2023'
+            $parts = explode(' ', $row['tahun_bulan']);
+            $year = isset($parts[1]) ? $parts[1] : $row['tahun_bulan'];
+
+            if ($currentYear !== $year) {
+                if ($currentYear !== null) {
+                    $depreciationDataTahun[] = [
+                        'tahun' => $currentYear,
+                        'penyusutan' => $yearlyDepr,
+                        'akumulasi_penyusutan' => $lastAcc,
+                        'nilai_buku' => $lastBook
+                    ];
+                }
+                $currentYear = $year;
+                $yearlyDepr = 0;
+            }
+
+            $yearlyDepr += $row['penyusutan'];
+            $lastAcc = $row['akumulasi_penyusutan'];
+            $lastBook = $row['nilai_buku'];
+        }
+
+        if ($currentYear !== null) {
+            $depreciationDataTahun[] = [
+                'tahun' => $currentYear,
+                'penyusutan' => $yearlyDepr,
+                'akumulasi_penyusutan' => $lastAcc,
+                'nilai_buku' => $lastBook
+            ];
+        }
+
         // Hitung penyusutan per bulan dan per tahun yang benar berdasarkan metode
         $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-        
+
         switch ($aset->metode_penyusutan) {
             case 'garis_lurus':
                 $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
@@ -420,7 +455,7 @@ class AsetController extends Controller
                 $penyusutanPerBulan = $penyusutanPerTahun / 12;
                 break;
         }
-        
+
         // Log untuk debugging
         \Log::info("SHOW PAGE - Aset: {$aset->nama_aset} (ID: {$aset->id})");
         \Log::info("  Total Perolehan: Rp " . number_format($totalPerolehan, 0, ',', '.'));
@@ -431,7 +466,7 @@ class AsetController extends Controller
         \Log::info("  Penyusutan/bulan (SHOW): Rp " . number_format($penyusutanPerBulan, 2, ',', '.'));
         \Log::info("  Akumulasi saat ini: Rp " . number_format($aset->akumulasi_penyusutan, 2, ',', '.'));
         \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
-        
+
         // Cek apakah aset sudah diposting penyusutan bulan ini (konsisten dengan index)
         $currentMonth = now()->format('Y-m');
         $isPostedThisMonth = \DB::table('jurnal_umum')
@@ -439,7 +474,7 @@ class AsetController extends Controller
             ->where('referensi', 'ASET-' . $aset->id)
             ->where('tanggal', 'LIKE', $currentMonth . '%')
             ->exists();
-        
+
         // Data summary untuk view
         $asetSummary = [
             'total_perolehan' => $totalPerolehan,
@@ -449,8 +484,8 @@ class AsetController extends Controller
             'nilai_buku_saat_ini' => $aset->nilai_buku,
             'is_posted_this_month' => $isPostedThisMonth
         ];
-        
-        return view('master-data.aset.show', compact('aset', 'depreciationData', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan', 'asetSummary'));
+
+        return view('master-data.aset.show', compact('aset', 'depreciationData', 'depreciationDataTahun', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan', 'asetSummary'));
     }
 
     /**
@@ -462,37 +497,37 @@ class AsetController extends Controller
         $nilaiResidu = (float)($aset->nilai_residu ?? 0);
         $umurManfaat = (int)($aset->umur_manfaat ?? 0);
         $metode = $aset->metode_penyusutan ?? 'garis_lurus';
-        
+
         if ($totalPerolehan <= 0 || $umurManfaat <= 0 || $tanggalPerolehan >= $tanggalSekarang) {
             return 0;
         }
-        
+
         $akumulasi = 0;
         $nilaiBuku = $totalPerolehan;
         $tahunMulai = $tanggalPerolehan->year;
         $bulanMulai = $tanggalPerolehan->month;
         $tahunAkhir = $tanggalSekarang->year;
         $bulanAkhir = $tanggalSekarang->month;
-        
+
         switch ($metode) {
             case 'saldo_menurun':
                 // Double Declining Balance Method - Hitung per bulan untuk akurasi
                 $rate = 2 / $umurManfaat; // 40% untuk umur 5 tahun
-                
+
                 $currentDate = $tanggalPerolehan->copy();
                 $bulanCount = 0;
-                
+
                 while ($currentDate <= $tanggalSekarang && $nilaiBuku > $nilaiResidu) {
                     $bulanCount++;
-                    
+
                     // Hitung penyusutan bulanan berdasarkan nilai buku awal bulan
                     $penyusutanBulanan = min($nilaiBuku * $rate / 12, $nilaiBuku - $nilaiResidu);
-                    
+
                     $akumulasi += $penyusutanBulanan;
                     $nilaiBuku -= $penyusutanBulanan;
-                    
+
                     $currentDate->addMonth();
-                    
+
                     // Jika sudah mencapai nilai residu, stop
                     if ($nilaiBuku <= $nilaiResidu) {
                         $akumulasi = $totalPerolehan - $nilaiResidu;
@@ -500,27 +535,27 @@ class AsetController extends Controller
                     }
                 }
                 break;
-                
+
             case 'sum_of_years_digits':
                 // Sum of Years Digits Method - Hitung per bulan
                 $sumOfYears = $umurManfaat * ($umurManfaat + 1) / 2; // 15 untuk umur 5 tahun
                 $tahunKe = 1;
-                
+
                 $currentDate = $tanggalPerolehan->copy();
-                
+
                 while ($currentDate <= $tanggalSekarang && $akumulasi < ($totalPerolehan - $nilaiResidu)) {
                     $sisaUmur = max(0, $umurManfaat - ($tahunKe - 1));
                     $penyusutanTahunan = ($totalPerolehan - $nilaiResidu) * $sisaUmur / $sumOfYears;
                     $penyusutanBulanan = $penyusutanTahunan / 12;
-                    
+
                     // Cek apakah masih dalam tahun yang sama
                     if ($currentDate->month == 1) {
                         $tahunKe++;
                     }
-                    
+
                     $akumulasi += $penyusutanBulanan;
                     $currentDate->addMonth();
-                    
+
                     // Jika sudah mencapai nilai residu, stop
                     if ($akumulasi >= ($totalPerolehan - $nilaiResidu)) {
                         $akumulasi = $totalPerolehan - $nilaiResidu;
@@ -528,14 +563,14 @@ class AsetController extends Controller
                     }
                 }
                 break;
-                
+
             case 'garis_lurus':
             default:
                 // Metode Garis Lurus - Hitung per bulan
                 $totalPenyusutan = $totalPerolehan - $nilaiResidu;
                 $penyusutanPerTahun = $totalPenyusutan / $umurManfaat;
                 $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                
+
                 // Hitung total bulan dari perolehan hingga sekarang
                 $totalBulan = $tanggalSekarang->diffInMonths($tanggalPerolehan) + 1;
                 $akumulasi = min($penyusutanPerBulan * $totalBulan, $totalPenyusutan);
@@ -553,13 +588,13 @@ class AsetController extends Controller
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
         }
-        
+
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diedit.');
         }
-        
+
         $jenisAsets = JenisAset::with('kategories')
             ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
             ->get();
@@ -568,7 +603,7 @@ class AsetController extends Controller
             'saldo_menurun' => 'Saldo Menurun',
             'sum_of_years_digits' => 'Jumlah Angka Tahun',
         ];
-        
+
         // Load jenis aset list for custom asset types feature
         $jenisAsetList = JenisAset::where(function($query) {
                 $query->where('user_id', auth()->id())
@@ -577,7 +612,7 @@ class AsetController extends Controller
             ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
             ->orderBy('nama')
             ->get();
-        
+
         // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
         $coaAsets = Coa::where('user_id', auth()->id())
             ->where(function($query) {
@@ -587,12 +622,12 @@ class AsetController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-            
+
         // If no asset accounts found, get all user's COA as fallback
         if ($coaAsets->isEmpty()) {
             $coaAsets = Coa::where('user_id', auth()->id())->orderBy('kode_akun')->get();
         }
-            
+
         $coaAkumulasi = Coa::where('user_id', auth()->id())
             ->where(function($query) {
                 $query->where('nama_akun', 'LIKE', '%akumulasi%')
@@ -600,7 +635,7 @@ class AsetController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-            
+
         $coaBeban = Coa::where('user_id', auth()->id())
             ->where(function($query) {
                 $query->where('nama_akun', 'LIKE', '%penyusutan%')
@@ -609,26 +644,26 @@ class AsetController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-        
+
         // Load relasi untuk aset yang akan diedit
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
-        
+
         // Cek apakah aset sudah pernah diposting penyusutannya
 
         $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
             ->where('referensi', $aset->id)
 ->exists();
-        
+
         // Hitung data lengkap aset
         $totalPerolehan = (float)$aset->harga_perolehan + (float)($aset->biaya_perolehan ?? 0);
         $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-        
+
         // Hitung jadwal penyusutan jika aset disusutkan
         $jadwalPenyusutan = [];
         if ($aset->kategori && $aset->kategori->disusutkan && $aset->umur_manfaat > 0) {
             $jadwalPenyusutan = $this->generateDepreciationSchedule($aset, $totalPerolehan);
         }
-        
+
         // Data summary aset
         $asetSummary = [
             'total_perolehan' => $totalPerolehan,
@@ -640,19 +675,19 @@ class AsetController extends Controller
             'sudah_diposting' => $sudahDiposting,
             'jadwal_penyusutan' => $jadwalPenyusutan
         ];
-        
+
         return view('master-data.aset.edit', compact(
             'aset',
             'jenisAsets',
             'jenisAsetList', // Add this for custom asset types
             'metodePenyusutan',
             'coaAsets',
-            'coaAkumulasi', 
+            'coaAkumulasi',
             'coaBeban',
             'asetSummary'
         ));
     }
-    
+
     /**
      * Generate depreciation schedule for asset
      */
@@ -741,17 +776,17 @@ class AsetController extends Controller
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
         }
-        
+
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diperbarui.');
         }
-        
+
         // REFACTOR: Removed jenis_aset logic - Semua aset adalah aset tetap
         $jenisAset = 'aset-tetap'; // Hardcoded karena semua aset = aset tetap
         $disusutkan = true; // Semua aset tetap disusutkan
-        
+
         // Validation rules untuk semua field yang bisa diedit
         $rules = [
             // REFACTOR: Removed 'jenis_aset' validation
@@ -764,7 +799,7 @@ class AsetController extends Controller
             'keterangan' => 'nullable|string',
             // COA fields removed - sistem auto-posting akan handle COA otomatis saat posting
         ];
-        
+
         // Field penyusutan
         if ($disusutkan) {
             $depreciationRules = [];
@@ -778,31 +813,31 @@ class AsetController extends Controller
             $depreciationRules['tanggal_perolehan'] = 'nullable|date';
             $rules = array_merge($rules, $depreciationRules);
         }
-        
+
         // Normalize input data sebelum validasi
         $request->merge([
             'harga_perolehan' => $this->normalizeMoney($request->input('harga_perolehan')),
             'biaya_perolehan' => $this->normalizeMoney($request->input('biaya_perolehan')),
             'nilai_residu' => $this->normalizeMoney($request->input('nilai_residu')),
         ]);
-        
+
         $validated = $request->validate($rules);
 
         try {
             DB::beginTransaction();
-            
+
             // Calculate total perolehan
             $hargaPerolehan = (float) $request->harga_perolehan;
             $biayaPerolehan = (float) $request->biaya_perolehan;
             $totalPerolehan = $hargaPerolehan + $biayaPerolehan;
-            
+
             // Initialize penyusutan variables
             $penyusutanPerTahun = 0;
             $penyusutanPerBulan = 0;
             $nilaiResidu = 0;
             $umurManfaat = 0;
             $metodePenyusutan = 'garis_lurus'; // Default valid enum untuk database
-            
+
             // Calculate depreciation only if asset is depreciable
             if ($disusutkan) {
                 $nilaiResidu      = $jenisAset === 'aset-tetap' ? (float) $request->nilai_residu : 0;
@@ -832,9 +867,9 @@ class AsetController extends Controller
                     $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
                 }
             }
-            
+
             // Update semua field
-            $aset->jenis_aset = $jenisAset;
+            // jenis_aset removed - now using jenis_perolehan
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
             $aset->harga_perolehan = $hargaPerolehan;
@@ -843,15 +878,15 @@ class AsetController extends Controller
             $aset->tanggal_akuisisi = $request->tanggal_akuisisi;
             $aset->keterangan = $request->keterangan;
             $aset->updated_by = auth()->id();
-            
+
             // COA fields tidak diupdate - akan di-assign otomatis saat posting berdasarkan kategori aset
-            
+
             if ($disusutkan) {
                 $aset->umur_manfaat = $umurManfaat;
                 $aset->metode_penyusutan = $metodePenyusutan;
                 $aset->tarif_penyusutan = $request->tarif_penyusutan;
                 $aset->nilai_residu = $nilaiResidu;
-                
+
                 if ($jenisAset === 'aset-tidak-berwujud') {
                     $aset->amortisasi_per_tahun = round($penyusutanPerTahun, 2);
                     $aset->akumulasi_amortisasi = 0; // Or keep current logic
@@ -863,7 +898,7 @@ class AsetController extends Controller
                     $aset->amortisasi_per_tahun = 0;
                     $aset->akumulasi_amortisasi = 0;
                 }
-                
+
                 // Update optional fields jika ada
                 if (Schema::hasColumn('asets', 'bulan_mulai')) {
                     $aset->bulan_mulai = $request->bulan_mulai ?? 1;
@@ -872,14 +907,14 @@ class AsetController extends Controller
                     $aset->tanggal_perolehan = $request->tanggal_perolehan;
                 }
             }
-            
+
             $aset->save();
-            
+
             DB::commit();
-            
+
             return redirect()->route('master-data.aset.index')
                 ->with('success', 'Aset berhasil diperbarui.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('AsetController@update failed', [
@@ -899,13 +934,13 @@ class AsetController extends Controller
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
         }
-        
+
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat dihapus.');
         }
-        
+
         $aset->delete();
         return redirect()->route('master-data.aset.index')->with('success', 'Aset berhasil dihapus');
     }
@@ -916,16 +951,16 @@ class AsetController extends Controller
     public function getKategoriByJenis(Request $request)
     {
         $jenisId = $request->get('jenis_id');
-        
+
         if (!$jenisId) {
             return response()->json([]);
         }
-        
+
         $kategories = KategoriAset::where('jenis_aset_id', $jenisId)
             ->select('id', 'nama', 'disusutkan', 'umur_ekonomis', 'tarif_penyusutan')
             ->orderBy('nama')
             ->get();
-        
+
         return response()->json($kategories);
     }
 
@@ -1007,18 +1042,18 @@ class AsetController extends Controller
                 } else {
                     $prefix = 'A';
                 }
-                
+
                 $lastKategori = KategoriAset::where('kode', 'LIKE', $prefix . '-%')
                     ->orderBy('kode', 'desc')
                     ->first();
-                
+
                 if ($lastKategori) {
                     $lastNumber = (int) substr($lastKategori->kode, strlen($prefix) + 1);
                     $newNumber = $lastNumber + 1;
                 } else {
                     $newNumber = 1;
                 }
-                
+
                 $kode = $prefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
             }
 
@@ -1071,15 +1106,33 @@ class AsetController extends Controller
             $currentMonth = now()->month;
             $currentDate = now()->endOfMonth()->format('Y-m-d');
             $periodeBulan = now()->format('M Y'); // Format: Apr 2026
-            
+
             // Check if asset has required COA relationships
+            // AUTO-ASSIGN COA yang sudah ada di master
+            if (!$aset->expense_coa_id) {
+                $autoExpenseCoaId = $aset->getAutoExpenseCoaId();
+                if ($autoExpenseCoaId) {
+                    $aset->expense_coa_id = $autoExpenseCoaId;
+                    $aset->save();
+                }
+            }
+
+            if (!$aset->accum_depr_coa_id) {
+                $autoAccumCoaId = $aset->getAutoAccumDepreciationCoaId();
+                if ($autoAccumCoaId) {
+                    $aset->accum_depr_coa_id = $autoAccumCoaId;
+                    $aset->save();
+                }
+            }
+
+            // Check AGAIN after auto-assign
             if (!$aset->expense_coa_id || !$aset->accum_depr_coa_id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Aset belum memiliki COA yang lengkap. Silakan lengkapi COA Beban Penyusutan dan COA Akumulasi Penyusutan terlebih dahulu.'
+                    'message' => 'COA Penyusutan tidak ditemukan untuk kategori aset ini. Pastikan COA dengan nama "Akumulasi Penyusutan" dan "Beban Penyusutan" sudah ada di master data.'
                 ]);
             }
-            
+
             // Check if depreciation already posted for this asset this month using jurnal_umum
             $existingEntry = \DB::table('jurnal_umum')
                 ->where('tipe_referensi', 'depreciation')
@@ -1088,7 +1141,7 @@ class AsetController extends Controller
                 ->whereYear('tanggal', $currentYear)
                 ->whereMonth('tanggal', $currentMonth)
                 ->exists();
-                
+
             if ($existingEntry) {
                 return response()->json([
                     'success' => false,
@@ -1098,14 +1151,14 @@ class AsetController extends Controller
 
             // ✅ PERBAIKAN: Generate schedule dan ambil nilai untuk bulan ini
             $scheduleArray = $this->depreciationService->generateMonthlySchedule($aset);
-            
+
             if (empty($scheduleArray)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Tidak dapat generate schedule penyusutan untuk aset ini'
                 ]);
             }
-            
+
             // Cari baris schedule untuk bulan ini (format: "Apr 2026")
             $scheduleForThisMonth = null;
             foreach ($scheduleArray as $row) {
@@ -1114,17 +1167,17 @@ class AsetController extends Controller
                     break;
                 }
             }
-            
+
             if (!$scheduleForThisMonth) {
                 return response()->json([
                     'success' => false,
                     'message' => "Schedule penyusutan untuk bulan {$periodeBulan} tidak ditemukan. Aset mungkin belum mulai disusutkan atau sudah habis masa manfaatnya."
                 ]);
             }
-            
+
             // ✅ Ambil nilai penyusutan dari field 'penyusutan' di schedule
             $monthlyDepreciation = (float) $scheduleForThisMonth['penyusutan'];
-            
+
             if ($monthlyDepreciation <= 0) {
                 return response()->json([
                     'success' => false,
@@ -1132,53 +1185,34 @@ class AsetController extends Controller
                 ]);
             }
 
-            // Create journal entries using jurnal_umum (modern system)
+            // Create journal entries - ONLY untuk Jurnal Penyesuaian, bukan Jurnal Umum
             $memo = "Penyusutan Aset {$aset->nama_aset} ({$aset->metode_penyusutan}) - {$periodeBulan}";
             $userId = auth()->id();
             $referensi = 'ASET-' . $aset->id;
-            
-            // ✅ DEBIT: Beban Penyusutan
-            \DB::table('jurnal_umum')->insert([
-                'tanggal' => $currentDate,
-                'coa_id' => $aset->expense_coa_id,
-                'debit' => $monthlyDepreciation,
-                'kredit' => 0,
-                'keterangan' => "Beban Penyusutan - {$aset->nama_aset}",
-                'tipe_referensi' => 'depreciation',
-                'referensi' => $referensi,
-                'user_id' => $userId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            // ✅ CREDIT: Akumulasi Penyusutan
-            \DB::table('jurnal_umum')->insert([
-                'tanggal' => $currentDate,
-                'coa_id' => $aset->accum_depr_coa_id,
-                'debit' => 0,
-                'kredit' => $monthlyDepreciation,
-                'keterangan' => "Akumulasi Penyusutan - {$aset->nama_aset}",
-                'tipe_referensi' => 'depreciation',
-                'referensi' => $referensi,
-                'user_id' => $userId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
 
-            \Log::info('Depreciation journal entry created from schedule', [
+            // KODE JURNAL UMUM DIHAPUS - Tombol ini tidak boleh menyentuh JU
+            // Jurnal Penyesuaian akan digenerate oleh JurnalPenyesuaianAsetController
+            
+            // Update status posting pada aset
+            $aset->is_posted = true;
+            $aset->posted_at = now();
+            $aset->akumulasi_penyusutan = ($aset->akumulasi_penyusutan ?? 0) + $monthlyDepreciation;
+            $aset->nilai_buku = (($aset->harga_perolehan ?? 0) + ($aset->biaya_perolehan ?? 0)) - $aset->akumulasi_penyusutan;
+            $aset->save();
+
+            \Log::info('Depreciation journal entry created in Jurnal Umum', [
                 'aset_id' => $aset->id,
                 'aset_name' => $aset->nama_aset,
                 'periode_bulan' => $periodeBulan,
                 'referensi' => $referensi,
                 'amount' => $monthlyDepreciation,
                 'date' => $currentDate,
-                'source' => 'monthly_schedule_array',
-                'schedule_data' => $scheduleForThisMonth
+                'source' => 'postIndividualDepreciation'
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Penyusutan berhasil diposting ke Jurnal Umum dan Buku Besar',
+                'message' => 'Penyusutan berhasil diposting ke Jurnal Umum',
                 'amount' => number_format($monthlyDepreciation, 0, ',', '.'),
                 'periode' => $periodeBulan
             ]);
@@ -1210,8 +1244,14 @@ class AsetController extends Controller
     }
 
     /**
-     * Posting aset - Catat jurnal perolehan dan penyusutan bulan berjalan
-     * Route: POST /master-data/aset/{aset}/post
+     * Posting aset - REFACTORED VERSION
+     * 
+     * LOGIC BARU:
+     * 1. Jenis "Saldo Awal": Langsung masuk siklus penyusutan bulanan JP (tidak ada entry JU)
+     * 2. Jenis "Pembelian Baru": Tunggu posting explicit ke JU dulu, baru masuk siklus JP
+     * 
+     * METHOD INI: Hanya update status aset menjadi "sudah diposting" untuk JP
+     * (Backward compatibility: menyimpan aset lama, tidak posting ke JU otomatis)
      */
     public function postAset(Request $request, $id)
     {
@@ -1220,152 +1260,221 @@ class AsetController extends Controller
                 ->where('user_id', auth()->id())
                 ->with('kategori')
                 ->firstOrFail();
-            
-            // Check if already posted
-            if ($aset->is_posted) {
+
+            // Hanya update status is_posted
+            if (!$aset->is_posted) {
+                DB::beginTransaction();
+
+                // Auto-assign COA based on kategori
+                $assetCoaId = $aset->getAutoAssetCoaId();
+                $accumDeprCoaId = $aset->getAutoAccumDepreciationCoaId();
+                $expenseCoaId = $aset->getAutoExpenseCoaId();
+
+                if (!$assetCoaId || !$accumDeprCoaId || !$expenseCoaId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tidak dapat menemukan COA yang sesuai untuk kategori aset ini.'
+                    ]);
+                }
+
+                $aset->asset_coa_id = $assetCoaId;
+                $aset->accum_depr_coa_id = $accumDeprCoaId;
+                $aset->expense_coa_id = $expenseCoaId;
+                $aset->is_posted = true;
+                $aset->posted_at = now();
+                $aset->save();
+
+                DB::commit();
+
+                $message = 'Aset berhasil disimpan';
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Aset ini sudah diposting sebelumnya'
+                    'success' => true,
+                    'message' => $message,
+                    'data' => [
+                        'aset_id' => $aset->id,
+                        'jenis_perolehan' => $aset->jenis_perolehan ?? 'saldo_awal',
+                        'status_posting_ju' => $aset->status_posting_ju ?? 'belum_posting',
+                    ]
                 ]);
             }
-            
-            // Auto-assign COA based on kategori
-            $assetCoaId = $aset->getAutoAssetCoaId();
-            $accumDeprCoaId = $aset->getAutoAccumDepreciationCoaId();
-            $expenseCoaId = $aset->getAutoExpenseCoaId();
-            
-            if (!$assetCoaId || !$accumDeprCoaId || !$expenseCoaId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tidak dapat menemukan COA yang sesuai untuk kategori aset ini. Pastikan COA untuk ' . ($aset->kategori->nama ?? 'kategori ini') . ' sudah tersedia.'
-                ]);
-            }
-            
-            // Get COA Kas/Bank untuk kredit perolehan
-            $coaKas = Coa::where('user_id', auth()->id())
-                ->where(function($q) {
-                    $q->where('nama_akun', 'LIKE', '%Kas%')
-                      ->orWhere('nama_akun', 'LIKE', '%Bank%');
-                })
-                ->where('tipe_akun', 'Aset')
-                ->first();
-            
-            if (!$coaKas) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'COA Kas/Bank tidak ditemukan. Pastikan COA Kas atau Bank sudah dibuat.'
-                ]);
-            }
-            
-            DB::beginTransaction();
-            
-            // Update aset dengan COA yang di-assign otomatis
-            $aset->asset_coa_id = $assetCoaId;
-            $aset->accum_depr_coa_id = $accumDeprCoaId;
-            $aset->expense_coa_id = $expenseCoaId;
-            $aset->is_posted = true;
-            $aset->posted_at = now();
-            $aset->save();
-            
-            $totalPerolehan = (float)$aset->harga_perolehan + (float)$aset->biaya_perolehan;
-            $penyusutanBulanIni = (float)$aset->penyusutan_per_bulan;
-            $userId = auth()->id();
-            $tanggalPosting = now()->format('Y-m-d');
-            $referensi = 'ASET-' . $aset->id;
-            
-            // 1. JURNAL PEROLEHAN ASET (masuk ke journal_lines untuk Jurnal Umum)
-            // DEBIT: COA Aset
-            JournalLine::create([
-                'user_id' => $userId,
-                'coa_id' => $assetCoaId,
-                'debit' => $totalPerolehan,
-                'credit' => 0,
-                'memo' => "Perolehan {$aset->nama_aset}",
-                'tipe_referensi' => 'aset_perolehan',
-                'referensi' => $referensi,
-                'tanggal' => $tanggalPosting,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            // KREDIT: COA Kas/Bank
-            JournalLine::create([
-                'user_id' => $userId,
-                'coa_id' => $coaKas->id,
-                'debit' => 0,
-                'credit' => $totalPerolehan,
-                'memo' => "Perolehan {$aset->nama_aset}",
-                'tipe_referensi' => 'aset_perolehan',
-                'referensi' => $referensi,
-                'tanggal' => $tanggalPosting,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            
-            // 2. JURNAL PENYUSUTAN BULAN BERJALAN (masuk ke journal_lines untuk Jurnal Penyesuaian)
-            if ($penyusutanBulanIni > 0) {
-                // DEBIT: COA Beban Penyusutan
-                JournalLine::create([
-                    'user_id' => $userId,
-                    'coa_id' => $expenseCoaId,
-                    'debit' => $penyusutanBulanIni,
-                    'credit' => 0,
-                    'memo' => "Beban Penyusutan {$aset->nama_aset}",
-                    'tipe_referensi' => 'aset_penyusutan',
-                    'referensi' => $referensi,
-                    'tanggal' => $tanggalPosting,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                
-                // KREDIT: COA Akumulasi Penyusutan
-                JournalLine::create([
-                    'user_id' => $userId,
-                    'coa_id' => $accumDeprCoaId,
-                    'debit' => 0,
-                    'credit' => $penyusutanBulanIni,
-                    'memo' => "Akumulasi Penyusutan {$aset->nama_aset}",
-                    'tipe_referensi' => 'aset_penyusutan',
-                    'referensi' => $referensi,
-                    'tanggal' => $tanggalPosting,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            
-            DB::commit();
-            
-            \Log::info('Aset posted successfully', [
-                'aset_id' => $aset->id,
-                'aset_name' => $aset->nama_aset,
-                'total_perolehan' => $totalPerolehan,
-                'penyusutan_bulan_ini' => $penyusutanBulanIni,
-                'asset_coa_id' => $assetCoaId,
-                'accum_depr_coa_id' => $accumDeprCoaId,
-                'expense_coa_id' => $expenseCoaId,
-            ]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Aset berhasil diposting! Jurnal perolehan dan penyusutan telah dicatat.',
-                'data' => [
-                    'perolehan' => 'Rp ' . number_format($totalPerolehan, 0, ',', '.'),
-                    'penyusutan' => 'Rp ' . number_format($penyusutanBulanIni, 0, ',', '.'),
-                ]
-            ]);
-            
-        } catch (\Exception $e) {
-            DB::rollback();
-            
-            \Log::error('Error posting aset', [
-                'aset_id' => $id ?? null,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat posting aset: ' . $e->getMessage()
+                'message' => 'Aset sudah diposting sebelumnya'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in postAset: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+    /**
+     * POSTING KE NERACA SALDO - Generate penyusutan bulanan (FIXED VERSION)
+     * 
+     * Method ini khusus untuk posting penyusutan langsung ke saldo_awal COA
+     * PERBAIKAN: Mendukung posting bulanan (tidak sekali saja)
+     */
+    public function postDepreciation(Request $request, $id)
+    {
+        try {
+            $aset = Aset::where('id', $id)
+                ->where('user_id', auth()->id())
+                ->with('kategori')
+                ->firstOrFail();
+
+            $currentMonth = now()->format('Y-m');
+            
+            // Validasi: Cek apakah sudah posting untuk bulan ini
+            $sudahPostingBulanIni = false;
+            
+            // Method 1: Cek dari jurnal_umum table jika ada
+            if (\Schema::hasTable('jurnal_umum')) {
+                $sudahPostingBulanIni = \DB::table('jurnal_umum')
+                    ->where('tipe_referensi', 'depreciation')
+                    ->where('referensi', 'ASET-' . $aset->id)
+                    ->where('user_id', auth()->id())
+                    ->where('tanggal', 'LIKE', $currentMonth . '%')
+                    ->exists();
+            }
+            
+            if ($sudahPostingBulanIni) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Penyusutan untuk bulan ini sudah diposting sebelumnya'
+                ]);
+            }
+
+            // Validasi: Harus ada kategori dan bisa disusutkan
+            if (!$aset->kategori || !$aset->kategori->disusutkan) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Aset ini tidak dapat disusutkan atau kategori tidak ditemukan'
+                ]);
+            }
+
+            // Auto-assign COA berdasarkan kategori
+            $accumDeprCoaId = $aset->getAutoAccumDepreciationCoaId();
+            $expenseCoaId = $aset->getAutoExpenseCoaId();
+
+            if (!$accumDeprCoaId || !$expenseCoaId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'COA untuk akumulasi penyusutan atau beban penyusutan belum dikonfigurasi untuk kategori ini'
+                ]);
+            }
+
+            $penyusutanBulanIni = (float) $aset->penyusutan_per_bulan;
+            
+            if ($penyusutanBulanIni <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nilai penyusutan per bulan tidak valid'
+                ]);
+            }
+
+            DB::beginTransaction();
+
+            $userId = auth()->id();
+
+            // Get COA untuk beban penyusutan dan akumulasi penyusutan
+            $expenseCoa = \App\Models\Coa::where('id', $expenseCoaId)->where('user_id', $userId)->first();
+            $accumCoa = \App\Models\Coa::where('id', $accumDeprCoaId)->where('user_id', $userId)->first();
+
+            if (!$expenseCoa || !$accumCoa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'COA tidak ditemukan atau tidak memiliki akses'
+                ]);
+            }
+
+            // POSTING LANGSUNG UPDATE SALDO COA (simple approach)
+            // Update saldo_awal COA Beban Penyusutan (tambah beban)
+            $expenseCoa->saldo_awal = ($expenseCoa->saldo_awal ?? 0) + $penyusutanBulanIni;
+            $expenseCoa->save();
+
+            // Update saldo_awal COA Akumulasi Penyusutan (tambah akumulasi - nilai negatif karena contra asset)
+            $accumCoa->saldo_awal = ($accumCoa->saldo_awal ?? 0) - $penyusutanBulanIni;
+            $accumCoa->save();
+
+            // PERBAIKAN: Buat record di jurnal_umum untuk tracking posting bulanan
+            if (\Schema::hasTable('jurnal_umum')) {
+                $currentDate = now()->endOfMonth()->format('Y-m-d');
+                $memo = "Penyusutan Aset {$aset->nama_aset} - " . now()->format('M Y');
+                $referensi = 'ASET-' . $aset->id;
+
+                // Entry Debit - Beban Penyusutan
+                \DB::table('jurnal_umum')->insert([
+                    'user_id' => $userId,
+                    'tanggal' => $currentDate,
+                    'coa_id' => $expenseCoaId,
+                    'keterangan' => $memo,
+                    'debit' => $penyusutanBulanIni,
+                    'kredit' => 0,
+                    'tipe_referensi' => 'depreciation',
+                    'referensi' => $referensi,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                // Entry Kredit - Akumulasi Penyusutan
+                \DB::table('jurnal_umum')->insert([
+                    'user_id' => $userId,
+                    'tanggal' => $currentDate,
+                    'coa_id' => $accumDeprCoaId,
+                    'keterangan' => $memo,
+                    'debit' => 0,
+                    'kredit' => $penyusutanBulanIni,
+                    'tipe_referensi' => 'depreciation',
+                    'referensi' => $referensi,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+            }
+
+            // Update asset data - PERBAIKAN: Update posted_at untuk bulan ini, tapi jangan set is_posted permanently
+            $aset->posted_at = now(); // Update timestamp untuk tracking
+            $aset->akumulasi_penyusutan = ($aset->akumulasi_penyusutan ?? 0) + $penyusutanBulanIni;
+            $aset->nilai_buku = (($aset->harga_perolehan ?? 0) + ($aset->biaya_perolehan ?? 0)) - $aset->akumulasi_penyusutan;
+            $aset->accum_depr_coa_id = $accumDeprCoaId;
+            $aset->expense_coa_id = $expenseCoaId;
+            // TIDAK set is_posted = true agar bisa posting lagi bulan depan
+            $aset->save();
+
+            DB::commit();
+
+            \Log::info('Penyusutan aset berhasil diposting ke Jurnal Penyesuaian', [
+                'aset_id' => $aset->id,
+                'aset_name' => $aset->nama_aset,
+                'bulan' => $currentMonth,
+                'penyusutan_bulan_ini' => $penyusutanBulanIni,
+                'expense_coa_kode' => $expenseCoa->kode_akun,
+                'accum_coa_kode' => $accumCoa->kode_akun,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Penyusutan berhasil diposting ke Jurnal Penyesuaian!',
+                'data' => [
+                    'bulan' => now()->format('M Y'),
+                    'penyusutan_bulan_ini' => 'Rp ' . number_format($penyusutanBulanIni, 0, ',', '.'),
+                    'akumulasi_penyusutan' => 'Rp ' . number_format($aset->akumulasi_penyusutan, 0, ',', '.'),
+                    'nilai_buku' => 'Rp ' . number_format($aset->nilai_buku, 0, ',', '.'),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error posting depreciation to neraca saldo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
     }

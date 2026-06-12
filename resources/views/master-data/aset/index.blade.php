@@ -142,6 +142,7 @@
                                     <span class="badge bg-warning">Belum Posting</span>
                                 @endif
                             </td>
+
                             <td class="nowrap text-center">
                                 @php
                                     $statusBadgeClass = [
@@ -192,7 +193,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="15" class="text-center py-4">
+                            <td colspan="12" class="text-center py-4">
                                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Tidak ada data aset</p>
                             </td>
@@ -221,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const name   = this.dataset.asetName;
             const amount = this.dataset.amount;
 
-            if (!confirm(`Posting penyusutan untuk "${name}" sebesar Rp ${amount}?`)) return;
+            if (!confirm(`Posting penyusutan "${name}" sebesar Rp ${amount} ke Jurnal Penyesuaian?`)) return;
 
             this.disabled = true;
             const originalHTML = this.innerHTML;

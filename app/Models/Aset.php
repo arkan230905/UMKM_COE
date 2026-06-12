@@ -19,7 +19,6 @@ class Aset extends Model
         'kode_aset',
         'nama_aset',
         'kategori_aset_id',
-        // REFACTOR: Removed 'jenis_aset' - Semua aset adalah aset tetap
         'harga_perolehan',
         'biaya_perolehan',
         'nilai_residu',
@@ -42,7 +41,7 @@ class Aset extends Model
         'locked',
         'asset_coa_id',
         'accum_depr_coa_id',
-        'expense_coa_id'
+        'expense_coa_id',
     ];
 
     protected $casts = [

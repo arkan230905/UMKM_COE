@@ -48,7 +48,7 @@ class JurnalPenyesuaianAsetController extends Controller
             // Create journal entry
             $jurnalEntries[] = [
                 'tanggal' => $periode->endOfMonth()->format('Y-m-d'),
-                'keterangan_debit' => "Beban Penyusutan {$aset->nama_aset}",
+                'keterangan_debit' => "BOP - Beban Penyusutan {$aset->nama_aset}",
                 'keterangan_kredit' => "Akumulasi Penyusutan {$aset->nama_aset}",
                 'ref_debit' => $aset->expenseCoa->kode_akun ?? '-',
                 'ref_kredit' => $aset->accumDepreciationCoa->kode_akun ?? '-',
@@ -65,11 +65,29 @@ class JurnalPenyesuaianAsetController extends Controller
             $totalKredit += $penyusutanPerBulan;
         }
         
-        // Check if already posted
-        $isPosted = JurnalUmum::where('user_id', auth()->id())
+        // Check if already posted - PERBAIKAN: cek dengan lebih spesifik
+        // Cek di jurnal_umum dengan tipe_referensi 'adjustment_depreciation' untuk periode ini
+        $isPosted = DB::table('jurnal_umum')
+            ->where('user_id', auth()->id())
             ->where('tipe_referensi', 'adjustment_depreciation')
-            ->where('tanggal', 'LIKE', $periodeStr . '%')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bulan)
             ->exists();
+        
+        // Log untuk debugging
+        \Log::info('Jurnal Penyesuaian Check', [
+            'user_id' => auth()->id(),
+            'periode' => $periodeStr,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'isPosted' => $isPosted,
+            'count_entries' => DB::table('jurnal_umum')
+                ->where('user_id', auth()->id())
+                ->where('tipe_referensi', 'adjustment_depreciation')
+                ->whereYear('tanggal', $tahun)
+                ->whereMonth('tanggal', $bulan)
+                ->count(),
+        ]);
         
         // Get company info
         $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
@@ -104,10 +122,19 @@ class JurnalPenyesuaianAsetController extends Controller
         $tanggalPosting = $periode->endOfMonth()->format('Y-m-d');
         
         // Check if already posted
-        $existingJournal = JurnalUmum::where('user_id', auth()->id())
+        $existingJournal = DB::table('jurnal_umum')
+            ->where('user_id', auth()->id())
             ->where('tipe_referensi', 'adjustment_depreciation')
-            ->where('tanggal', 'LIKE', $periodeStr . '%')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bulan)
             ->exists();
+        
+        if ($existingJournal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jurnal penyesuaian periode ini sudah diposting sebelumnya'
+            ]);
+        }
         
         if ($existingJournal) {
             return response()->json([
@@ -135,38 +162,28 @@ class JurnalPenyesuaianAsetController extends Controller
                     continue;
                 }
                 
-                // Create Jurnal Umum Entry
-                $jurnalEntry = JurnalUmum::create([
-                    'user_id' => auth()->id(),
-                    'tanggal' => $tanggalPosting,
-                    'nomor_jurnal' => $this->generateNomorJurnal($tanggalPosting),
-                    'keterangan' => "Penyusutan {$aset->nama_aset} - " . $periode->isoFormat('MMMM YYYY'),
-                    'tipe_referensi' => 'adjustment_depreciation',
-                    'referensi' => 'ASET-' . $aset->id . '-' . $periodeStr,
-                    'total_debit' => $penyusutanPerBulan,
-                    'total_kredit' => $penyusutanPerBulan,
-                ]);
-                
                 // Create Debit Line (Beban Penyusutan)
-                DB::table('jurnal_detail')->insert([
-                    'jurnal_umum_id' => $jurnalEntry->id,
+                \App\Models\JurnalUmum::create([
+                    'user_id' => auth()->id(),
                     'coa_id' => $aset->expense_coa_id,
+                    'tanggal' => $tanggalPosting,
+                    'keterangan' => "BOP - Beban Penyusutan {$aset->nama_aset}",
                     'debit' => $penyusutanPerBulan,
                     'kredit' => 0,
-                    'keterangan' => "Beban Penyusutan {$aset->nama_aset}",
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'referensi' => 'ASET-' . $aset->id . '-' . $periodeStr,
+                    'tipe_referensi' => 'adjustment_depreciation',
                 ]);
                 
                 // Create Kredit Line (Akumulasi Penyusutan)
-                DB::table('jurnal_detail')->insert([
-                    'jurnal_umum_id' => $jurnalEntry->id,
+                \App\Models\JurnalUmum::create([
+                    'user_id' => auth()->id(),
                     'coa_id' => $aset->accum_depr_coa_id,
+                    'tanggal' => $tanggalPosting,
+                    'keterangan' => "Akumulasi Penyusutan {$aset->nama_aset}",
                     'debit' => 0,
                     'kredit' => $penyusutanPerBulan,
-                    'keterangan' => "Akumulasi Penyusutan {$aset->nama_aset}",
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'referensi' => 'ASET-' . $aset->id . '-' . $periodeStr,
+                    'tipe_referensi' => 'adjustment_depreciation',
                 ]);
                 
                 $jurnalCount++;
@@ -219,7 +236,7 @@ class JurnalPenyesuaianAsetController extends Controller
             
             $jurnalEntries[] = [
                 'tanggal' => $periode->endOfMonth()->format('Y-m-d'),
-                'keterangan_debit' => "Beban Penyusutan {$aset->nama_aset}",
+                'keterangan_debit' => "BOP - Beban Penyusutan {$aset->nama_aset}",
                 'keterangan_kredit' => "Akumulasi Penyusutan {$aset->nama_aset}",
                 'ref_debit' => $aset->expenseCoa->kode_akun ?? '-',
                 'ref_kredit' => $aset->accumDepreciationCoa->kode_akun ?? '-',
@@ -232,9 +249,11 @@ class JurnalPenyesuaianAsetController extends Controller
             $totalKredit += $penyusutanPerBulan;
         }
         
-        $isPosted = JurnalUmum::where('user_id', auth()->id())
+        $isPosted = DB::table('jurnal_umum')
+            ->where('user_id', auth()->id())
             ->where('tipe_referensi', 'adjustment_depreciation')
-            ->where('tanggal', 'LIKE', $periodeStr . '%')
+            ->whereYear('tanggal', $tahun)
+            ->whereMonth('tanggal', $bulan)
             ->exists();
         
         $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
