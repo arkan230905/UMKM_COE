@@ -2178,8 +2178,8 @@ Route::middleware('auth')->group(function () {
         Route::post('aset/add-jenis-aset', [AsetController::class, 'addJenisAset'])->name('aset.add-jenis-aset');
         Route::post('aset/add-kategori-aset', [AsetController::class, 'addKategoriAset'])->name('aset.add-kategori-aset');
         
-        // Individual depreciation posting route
-        Route::post('aset/{aset}/post-depreciation', [AsetController::class, 'postIndividualDepreciation'])->name('aset.post-depreciation');
+        // Individual depreciation posting route (Commented to prevent duplicate route name)
+        // Route::post('aset/{aset}/post-depreciation', [AsetController::class, 'postIndividualDepreciation'])->name('aset.post-depreciation.old');
         
         // NEW: Posting aset (save data & activate depreciation for JP)
         Route::post('aset/{id}/post', [AsetController::class, 'postAset'])->name('aset.post');
