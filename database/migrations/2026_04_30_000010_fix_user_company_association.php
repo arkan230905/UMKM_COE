@@ -17,7 +17,10 @@ return new class extends Migration
         if (!$defaultCompany) {
             DB::table('perusahaan')->insert([
                 'id' => 1,
-                'nama_perusahaan' => 'Default Company',
+                'nama' => 'Default Company',
+                'alamat' => '-',
+                'email' => 'default@company.com',
+                'telepon' => '-',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

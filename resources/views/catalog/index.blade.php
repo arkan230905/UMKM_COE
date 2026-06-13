@@ -440,11 +440,9 @@
                 @forelse($produks as $produk)
                     <div class="product-item">
                         <div class="product-image">
-                            @if($produk->foto_path)
-                                <img src="{{ Storage::url($produk->foto_path) }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}'">
-                            @else
-                                <img src="{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('images/default-avatar.png') }}'">
-                            @endif
+                            <img src="{{ product_image_url($produk->foto_path ?? $produk->foto) }}" 
+                                 alt="{{ $produk->nama_produk }}" 
+                                 loading="lazy">
                         </div>
                         <div class="product-info">
                             <h3 class="product-name">{{ $produk->nama_produk }}</h3>
