@@ -233,32 +233,56 @@ class ProduksiController extends Controller
                 if ($detail->bahanBaku) {
                     $bahan = $detail->bahanBaku;
                     
-                    // Calculate nominal needed using DETAIL subtotal (from HPP)
-                    $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated)
+                    // CRITICAL: Get the actual nominal needed and available from detail
+                    // Detail sudah menyimpan subtotal yang benar (dari HPP calculation)
+                    $nominalButuh = (float)$detail->subtotal; // Nominal yang dibutuhkan (Rp)
                     
-                    // SIMPLE APPROACH: Use stok × harga from detail (same unit/price as in production plan)
-                    // This matches what user sees in Laporan Stok
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // Current stock qty
-                    $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Price from HPP detail (already in correct unit)
-                    $nominalTersedia = $stokQty * $hargaSatuanDetail; // Total value available using HPP price
+                    // Get current stock quantity (real-time)
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0);
+                    
+                    // IMPORTANT: Get price PER UNIT from detail (this is already calculated correctly in HPP)
+                    // We need to match the price unit with stock unit
+                    $hargaPerUnitDetail = (float)$detail->harga_satuan; // Price per unit from detail
+                    $satuanDetail = $detail->satuan_resep; // Unit from detail
+                    $satuanStok = $bahan->satuan->nama ?? 'unit'; // Unit in stock
+                    
+                    // If detail unit matches stock unit, simple calculation
+                    if (strtolower($satuanDetail) === strtolower($satuanStok) || 
+                        str_contains(strtolower($satuanStok), strtolower($satuanDetail)) ||
+                        str_contains(strtolower($satuanDetail), strtolower($satuanStok))) {
+                        // Same unit - straightforward
+                        $nominalTersedia = $stokQty * $hargaPerUnitDetail;
+                    } else {
+                        // Different units - need conversion
+                        // Get the price for stock unit by converting
+                        $qtyInStockUnit = $bahan->konversiBerdasarkanProduksi($detail->qty_resep, $satuanDetail, $satuanStok);
+                        if ($qtyInStockUnit > 0 && $detail->qty_resep > 0) {
+                            $conversionFactor = $qtyInStockUnit / $detail->qty_resep;
+                            $hargaPerStockUnit = $hargaPerUnitDetail / $conversionFactor;
+                        } else {
+                            $hargaPerStockUnit = $hargaPerUnitDetail; // Fallback
+                        }
+                        $nominalTersedia = $stokQty * $hargaPerStockUnit;
+                    }
                     
                     // DEBUGGING: Log validation details
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
                         'detail_id' => $detail->id,
                         'detail_qty_resep' => $detail->qty_resep,
-                        'detail_satuan_resep' => $detail->satuan_resep,
-                        'detail_harga_satuan' => $detail->harga_satuan,
+                        'detail_satuan_resep' => $satuanDetail,
+                        'detail_harga_satuan' => $hargaPerUnitDetail,
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
+                        'satuan_stok' => $satuanStok,
                         'stok_qty' => $stokQty,
-                        'harga_satuan_detail' => $hargaSatuanDetail,
                         'nominal_tersedia' => $nominalTersedia,
+                        'unit_match' => ($satuanDetail === $satuanStok) ? 'SAME' : 'DIFFERENT',
                         'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
                     if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " {$bahan->satuan->nama})";
+                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " {$satuanStok})";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
