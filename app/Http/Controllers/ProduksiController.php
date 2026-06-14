@@ -236,42 +236,27 @@ class ProduksiController extends Controller
                     // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
                     $nominalButuh = (float)$detail->subtotal;
                     
-                    // NOMINAL yang tersedia: Hitung dari StockMovement total_cost
+                    // CRITICAL: Sum ALL stock movements regardless of unit
+                    // This handles cases where same material has multiple units (kg, gram, cup, etc.)
                     $userId = auth()->id();
                     
-                    // Get sum of all purchase costs (IN)
+                    // Get sum of ALL purchase costs (IN) - regardless of unit
                     $totalCostIn = \DB::table('stock_movements')
                         ->where('item_type', 'material')
                         ->where('item_id', $bahan->id)
                         ->where('user_id', $userId)
                         ->where('direction', 'in')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
+                        ->sum('total_cost'); // Include ALL movements, even adjustments
                     
-                    // Get sum of all usage costs (OUT)
+                    // Get sum of ALL usage costs (OUT) - regardless of unit
                     $totalCostOut = \DB::table('stock_movements')
                         ->where('item_type', 'material')
                         ->where('item_id', $bahan->id)
                         ->where('user_id', $userId)
                         ->where('direction', 'out')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
+                        ->sum('total_cost'); // Include ALL movements, even adjustments
                     
                     $nominalTersedia = $totalCostIn - $totalCostOut;
-                    
-                    // FALLBACK: If no movements, calculate from current stock
-                    if ($totalCostIn == 0) {
-                        // Use saldo_awal as fallback
-                        $saldoAwal = (float)($bahan->saldo_awal ?? 0);
-                        $hargaSaldoAwal = (float)($bahan->harga_satuan ?? $detail->harga_satuan ?? 0);
-                        $nominalTersedia = $saldoAwal * $hargaSaldoAwal;
-                        
-                        \Log::warning("FALLBACK - Using saldo_awal for {$bahan->nama_bahan}", [
-                            'saldo_awal' => $saldoAwal,
-                            'harga' => $hargaSaldoAwal,
-                            'nominal_tersedia' => $nominalTersedia
-                        ]);
-                    }
                     
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0);
                     
@@ -279,8 +264,8 @@ class ProduksiController extends Controller
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
                         'nominal_butuh' => $nominalButuh,
-                        'total_cost_in' => $totalCostIn,
-                        'total_cost_out' => $totalCostOut,
+                        'total_cost_in_all_units' => $totalCostIn,
+                        'total_cost_out_all_units' => $totalCostOut,
                         'nominal_tersedia' => $nominalTersedia,
                         'stok_qty' => $stokQty,
                         'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
@@ -299,42 +284,27 @@ class ProduksiController extends Controller
                     // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
                     $nominalButuh = (float)$detail->subtotal;
                     
-                    // NOMINAL yang tersedia: Hitung dari StockMovement total_cost
+                    // CRITICAL: Sum ALL stock movements regardless of unit
+                    // This handles cases where same material has multiple units
                     $userId = auth()->id();
                     
-                    // Get sum of all purchase costs (IN)
+                    // Get sum of ALL purchase costs (IN) - regardless of unit
                     $totalCostIn = \DB::table('stock_movements')
                         ->where('item_type', 'support')
                         ->where('item_id', $bahan->id)
                         ->where('user_id', $userId)
                         ->where('direction', 'in')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
+                        ->sum('total_cost'); // Include ALL movements, even adjustments
                     
-                    // Get sum of all usage costs (OUT)
+                    // Get sum of ALL usage costs (OUT) - regardless of unit
                     $totalCostOut = \DB::table('stock_movements')
                         ->where('item_type', 'support')
                         ->where('item_id', $bahan->id)
                         ->where('user_id', $userId)
                         ->where('direction', 'out')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
+                        ->sum('total_cost'); // Include ALL movements, even adjustments
                     
                     $nominalTersedia = $totalCostIn - $totalCostOut;
-                    
-                    // FALLBACK: If no movements, calculate from current stock
-                    if ($totalCostIn == 0) {
-                        // Use saldo_awal as fallback
-                        $saldoAwal = (float)($bahan->saldo_awal ?? 0);
-                        $hargaSaldoAwal = (float)($bahan->harga_satuan ?? $detail->harga_satuan ?? 0);
-                        $nominalTersedia = $saldoAwal * $hargaSaldoAwal;
-                        
-                        \Log::warning("FALLBACK - Using saldo_awal for {$bahan->nama_bahan}", [
-                            'saldo_awal' => $saldoAwal,
-                            'harga' => $hargaSaldoAwal,
-                            'nominal_tersedia' => $nominalTersedia
-                        ]);
-                    }
                     
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0);
                     
@@ -342,8 +312,8 @@ class ProduksiController extends Controller
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
                         'nominal_butuh' => $nominalButuh,
-                        'total_cost_in' => $totalCostIn,
-                        'total_cost_out' => $totalCostOut,
+                        'total_cost_in_all_units' => $totalCostIn,
+                        'total_cost_out_all_units' => $totalCostOut,
                         'nominal_tersedia' => $nominalTersedia,
                         'stok_qty' => $stokQty,
                         'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
