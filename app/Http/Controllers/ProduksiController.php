@@ -235,6 +235,7 @@ class ProduksiController extends Controller
                     
                     // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
                     $nominalButuh = (float)$detail->subtotal;
+                    $qtyButuh = (float)$detail->qty_resep;
                     
                     // CRITICAL: Sum ALL stock movements regardless of unit
                     // This handles cases where same material has multiple units (kg, gram, cup, etc.)
@@ -260,20 +261,37 @@ class ProduksiController extends Controller
                     
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0);
                     
+                    // FALLBACK: If no stock movements recorded (nominal = 0), use qty-based validation
+                    // This handles cases where materials were added before stock movement system
+                    $hasStockMovements = ($totalCostIn > 0 || $totalCostOut > 0);
+                    
                     // DEBUGGING
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
                         'nominal_butuh' => $nominalButuh,
+                        'qty_butuh' => $qtyButuh,
                         'total_cost_in_all_units' => $totalCostIn,
                         'total_cost_out_all_units' => $totalCostOut,
                         'nominal_tersedia' => $nominalTersedia,
                         'stok_qty' => $stokQty,
-                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
+                        'has_stock_movements' => $hasStockMovements,
+                        'validation_method' => $hasStockMovements ? 'NOMINAL' : 'QTY (Fallback)',
+                        'cukup' => $hasStockMovements ? ($nominalTersedia >= $nominalButuh ? 'YA' : 'TIDAK') : ($stokQty >= $qtyButuh ? 'YA' : 'TIDAK')
                     ]);
                     
-                    if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
-                        $shortNames[] = $bahan->nama_bahan;
+                    // Use nominal-based validation if stock movements exist, otherwise use qty
+                    if ($hasStockMovements) {
+                        // Nominal-based validation (preferred method)
+                        if ($nominalTersedia < $nominalButuh) {
+                            $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
+                            $shortNames[] = $bahan->nama_bahan;
+                        }
+                    } else {
+                        // Qty-based validation (fallback for legacy data)
+                        if ($stokQty < $qtyButuh) {
+                            $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh " . number_format($qtyButuh, 2) . " {$detail->satuan_resep}, tersedia " . number_format($stokQty, 2) . " (belum ada riwayat pembelian)";
+                            $shortNames[] = $bahan->nama_bahan;
+                        }
                     }
                 }
                 
@@ -283,6 +301,7 @@ class ProduksiController extends Controller
                     
                     // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
                     $nominalButuh = (float)$detail->subtotal;
+                    $qtyButuh = (float)$detail->qty_resep;
                     
                     // CRITICAL: Sum ALL stock movements regardless of unit
                     // This handles cases where same material has multiple units
@@ -308,20 +327,36 @@ class ProduksiController extends Controller
                     
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0);
                     
+                    // FALLBACK: If no stock movements recorded (nominal = 0), use qty-based validation
+                    $hasStockMovements = ($totalCostIn > 0 || $totalCostOut > 0);
+                    
                     // DEBUGGING
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
                         'nominal_butuh' => $nominalButuh,
+                        'qty_butuh' => $qtyButuh,
                         'total_cost_in_all_units' => $totalCostIn,
                         'total_cost_out_all_units' => $totalCostOut,
                         'nominal_tersedia' => $nominalTersedia,
                         'stok_qty' => $stokQty,
-                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
+                        'has_stock_movements' => $hasStockMovements,
+                        'validation_method' => $hasStockMovements ? 'NOMINAL' : 'QTY (Fallback)',
+                        'cukup' => $hasStockMovements ? ($nominalTersedia >= $nominalButuh ? 'YA' : 'TIDAK') : ($stokQty >= $qtyButuh ? 'YA' : 'TIDAK')
                     ]);
                     
-                    if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
-                        $shortNames[] = $bahan->nama_bahan;
+                    // Use nominal-based validation if stock movements exist, otherwise use qty
+                    if ($hasStockMovements) {
+                        // Nominal-based validation (preferred method)
+                        if ($nominalTersedia < $nominalButuh) {
+                            $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
+                            $shortNames[] = $bahan->nama_bahan;
+                        }
+                    } else {
+                        // Qty-based validation (fallback for legacy data)
+                        if ($stokQty < $qtyButuh) {
+                            $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh " . number_format($qtyButuh, 2) . " {$detail->satuan_resep}, tersedia " . number_format($stokQty, 2) . " (belum ada riwayat pembelian)";
+                            $shortNames[] = $bahan->nama_bahan;
+                        }
                     }
                 }
             }
