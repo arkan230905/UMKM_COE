@@ -122,10 +122,11 @@ class PegawaiController extends Controller
 
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
 
-        // Generate unique kode_pegawai (Globally sequential to satisfy DB unique constraint)
+        // Generate unique kode_pegawai — per tenant (user_id)
         $userId = auth()->id();
 
         $lastCode = Pegawai::withoutGlobalScopes()
+            ->where('user_id', $userId)
             ->where('kode_pegawai', 'LIKE', 'PGW%')
             ->orderByRaw('CAST(SUBSTRING(kode_pegawai, 4) AS UNSIGNED) DESC')
             ->value('kode_pegawai');
@@ -138,8 +139,8 @@ class PegawaiController extends Controller
         $nextNumber = $lastNumber + 1;
         $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
-        // Pastikan kode unik secara global
-        while (Pegawai::withoutGlobalScopes()->where('kode_pegawai', $kodePegawai)->exists()) {
+        // Pastikan kode unik untuk tenant ini
+        while (Pegawai::withoutGlobalScopes()->where('user_id', $userId)->where('kode_pegawai', $kodePegawai)->exists()) {
             $nextNumber++;
             $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
         }
