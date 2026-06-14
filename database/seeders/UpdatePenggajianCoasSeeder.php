@@ -108,12 +108,12 @@ class UpdatePenggajianCoasSeeder extends Seeder
                         'BTKL-Perbumbuan'  => 'Beban Upah Gaji (BTKL) - Perbumbuan',
                     ],
                     '521' => [
-                        'BTKL-Pencampuran' => 'Beban Upah Gaji (BTKL) - Pengukusan',
-                        'BTKL-Penggorengan'=> 'Beban Upah Gaji (BTKL) - Penggorengan',
+                        'BTKL-Pencampuran' => 'Beban Gaji Upah (BTKTL) - Pengukusan',
+                        'BTKL-Penggorengan'=> 'Beban Gaji Upah (BTKTL) - Penggorengan',
                     ],
                     '522' => [
-                        'BTKL-Pengemasan'  => 'Beban Upah Gaji (BTKL) - Pengemasan',
-                        'BTKL-Packaging'   => 'Beban Upah Gaji (BTKL) - Pengemasan',
+                        'BTKL-Pengemasan'  => 'Beban Gaji Upah (BTKTL) - Pengemasan',
+                        'BTKL-Packaging'   => 'Beban Gaji Upah (BTKTL) - Pengemasan',
                     ],
                 ];
 
@@ -211,7 +211,7 @@ class UpdatePenggajianCoasSeeder extends Seeder
                     ],
                     [
                         'kode_akun' => '521',
-                        'nama_akun' => 'Beban Upah Gaji (BTKL) - Penggorengan',
+                        'nama_akun' => 'Beban Gaji Upah (BTKTL) - Penggorengan',
                         'tipe_akun' => 'Beban',
                         'kategori_akun' => 'Beban',
                         'saldo_normal' => 'debit',
@@ -219,7 +219,7 @@ class UpdatePenggajianCoasSeeder extends Seeder
                     ],
                     [
                         'kode_akun' => '522',
-                        'nama_akun' => 'Beban Upah Gaji (BTKL) - Pengemasan',
+                        'nama_akun' => 'Beban Gaji Upah (BTKTL) - Pengemasan',
                         'tipe_akun' => 'Beban',
                         'kategori_akun' => 'Beban',
                         'saldo_normal' => 'debit',
@@ -328,8 +328,8 @@ class UpdatePenggajianCoasSeeder extends Seeder
 
                 $templateUpdates = [
                     ['kode_akun' => '520', 'new_name' => 'Beban Upah Gaji (BTKL) - Perbumbuan'],
-                    ['kode_akun' => '521', 'new_name' => 'Beban Upah Gaji (BTKL) - Penggorengan'],
-                    ['kode_akun' => '522', 'new_name' => 'Beban Upah Gaji (BTKL) - Pengemasan'],
+                    ['kode_akun' => '521', 'new_name' => 'Beban Gaji Upah (BTKTL) - Penggorengan'],
+                    ['kode_akun' => '522', 'new_name' => 'Beban Gaji Upah (BTKTL) - Pengemasan'],
                 ];
 
                 foreach ($templateUpdates as $account) {
