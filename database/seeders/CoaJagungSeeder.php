@@ -39,7 +39,7 @@ class CoaJagungSeeder extends Seeder
             // 2. WIP (Work in Process) - CORRECTED CODES: 1171, 1172, 1173
             [
                 'user_id' => $userId,
-                'kode_induk' => '117', // Parent: 117 - Persediaan Barang Dalam Proses
+                'kode_induk' => null, // Parent: 117 - Persediaan Barang Dalam Proses
                 'kode_akun' => '1171',
                 'nama_akun' => 'Pers. Barang Dalam Proses - BBB (WIP BBB)',
                 'tipe_akun' => 'Aset',
@@ -54,7 +54,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '117', // Parent: 117
+                'kode_induk' => null, // Parent: 117
                 'kode_akun' => '1172',
                 'nama_akun' => 'Pers. Barang Dalam Proses - BTKL (WIP BTKL)',
                 'tipe_akun' => 'Aset',
@@ -69,7 +69,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '117', // Parent: 117
+                'kode_induk' => null, // Parent: 117
                 'kode_akun' => '1173',
                 'nama_akun' => 'Pers. Barang Dalam Proses - BOP (WIP BOP)',
                 'tipe_akun' => 'Aset',
@@ -86,7 +86,7 @@ class CoaJagungSeeder extends Seeder
             // 3. Harga Pokok Penjualan (HPP)
             [
                 'user_id' => $userId,
-                'kode_induk' => '5', // Parent: 5 - Beban
+                'kode_induk' => null, // Parent: 5 - Beban
                 'kode_akun' => '56',
                 'nama_akun' => 'Harga Pokok Penjualan',
                 'tipe_akun' => 'Beban',
@@ -103,7 +103,7 @@ class CoaJagungSeeder extends Seeder
             // 4. Bank Accounts (if not exist)
             [
                 'user_id' => $userId,
-                'kode_induk' => '111', // Parent: 111 - Kas Bank
+                'kode_induk' => null, // Parent: 111 - Kas Bank
                 'kode_akun' => '1111',
                 'nama_akun' => 'Bank BCA',
                 'tipe_akun' => 'Aset',
@@ -118,7 +118,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '111', // Parent: 111
+                'kode_induk' => null, // Parent: 111
                 'kode_akun' => '1112',
                 'nama_akun' => 'Bank Mandiri',
                 'tipe_akun' => 'Aset',
@@ -133,7 +133,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '111', // Parent: 111
+                'kode_induk' => null, // Parent: 111
                 'kode_akun' => '1113',
                 'nama_akun' => 'Bank BRI',
                 'tipe_akun' => 'Aset',
