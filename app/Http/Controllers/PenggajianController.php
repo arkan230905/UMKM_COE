@@ -64,7 +64,9 @@ class PenggajianController extends Controller
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pegawais = Pegawai::with('jabatanRelasi')
+            ->select('pegawais.*')
             ->where('user_id', auth()->id())
+            ->orderBy('nama')
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
@@ -97,7 +99,9 @@ class PenggajianController extends Controller
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pegawais = Pegawai::with('jabatanRelasi')
+            ->select('pegawais.*')
             ->where('user_id', auth()->id())
+            ->orderBy('nama')
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
@@ -1282,7 +1286,9 @@ class PenggajianController extends Controller
         
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pegawais = Pegawai::with('jabatanRelasi')
+            ->select('pegawais.*')
             ->where('user_id', auth()->id())
+            ->orderBy('nama')
             ->get();
         $coaKasBank = \App\Models\Coa::whereIn('kode_akun', ['111', '112'])->get();
         
