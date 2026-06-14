@@ -132,7 +132,8 @@ class UpdatePenggajianCoasSeeder extends Seeder
                             ->update(['nama_akun' => $newName, 'updated_at' => $now]);
                         $this->command->info("     ✓ RENAMED: {$kode} '{$coa->nama_akun}' → '{$newName}'");
                     } else {
-                        $this->command->info("     ✓ {$kode}: tidak perlu diupdate ({$coa->nama_akun ?? 'tidak ada'})");
+                        $namaAkun = $coa ? $coa->nama_akun : 'tidak ada';
+                        $this->command->info("     ✓ {$kode}: tidak perlu diupdate ({$namaAkun})");
                     }
                 }
 
