@@ -238,19 +238,38 @@ class ProduksiController extends Controller
                     
                     // IMPORTANT: Get nominal tersedia from StockMovement (total_cost sum)
                     // This ensures consistency because StockMovement records the actual value
+                    $userId = auth()->id(); // CRITICAL: Multi-tenant isolation
+                    
                     $stockMovementsIn = \App\Models\StockMovement::where('item_type', 'material')
                         ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
                         ->where('direction', 'in')
                         ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
                         ->sum('total_cost');
                     
                     $stockMovementsOut = \App\Models\StockMovement::where('item_type', 'material')
                         ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
                         ->where('direction', 'out')
                         ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
                         ->sum('total_cost');
                     
                     $nominalTersedia = $stockMovementsIn - $stockMovementsOut; // Net nominal available (Rp)
+                    
+                    // FALLBACK: If no stock movements yet, use stok × harga_satuan from detail (HPP price)
+                    if ($stockMovementsIn == 0 && $stockMovementsOut == 0) {
+                        $stokQty = (float)($bahan->stok ?? 0);
+                        $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Use HPP price from detail
+                        $nominalTersedia = $stokQty * $hargaSatuanDetail;
+                        
+                        \Log::warning("FALLBACK - No StockMovement found for Bahan Baku {$bahan->nama_bahan}, using stok × harga from detail", [
+                            'bahan_id' => $bahan->id,
+                            'stok_qty' => $stokQty,
+                            'harga_satuan_detail' => $hargaSatuanDetail,
+                            'nominal_tersedia_fallback' => $nominalTersedia
+                        ]);
+                    }
+                    
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // For display only
                     
                     // DEBUGGING: Log validation details
@@ -262,6 +281,7 @@ class ProduksiController extends Controller
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
+                        'user_id' => $userId,
                         'stock_movements_in' => $stockMovementsIn,
                         'stock_movements_out' => $stockMovementsOut,
                         'nominal_tersedia' => $nominalTersedia,
@@ -284,19 +304,38 @@ class ProduksiController extends Controller
                     
                     // IMPORTANT: Get nominal tersedia from StockMovement (total_cost sum)
                     // This ensures consistency because StockMovement records the actual value
+                    $userId = auth()->id(); // CRITICAL: Multi-tenant isolation
+                    
                     $stockMovementsIn = \App\Models\StockMovement::where('item_type', 'support')
                         ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
                         ->where('direction', 'in')
                         ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
                         ->sum('total_cost');
                     
                     $stockMovementsOut = \App\Models\StockMovement::where('item_type', 'support')
                         ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
                         ->where('direction', 'out')
                         ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
                         ->sum('total_cost');
                     
                     $nominalTersedia = $stockMovementsIn - $stockMovementsOut; // Net nominal available (Rp)
+                    
+                    // FALLBACK: If no stock movements yet, use stok × harga_satuan from detail (HPP price)
+                    if ($stockMovementsIn == 0 && $stockMovementsOut == 0) {
+                        $stokQty = (float)($bahan->saldo_awal ?? 0);
+                        $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Use HPP price from detail
+                        $nominalTersedia = $stokQty * $hargaSatuanDetail;
+                        
+                        \Log::warning("FALLBACK - No StockMovement found for Bahan Pendukung {$bahan->nama_bahan}, using stok × harga from detail", [
+                            'bahan_id' => $bahan->id,
+                            'stok_qty' => $stokQty,
+                            'harga_satuan_detail' => $hargaSatuanDetail,
+                            'nominal_tersedia_fallback' => $nominalTersedia
+                        ]);
+                    }
+                    
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // For display only
                     
                     // DEBUGGING: Log validation details
@@ -308,6 +347,7 @@ class ProduksiController extends Controller
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
+                        'user_id' => $userId,
                         'stock_movements_in' => $stockMovementsIn,
                         'stock_movements_out' => $stockMovementsOut,
                         'nominal_tersedia' => $nominalTersedia,
