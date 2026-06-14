@@ -150,7 +150,7 @@ class CoaJagungSeeder extends Seeder
             // 5. Akun Penggajian (Permintaan Jagung Web)
             [
                 'user_id' => $userId,
-                'kode_induk' => '52', 
+                'kode_induk' => null, 
                 'kode_akun' => '521',
                 'nama_akun' => 'Beban Gaji Upah (BTKTL) - Pengukusan',
                 'tipe_akun' => 'Beban',
@@ -165,7 +165,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '52', 
+                'kode_induk' => null, 
                 'kode_akun' => '522',
                 'nama_akun' => 'Beban Gaji Upah (BTKTL) - Pengemasan',
                 'tipe_akun' => 'Beban',
@@ -180,7 +180,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '5',
+                'kode_induk' => null,
                 'kode_akun' => '513',
                 'nama_akun' => 'Beban Tunjangan',
                 'tipe_akun' => 'Beban',
@@ -195,7 +195,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '5',
+                'kode_induk' => null,
                 'kode_akun' => '514',
                 'nama_akun' => 'Beban Asuransi',
                 'tipe_akun' => 'Beban',
@@ -210,7 +210,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '5',
+                'kode_induk' => null,
                 'kode_akun' => '516',
                 'nama_akun' => 'Pembulatan Upah Gaji',
                 'tipe_akun' => 'Beban',
@@ -225,7 +225,7 @@ class CoaJagungSeeder extends Seeder
             ],
             [
                 'user_id' => $userId,
-                'kode_induk' => '2',
+                'kode_induk' => null,
                 'kode_akun' => '211',
                 'nama_akun' => 'Hutang Upah Gaji',
                 'tipe_akun' => 'Kewajiban',
