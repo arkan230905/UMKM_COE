@@ -233,90 +233,124 @@ class ProduksiController extends Controller
                 if ($detail->bahanBaku) {
                     $bahan = $detail->bahanBaku;
                     
-                    // CRITICAL: Get the actual nominal needed and available from detail
-                    // Detail sudah menyimpan subtotal yang benar (dari HPP calculation)
-                    $nominalButuh = (float)$detail->subtotal; // Nominal yang dibutuhkan (Rp)
+                    // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
+                    $nominalButuh = (float)$detail->subtotal;
                     
-                    // Get current stock quantity (real-time)
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0);
+                    // NOMINAL yang tersedia: Hitung dari StockMovement total_cost
+                    $userId = auth()->id();
                     
-                    // IMPORTANT: Get price PER UNIT from detail (this is already calculated correctly in HPP)
-                    // We need to match the price unit with stock unit
-                    $hargaPerUnitDetail = (float)$detail->harga_satuan; // Price per unit from detail
-                    $satuanDetail = $detail->satuan_resep; // Unit from detail
-                    $satuanStok = $bahan->satuan->nama ?? 'unit'; // Unit in stock
+                    // Get sum of all purchase costs (IN)
+                    $totalCostIn = \DB::table('stock_movements')
+                        ->where('item_type', 'material')
+                        ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId)
+                        ->where('direction', 'in')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
                     
-                    // If detail unit matches stock unit, simple calculation
-                    if (strtolower($satuanDetail) === strtolower($satuanStok) || 
-                        str_contains(strtolower($satuanStok), strtolower($satuanDetail)) ||
-                        str_contains(strtolower($satuanDetail), strtolower($satuanStok))) {
-                        // Same unit - straightforward
-                        $nominalTersedia = $stokQty * $hargaPerUnitDetail;
-                    } else {
-                        // Different units - need conversion
-                        // Get the price for stock unit by converting
-                        $qtyInStockUnit = $bahan->konversiBerdasarkanProduksi($detail->qty_resep, $satuanDetail, $satuanStok);
-                        if ($qtyInStockUnit > 0 && $detail->qty_resep > 0) {
-                            $conversionFactor = $qtyInStockUnit / $detail->qty_resep;
-                            $hargaPerStockUnit = $hargaPerUnitDetail / $conversionFactor;
-                        } else {
-                            $hargaPerStockUnit = $hargaPerUnitDetail; // Fallback
-                        }
-                        $nominalTersedia = $stokQty * $hargaPerStockUnit;
+                    // Get sum of all usage costs (OUT)
+                    $totalCostOut = \DB::table('stock_movements')
+                        ->where('item_type', 'material')
+                        ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId)
+                        ->where('direction', 'out')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    $nominalTersedia = $totalCostIn - $totalCostOut;
+                    
+                    // FALLBACK: If no movements, calculate from current stock
+                    if ($totalCostIn == 0) {
+                        // Use saldo_awal as fallback
+                        $saldoAwal = (float)($bahan->saldo_awal ?? 0);
+                        $hargaSaldoAwal = (float)($bahan->harga_satuan ?? $detail->harga_satuan ?? 0);
+                        $nominalTersedia = $saldoAwal * $hargaSaldoAwal;
+                        
+                        \Log::warning("FALLBACK - Using saldo_awal for {$bahan->nama_bahan}", [
+                            'saldo_awal' => $saldoAwal,
+                            'harga' => $hargaSaldoAwal,
+                            'nominal_tersedia' => $nominalTersedia
+                        ]);
                     }
                     
-                    // DEBUGGING: Log validation details
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0);
+                    
+                    // DEBUGGING
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
-                        'detail_id' => $detail->id,
-                        'detail_qty_resep' => $detail->qty_resep,
-                        'detail_satuan_resep' => $satuanDetail,
-                        'detail_harga_satuan' => $hargaPerUnitDetail,
-                        'detail_subtotal' => $detail->subtotal,
-                        'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
-                        'satuan_stok' => $satuanStok,
-                        'stok_qty' => $stokQty,
+                        'nominal_butuh' => $nominalButuh,
+                        'total_cost_in' => $totalCostIn,
+                        'total_cost_out' => $totalCostOut,
                         'nominal_tersedia' => $nominalTersedia,
-                        'unit_match' => ($satuanDetail === $satuanStok) ? 'SAME' : 'DIFFERENT',
+                        'stok_qty' => $stokQty,
                         'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
                     if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " {$satuanStok})";
+                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
                 
-                // Check Bahan Pendukung - Using NOMINAL/VALUE (existing logic - keep as is)
+                // Check Bahan Pendukung - Using NOMINAL/VALUE
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
                     
-                    // Calculate nominal needed using DETAIL price (from HPP) for consistency
-                    $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated: qty * harga from HPP)
+                    // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
+                    $nominalButuh = (float)$detail->subtotal;
                     
-                    // SIMPLE APPROACH: Use stok × harga from detail (same unit/price as in production plan)
-                    // This matches what user sees in Laporan Stok
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // Current stock qty
-                    $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Price from HPP detail (already in correct unit)
-                    $nominalTersedia = $stokQty * $hargaSatuanDetail; // Total value available using HPP price
+                    // NOMINAL yang tersedia: Hitung dari StockMovement total_cost
+                    $userId = auth()->id();
                     
-                    // DEBUGGING: Log validation details
+                    // Get sum of all purchase costs (IN)
+                    $totalCostIn = \DB::table('stock_movements')
+                        ->where('item_type', 'support')
+                        ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId)
+                        ->where('direction', 'in')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    // Get sum of all usage costs (OUT)
+                    $totalCostOut = \DB::table('stock_movements')
+                        ->where('item_type', 'support')
+                        ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId)
+                        ->where('direction', 'out')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    $nominalTersedia = $totalCostIn - $totalCostOut;
+                    
+                    // FALLBACK: If no movements, calculate from current stock
+                    if ($totalCostIn == 0) {
+                        // Use saldo_awal as fallback
+                        $saldoAwal = (float)($bahan->saldo_awal ?? 0);
+                        $hargaSaldoAwal = (float)($bahan->harga_satuan ?? $detail->harga_satuan ?? 0);
+                        $nominalTersedia = $saldoAwal * $hargaSaldoAwal;
+                        
+                        \Log::warning("FALLBACK - Using saldo_awal for {$bahan->nama_bahan}", [
+                            'saldo_awal' => $saldoAwal,
+                            'harga' => $hargaSaldoAwal,
+                            'nominal_tersedia' => $nominalTersedia
+                        ]);
+                    }
+                    
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0);
+                    
+                    // DEBUGGING
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
-                        'detail_id' => $detail->id,
-                        'detail_qty_resep' => $detail->qty_resep,
-                        'detail_satuan_resep' => $detail->satuan_resep,
-                        'detail_harga_satuan' => $detail->harga_satuan,
-                        'detail_subtotal' => $detail->subtotal,
-                        'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
-                        'stok_qty' => $stokQty,
-                        'harga_satuan_detail' => $hargaSatuanDetail,
+                        'nominal_butuh' => $nominalButuh,
+                        'total_cost_in' => $totalCostIn,
+                        'total_cost_out' => $totalCostOut,
                         'nominal_tersedia' => $nominalTersedia,
+                        'stok_qty' => $stokQty,
                         'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
                     if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . ")";
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
