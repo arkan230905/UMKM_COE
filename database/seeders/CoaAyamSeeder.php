@@ -143,6 +143,7 @@ class CoaAyamSeeder extends Seeder
             ['kode_akun' => '557',  'nama_akun' => 'BOP - Lainnya',                                   'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '558',  'nama_akun' => 'Beban Transport Pembelian',                       'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             ['kode_akun' => '559',  'nama_akun' => 'Diskon Pembelian',                                'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
+            ['kode_akun' => '560',  'nama_akun' => 'BOP - Gas',                                       'tipe_akun' => 'Biaya',      'saldo_normal' => 'debit'],
             
             // Harga Pokok Penjualan
             ['kode_akun' => '56',   'nama_akun' => 'Harga Pokok Penjualan',                           'tipe_akun' => 'Beban',      'saldo_normal' => 'debit'],
