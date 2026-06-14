@@ -236,41 +236,11 @@ class ProduksiController extends Controller
                     // Calculate nominal needed using DETAIL subtotal (from HPP)
                     $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated)
                     
-                    // IMPORTANT: Get nominal tersedia from StockMovement (total_cost sum)
-                    // This ensures consistency because StockMovement records the actual value
-                    $userId = auth()->id(); // CRITICAL: Multi-tenant isolation
-                    
-                    $stockMovementsIn = \App\Models\StockMovement::where('item_type', 'material')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
-                        ->where('direction', 'in')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
-                    
-                    $stockMovementsOut = \App\Models\StockMovement::where('item_type', 'material')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
-                        ->where('direction', 'out')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
-                    
-                    $nominalTersedia = $stockMovementsIn - $stockMovementsOut; // Net nominal available (Rp)
-                    
-                    // FALLBACK: If no stock movements yet, use stok × harga_satuan from detail (HPP price)
-                    if ($stockMovementsIn == 0 && $stockMovementsOut == 0) {
-                        $stokQty = (float)($bahan->stok ?? 0);
-                        $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Use HPP price from detail
-                        $nominalTersedia = $stokQty * $hargaSatuanDetail;
-                        
-                        \Log::warning("FALLBACK - No StockMovement found for Bahan Baku {$bahan->nama_bahan}, using stok × harga from detail", [
-                            'bahan_id' => $bahan->id,
-                            'stok_qty' => $stokQty,
-                            'harga_satuan_detail' => $hargaSatuanDetail,
-                            'nominal_tersedia_fallback' => $nominalTersedia
-                        ]);
-                    }
-                    
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // For display only
+                    // SIMPLE APPROACH: Use stok × harga from detail (same unit/price as in production plan)
+                    // This matches what user sees in Laporan Stok
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // Current stock qty
+                    $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Price from HPP detail (already in correct unit)
+                    $nominalTersedia = $stokQty * $hargaSatuanDetail; // Total value available using HPP price
                     
                     // DEBUGGING: Log validation details
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
@@ -281,16 +251,14 @@ class ProduksiController extends Controller
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
-                        'user_id' => $userId,
-                        'stock_movements_in' => $stockMovementsIn,
-                        'stock_movements_out' => $stockMovementsOut,
+                        'stok_qty' => $stokQty,
+                        'harga_satuan_detail' => $hargaSatuanDetail,
                         'nominal_tersedia' => $nominalTersedia,
-                        'stok_qty_display' => $stokQty,
-                        'cukup' => ($nominalTersedia + 1e-2 >= $nominalButuh) ? 'YA' : 'TIDAK'
+                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
-                    if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
-                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . " {$bahan->satuan->nama})";
+                    if ($nominalTersedia < $nominalButuh) {
+                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " {$bahan->satuan->nama})";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
@@ -302,41 +270,11 @@ class ProduksiController extends Controller
                     // Calculate nominal needed using DETAIL price (from HPP) for consistency
                     $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated: qty * harga from HPP)
                     
-                    // IMPORTANT: Get nominal tersedia from StockMovement (total_cost sum)
-                    // This ensures consistency because StockMovement records the actual value
-                    $userId = auth()->id(); // CRITICAL: Multi-tenant isolation
-                    
-                    $stockMovementsIn = \App\Models\StockMovement::where('item_type', 'support')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
-                        ->where('direction', 'in')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
-                    
-                    $stockMovementsOut = \App\Models\StockMovement::where('item_type', 'support')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId) // CRITICAL: Filter by user_id
-                        ->where('direction', 'out')
-                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
-                        ->sum('total_cost');
-                    
-                    $nominalTersedia = $stockMovementsIn - $stockMovementsOut; // Net nominal available (Rp)
-                    
-                    // FALLBACK: If no stock movements yet, use stok × harga_satuan from detail (HPP price)
-                    if ($stockMovementsIn == 0 && $stockMovementsOut == 0) {
-                        $stokQty = (float)($bahan->saldo_awal ?? 0);
-                        $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Use HPP price from detail
-                        $nominalTersedia = $stokQty * $hargaSatuanDetail;
-                        
-                        \Log::warning("FALLBACK - No StockMovement found for Bahan Pendukung {$bahan->nama_bahan}, using stok × harga from detail", [
-                            'bahan_id' => $bahan->id,
-                            'stok_qty' => $stokQty,
-                            'harga_satuan_detail' => $hargaSatuanDetail,
-                            'nominal_tersedia_fallback' => $nominalTersedia
-                        ]);
-                    }
-                    
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // For display only
+                    // SIMPLE APPROACH: Use stok × harga from detail (same unit/price as in production plan)
+                    // This matches what user sees in Laporan Stok
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // Current stock qty
+                    $hargaSatuanDetail = $detail->harga_satuan ?? 0; // Price from HPP detail (already in correct unit)
+                    $nominalTersedia = $stokQty * $hargaSatuanDetail; // Total value available using HPP price
                     
                     // DEBUGGING: Log validation details
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
@@ -347,16 +285,14 @@ class ProduksiController extends Controller
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
-                        'user_id' => $userId,
-                        'stock_movements_in' => $stockMovementsIn,
-                        'stock_movements_out' => $stockMovementsOut,
+                        'stok_qty' => $stokQty,
+                        'harga_satuan_detail' => $hargaSatuanDetail,
                         'nominal_tersedia' => $nominalTersedia,
-                        'stok_qty_display' => $stokQty,
-                        'cukup' => ($nominalTersedia + 1e-2 >= $nominalButuh) ? 'YA' : 'TIDAK'
+                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
-                    if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . ")";
+                    if ($nominalTersedia < $nominalButuh) {
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . ")";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
