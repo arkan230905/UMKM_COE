@@ -47,10 +47,32 @@ class Pegawai extends Model
                 $model->user_id = auth()->id();
             }
             
-            // Auto-generate kode_pegawai jika kosong
+            // Auto-generate kode_pegawai jika kosong — per tenant (user_id)
             if (empty($model->kode_pegawai)) {
-                $lastId = static::max('id') ?? 0;
-                $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+                $userId = $model->user_id ?? (auth()->check() ? auth()->id() : null);
+
+                // Ambil nomor urut tertinggi khusus untuk user/tenant ini
+                $lastCode = static::withoutGlobalScopes()
+                    ->where('user_id', $userId)
+                    ->where('kode_pegawai', 'LIKE', 'PGW%')
+                    ->orderByRaw('CAST(SUBSTRING(kode_pegawai, 4) AS UNSIGNED) DESC')
+                    ->value('kode_pegawai');
+
+                $lastNumber = 0;
+                if ($lastCode && preg_match('/^PGW(\d+)$/', $lastCode, $m)) {
+                    $lastNumber = (int) $m[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+                $newCode    = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+                // Pastikan tidak duplikat (untuk tenant yang sama)
+                while (static::withoutGlobalScopes()->where('user_id', $userId)->where('kode_pegawai', $newCode)->exists()) {
+                    $nextNumber++;
+                    $newCode = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                }
+
+                $model->kode_pegawai = $newCode;
             }
         });
 

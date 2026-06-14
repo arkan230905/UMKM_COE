@@ -67,7 +67,7 @@
 
                     <div class="col-md-6">
                         <label for="coa_kasbank" class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
-                        <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required>
+                        <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required onchange="updateMetodePembayaran()">
                             <option value="">-- Pilih --</option>
                             @foreach ($kasbank as $kb)
                                 @php
@@ -75,11 +75,12 @@
                                     if (str_contains($labelStr, 'kas kecil')) continue;
                                     $label = str_contains($labelStr, 'bank') ? 'Transfer Bank' : 'Tunai';
                                 @endphp
-                                <option value="{{ $kb->kode_akun }}">
+                                <option value="{{ $kb->kode_akun }}" data-nama="{{ strtolower($kb->nama_akun) }}">
                                     {{ $label }}
                                 </option>
                             @endforeach
                         </select>
+                        <input type="hidden" name="metode_pembayaran" id="metode_pembayaran" value="transfer_bank">
                         @error('coa_kasbank')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
@@ -587,6 +588,31 @@
         const gajiFinal = parseRupiah(document.getElementById('display_gaji_final').value);
         document.getElementById('h-final').value = gajiFinal;
     });
+
+    // Update Metode Pembayaran berdasarkan pilihan COA Kas/Bank
+    function updateMetodePembayaran() {
+        const select = document.getElementById('coa_kasbank');
+        const hiddenField = document.getElementById('metode_pembayaran');
+        
+        if (!hiddenField) return;
+        
+        if (select.selectedIndex > 0) {
+            const selectedOption = select.options[select.selectedIndex];
+            const namaAkun = (selectedOption.getAttribute('data-nama') || selectedOption.text).toLowerCase();
+            
+            // Deteksi apakah Tunai atau Transfer berdasarkan nama akun
+            if (namaAkun.includes('kas') || namaAkun.includes('tunai') || namaAkun.includes('cash')) {
+                hiddenField.value = 'tunai';
+            } else if (namaAkun.includes('bank') || namaAkun.includes('transfer')) {
+                hiddenField.value = 'transfer_bank';
+            } else {
+                // Default ke transfer_bank
+                hiddenField.value = 'transfer_bank';
+            }
+        } else {
+            hiddenField.value = 'transfer_bank';
+        }
+    }
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {

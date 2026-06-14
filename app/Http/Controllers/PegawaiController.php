@@ -122,16 +122,25 @@ class PegawaiController extends Controller
 
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
 
-        // Generate unique kode_pegawai
-        $lastPegawai = Pegawai::withoutGlobalScopes()
-            ->orderBy('id', 'desc')
-            ->first();
-        
-        $nextNumber = $lastPegawai ? ($lastPegawai->id + 1) : 1;
+        // Generate unique kode_pegawai — per tenant (user_id)
+        $userId = auth()->id();
+
+        $lastCode = Pegawai::withoutGlobalScopes()
+            ->where('user_id', $userId)
+            ->where('kode_pegawai', 'LIKE', 'PGW%')
+            ->orderByRaw('CAST(SUBSTRING(kode_pegawai, 4) AS UNSIGNED) DESC')
+            ->value('kode_pegawai');
+
+        $lastNumber = 0;
+        if ($lastCode && preg_match('/^PGW(\d+)$/', $lastCode, $m)) {
+            $lastNumber = (int) $m[1];
+        }
+
+        $nextNumber = $lastNumber + 1;
         $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-        
-        // Pastikan kode unik (jika ada yang dihapus)
-        while (Pegawai::withoutGlobalScopes()->where('kode_pegawai', $kodePegawai)->exists()) {
+
+        // Pastikan kode unik untuk tenant ini
+        while (Pegawai::withoutGlobalScopes()->where('user_id', $userId)->where('kode_pegawai', $kodePegawai)->exists()) {
             $nextNumber++;
             $kodePegawai = 'PGW' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
         }

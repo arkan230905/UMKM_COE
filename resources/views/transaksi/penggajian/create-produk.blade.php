@@ -67,14 +67,16 @@
 
                     <div class="col-md-6">
                         <label for="coa_kasbank" class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
-                        <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required>
+                        <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required onchange="updateMetodePembayaran()">
                             <option value="">-- Pilih --</option>
                             @foreach ($kasbank as $kb)
-                                <option value="{{ $kb->kode_akun }}">
+                                <option value="{{ $kb->kode_akun }}" data-nama="{{ strtolower($kb->nama_akun) }}">
                                     {{ $kb->nama_akun }}
                                 </option>
                             @endforeach
                         </select>
+                        <!-- Hidden field untuk metode_pembayaran -->
+                        <input type="hidden" name="metode_pembayaran" id="metode_pembayaran" value="transfer_bank">
                         @error('coa_kasbank')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
@@ -254,6 +256,32 @@
     // Konstanta
     let TARIF_PRODUK = 0;
     let IS_PRODUKSI = true;
+
+    // Update Metode Pembayaran berdasarkan pilihan COA Kas/Bank
+    function updateMetodePembayaran() {
+        const select = document.getElementById('coa_kasbank');
+        const hiddenField = document.getElementById('metode_pembayaran');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption && selectedOption.value) {
+            const namaAkun = selectedOption.getAttribute('data-nama') || selectedOption.text.toLowerCase();
+            
+            // Deteksi apakah Tunai atau Transfer berdasarkan nama akun
+            if (namaAkun.includes('kas') || namaAkun.includes('tunai') || namaAkun.includes('cash')) {
+                hiddenField.value = 'tunai';
+                console.log('Metode Pembayaran: Tunai');
+            } else if (namaAkun.includes('bank') || namaAkun.includes('transfer')) {
+                hiddenField.value = 'transfer_bank';
+                console.log('Metode Pembayaran: Transfer Bank');
+            } else {
+                // Default ke transfer_bank
+                hiddenField.value = 'transfer_bank';
+                console.log('Metode Pembayaran: Transfer Bank (default)');
+            }
+        } else {
+            hiddenField.value = 'transfer_bank';
+        }
+    }
 
     // Format Rupiah dengan titik pemisah ribuan
     function formatRupiah(num) {
@@ -565,6 +593,7 @@
         console.log('Form initialized');
         clearFormState();
         setupRupiahFormatting(); // BUG 2 FIX: Setup format listener
+        updateMetodePembayaran(); // Initialize metode_pembayaran
         hitungOtomatis();
     });
 

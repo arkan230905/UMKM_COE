@@ -146,32 +146,48 @@
                                 <td class="text-end">Rp {{ number_format($potongan, 0, ',', '.') }}</td>
                                 <td class="text-end fw-bold text-primary">Rp {{ number_format($totalGaji, 0, ',', '.') }}</td>
                                 <td class="text-center">
-                                    <div class="d-flex gap-1 justify-content-center">
-                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
-                                            <i class="fas fa-eye"></i>
+                                    <div class="d-grid" style="grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                                        <!-- Row 1: Detail | Jurnal -->
+                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-sm btn-success w-100" title="Detail Penggajian">
+                                            Detail
                                         </a>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary w-100" 
+                                                title="Lihat Jurnal"
+                                                onclick="loadJournal({{ $gaji->id }}, 'PGJ{{ str_pad($gaji->id, 6, '0', STR_PAD_LEFT) }}')"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#journalModal">
+                                            Jurnal
+                                        </button>
+                                        
+                                        <!-- Row 2: Bayar | Hapus -->
                                         @if($gaji->status_pembayaran !== 'lunas')
-                                                <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="m-0 d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data penggajian ini?');">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                                <form action="{{ route('transaksi.penggajian.markAsPaid', $gaji->id) }}" method="POST" class="m-0 d-inline">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Tandai sebagai Sudah Dibayar">
-                                                        <i class="fas fa-check-circle"></i>
-                                                    </button>
-                                                </form>
-                                            @else
-                                                <button class="btn btn-outline-secondary btn-sm" disabled title="Tidak dapat dihapus karena sudah dibayar">
-                                                    <i class="fas fa-trash"></i>
+                                            <form action="{{ route('transaksi.penggajian.markAsPaid', $gaji->id) }}" method="POST" class="m-0 d-inline w-100">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-success w-100" title="Tandai Sudah Dibayar">
+                                                    Bayar
                                                 </button>
-                                                <button class="btn btn-outline-secondary btn-sm" disabled title="Sudah dibayar">
-                                                    <i class="fas fa-check-circle"></i>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-outline-secondary w-100" disabled title="Sudah Dibayar">
+                                                Lunas
+                                            </button>
+                                        @endif
+
+                                        @if($gaji->status_pembayaran !== 'lunas')
+                                            <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="m-0 d-inline w-100" onsubmit="return confirm('Yakin ingin hapus?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="Hapus Penggajian">
+                                                    Hapus
                                                 </button>
-                                            @endif
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-outline-secondary w-100" disabled title="Tidak bisa dihapus karena sudah dibayar">
+                                                Hapus
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -189,5 +205,136 @@
         </div>
     </div>
 </div>
+
+<!-- Journal Modal -->
+<div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content rounded-4 shadow-lg border-0">
+            <div class="modal-header border-0 pb-2 pt-4 px-4">
+                <h4 class="modal-title fw-bold" id="journalModalLabel" style="color: #1F2937;">
+                    Jurnal Penggajian
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pt-2">
+
+
+                <!-- Journal Content -->
+                <div id="journalContentContainer" class="p-2">
+                    <div class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">Memuat data jurnal...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 pt-3">
+                <button type="button" class="btn btn-secondary px-4 rounded-3" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('styles')
+<style>
+    /* Modern Journal Modal Styles */
+    #journalModal .modal-content {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    #journalModal tbody tr {
+        border-bottom: 1px solid #E5E7EB;
+        transition: background-color 0.15s ease;
+    }
+
+    #journalModal tbody tr:hover {
+        background-color: #F9FAFB !important;
+    }
+
+    #journalModal tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    #journalModal tbody td {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+    }
+
+    #journalModal .account-name {
+        color: #1F2937;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    #journalModal .account-code {
+        color: #6B7280;
+        font-size: 0.8rem;
+        font-weight: 400;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+    // Function to load journal data for a specific penggajian
+    function loadJournal(penggajianId, nomorPenggajian) {
+        // Show loading state
+        const journalContentContainer = document.getElementById('journalContentContainer');
+        const transactionInfoCard = document.getElementById('transactionInfoCard');
+        
+        if (!journalContentContainer) return;
+        
+        // Reset loading state
+        journalContentContainer.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i><p class="text-muted">Memuat data jurnal...</p></div>';
+        
+        // Hide transaction info during loading
+        if (transactionInfoCard) {
+            transactionInfoCard.style.display = 'none';
+        }
+        
+        // Fetch journal data
+        fetch(`/transaksi/api/penggajian/${penggajianId}/journal?html=true`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.html) {
+                // Update transaction info card
+                if (transactionInfoCard && data.penggajian) {
+                    document.getElementById('nomorPenggajian').textContent = data.penggajian.nomor_penggajian || nomorPenggajian || '-';
+                    document.getElementById('karyawanName').textContent = data.penggajian.pegawai_name || '-';
+                    document.getElementById('tanggalPenggajian').textContent = data.penggajian.tanggal || '-';
+                    document.getElementById('totalGaji').textContent = 'Rp ' + (data.penggajian.total_gaji || 0).toLocaleString('id-ID');
+                    transactionInfoCard.style.display = 'block';
+                }
+                
+                document.getElementById('journalContentContainer').innerHTML = data.html;
+            } else {
+                if (transactionInfoCard) transactionInfoCard.style.display = 'none';
+                document.getElementById('journalContentContainer').innerHTML = `
+                    <div class="text-center text-muted py-5 border-bottom" style="border-color: #E5E7EB !important;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Jurnal belum dibuat untuk penggajian ini
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            if (transactionInfoCard) transactionInfoCard.style.display = 'none';
+            document.getElementById('journalContentContainer').innerHTML = `
+                <div class="text-center text-danger py-5 border-bottom" style="border-color: #E5E7EB !important;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Gagal memuat data jurnal: ${error.message}
+                </div>
+            `;
+        });
+    }
+</script>
+@endpush
 
 @endsection
