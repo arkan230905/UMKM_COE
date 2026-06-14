@@ -236,10 +236,22 @@ class ProduksiController extends Controller
                     // Calculate nominal needed using DETAIL subtotal (from HPP)
                     $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated)
                     
-                    // Get current price and stock - USE REAL-TIME STOCK (from StockMovement)
-                    $hargaSatuanAktual = $bahan->harga_rata_rata ?? $bahan->harga_satuan ?? 0; // Current avg price per unit
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // Real-time stock from StockMovement
-                    $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp)
+                    // IMPORTANT: Get nominal tersedia from StockMovement (total_cost sum)
+                    // This ensures consistency because StockMovement records the actual value
+                    $stockMovementsIn = \App\Models\StockMovement::where('item_type', 'material')
+                        ->where('item_id', $bahan->id)
+                        ->where('direction', 'in')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    $stockMovementsOut = \App\Models\StockMovement::where('item_type', 'material')
+                        ->where('item_id', $bahan->id)
+                        ->where('direction', 'out')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    $nominalTersedia = $stockMovementsIn - $stockMovementsOut; // Net nominal available (Rp)
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // For display only
                     
                     // DEBUGGING: Log validation details
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
@@ -250,18 +262,15 @@ class ProduksiController extends Controller
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
-                        'harga_rata_rata' => $bahan->harga_rata_rata,
-                        'harga_satuan' => $bahan->harga_satuan,
-                        'harga_satuan_aktual' => $hargaSatuanAktual,
-                        'stok_column' => $bahan->stok,
-                        'stok_real_time' => $bahan->stok_real_time,
-                        'stok_qty_used' => $stokQty,
+                        'stock_movements_in' => $stockMovementsIn,
+                        'stock_movements_out' => $stockMovementsOut,
                         'nominal_tersedia' => $nominalTersedia,
+                        'stok_qty_display' => $stokQty,
                         'cukup' => ($nominalTersedia + 1e-2 >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
-                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " {$bahan->satuan->nama} @ Rp " . number_format($hargaSatuanAktual, 0, ',', '.') . ")";
+                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2) . " {$bahan->satuan->nama})";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
@@ -273,10 +282,22 @@ class ProduksiController extends Controller
                     // Calculate nominal needed using DETAIL price (from HPP) for consistency
                     $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated: qty * harga from HPP)
                     
-                    // Calculate nominal available using CURRENT price - USE REAL-TIME STOCK (from StockMovement)
-                    $hargaSatuanAktual = $bahan->harga_satuan ?? 0; // Current price per unit from master data
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // Real-time stock from StockMovement
-                    $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp) using current price
+                    // IMPORTANT: Get nominal tersedia from StockMovement (total_cost sum)
+                    // This ensures consistency because StockMovement records the actual value
+                    $stockMovementsIn = \App\Models\StockMovement::where('item_type', 'support')
+                        ->where('item_id', $bahan->id)
+                        ->where('direction', 'in')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    $stockMovementsOut = \App\Models\StockMovement::where('item_type', 'support')
+                        ->where('item_id', $bahan->id)
+                        ->where('direction', 'out')
+                        ->whereNotIn('ref_type', ['stock_adjustment', 'initial_stock'])
+                        ->sum('total_cost');
+                    
+                    $nominalTersedia = $stockMovementsIn - $stockMovementsOut; // Net nominal available (Rp)
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // For display only
                     
                     // DEBUGGING: Log validation details
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
@@ -287,17 +308,15 @@ class ProduksiController extends Controller
                         'detail_subtotal' => $detail->subtotal,
                         'nominal_butuh' => $nominalButuh,
                         'bahan_id' => $bahan->id,
-                        'harga_satuan' => $bahan->harga_satuan,
-                        'harga_satuan_aktual' => $hargaSatuanAktual,
-                        'saldo_awal' => $bahan->saldo_awal,
-                        'stok_real_time' => $bahan->stok_real_time,
-                        'stok_qty_used' => $stokQty,
+                        'stock_movements_in' => $stockMovementsIn,
+                        'stock_movements_out' => $stockMovementsOut,
                         'nominal_tersedia' => $nominalTersedia,
+                        'stok_qty_display' => $stokQty,
                         'cukup' => ($nominalTersedia + 1e-2 >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " @ Rp " . number_format($hargaSatuanAktual, 0, ',', '.') . ")";
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok qty: " . number_format($stokQty, 2))";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
