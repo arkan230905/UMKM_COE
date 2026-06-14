@@ -460,8 +460,8 @@ class PenggajianController extends Controller
                 throw new \Exception('Error: Tidak ada input penggajian yang valid. Silakan input total produk atau gaji produksi terlebih dahulu. Sistem penggajian saat ini berbasis PRODUK (bukan JAM). Pastikan Anda sudah membaca panduan penggajian produk-based.');
             }
 
-            // STEP 5: Buat journal entry ke sistem jurnal_umum
-            $this->createJournalEntry($penggajian, $pegawai);
+            // ✅ BUAT JURNAL ACCRUAL (BUKAN LANGSUNG KAS!)
+            $this->createJournalAccrual($penggajian, $pegawai);
 
             // Commit transaksi
             DB::commit();
@@ -611,11 +611,15 @@ class PenggajianController extends Controller
                 DB::beginTransaction();
                 
                 try {
+                    // Update status
                     $penggajian->status_pembayaran = 'lunas';
                     $penggajian->tanggal_dibayar = now()->format('Y-m-d');
                     $penggajian->status_posting = 'posted';
                     $penggajian->tanggal_posting = now();
-                    $penggajian->save(); // Model event akan otomatis membuat jurnal entry
+                    $penggajian->save();
+
+                    // ✅ BUAT JURNAL PEMBAYARAN
+                    $this->createJournalPayment($penggajian, $penggajian->pegawai);
 
                     // Commit transaksi
                     DB::commit();
@@ -642,10 +646,229 @@ class PenggajianController extends Controller
         }
     }
 
+    private function createJournalAccrual($penggajian, $pegawai)
+    {
+        try {
+            // Tentukan akun beban berdasarkan departemen/jabatan pegawai
+            // Gunakan helper method getCoaBebanGaji() untuk mapping otomatis
+            $koaBebanGajiCode = $this->getCoaBebanGaji($pegawai);
+
+            $coaBebanGaji = Coa::where('kode_akun', $koaBebanGajiCode)->first();
+
+            if (!$coaBebanGaji) {
+                throw new \Exception("COA dengan kode {$koaBebanGajiCode} tidak ditemukan. " .
+                                   "Pastikan akun sudah dibuat via seeder UpdatePenggajianCoasSeeder.");
+            }
+
+            $coaBebanTunjangan = $this->getOrCreateCoa('513', 'Beban Tunjangan', '5');
+            $coaBebanBonus = $this->getOrCreateCoa('515', 'Beban Bonus', '5');
+            $coaHutangGaji = $this->getOrCreateCoa('211', 'Hutang Gaji Pegawai', '2');
+
+            $gajiPokok = $penggajian->gaji_pokok ?? 0;
+            $totalTunjangan = $penggajian->total_tunjangan ?? 0;
+            $bonus = $penggajian->bonus ?? 0;
+            $asuransi = $penggajian->asuransi ?? 0;
+            $potongan = $penggajian->potongan ?? 0;
+            
+            $totalHutang = $gajiPokok + $totalTunjangan + $bonus - $asuransi - $potongan;
+            
+            $keterangan = "Penggajian {$pegawai->nama}";
+
+            // DEBIT: Beban Gaji Dasar
+            if ($gajiPokok > 0) {
+                JurnalUmum::create([
+                    'coa_id' => $coaBebanGaji->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan,
+                    'debit' => $gajiPokok,
+                    'kredit' => 0,
+                    'referensi' => (string) $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+            }
+
+            // DEBIT: Beban Tunjangan
+            if ($totalTunjangan > 0) {
+                JurnalUmum::create([
+                    'coa_id' => $coaBebanTunjangan->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan,
+                    'debit' => $totalTunjangan,
+                    'kredit' => 0,
+                    'referensi' => (string) $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+            }
+
+            // DEBIT: Beban Bonus
+            if ($bonus > 0) {
+                JurnalUmum::create([
+                    'coa_id' => $coaBebanBonus->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan,
+                    'debit' => $bonus,
+                    'kredit' => 0,
+                    'referensi' => (string) $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+            }
+
+            // DEBIT/KREDIT: Pembulatan Upah Gaji (akun 516)
+            $selisihPembulatan = $penggajian->nominal_pembulatan ?? 0;
+            if ($selisihPembulatan != 0) {
+                $coaSelisih = $this->getOrCreateCoa('516', 'Pembulatan Upah Gaji', '5');
+                
+                if ($selisihPembulatan > 0) {
+                    JurnalUmum::create([
+                        'coa_id' => $coaSelisih->id,
+                        'tanggal' => $penggajian->tanggal_penggajian,
+                        'keterangan' => $keterangan . ' (Selisih Pembulatan)',
+                        'debit' => $selisihPembulatan,
+                        'kredit' => 0,
+                        'referensi' => (string) $penggajian->id,
+                        'tipe_referensi' => 'penggajian',
+                        'created_by' => auth()->id() ?? 1,
+                        'user_id' => auth()->id() ?? $penggajian->user_id,
+                    ]);
+                } else {
+                    JurnalUmum::create([
+                        'coa_id' => $coaSelisih->id,
+                        'tanggal' => $penggajian->tanggal_penggajian,
+                        'keterangan' => $keterangan . ' (Selisih Pembulatan)',
+                        'debit' => 0,
+                        'kredit' => abs($selisihPembulatan),
+                        'referensi' => (string) $penggajian->id,
+                        'tipe_referensi' => 'penggajian',
+                        'created_by' => auth()->id() ?? 1,
+                        'user_id' => auth()->id() ?? $penggajian->user_id,
+                    ]);
+                }
+            }
+
+            // KREDIT: Hutang Gaji
+            JurnalUmum::create([
+                'coa_id' => $coaHutangGaji->id,
+                'tanggal' => $penggajian->tanggal_penggajian,
+                'keterangan' => $keterangan,
+                'debit' => 0,
+                'kredit' => $totalHutang,
+                'referensi' => (string) $penggajian->id,
+                'tipe_referensi' => 'penggajian',
+                'created_by' => auth()->id() ?? 1,
+                'user_id' => auth()->id() ?? $penggajian->user_id,
+            ]);
+
+            // KREDIT: Hutang Asuransi
+            if ($asuransi > 0) {
+                $coaHutangAsuransi = $this->getOrCreateCoa('212', 'Hutang Asuransi/BPJS', '2');
+                
+                JurnalUmum::create([
+                    'coa_id' => $coaHutangAsuransi->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan . ' (Potongan Asuransi)',
+                    'debit' => 0,
+                    'kredit' => $asuransi,
+                    'referensi' => (string) $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+            }
+
+            // KREDIT: Hutang Potongan Lainnya
+            if ($potongan > 0) {
+                $coaPotongan = $this->getOrCreateCoa('213', 'Hutang Potongan Gaji Lainnya', '2');
+                
+                JurnalUmum::create([
+                    'coa_id' => $coaPotongan->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan . ' (Potongan Lainnya)',
+                    'debit' => 0,
+                    'kredit' => $potongan,
+                    'referensi' => (string) $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id() ?? 1,
+                    'user_id' => auth()->id() ?? $penggajian->user_id,
+                ]);
+            }
+
+            \Log::info('JURNAL ACCRUAL berhasil dibuat', [
+                'penggajian_id' => $penggajian->id,
+                'total_hutang_gaji' => $totalHutang,
+                'selisih_pembulatan' => $selisihPembulatan,
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error('Error createJournalAccrual: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function createJournalPayment($penggajian, $pegawai)
+    {
+        try {
+            $coaHutangGaji = $this->getOrCreateCoa('211', 'Hutang Gaji Pegawai', '2');
+            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+            
+            if (!$coaKasBank) {
+                throw new \Exception('Akun kas/bank tidak valid');
+            }
+
+            $totalHutang = $penggajian->gaji_pokok + $penggajian->total_tunjangan 
+                         + $penggajian->bonus - $penggajian->asuransi - $penggajian->potongan;
+            $keterangan = "Pembayaran Gaji {$pegawai->nama}";
+
+            // DEBIT: Hutang Gaji
+            JurnalUmum::create([
+                'coa_id' => $coaHutangGaji->id,
+                'tanggal' => $penggajian->tanggal_dibayar ?? now(),
+                'keterangan' => $keterangan,
+                'debit' => $totalHutang,
+                'kredit' => 0,
+                'referensi' => (string) $penggajian->id,
+                'tipe_referensi' => 'penggajian_bayar',
+                'created_by' => auth()->id() ?? 1,
+                'user_id' => auth()->id() ?? $penggajian->user_id,
+            ]);
+
+            // KREDIT: Kas/Bank
+            JurnalUmum::create([
+                'coa_id' => $coaKasBank->id,
+                'tanggal' => $penggajian->tanggal_dibayar ?? now(),
+                'keterangan' => $keterangan,
+                'debit' => 0,
+                'kredit' => $totalHutang,
+                'referensi' => (string) $penggajian->id,
+                'tipe_referensi' => 'penggajian_bayar',
+                'created_by' => auth()->id() ?? 1,
+                'user_id' => auth()->id() ?? $penggajian->user_id,
+            ]);
+
+            \Log::info('JURNAL PEMBAYARAN berhasil dibuat', [
+                'penggajian_id' => $penggajian->id,
+                'total_bayar' => $totalHutang,
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error('Error createJournalPayment: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
     /**
-     * Buat jurnal entry untuk penggajian menggunakan JournalService
+     * Buat journal entry untuk penggajian menggunakan JournalService (LAMA)
      */
-    private function createJournalEntry($penggajian, $pegawai)
+    private function createJournalEntryOld($penggajian, $pegawai)
     {
         try {
             // Tentukan akun beban berdasarkan jenis pegawai
@@ -1631,5 +1854,72 @@ class PenggajianController extends Controller
                 'trace' => $e->getTraceAsString()
             ], 500);
         }
+    }
+
+    /**
+     * Helper: Get COA kode berdasarkan departemen/jabatan pegawai.
+     *
+     * LOGIC:
+     * - Cek kategori pegawai (BTKL atau BTKTL)
+     * - Jika BTKL, cek keyword nama jabatan:
+     *     "perbumbuan" / "bumbu"   → return '520'
+     *     "penggorengan" / "goreng" → return '521'
+     *     "penggorengan" / "goreng" / "pengukusan" / "kukus" → return '521'
+     *     "pengemasan" / "kemasan"  → return '522'
+     *     (tidak cocok apapun)      → return '52' (parent default)
+     * - Jika BTKTL (admin, gudang, QC, dll) → return '53'
+     *
+     * @param Pegawai $pegawai
+     * @return string Kode akun COA
+     */
+    private function getCoaBebanGaji($pegawai): string
+    {
+        // Tentukan jenis pegawai: prioritas dari jabatanRelasi, lalu field langsung
+        $jenisPegawai = 'btktl'; // default
+        if ($pegawai->jabatanRelasi) {
+            $jenisPegawai = strtolower($pegawai->jabatanRelasi->kategori ?? 'btktl');
+        } else {
+            // Check broadly across fields
+            $val = $pegawai->kategori ?? $pegawai->jenis_pegawai ?? $pegawai->jabatanRelasi?->kategori ?? 'btktl';
+            $jenisPegawai = strtolower($val);
+        }
+
+        // JIKA BTKL (DIRECT LABOR) - Tenaga Kerja Langsung / Produksi
+        if ($jenisPegawai === 'btkl') {
+            // Ambil nama jabatan: prioritas dari relasi, fallback ke field string
+            $jabatanNama = $pegawai->jabatanRelasi?->nama ?? $pegawai->jabatan ?? '';
+            $jabatanLower = strtolower($jabatanNama);
+
+            // Keyword: Perbumbuan → Akun 520
+            if (strpos($jabatanLower, 'perbumbuan') !== false ||
+                strpos($jabatanLower, 'bumbu') !== false) {
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Perbumbuan) → COA 520");
+                return '520';
+            }
+
+            // Keyword: Penggorengan/Pengukusan → Akun 521
+            if (strpos($jabatanLower, 'penggorengan') !== false ||
+                strpos($jabatanLower, 'goreng') !== false ||
+                strpos($jabatanLower, 'pengukusan') !== false ||
+                strpos($jabatanLower, 'kukus') !== false) {
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Penggorengan/Pengukusan) → COA 521");
+                return '521';
+            }
+
+            // Keyword: Pengemasan → Akun 522
+            if (strpos($jabatanLower, 'pengemasan') !== false ||
+                strpos($jabatanLower, 'kemasan') !== false) {
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Pengemasan) → COA 522");
+                return '522';
+            }
+
+            // Default BTKL: tidak cocok keyword apapun → parent akun 52
+            \Log::warning("COA Mapping: {$pegawai->nama} [{$jabatanNama}] BTKL tidak cocok keyword → Default COA 52");
+            return '52';
+        }
+
+        // JIKA BTKTL (INDIRECT LABOR) - Admin, Gudang, QC, Supervisor, dll
+        \Log::info("COA Mapping: {$pegawai->nama} (BTKTL) → COA 53");
+        return '53';
     }
 }

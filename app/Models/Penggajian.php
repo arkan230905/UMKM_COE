@@ -35,23 +35,10 @@ class Penggajian extends Model
             }
         });
 
-        // Auto-create journal entries when penggajian is marked as paid (lunas)
-        static::updated(function ($penggajian) {
-            // Check if status changed to 'lunas' and no journal entries exist yet
-            if ($penggajian->status_pembayaran === 'lunas' &&
-                $penggajian->getOriginal('status_pembayaran') !== 'lunas') {
-
-                // Check if journal entries already exist
-                $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
-                    ->where('referensi', $penggajian->id)
-                    ->where('user_id', auth()->id())
-                    ->exists();
-
-                if (!$existingJournal) {
-                    static::createJournalEntries($penggajian);
-                }
-            }
-        });
+        // ❌ HAPUS AUTO-JOURNAL DARI EVENT LISTENER
+        // Jurnal akan dibuat manual via Controller methods:
+        // - createJournalAccrual() saat simpan
+        // - createJournalPayment() saat bayar
     }
 
     /**

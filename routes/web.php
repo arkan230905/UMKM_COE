@@ -3148,6 +3148,93 @@ Route::middleware('auth')->group(function () {
                 ]
             ]);
         })->name('api.pembelian.journal');
+        
+        // Journal API for penggajian
+        Route::get('api/penggajian/{id}/journal', function($id) {
+            $penggajian = \App\Models\Penggajian::where('id', $id)
+                ->where('user_id', auth()->id()) // Multi-tenant security
+                ->with('pegawai') // Load pegawai relation
+                ->first();
+                
+            if (!$penggajian) {
+                return response()->json(['success' => false, 'message' => 'Penggajian tidak ditemukan'], 404);
+            }
+            
+            // Jika request meminta HTML format (untuk modal dengan kotak Jurnal 1 dan Jurnal 2)
+            if (request()->has('html')) {
+                $jurnalAccrual = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
+                    ->where('referensi', $penggajian->id)
+                    ->where('user_id', auth()->id())
+                    ->with('coa')
+                    ->orderBy('id', 'asc')
+                    ->get();
+                
+                $jurnalPembayaran = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian_bayar')
+                    ->where('referensi', $penggajian->id)
+                    ->where('user_id', auth()->id())
+                    ->with('coa')
+                    ->orderBy('id', 'asc')
+                    ->get();
+                    
+                $html = view('transaksi.penggajian.partials.jurnal-modal-content', compact('penggajian', 'jurnalAccrual', 'jurnalPembayaran'))->render();
+                
+                $tanggalFormatted = $penggajian->tanggal_penggajian ? 
+                    \Carbon\Carbon::parse($penggajian->tanggal_penggajian)->locale('id')->isoFormat('D MMMM YYYY') : 
+                    '-';
+                
+                return response()->json([
+                    'success' => true,
+                    'html' => $html,
+                    'penggajian' => [
+                        'id' => $penggajian->id,
+                        'nomor_penggajian' => 'PGJ' . str_pad($penggajian->id, 6, '0', STR_PAD_LEFT),
+                        'total_gaji' => ($penggajian->gaji_pokok + $penggajian->tunjangan + $penggajian->bonus - $penggajian->asuransi - $penggajian->potongan),
+                        'pegawai_name' => $penggajian->pegawai ? $penggajian->pegawai->nama : '-',
+                        'tanggal' => $tanggalFormatted
+                    ]
+                ]);
+            }
+            
+            // Get journal entries for this penggajian (JSON fallback)
+            $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
+                ->where('referensi', $penggajian->id)
+                ->where('user_id', auth()->id()) // Multi-tenant security
+                ->with('coa')
+                ->orderBy('id', 'asc')
+                ->get();
+            
+            // Convert debit/kredit to numbers for proper JavaScript formatting
+            $journalsArray = $journalEntries->map(function($entry) {
+                return [
+                    'id' => $entry->id,
+                    'tanggal' => $entry->tanggal,
+                    'coa' => $entry->coa ? [
+                        'kode_akun' => $entry->coa->kode_akun,
+                        'nama_akun' => $entry->coa->nama_akun
+                    ] : null,
+                    'keterangan' => $entry->keterangan,
+                    'debit' => (float) $entry->debit,
+                    'kredit' => (float) $entry->kredit
+                ];
+            });
+            
+            // Format tanggal penggajian
+            $tanggalFormatted = $penggajian->tanggal_penggajian ? 
+                \Carbon\Carbon::parse($penggajian->tanggal_penggajian)->locale('id')->isoFormat('D MMMM YYYY') : 
+                '-';
+            
+            return response()->json([
+                'success' => true,
+                'journals' => $journalsArray,
+                'penggajian' => [
+                    'id' => $penggajian->id,
+                    'nomor_penggajian' => 'PGJ' . str_pad($penggajian->id, 6, '0', STR_PAD_LEFT),
+                    'total_gaji' => ($penggajian->gaji_pokok + $penggajian->tunjangan + $penggajian->bonus - $penggajian->asuransi - $penggajian->potongan),
+                    'pegawai_name' => $penggajian->pegawai ? $penggajian->pegawai->nama : '-',
+                    'tanggal' => $tanggalFormatted
+                ]
+            ]);
+        })->name('api.penggajian.journal');
         // ============================================================
         // PENGATURAN PENJUALAN
         // ============================================================
