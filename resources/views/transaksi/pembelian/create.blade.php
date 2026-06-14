@@ -131,12 +131,7 @@ select.form-select {
         </div>
     @endif
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
+    {{-- Success alert removed - using toast notification only --}}
 
     @if(!session('show_upload_section'))
     <!-- Form Pembelian (hidden after save) -->
@@ -594,10 +589,7 @@ select.form-select {
             <h6 class="mb-0 text-white"><i class="fas fa-check-circle me-2"></i>Pembelian Berhasil Disimpan!</h6>
         </div>
         
-        <div class="alert alert-success">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Data pembelian telah tersimpan.</strong> Silakan upload bukti faktur untuk melengkapi data pembelian.
-        </div>
+        {{-- Success alert removed - header is enough --}}
 
         <!-- Form Upload Bukti Faktur -->
         <form action="{{ route('transaksi.pembelian.upload-bukti-faktur', session('pembelian_id')) }}" method="POST" enctype="multipart/form-data">
