@@ -236,9 +236,9 @@ class ProduksiController extends Controller
                     // Calculate nominal needed using DETAIL subtotal (from HPP)
                     $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated)
                     
-                    // Get current price and stock
+                    // Get current price and stock - USE REAL-TIME STOCK (from StockMovement)
                     $hargaSatuanAktual = $bahan->harga_rata_rata ?? $bahan->harga_satuan ?? 0; // Current avg price per unit
-                    $stokQty = (float)($bahan->stok ?? 0); // Current stock in qty
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // Real-time stock from StockMovement
                     $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp)
                     
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
@@ -254,9 +254,9 @@ class ProduksiController extends Controller
                     // Calculate nominal needed using DETAIL price (from HPP) for consistency
                     $nominalButuh = $detail->subtotal; // Use subtotal from detail (already calculated: qty * harga from HPP)
                     
-                    // Calculate nominal available using CURRENT price
+                    // Calculate nominal available using CURRENT price - USE REAL-TIME STOCK (from StockMovement)
                     $hargaSatuanAktual = $bahan->harga_satuan ?? 0; // Current price per unit from master data
-                    $stokQty = (float)($bahan->saldo_awal ?? 0); // Current stock in qty
+                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // Real-time stock from StockMovement
                     $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp) using current price
                     
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
