@@ -14,6 +14,12 @@ Route::get('/test-blade', function() {
     return view('test-blade');
 });
 
+// TEMPORARY DB MIGRATE ROUTE
+Route::get('/force-migrate', function() {
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    return '<h1 style="color:green; padding: 20px;">Database berhasil di-migrate!</h1><br><a href="/">Kembali ke Home</a>';
+});
+
 Route::get('/test-pelanggan-dashboard', function() {
     $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
         ->whereHas('produks')
