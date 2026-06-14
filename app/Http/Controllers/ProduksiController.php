@@ -241,6 +241,25 @@ class ProduksiController extends Controller
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0); // Real-time stock from StockMovement
                     $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp)
                     
+                    // DEBUGGING: Log validation details
+                    \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
+                        'detail_id' => $detail->id,
+                        'detail_qty_resep' => $detail->qty_resep,
+                        'detail_satuan_resep' => $detail->satuan_resep,
+                        'detail_harga_satuan' => $detail->harga_satuan,
+                        'detail_subtotal' => $detail->subtotal,
+                        'nominal_butuh' => $nominalButuh,
+                        'bahan_id' => $bahan->id,
+                        'harga_rata_rata' => $bahan->harga_rata_rata,
+                        'harga_satuan' => $bahan->harga_satuan,
+                        'harga_satuan_aktual' => $hargaSatuanAktual,
+                        'stok_column' => $bahan->stok,
+                        'stok_real_time' => $bahan->stok_real_time,
+                        'stok_qty_used' => $stokQty,
+                        'nominal_tersedia' => $nominalTersedia,
+                        'cukup' => ($nominalTersedia + 1e-2 >= $nominalButuh) ? 'YA' : 'TIDAK'
+                    ]);
+                    
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
                         $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " {$bahan->satuan->nama} @ Rp " . number_format($hargaSatuanAktual, 0, ',', '.') . ")";
                         $shortNames[] = $bahan->nama_bahan;
@@ -258,6 +277,24 @@ class ProduksiController extends Controller
                     $hargaSatuanAktual = $bahan->harga_satuan ?? 0; // Current price per unit from master data
                     $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0); // Real-time stock from StockMovement
                     $nominalTersedia = $stokQty * $hargaSatuanAktual; // Total value available (Rp) using current price
+                    
+                    // DEBUGGING: Log validation details
+                    \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
+                        'detail_id' => $detail->id,
+                        'detail_qty_resep' => $detail->qty_resep,
+                        'detail_satuan_resep' => $detail->satuan_resep,
+                        'detail_harga_satuan' => $detail->harga_satuan,
+                        'detail_subtotal' => $detail->subtotal,
+                        'nominal_butuh' => $nominalButuh,
+                        'bahan_id' => $bahan->id,
+                        'harga_satuan' => $bahan->harga_satuan,
+                        'harga_satuan_aktual' => $hargaSatuanAktual,
+                        'saldo_awal' => $bahan->saldo_awal,
+                        'stok_real_time' => $bahan->stok_real_time,
+                        'stok_qty_used' => $stokQty,
+                        'nominal_tersedia' => $nominalTersedia,
+                        'cukup' => ($nominalTersedia + 1e-2 >= $nominalButuh) ? 'YA' : 'TIDAK'
+                    ]);
                     
                     if ($nominalTersedia + 1e-2 < $nominalButuh) { // Tolerance 0.01 Rp
                         $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " (stok: " . number_format($stokQty, 2) . " @ Rp " . number_format($hargaSatuanAktual, 0, ',', '.') . ")";
