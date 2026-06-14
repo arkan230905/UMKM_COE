@@ -267,6 +267,14 @@ class UpdatePenggajianCoasSeeder extends Seeder
                         'keterangan' => 'Beban tunjangan jabatan, transport, konsumsi untuk pegawai'
                     ],
                     [
+                        'kode_akun' => '514',
+                        'nama_akun' => 'Beban Asuransi',
+                        'tipe_akun' => 'Beban',
+                        'kategori_akun' => 'Beban',
+                        'saldo_normal' => 'debit',
+                        'keterangan' => 'Beban asuransi kesehatan/ketenagakerjaan yang ditanggung perusahaan'
+                    ],
+                    [
                         'kode_akun' => '515',
                         'nama_akun' => 'Beban Bonus',
                         'tipe_akun' => 'Beban',
