@@ -440,7 +440,11 @@ if ($parentCoa) {
             return response()->json(['error' => 'Akun induk tidak ditemukan'], 404);
         }
 
-        $nextKode = Coa::generateChildCode($parent->kode_akun);
+        try {
+            $nextKode = Coa::generateChildCode($parent->kode_akun);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'kode_akun' => $nextKode,
