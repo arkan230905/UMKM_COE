@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\MultiTenantModel;
 
 class OngkirSetting extends Model
 {
+    use MultiTenantModel;
+
     protected $fillable = [
         'user_id', 'jarak_min', 'jarak_max', 'harga_ongkir', 'status',
     ];
@@ -16,16 +19,6 @@ class OngkirSetting extends Model
         'jarak_max' => 'float',
         'harga_ongkir' => 'float',
     ];
-
-    protected static function booted()
-    {
-        // Auto-set user_id saat creating
-        static::creating(function ($ongkir) {
-            if (empty($ongkir->user_id) && auth()->check()) {
-                $ongkir->user_id = auth()->id();
-            }
-        });
-    }
 
     public function getJarakLabel(): string
     {

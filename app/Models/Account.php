@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Account extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'accounts';

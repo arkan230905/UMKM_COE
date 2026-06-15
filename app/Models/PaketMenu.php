@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\MultiTenantModel;
 
 class PaketMenu extends Model
 {
+    use MultiTenantModel;
+
     protected $fillable = [
         'user_id', 'nama_paket', 'harga_normal', 'harga_paket', 'diskon_persen', 'status', 'keterangan', 'produk_id',
     ];
@@ -24,13 +27,6 @@ class PaketMenu extends Model
     // Auto-calculate diskon when saving
     protected static function booted()
     {
-        // Auto-set user_id saat creating
-        static::creating(function ($paket) {
-            if (empty($paket->user_id) && auth()->check()) {
-                $paket->user_id = auth()->id();
-            }
-        });
-
         static::saving(function ($paket) {
             if ($paket->harga_normal > 0) {
                 $paket->diskon_persen = round((($paket->harga_normal - $paket->harga_paket) / $paket->harga_normal) * 100, 2);
