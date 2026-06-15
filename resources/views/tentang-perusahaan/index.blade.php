@@ -191,15 +191,19 @@
             <div id="informasiRekeningCollapse" class="accordion-collapse collapse" aria-labelledby="headingRekening" data-bs-parent="#accordionSections">
                 <div class="accordion-body p-4 bg-light">
                     @php
-                        // Ambil bank dari COA (Aset -> nama bank)
+                        // Ambil bank dari COA (Aset -> nama bank/keyword bank)
                         $bankAccounts = collect();
                         try {
+                            $bankKeywords = ['bank', 'bca', 'mandiri', 'bri', 'bni', 'bsi', 'cimb', 'danamon', 'permata', 'btn', 'bpd', 'maybank', 'mega', 'ocbc', 'panin', 'sinarmas', 'bukopin', 'jenius', 'jago', 'allo', 'uob', 'hana', 'muamalat', 'dki', 'bjb', 'jabar', 'jatim', 'jateng'];
+                            
                             $bankAccounts = \App\Models\Coa::where('user_id', auth()->id())
                                 ->whereIn('tipe_akun', ['Asset', 'asset', 'Aset', 'ASET', 'Aktiva'])
                                 ->where('kode_akun', '!=', '111')
-                                ->where(function($query) {
-                                    $query->where('nama_akun', 'like', '%bank%')
-                                          ->orWhere('kode_akun', 'like', '111%');
+                                ->where(function($query) use ($bankKeywords) {
+                                    $query->where('kode_akun', 'like', '111%');
+                                    foreach ($bankKeywords as $keyword) {
+                                        $query->orWhere('nama_akun', 'like', '%' . $keyword . '%');
+                                    }
                                 })
                                 ->get();
                         } catch (Exception $e) { }

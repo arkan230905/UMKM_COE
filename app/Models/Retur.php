@@ -20,6 +20,8 @@ class Retur extends Model
         'memo',
         'jumlah',
         'pembelian_id',
+        'metode_refund',
+        'bukti_foto',
     ];
 
     protected $casts = [
@@ -55,7 +57,7 @@ class Retur extends Model
     // Relasi ke penjualan (jika retur penjualan)
     public function penjualan()
     {
-        return $this->belongsTo(Penjualan::class, 'ref_id');
+        return $this->belongsTo(Penjualan::class, 'ref_id', 'order_id');
     }
 
     // Relasi ke pembelian (jika retur pembelian)

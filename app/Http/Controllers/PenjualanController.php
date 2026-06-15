@@ -17,6 +17,16 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
+        // Run migration if columns are missing
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('returs', 'metode_refund') || 
+            !\Illuminate\Support\Facades\Schema::hasColumn('returs', 'bukti_foto') ||
+            !\Illuminate\Support\Facades\Schema::hasColumn('retur_penjualans', 'bukti_foto')) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            } catch (\Exception $e) {
+                \Log::error('Auto migration failed in PenjualanController: ' . $e->getMessage());
+            }
+        }
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Penjualan::with(['produk', 'details', 'returs', 'pelanggan'])
@@ -192,6 +202,18 @@ class PenjualanController extends Controller
             ->with(['penjualan', 'detailReturPenjualans.produk'])
             ->get();
 
+        // Fetch customer-submitted returns
+        $customerReturns = \App\Models\Retur::where('type', 'sale')
+            ->whereIn('ref_id', function($q) {
+                $q->select('order_id')
+                  ->from('penjualans')
+                  ->where('user_id', auth()->id())
+                  ->whereNotNull('order_id');
+            })
+            ->with(['penjualan', 'details.produk'])
+            ->orderBy('id', 'desc')
+            ->get();
+
         // Sorting for sales returns
         $sortReturBy = $request->get('sort_retur_by', 'tanggal');
         $sortReturDir = $request->get('sort_retur_dir', 'desc');
@@ -231,6 +253,7 @@ class PenjualanController extends Controller
             'totalOngkir',
             'totalDiskon',
             'salesReturns',
+            'customerReturns',
             'penjualanChange',
             'transaksiChange',
             'produkChange',

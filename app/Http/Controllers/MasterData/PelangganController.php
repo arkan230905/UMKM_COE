@@ -11,18 +11,17 @@ class PelangganController extends Controller
 {
     public function index(Request $request)
     {
-        // 🔒 SECURITY: Get all pelanggan users
-        // Pelanggan yang terdaftar melalui website memiliki role = 'pelanggan'
-        // Semua owner bisa melihat semua pelanggan yang terdaftar
-        $query = User::where('role', 'pelanggan')->withCount('orders');
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user (owner)
+        $userId = auth()->id();
+        $query = \App\Models\Pelanggan::where('user_id', $userId);
 
         // Pencarian
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('nama_pelanggan', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                  ->orWhere('telepon', 'like', "%{$search}%");
             });
         }
 
@@ -33,10 +32,10 @@ class PelangganController extends Controller
                 $query->oldest();
                 break;
             case 'nama_az':
-                $query->orderBy('name', 'asc');
+                $query->orderBy('nama_pelanggan', 'asc');
                 break;
             case 'nama_za':
-                $query->orderBy('name', 'desc');
+                $query->orderBy('nama_pelanggan', 'desc');
                 break;
             case 'terbaru':
             default:
@@ -69,22 +68,17 @@ class PelangganController extends Controller
 
     public function show($id)
     {
-        // 🔒 SECURITY: Get pelanggan
-        $pelanggan = User::where('role', 'pelanggan')
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user
+        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
             ->findOrFail($id);
         
-        // Load orders jika ada
-        $pelanggan->load(['orders' => function($query) {
-            $query->latest()->take(10);
-        }]);
-
         return view('master-data.pelanggan.show', compact('pelanggan'));
     }
 
     public function getPassword($id)
     {
-        // 🔒 SECURITY: Get pelanggan
-        $pelanggan = User::where('role', 'pelanggan')
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user
+        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
             ->findOrFail($id);
         
         return response()->json([
@@ -94,8 +88,8 @@ class PelangganController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan
-        $pelanggan = User::where('role', 'pelanggan')
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user
+        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
             ->findOrFail($id);
 
         $request->validate([
@@ -115,40 +109,31 @@ class PelangganController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Get pelanggan
-        $pelanggan = User::where('role', 'pelanggan')
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user
+        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
             ->findOrFail($id);
         return view('master-data.pelanggan.edit', compact('pelanggan'));
     }
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan
-        $pelanggan = User::where('role', 'pelanggan')
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user
+        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
             ->findOrFail($id);
 
         $request->validate([
-            'name'    => 'required|string|max:255',
-            'email'   => 'required|email|unique:users,email,' . $id,
-            'phone'   => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'password' => 'nullable|min:6|confirmed',
+            'nama_pelanggan' => 'required|string|max:255',
+            'email'          => 'required|email|unique:pelanggans,email,' . $id,
+            'telepon'        => 'required|string|max:20',
+            'alamat'         => 'nullable|string',
         ]);
 
-        $data = [
-            'name'    => $request->name,
-            'email'   => $request->email,
-            'phone'   => $request->phone,
-            'address' => $request->address,
-        ];
-
-        // Update password jika diisi
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-            $data['plain_password'] = $request->password; // Update plain password too
-        }
-
-        $pelanggan->update($data);
+        $pelanggan->update([
+            'nama_pelanggan' => $request->nama_pelanggan,
+            'email'          => $request->email,
+            'telepon'        => $request->telepon,
+            'alamat'         => $request->alamat,
+        ]);
 
         return redirect()->route('master-data.pelanggan.index')
             ->with('success', 'Data pelanggan berhasil diupdate!');
@@ -156,14 +141,9 @@ class PelangganController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Get pelanggan
-        $pelanggan = User::where('role', 'pelanggan')
+        // 🔒 SECURITY: Get pelanggan yang belong ke current user
+        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
             ->findOrFail($id);
-        
-        // Cek apakah pelanggan punya order
-        if ($pelanggan->orders()->count() > 0) {
-            return back()->with('error', 'Tidak bisa menghapus pelanggan yang sudah memiliki pesanan!');
-        }
 
         $pelanggan->delete();
 

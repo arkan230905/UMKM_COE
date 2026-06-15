@@ -112,30 +112,42 @@ return new class extends Migration
                             ->where('user_id', $userId)
                             ->where('kode_akun', $akun['kode_akun'])
                             ->whereNull('company_id')
+                            ->orWhere(function ($query) use ($userId, $akun) {
+                                $query->where('user_id', $userId)
+                                      ->where('kode_akun', $akun['kode_akun']);
+                            })
                             ->exists();
 
                         if (!$exists) {
-                            DB::table('coas')->insert([
-                                'company_id' => null,
-                                'user_id' => $userId,
-                                'kode_akun' => $akun['kode_akun'],
-                                'nama_akun' => $akun['nama_akun'],
-                                'tipe_akun' => $akun['tipe_akun'],
-                                'kategori_akun' => $akun['kategori_akun'],
-                                'is_akun_header' => false,
-                                'kode_induk' => null,
-                                'saldo_normal' => $akun['saldo_normal'],
-                                'saldo_awal' => 0,
-                                'tanggal_saldo_awal' => null,
-                                'posted_saldo_awal' => false,
-                                'keterangan' => null,
-                                'nomor_rekening' => null,
-                                'atas_nama' => null,
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ]);
+                            // Double check before insert to avoid unique constraint violation
+                            $stillNotExists = !DB::table('coas')
+                                ->where('user_id', $userId)
+                                ->where('kode_akun', $akun['kode_akun'])
+                                ->exists();
 
-                            \Log::info("Added COA {$akun['kode_akun']} ({$akun['nama_akun']}) to user_id: {$userId}");
+                            if ($stillNotExists) {
+                                DB::table('coas')->insertOrIgnore([
+                                    'company_id' => null,
+                                    'user_id' => $userId,
+                                    'kode_akun' => $akun['kode_akun'],
+                                    'nama_akun' => $akun['nama_akun'],
+                                    'tipe_akun' => $akun['tipe_akun'],
+                                    'kategori_akun' => $akun['kategori_akun'],
+                                    'is_akun_header' => false,
+                                    'kode_induk' => null,
+                                    'saldo_normal' => $akun['saldo_normal'],
+                                    'saldo_awal' => 0,
+                                    'tanggal_saldo_awal' => null,
+                                    'posted_saldo_awal' => false,
+                                    'keterangan' => null,
+                                    'nomor_rekening' => null,
+                                    'atas_nama' => null,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+
+                                \Log::info("Added COA {$akun['kode_akun']} ({$akun['nama_akun']}) to user_id: {$userId}");
+                            }
                         }
                     }
                 }

@@ -268,4 +268,128 @@ class ReturPenjualanController extends Controller
         return response()->json($details);
     }
 
+    public function approveCustomerReturn(Request $request, $id)
+    {
+        $retur = \App\Models\Retur::where('type', 'sale')
+            ->where('id', $id)
+            ->firstOrFail();
+
+        // 1. Verify ownership of the corresponding Penjualan
+        $penjualan = Penjualan::where('order_id', $retur->ref_id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$penjualan) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk menyetujui retur ini.');
+        }
+
+        if ($retur->status === 'approved') {
+            return redirect()->back()->with('error', 'Retur ini sudah disetujui sebelumnya.');
+        }
+
+        if ($retur->status === 'rejected') {
+            return redirect()->back()->with('error', 'Retur ini sudah ditolak.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update status retur pelanggan menjadi approved
+            $retur->status = 'approved';
+            $retur->save();
+
+            // Create ReturPenjualan (owner-facing)
+            $returPenjualan = new ReturPenjualan();
+            $returPenjualan->nomor_retur = $returPenjualan->generateNomorRetur();
+            $returPenjualan->tanggal = $retur->tanggal ?? now();
+            $returPenjualan->penjualan_id = $penjualan->id;
+            $returPenjualan->pelanggan_id = $penjualan->pelanggan_id ?? null;
+            $returPenjualan->jenis_retur = $retur->kompensasi === 'barang' ? 'tukar_barang' : 'refund';
+            $returPenjualan->keterangan = 'Retur Pelanggan (' . $retur->memo . '): ' . $retur->alasan;
+            $returPenjualan->bukti_foto = $retur->bukti_foto;
+            $returPenjualan->user_id = auth()->id(); // owner ID
+            $returPenjualan->save();
+
+            // Create DetailReturPenjualan records
+            foreach ($retur->details as $detail) {
+                // Find matching PenjualanDetail by produk_id
+                $penjualanDetail = PenjualanDetail::where('penjualan_id', $penjualan->id)
+                    ->where('produk_id', $detail->produk_id)
+                    ->first();
+
+                if (!$penjualanDetail) {
+                    throw new \Exception('Detail penjualan tidak ditemukan untuk produk ' . ($detail->produk?->nama_produk ?? $detail->produk_id));
+                }
+
+                if ($detail->qty > $penjualanDetail->jumlah) {
+                    throw new \Exception('Qty retur tidak boleh melebihi qty penjualan');
+                }
+
+                DetailReturPenjualan::create([
+                    'retur_penjualan_id' => $returPenjualan->id,
+                    'penjualan_detail_id' => $penjualanDetail->id,
+                    'produk_id' => $detail->produk_id,
+                    'qty_retur' => $detail->qty,
+                    'harga_barang' => $detail->harga_satuan_asal,
+                    'keterangan' => 'Retur Pelanggan: ' . ($retur->alasan ?? '')
+                ]);
+            }
+
+            // Calculate total values and process the return (adjust stock, journals, etc.)
+            $returPenjualan->calculateTotalRetur();
+            $returPenjualan->processRetur();
+
+            // Jika refund, buat jurnal entries
+            if ($returPenjualan->jenis_retur === 'refund') {
+                try {
+                    \App\Services\JournalService::createJournalFromReturRefund($returPenjualan);
+                } catch (\Exception $e) {
+                    \Log::error('Gagal membuat jurnal retur refund: ' . $e->getMessage());
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Pengajuan retur berhasil disetujui.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error approving customer return: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyetujui retur: ' . $e->getMessage());
+        }
+    }
+
+    public function rejectCustomerReturn(Request $request, $id)
+    {
+        $retur = \App\Models\Retur::where('type', 'sale')
+            ->where('id', $id)
+            ->firstOrFail();
+
+        // Verify ownership
+        $penjualan = Penjualan::where('order_id', $retur->ref_id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$penjualan) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk menolak retur ini.');
+        }
+
+        if ($retur->status === 'approved') {
+            return redirect()->back()->with('error', 'Retur ini sudah disetujui sebelumnya.');
+        }
+
+        if ($retur->status === 'rejected') {
+            return redirect()->back()->with('error', 'Retur ini sudah ditolak.');
+        }
+
+        try {
+            $retur->status = 'rejected';
+            $retur->save();
+
+            return redirect()->back()->with('success', 'Pengajuan retur berhasil ditolak.');
+        } catch (\Exception $e) {
+            \Log::error('Error rejecting customer return: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menolak retur: ' . $e->getMessage());
+        }
+    }
+
 }
