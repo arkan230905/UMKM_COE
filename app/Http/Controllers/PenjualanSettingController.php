@@ -13,9 +13,20 @@ class PenjualanSettingController extends Controller
     // Load data for the settings modal
     public function index()
     {
-        $paketMenus = PaketMenu::with('details.produk')->orderBy('created_at', 'desc')->get();
-        $ongkirSettings = OngkirSetting::orderBy('jarak_min')->get();
-        $produks = Produk::orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
+        $userId = auth()->id();
+        
+        $paketMenus = PaketMenu::where('user_id', $userId)
+            ->with('details.produk')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        $ongkirSettings = OngkirSetting::where('user_id', $userId)
+            ->orderBy('jarak_min')
+            ->get();
+            
+        $produks = Produk::where('user_id', $userId)
+            ->orderBy('nama_produk')
+            ->get(['id', 'nama_produk', 'harga_jual']);
 
         return response()->json([
             'paket_menus' => $paketMenus,
@@ -27,8 +38,16 @@ class PenjualanSettingController extends Controller
     // Load page for paket menu management
     public function paketMenuPage()
     {
-        $paketMenus = PaketMenu::with('details.produk')->orderBy('created_at', 'desc')->get();
-        $produks = Produk::orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
+        $userId = auth()->id();
+        
+        $paketMenus = PaketMenu::where('user_id', $userId)
+            ->with('details.produk')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        $produks = Produk::where('user_id', $userId)
+            ->orderBy('nama_produk')
+            ->get(['id', 'nama_produk', 'harga_jual']);
 
         return view('transaksi.penjualan.paket-menu', compact('paketMenus', 'produks'));
     }
@@ -159,7 +178,7 @@ class PenjualanSettingController extends Controller
 
     public function destroyPaket($id)
     {
-        $paket = PaketMenu::findOrFail($id);
+        $paket = PaketMenu::where('user_id', auth()->id())->findOrFail($id);
 
         // ── Hapus juga Produk yang terhubung ────────────────────────
         try {
@@ -213,7 +232,8 @@ class PenjualanSettingController extends Controller
 
     public function destroyOngkir($id)
     {
-        OngkirSetting::findOrFail($id)->delete();
+        $ongkir = OngkirSetting::where('user_id', auth()->id())->findOrFail($id);
+        $ongkir->delete();
         return response()->json(['success' => true, 'message' => 'Range ongkir berhasil dihapus']);
     }
 }

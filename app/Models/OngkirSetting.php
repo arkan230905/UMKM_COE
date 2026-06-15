@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class OngkirSetting extends Model
 {
     protected $fillable = [
-        'jarak_min', 'jarak_max', 'harga_ongkir', 'status',
+        'user_id', 'jarak_min', 'jarak_max', 'harga_ongkir', 'status',
     ];
 
     protected $casts = [
@@ -16,6 +16,16 @@ class OngkirSetting extends Model
         'jarak_max' => 'float',
         'harga_ongkir' => 'float',
     ];
+
+    protected static function booted()
+    {
+        // Auto-set user_id saat creating
+        static::creating(function ($ongkir) {
+            if (empty($ongkir->user_id) && auth()->check()) {
+                $ongkir->user_id = auth()->id();
+            }
+        });
+    }
 
     public function getJarakLabel(): string
     {

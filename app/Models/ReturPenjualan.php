@@ -25,7 +25,8 @@ class ReturPenjualan extends Model
         'total_retur',
         'ppn',
         'status',
-        'keterangan'
+        'keterangan',
+        'bukti_foto'
     ];
 
     protected $casts = [
