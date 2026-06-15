@@ -10,8 +10,26 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Kode</th>
-                <th>Nama</th>
+                <th>
+                    <a href="{{ route('master-data.satuan.index', ['sort_by' => 'kode', 'sort_dir' => (isset($sortBy) && $sortBy == 'kode' && isset($sortDir) && $sortDir == 'asc' ? 'desc' : 'asc')]) }}" class="text-dark text-decoration-none">
+                        Kode
+                        @if(isset($sortBy) && $sortBy == 'kode')
+                            <i class="fas fa-sort-{{ $sortDir == 'asc' ? 'up' : 'down' }} ms-1"></i>
+                        @else
+                            <i class="fas fa-sort ms-1 text-muted"></i>
+                        @endif
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ route('master-data.satuan.index', ['sort_by' => 'nama', 'sort_dir' => (isset($sortBy) && $sortBy == 'nama' && isset($sortDir) && $sortDir == 'asc' ? 'desc' : 'asc')]) }}" class="text-dark text-decoration-none">
+                        Nama
+                        @if(isset($sortBy) && $sortBy == 'nama')
+                            <i class="fas fa-sort-{{ $sortDir == 'asc' ? 'up' : 'down' }} ms-1"></i>
+                        @else
+                            <i class="fas fa-sort ms-1 text-muted"></i>
+                        @endif
+                    </a>
+                </th>
                 <th>Aksi</th>
             </tr>
         </thead>

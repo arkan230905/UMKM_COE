@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JenisAset extends Model
 {
+    use \App\Traits\HasUserScope;
     protected $table = 'jenis_asets';
     
     protected $fillable = [

@@ -242,8 +242,26 @@
                                 <table class="table table-striped table-hover">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th width="20%">Kode Satuan</th>
-                                            <th width="60%">Nama Satuan</th>
+                                            <th width="20%">
+                                                <a href="{{ route('master-data.satuan.dashboard', ['sort_by' => 'kode', 'sort_dir' => (isset($sortBy) && $sortBy == 'kode' && isset($sortDir) && $sortDir == 'asc' ? 'desc' : 'asc')]) }}" class="text-white text-decoration-none d-flex align-items-center justify-content-between">
+                                                    Kode Satuan
+                                                    @if(isset($sortBy) && $sortBy == 'kode')
+                                                        <i class="fas fa-sort-{{ $sortDir == 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort text-white-50"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th width="60%">
+                                                <a href="{{ route('master-data.satuan.dashboard', ['sort_by' => 'nama', 'sort_dir' => (isset($sortBy) && $sortBy == 'nama' && isset($sortDir) && $sortDir == 'asc' ? 'desc' : 'asc')]) }}" class="text-white text-decoration-none d-flex align-items-center justify-content-between">
+                                                    Nama Satuan
+                                                    @if(isset($sortBy) && $sortBy == 'nama')
+                                                        <i class="fas fa-sort-{{ $sortDir == 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort text-white-50"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th width="20%" class="text-center">Aksi</th>
                                         </tr>
                                     </thead>

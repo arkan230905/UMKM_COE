@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseReturn extends Model
 {
+    use \App\Traits\HasUserScope;
     protected $fillable = [
         'user_id',
         'return_number',

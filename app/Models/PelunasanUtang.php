@@ -13,6 +13,7 @@ use App\Models\JournalLine;
 
 class PelunasanUtang extends Model
 {
+    use \App\Traits\HasUserScope;
     protected $table = 'pelunasan_utangs';
     
     protected $fillable = [

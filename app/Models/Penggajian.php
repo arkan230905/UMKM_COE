@@ -8,6 +8,7 @@ use App\Models\JurnalUmum;
 
 class Penggajian extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected static function boot()
