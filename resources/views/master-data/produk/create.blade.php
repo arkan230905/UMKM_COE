@@ -119,9 +119,9 @@ function previewImage(event) {
     const previewImage = document.getElementById('preview-image');
     
     if (file) {
-        // Validasi ukuran file (max 10MB)
-        if (file.size > 10485760) {
-            alert('Ukuran file terlalu besar! Maksimal 10MB.');
+        // Validasi ukuran file (max 2MB)
+        if (file.size > 2097152) {
+            alert('Ukuran file terlalu besar! Maksimal 2MB.');
             event.target.value = '';
             previewContainer.style.display = 'none';
             return;

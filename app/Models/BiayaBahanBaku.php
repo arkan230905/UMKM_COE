@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class BiayaBahanBaku extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'biaya_bahan_baku';

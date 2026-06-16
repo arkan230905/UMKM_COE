@@ -13,9 +13,16 @@ class PenjualanSettingController extends Controller
     // Load data for the settings modal
     public function index()
     {
-        $paketMenus = PaketMenu::with('details.produk')->orderBy('created_at', 'desc')->get();
+        // MultiTenantModel trait otomatis filter by user_id
+        $paketMenus = PaketMenu::with('details.produk')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
         $ongkirSettings = OngkirSetting::orderBy('jarak_min')->get();
-        $produks = Produk::orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
+            
+        $produks = Produk::where('user_id', auth()->id())
+            ->orderBy('nama_produk')
+            ->get(['id', 'nama_produk', 'harga_jual']);
 
         return response()->json([
             'paket_menus' => $paketMenus,
@@ -27,8 +34,14 @@ class PenjualanSettingController extends Controller
     // Load page for paket menu management
     public function paketMenuPage()
     {
-        $paketMenus = PaketMenu::with('details.produk')->orderBy('created_at', 'desc')->get();
-        $produks = Produk::orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
+        // MultiTenantModel trait otomatis filter by user_id
+        $paketMenus = PaketMenu::with('details.produk')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        $produks = Produk::where('user_id', auth()->id())
+            ->orderBy('nama_produk')
+            ->get(['id', 'nama_produk', 'harga_jual']);
 
         return view('transaksi.penjualan.paket-menu', compact('paketMenus', 'produks'));
     }
@@ -159,6 +172,7 @@ class PenjualanSettingController extends Controller
 
     public function destroyPaket($id)
     {
+        // MultiTenantModel trait otomatis verify user_id via global scope
         $paket = PaketMenu::findOrFail($id);
 
         // ── Hapus juga Produk yang terhubung ────────────────────────
@@ -213,7 +227,9 @@ class PenjualanSettingController extends Controller
 
     public function destroyOngkir($id)
     {
-        OngkirSetting::findOrFail($id)->delete();
+        // MultiTenantModel trait otomatis verify user_id via global scope
+        $ongkir = OngkirSetting::findOrFail($id);
+        $ongkir->delete();
         return response()->json(['success' => true, 'message' => 'Range ongkir berhasil dihapus']);
     }
 }

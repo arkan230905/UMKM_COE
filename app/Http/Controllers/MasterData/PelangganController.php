@@ -20,9 +20,9 @@ class PelangganController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('nama_pelanggan', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                  ->orWhere('telepon', 'like', "%{$search}%");
             });
         }
 
@@ -33,10 +33,10 @@ class PelangganController extends Controller
                 $query->oldest();
                 break;
             case 'nama_az':
-                $query->orderBy('name', 'asc');
+                $query->orderBy('nama_pelanggan', 'asc');
                 break;
             case 'nama_za':
-                $query->orderBy('name', 'desc');
+                $query->orderBy('nama_pelanggan', 'desc');
                 break;
             case 'terbaru':
             default:
@@ -74,11 +74,6 @@ class PelangganController extends Controller
             ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         
-        // Load orders jika ada
-        $pelanggan->load(['orders' => function($query) {
-            $query->latest()->take(10);
-        }]);
-
         return view('master-data.pelanggan.show', compact('pelanggan'));
     }
 
@@ -133,27 +128,18 @@ class PelangganController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'name'    => 'required|string|max:255',
-            'email'   => 'required|email|unique:users,email,' . $id,
-            'phone'   => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'password' => 'nullable|min:6|confirmed',
+            'nama_pelanggan' => 'required|string|max:255',
+            'email'          => 'required|email|unique:pelanggans,email,' . $id,
+            'telepon'        => 'required|string|max:20',
+            'alamat'         => 'nullable|string',
         ]);
 
-        $data = [
-            'name'    => $request->name,
-            'email'   => $request->email,
-            'phone'   => $request->phone,
-            'address' => $request->address,
-        ];
-
-        // Update password jika diisi
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-            $data['plain_password'] = $request->password; // Update plain password too
-        }
-
-        $pelanggan->update($data);
+        $pelanggan->update([
+            'nama_pelanggan' => $request->nama_pelanggan,
+            'email'          => $request->email,
+            'telepon'        => $request->telepon,
+            'alamat'         => $request->alamat,
+        ]);
 
         return redirect()->route('master-data.pelanggan.index')
             ->with('success', 'Data pelanggan berhasil diupdate!');
@@ -165,11 +151,6 @@ class PelangganController extends Controller
         $pelanggan = User::where('role', 'pelanggan')
             ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
-        
-        // Cek apakah pelanggan punya order
-        if ($pelanggan->orders()->count() > 0) {
-            return back()->with('error', 'Tidak bisa menghapus pelanggan yang sudah memiliki pesanan!');
-        }
 
         $pelanggan->delete();
 

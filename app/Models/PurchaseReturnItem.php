@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseReturnItem extends Model
 {
+    use \App\Traits\HasUserScope;
     protected $fillable = [
         'user_id',
         'purchase_return_id',

@@ -110,6 +110,22 @@
                 <div style="font-size: 0.7rem; color: #2d3748;">{{ $retur->alasan }}</div>
             </div>
             @endif
+
+            @if($retur->kompensasi === 'uang' && $retur->metode_refund)
+            <div style="margin-top: 0.8rem; padding: 0.6rem; border: 1px solid #fbd38d; background-color: #fffaf0; border-radius: 8px;">
+                <div style="font-size: 0.6rem; color: #b7791f; margin-bottom: 0.2rem; font-weight: 700;">💵 Informasi Pengembalian Dana (Refund)</div>
+                <div style="font-size: 0.7rem; color: #2d3748; font-weight: 600;">{{ $retur->metode_refund }}</div>
+            </div>
+            @endif
+
+            @if($retur->bukti_foto)
+            <div style="margin-top: 0.8rem;">
+                <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">📷 Foto Bukti Barang</div>
+                <a href="{{ asset('storage/' . $retur->bukti_foto) }}" target="_blank" title="Klik untuk memperbesar">
+                    <img src="{{ asset('storage/' . $retur->bukti_foto) }}" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 1px solid #ddd; object-fit: cover; margin-top: 0.3rem;" alt="Bukti Foto Retur">
+                </a>
+            </div>
+            @endif
         </div>
 
         <!-- Items Table -->

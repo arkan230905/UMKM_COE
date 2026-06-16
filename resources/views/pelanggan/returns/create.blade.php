@@ -19,6 +19,18 @@
         </div>
         @endif
 
+        @if(session('error'))
+        <div style="background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 0.6rem; margin-bottom: 1rem; font-size: 0.65rem; color: #7f1d1d;">
+            {{ session('error') }}
+        </div>
+        @endif
+
+        @if(session('success'))
+        <div style="background: #dcfce7; border: 1px solid #86efac; border-radius: 8px; padding: 0.6rem; margin-bottom: 1rem; font-size: 0.65rem; color: #166534;">
+            {{ session('success') }}
+        </div>
+        @endif
+
         <!-- Pilih Pesanan -->
         <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #f0f0f0; margin-bottom: 1rem;">
             <div style="padding: 0.8rem; border-bottom: 1px solid #f0f0f0;">
@@ -43,7 +55,7 @@
         </div>
 
         @if($order)
-        <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/returns") }}" method="POST">
+        <form action="{{ route('pelanggan.returns.store', ['perusahaan_slug' => request()->route('perusahaan_slug')]) }}" method="POST" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="order_id" value="{{ $order->id }}">
 
@@ -70,7 +82,7 @@
                                 <td style="padding: 0.4rem; text-align: center; color: #2d3748;">{{ $it->qty }}</td>
                                 <td style="padding: 0.4rem; text-align: center;">
                                     <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $it->id }}">
-                                    <input type="number" name="items[{{ $loop->index }}][qty]" value="0" min="0" max="{{ $it->qty }}" style="width: 50px; padding: 0.3rem; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-size: 0.65rem;">
+                                    <input type="number" name="items[{{ $loop->index }}][qty]" value="{{ old('items.'.$loop->index.'.qty', 0) }}" min="0" max="{{ $it->qty }}" style="width: 50px; padding: 0.3rem; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-size: 0.65rem;">
                                 </td>
                             </tr>
                             @endforeach
@@ -87,14 +99,52 @@
                 <div style="padding: 0.8rem;">
                     <div style="margin-bottom: 0.8rem;">
                         <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.3rem;">Kompensasi</label>
-                        <select name="tipe_kompensasi" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748;" required>
-                            <option value="barang">Tukar Barang</option>
-                            <option value="uang">Refund Uang</option>
+                        <select name="tipe_kompensasi" id="tipe_kompensasi" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748;" required>
+                            <option value="barang" {{ old('tipe_kompensasi') == 'barang' ? 'selected' : '' }}>Tukar Barang</option>
+                            <option value="uang" {{ old('tipe_kompensasi') == 'uang' ? 'selected' : '' }}>Refund Uang</option>
                         </select>
                     </div>
-                    <div>
+
+                    <!-- Refund Options Box (image 2 design) -->
+                    <div id="refund_options_container" style="display: none; margin-bottom: 0.8rem; padding: 0.8rem; border: 1px solid #fbd38d; background-color: #fffaf0; border-radius: 8px;">
+                        <label style="display: block; font-size: 0.65rem; font-weight: 700; color: #b7791f; margin-bottom: 0.5rem;">💵 Opsi Pengembalian Dana (Refund)</label>
+                        <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.3rem;">Metode Pengembalian Dana *</label>
+                        <div style="display: flex; gap: 1.2rem; margin-bottom: 0.8rem;">
+                            <label style="display: inline-flex; align-items: center; font-size: 0.65rem; color: #2d3748; cursor: pointer; font-weight: normal;">
+                                <input type="radio" name="metode_refund" value="tunai" style="margin-right: 0.3rem;" {{ old('metode_refund', 'tunai') == 'tunai' ? 'checked' : '' }}> Tunai / Kas
+                            </label>
+                            <label style="display: inline-flex; align-items: center; font-size: 0.65rem; color: #2d3748; cursor: pointer; font-weight: normal;">
+                                <input type="radio" name="metode_refund" value="transfer" style="margin-right: 0.3rem;" {{ old('metode_refund') == 'transfer' ? 'checked' : '' }}> Transfer Bank
+                            </label>
+                        </div>
+
+                        <!-- Bank Details Input -->
+                        <div id="bank_details_container" style="display: none; border-top: 1px dashed #fbd38d; padding-top: 0.6rem;">
+                            <div style="margin-bottom: 0.5rem;">
+                                <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.2rem;">Nama Bank *</label>
+                                <input type="text" name="nama_bank" value="{{ old('nama_bank') }}" placeholder="Contoh: BCA, Mandiri, BRI, BNI" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748;">
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">
+                                <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.2rem;">Nomor Rekening *</label>
+                                <input type="text" name="rekening_nomor" value="{{ old('rekening_nomor') }}" placeholder="Contoh: 1234567890" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.2rem;">Nama Pemilik Rekening *</label>
+                                <input type="text" name="rekening_nama" value="{{ old('rekening_nama') }}" placeholder="Nama lengkap pemilik rekening" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 0.8rem;">
                         <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.3rem;">Alasan</label>
-                        <textarea name="alasan" rows="3" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748; font-family: inherit; resize: vertical;" placeholder="Tuliskan alasan retur (opsional)"></textarea>
+                        <textarea name="alasan" rows="3" style="width: 100%; padding: 0.4rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; color: #2d3748; font-family: inherit; resize: vertical;" placeholder="Tuliskan alasan retur (opsional)">{{ old('alasan') }}</textarea>
+                    </div>
+
+                    <!-- Bukti Foto -->
+                    <div style="border-top: 1px solid #f0f0f0; padding-top: 0.8rem; margin-top: 0.8rem;">
+                        <label style="display: block; font-size: 0.6rem; font-weight: 600; color: #2d3748; margin-bottom: 0.2rem;">📷 Foto Bukti Barang (Opsional)</label>
+                        <p style="color: #999; margin: 0 0 0.5rem 0; font-size: 0.55rem;">Pilih foto produk yang bermasalah untuk mempercepat proses persetujuan (Maksimal 2MB)</p>
+                        <input type="file" name="bukti_foto" accept="image/*" style="font-size: 0.65rem; color: #2d3748; width: 100%; cursor: pointer;">
                     </div>
                 </div>
             </div>
@@ -108,5 +158,67 @@
         @endif
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipeKompensasi = document.getElementById('tipe_kompensasi');
+    const refundContainer = document.getElementById('refund_options_container');
+    const bankContainer = document.getElementById('bank_details_container');
+    const metodeRefundRadios = document.querySelectorAll('input[name="metode_refund"]');
+    
+    const namaBankInput = document.querySelector('input[name="nama_bank"]');
+    const rekeningNomorInput = document.querySelector('input[name="rekening_nomor"]');
+    const rekeningNamaInput = document.querySelector('input[name="rekening_nama"]');
+
+    function toggleRefundOptions() {
+        if (tipeKompensasi.value === 'uang') {
+            refundContainer.style.display = 'block';
+        } else {
+            refundContainer.style.display = 'none';
+            // Reset values
+            if(namaBankInput) namaBankInput.value = '';
+            if(rekeningNomorInput) rekeningNomorInput.value = '';
+            if(rekeningNamaInput) rekeningNamaInput.value = '';
+        }
+    }
+
+    function toggleBankDetails() {
+        let selectedMetode = '';
+        metodeRefundRadios.forEach(radio => {
+            if (radio.checked) {
+                selectedMetode = radio.value;
+            }
+        });
+
+        if (selectedMetode === 'transfer' && tipeKompensasi.value === 'uang') {
+            bankContainer.style.display = 'block';
+            if(namaBankInput) namaBankInput.required = true;
+            if(rekeningNomorInput) rekeningNomorInput.required = true;
+            if(rekeningNamaInput) rekeningNamaInput.required = true;
+        } else {
+            bankContainer.style.display = 'none';
+            if(namaBankInput) namaBankInput.required = false;
+            if(rekeningNomorInput) rekeningNomorInput.required = false;
+            if(rekeningNamaInput) rekeningNamaInput.required = false;
+        }
+    }
+
+    if (tipeKompensasi) {
+        tipeKompensasi.addEventListener('change', function() {
+            toggleRefundOptions();
+            toggleBankDetails();
+        });
+        // Init state
+        toggleRefundOptions();
+    }
+
+    metodeRefundRadios.forEach(radio => {
+        radio.addEventListener('change', toggleBankDetails);
+    });
+    
+    // Init state for bank details
+    toggleBankDetails();
+});
+</script>
 
 @endsection

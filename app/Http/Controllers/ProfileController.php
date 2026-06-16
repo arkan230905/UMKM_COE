@@ -30,7 +30,7 @@ class ProfileController extends Controller
             'username' => 'nullable|string|max:255|unique:users,username,' . $user->id,
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'required|string|max:20',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_photo' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
         ]);
 
         // Handle photo upload FIRST - before anything else

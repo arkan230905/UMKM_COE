@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class Bop extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'bops';

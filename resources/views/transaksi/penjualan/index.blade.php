@@ -743,9 +743,84 @@
                     <!-- Akhir Konten Penjualan -->
                 </div>
                 <div class="tab-pane fade" id="retur-list" role="tabpanel" aria-labelledby="retur-list-tab">
-                    <!-- Konten Retur -->
+                    <!-- Section: Pengajuan Retur Pelanggan -->
                     <h5 class="mb-3">
-                        <i class="fas fa-undo me-2"></i>Riwayat Retur Penjualan
+                        <i class="fas fa-bell me-2 text-warning"></i>Pengajuan Retur Pelanggan
+                    </h5>
+                    <div class="table-responsive mb-5">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px">NO</th>
+                                    <th>Tanggal Pengajuan</th>
+                                    <th>Kode Retur</th>
+                                    <th>No Penjualan</th>
+                                    <th>Pelanggan</th>
+                                    <th>Kompensasi</th>
+                                    <th>Alasan</th>
+                                    <th class="text-end">Total Nilai</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center" style="width: 200px">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($customerReturns as $key => $retur)
+                                    <tr>
+                                        <td class="text-center">{{ $key + 1 }}</td>
+                                        <td>{{ optional($retur->created_at)->format('d-m-Y') ?? '-' }}</td>
+                                        <td><strong>{{ $retur->memo ?? '-' }}</strong></td>
+                                        <td>{{ $retur->penjualan?->nomor_penjualan ?? '-' }}</td>
+                                        <td>{{ $retur->penjualan?->pelanggan?->nama_pelanggan ?? $retur->penjualan?->order?->nama_penerima ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge {{ $retur->kompensasi === 'barang' ? 'bg-warning' : 'bg-danger' }}">
+                                                {{ $retur->kompensasi === 'barang' ? 'Tukar Barang' : 'Refund' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $retur->alasan ?? '-' }}</td>
+                                        <td class="text-end fw-semibold">Rp {{ number_format($retur->jumlah ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-center">
+                                            <span class="badge {{ $retur->status === 'approved' ? 'bg-success' : ($retur->status === 'rejected' ? 'bg-danger' : 'bg-warning') }}">
+                                                {{ ucfirst($retur->status ?? 'draft') }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="action-layout">
+                                                <div class="action-row gap-1 justify-content-center">
+                                                    <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#customerReturDetailModal{{ $retur->id }}" title="Detail Retur">
+                                                        Detail
+                                                    </button>
+                                                    @if($retur->status === 'draft')
+                                                        <form action="{{ route('transaksi.retur-penjualan.approve-customer-return', $retur->id) }}" method="POST" style="display:inline;">
+                                                            @csrf
+                                                            <button type="submit" class="btn-minimal btn-success" onclick="return confirm('Apakah Anda yakin ingin menyetujui pengajuan retur ini?')" title="Setujui Retur">
+                                                                Setuju
+                                                            </button>
+                                                        </form>
+                                                        <form action="{{ route('transaksi.retur-penjualan.reject-customer-return', $retur->id) }}" method="POST" style="display:inline;">
+                                                            @csrf
+                                                            <button type="submit" class="btn-minimal btn-danger" onclick="return confirm('Apakah Anda yakin ingin menolak pengajuan retur ini?')" title="Tolak Retur">
+                                                                Tolak
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="10" class="text-center text-muted py-3">
+                                            <i class="fas fa-info-circle me-2"></i>Belum ada pengajuan retur dari pelanggan
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Section: Riwayat Retur Penjualan -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-history me-2 text-primary"></i>Riwayat Retur Penjualan (Owner)
                     </h5>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -1423,6 +1498,19 @@
                         <strong>Keterangan:</strong> {{ $retur->keterangan ?? '-' }}
                     </div>
                 </div>
+
+                @if($retur->bukti_foto)
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong><i class="fas fa-image me-1 text-primary"></i> Foto Bukti Barang:</strong>
+                        <div class="mt-2">
+                            <a href="{{ asset('storage/' . $retur->bukti_foto) }}" target="_blank">
+                                <img src="{{ asset('storage/' . $retur->bukti_foto) }}" class="img-thumbnail" style="max-height: 200px; cursor: pointer;" alt="Bukti Foto Barang">
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endif
                 
                 <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk Diretur</h6>
                 <div class="table-responsive">
@@ -1455,6 +1543,133 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<!-- Customer Retur Detail Modal -->
+@foreach($customerReturns as $retur)
+<div class="modal fade" id="customerReturDetailModal{{ $retur->id }}" tabindex="-1" aria-labelledby="customerReturDetailModalLabel{{ $retur->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerReturDetailModalLabel{{ $retur->id }}">
+                    <i class="fas fa-undo me-2"></i>Detail Pengajuan Retur Pelanggan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Informasi Retur -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Kode Retur:</strong> {{ $retur->memo ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tanggal Pengajuan:</strong> {{ optional($retur->created_at)->format('d-m-Y') ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Nomor Penjualan:</strong> {{ $retur->penjualan?->nomor_penjualan ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Pelanggan:</strong> {{ $retur->penjualan?->pelanggan?->nama_pelanggan ?? $retur->penjualan?->order?->nama_penerima ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        <span class="badge {{ $retur->status === 'approved' ? 'bg-success' : ($retur->status === 'rejected' ? 'bg-danger' : 'bg-warning') }}">
+                            {{ ucfirst($retur->status ?? 'draft') }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Kompensasi:</strong>
+                        <span class="badge {{ $retur->kompensasi === 'barang' ? 'bg-warning' : 'bg-danger' }}">
+                            {{ $retur->kompensasi === 'barang' ? 'Tukar Barang' : 'Refund' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Alasan Retur:</strong> {{ $retur->alasan ?? '-' }}
+                    </div>
+                </div>
+                
+                @if($retur->kompensasi === 'uang' && $retur->metode_refund)
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="p-3 bg-light rounded border">
+                            <strong><i class="fas fa-money-bill-wave me-1 text-success"></i> Metode Refund Pilihan Pelanggan:</strong>
+                            <div class="mt-1 text-secondary fw-semibold">{{ $retur->metode_refund }}</div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if($retur->bukti_foto)
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong><i class="fas fa-image me-1 text-primary"></i> Foto Bukti Barang:</strong>
+                        <div class="mt-2">
+                            <a href="{{ asset('storage/' . $retur->bukti_foto) }}" target="_blank">
+                                <img src="{{ asset('storage/' . $retur->bukti_foto) }}" class="img-thumbnail" style="max-height: 200px; cursor: pointer;" alt="Bukti Foto Barang">
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endif
+                
+                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk Diretur</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th class="text-end">Qty Diretur</th>
+                                <th class="text-end">Harga Satuan</th>
+                                <th class="text-end">Subtotal Retur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($retur->details && $retur->details->count() > 0)
+                                @foreach($retur->details as $item)
+                                    <tr>
+                                        <td>{{ $item->produk?->nama_produk ?? '-' }}</td>
+                                        <td class="text-end">{{ number_format($item->qty ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($item->harga_satuan_asal ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format(($item->qty ?? 0) * ($item->harga_satuan_asal ?? 0), 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Tidak ada detail produk</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Total:</th>
+                                <th class="text-end text-danger fw-semibold">Rp {{ number_format($retur->jumlah ?? 0, 0, ',', '.') }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                @if($retur->status === 'draft')
+                    <form action="{{ route('transaksi.retur-penjualan.approve-customer-return', $retur->id) }}" method="POST" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Apakah Anda yakin ingin menyetujui pengajuan retur ini?')"><i class="fas fa-check me-1"></i>Setujui</button>
+                    </form>
+                    <form action="{{ route('transaksi.retur-penjualan.reject-customer-return', $retur->id) }}" method="POST" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Apakah Anda yakin ingin menolak pengajuan retur ini?')"><i class="fas fa-times me-1"></i>Tolak</button>
+                    </form>
+                @endif
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
