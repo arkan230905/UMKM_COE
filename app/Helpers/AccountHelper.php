@@ -61,10 +61,14 @@ class AccountHelper
      */
     public static function getBankAccountsForTransfer($userId = null)
     {
+        $bankKeywords = ['bank', 'bca', 'mandiri', 'bri', 'bni', 'bsi', 'cimb', 'danamon', 'permata', 'btn', 'bpd', 'maybank', 'mega', 'ocbc', 'panin', 'sinarmas', 'bukopin', 'jenius', 'jago', 'allo', 'uob', 'hana', 'muamalat', 'dki', 'bjb', 'jabar', 'jatim', 'jateng'];
+        
         $query = Coa::whereIn('tipe_akun', ['Asset', 'asset', 'Aset', 'ASET', 'Aktiva'])
-            ->where(function($query) {
-                $query->where('nama_akun', 'like', '%bank%')
-                      ->orWhere('kode_akun', 'like', '111%');
+            ->where(function($query) use ($bankKeywords) {
+                $query->where('kode_akun', 'like', '111%');
+                foreach ($bankKeywords as $keyword) {
+                    $query->orWhere('nama_akun', 'like', '%' . $keyword . '%');
+                }
             })
             ->whereNotNull('nomor_rekening')
             ->where('nomor_rekening', '!=', '');

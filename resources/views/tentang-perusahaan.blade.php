@@ -47,9 +47,17 @@
                                     // Ambil data rekening bank dari database
                                     $bankAccounts = collect();
                                     try {
-                                        $bankAccounts = \App\Models\Coa::where('tipe_akun', 'asset')
-                                            ->where('kategori_akun', 'kas_bank')
-                                            ->whereNotNull('nomor_rekening')
+                                        $bankKeywords = ['bank', 'bca', 'mandiri', 'bri', 'bni', 'bsi', 'cimb', 'danamon', 'permata', 'btn', 'bpd', 'maybank', 'mega', 'ocbc', 'panin', 'sinarmas', 'bukopin', 'jenius', 'jago', 'allo', 'uob', 'hana', 'muamalat', 'dki', 'bjb', 'jabar', 'jatim', 'jateng'];
+                                        
+                                        $bankAccounts = \App\Models\Coa::where('user_id', auth()->id())
+                                            ->whereIn('tipe_akun', ['Asset', 'asset', 'Aset', 'ASET', 'Aktiva'])
+                                            ->where('kode_akun', '!=', '111')
+                                            ->where(function($query) use ($bankKeywords) {
+                                                $query->where('kode_akun', 'like', '111%');
+                                                foreach ($bankKeywords as $keyword) {
+                                                    $query->orWhere('nama_akun', 'like', '%' . $keyword . '%');
+                                                }
+                                            })
                                             ->get();
                                     } catch (Exception $e) {
                                         // Fallback jika tabel tidak ada
@@ -128,9 +136,17 @@
                                     // Ambil data rekening bank dari database
                                     $allBankAccounts = collect();
                                     try {
-                                        $allBankAccounts = \App\Models\Coa::where('tipe_akun', 'asset')
-                                            ->where('kategori_akun', 'kas_bank')
-                                            ->whereNotNull('nomor_rekening')
+                                        $bankKeywords = ['bank', 'bca', 'mandiri', 'bri', 'bni', 'bsi', 'cimb', 'danamon', 'permata', 'btn', 'bpd', 'maybank', 'mega', 'ocbc', 'panin', 'sinarmas', 'bukopin', 'jenius', 'jago', 'allo', 'uob', 'hana', 'muamalat', 'dki', 'bjb', 'jabar', 'jatim', 'jateng'];
+                                        
+                                        $allBankAccounts = \App\Models\Coa::where('user_id', auth()->id())
+                                            ->whereIn('tipe_akun', ['Asset', 'asset', 'Aset', 'ASET', 'Aktiva'])
+                                            ->where('kode_akun', '!=', '111')
+                                            ->where(function($query) use ($bankKeywords) {
+                                                $query->where('kode_akun', 'like', '111%');
+                                                foreach ($bankKeywords as $keyword) {
+                                                    $query->orWhere('nama_akun', 'like', '%' . $keyword . '%');
+                                                }
+                                            })
                                             ->get();
                                     } catch (Exception $e) {
                                         // Fallback jika tabel tidak ada

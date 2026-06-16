@@ -524,7 +524,7 @@ try {
     {
         $request->validate([
             'nomor_induk_pegawai' => 'required|exists:pegawais,nomor_induk_pegawai',
-            'foto_wajah' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'foto_wajah' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
         ]);
         
         // CRITICAL: Filter by user_id melalui relasi pegawai

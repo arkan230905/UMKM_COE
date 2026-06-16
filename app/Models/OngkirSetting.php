@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\MultiTenantModel;
 
 class OngkirSetting extends Model
 {
+    use MultiTenantModel;
+
     protected $fillable = [
         'user_id',  // 🔒 SECURITY: Add user_id for multi-tenant isolation
         'jarak_min', 'jarak_max', 'harga_ongkir', 'status',

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProsesProduksi extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'proses_produksis';
@@ -56,8 +57,12 @@ class ProsesProduksi extends Model
      */
     public static function generateKode(): string
     {
-        // Get the last kode_proses with PRO- prefix, ordered by the numeric part
-        $lastProses = self::where('kode_proses', 'LIKE', 'PRO-%')
+        // CRITICAL: Get user_id for multi-tenant isolation
+        $userId = auth()->id();
+        
+        // Get the last kode_proses with PRO- prefix for current user, ordered by the numeric part
+        $lastProses = self::where('user_id', $userId)
+            ->where('kode_proses', 'LIKE', 'PRO-%')
             ->orderByRaw('CAST(SUBSTRING(kode_proses, 5) AS UNSIGNED) DESC')
             ->first();
         

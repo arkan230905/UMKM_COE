@@ -8,23 +8,43 @@ use Illuminate\Http\Request;
 
 class SatuanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $sortBy = $request->get('sort_by', 'kode');
+        $sortDir = $request->get('sort_dir', 'asc');
+
+        if (!in_array($sortBy, ['kode', 'nama'])) {
+            $sortBy = 'kode';
+        }
+        if (!in_array($sortDir, ['asc', 'desc'])) {
+            $sortDir = 'asc';
+        }
+
         $satuans = Satuan::where('user_id', auth()->id())
-            ->orderBy('kode', 'asc')
+            ->orderBy($sortBy, $sortDir)
             ->get();
-        return view('master-data.satuan.index', compact('satuans'));
+        return view('master-data.satuan.index', compact('satuans', 'sortBy', 'sortDir'));
     }
 
     /**
      * Display satuan management page with tabs
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
+        $sortBy = $request->get('sort_by', 'kode');
+        $sortDir = $request->get('sort_dir', 'asc');
+
+        if (!in_array($sortBy, ['kode', 'nama'])) {
+            $sortBy = 'kode';
+        }
+        if (!in_array($sortDir, ['asc', 'desc'])) {
+            $sortDir = 'asc';
+        }
+
         $satuans = Satuan::where('user_id', auth()->id())
-            ->orderBy('kode', 'asc')
+            ->orderBy($sortBy, $sortDir)
             ->get();
-        return view('master-data.satuan.dashboard', compact('satuans'));
+        return view('master-data.satuan.dashboard', compact('satuans', 'sortBy', 'sortDir'));
     }
 
     public function create()
@@ -159,6 +179,31 @@ class SatuanController extends Controller
             $satuan = Satuan::where('user_id', auth()->id())->findOrFail($id);
             $satuanName = $satuan->nama;
             
+            // Cek apakah satuan sedang digunakan oleh tabel lain
+            $blockers = [];
+            $bb = \App\Models\BahanBaku::where('satuan_id', $satuan->id)->count();
+            if ($bb > 0) $blockers[] = "Bahan Baku ($bb)";
+            
+            $bp = \App\Models\BahanPendukung::where('satuan_id', $satuan->id)->count();
+            if ($bp > 0) $blockers[] = "Bahan Pendukung ($bp)";
+            
+            $pr = \App\Models\Produk::where('satuan_id', $satuan->id)->count();
+            if ($pr > 0) $blockers[] = "Produk ($pr)";
+
+            if (!empty($blockers)) {
+                $msg = 'Satuan "' . $satuanName . '" tidak dapat dihapus karena masih digunakan pada data: ' . implode(', ', $blockers) . '.';
+                
+                if ($isAjax) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $msg
+                    ], 400); // 400 Bad Request
+                }
+
+                return redirect()->route('master-data.satuan.index')
+                    ->with('error', $msg);
+            }
+
             // Hapus data
             $satuan->delete();
 
@@ -173,6 +218,23 @@ class SatuanController extends Controller
             return redirect()->route('master-data.satuan.index')
                 ->with('success', 'Satuan berhasil dihapus!');
                 
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Check for foreign key constraint violation
+            if ($e->getCode() == '23000') {
+                $message = 'Gagal menghapus data: Satuan sedang digunakan oleh data lain dan tidak dapat dihapus.';
+            } else {
+                $message = 'Gagal menghapus data: ' . $e->getMessage();
+            }
+            
+            if ($isAjax) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message
+                ], 500);
+            }
+
+            return redirect()->back()
+                ->with('error', $message);
         } catch (\Exception $e) {
             // Check if request is AJAX
             if ($isAjax) {

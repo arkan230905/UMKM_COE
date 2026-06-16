@@ -144,7 +144,7 @@ class KelolaCatalogController extends Controller
             'alamat' => 'required|string|max:500',
             'email' => 'required|email|max:255',
             'telepon' => 'required|string|max:20',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'foto' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
             'catalog_description' => 'nullable|string|max:2000',
             'maps_link' => 'nullable|string|max:1000',
             'latitude' => 'nullable|numeric|between:-90,90',
@@ -154,7 +154,7 @@ class KelolaCatalogController extends Controller
             'gradient_color_1' => 'nullable|string|max:7',
             'gradient_color_2' => 'nullable|string|max:7',
             'gradient_direction' => 'nullable|string|max:50',
-            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'background_image' => 'nullable|file|max:5120', // Validate by extension only, not MIME type
             'background_opacity' => 'nullable|integer|min:0|max:100',
         ]);
 
@@ -325,12 +325,10 @@ class KelolaCatalogController extends Controller
         // Validate file with 8MB limit
         try {
             $request->validate([
-                'foto' => 'required|file|image|mimes:jpeg,png,jpg,gif,webp|max:8192', // 8MB limit
+                'foto' => 'required|file|max:8192', // 8MB limit - validate by extension only, not MIME type
             ], [
                 'foto.required' => 'Foto harus dipilih.',
                 'foto.file' => 'File yang dipilih tidak valid.',
-                'foto.image' => 'File harus berupa gambar.',
-                'foto.mimes' => 'Format file harus JPG, PNG, GIF, atau WEBP.',
                 'foto.max' => 'Ukuran file maksimal 8MB.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -943,11 +941,9 @@ class KelolaCatalogController extends Controller
             \Log::info('Upload team photo request received');
             
             $request->validate([
-                'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB
+                'photo' => 'required|file|max:5120', // 5MB - validate by extension only, not MIME type
             ], [
                 'photo.required' => 'Foto harus dipilih.',
-                'photo.image' => 'File harus berupa gambar.',
-                'photo.mimes' => 'Format file harus JPG, PNG, GIF.',
                 'photo.max' => 'Ukuran file maksimal 5MB.',
             ]);
 
@@ -1000,11 +996,9 @@ class KelolaCatalogController extends Controller
             \Log::info('Upload cover photo request received');
             
             $request->validate([
-                'foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB
+                'foto' => 'required|file|max:5120', // 5MB - validate by extension only, not MIME type
             ], [
                 'foto.required' => 'Foto harus dipilih.',
-                'foto.image' => 'File harus berupa gambar.',
-                'foto.mimes' => 'Format file harus JPG, PNG, GIF.',
                 'foto.max' => 'Ukuran file maksimal 5MB.',
             ]);
 

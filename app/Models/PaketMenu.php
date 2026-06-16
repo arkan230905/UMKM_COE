@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\MultiTenantModel;
 
 class PaketMenu extends Model
 {
+    use MultiTenantModel;
+
     protected $fillable = [
         'user_id',  // 🔒 SECURITY: Add user_id for multi-tenant isolation
         'nama_paket', 'harga_normal', 'harga_paket', 'diskon_persen', 'status', 'keterangan', 'produk_id',

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ReturPenjualan extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'retur_penjualans';
@@ -25,7 +26,8 @@ class ReturPenjualan extends Model
         'total_retur',
         'ppn',
         'status',
-        'keterangan'
+        'keterangan',
+        'bukti_foto'
     ];
 
     protected $casts = [

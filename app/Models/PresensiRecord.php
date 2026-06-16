@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PresensiRecord extends Model
 {
+    use \App\Traits\HasUserScope;
     protected $table = 'presensi_records';
     protected $primaryKey = 'id';
     

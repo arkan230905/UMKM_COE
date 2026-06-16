@@ -14,6 +14,7 @@ class PelangganUserObserver
         Pelanggan::firstOrCreate(
             ['email' => $user->email],
             [
+                'user_id' => $user->perusahaan_id, // 🔒 SECURITY: Add user_id for multi-tenant isolation
                 'kode_pelanggan' => 'CUS' . now()->format('ym') . str_pad($user->id, 4, '0', STR_PAD_LEFT),
                 'nama_pelanggan' => $user->name,
                 'telepon'        => $user->phone ?? null,

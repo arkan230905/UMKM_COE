@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Perusahaan extends Model
 {
+    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'perusahaan';

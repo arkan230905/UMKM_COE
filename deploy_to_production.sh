@@ -1,110 +1,168 @@
 #!/bin/bash
 
-echo "=========================================="
-echo "DEPLOYMENT TO PRODUCTION SERVER"
-echo "=========================================="
+# ========================================
+# Production Deployment Script
+# Created: 2026-06-16
+# ========================================
+
+echo "========================================="
+echo "🚀 PRODUCTION DEPLOYMENT SCRIPT"
+echo "========================================="
 echo ""
 
-# Step 1: Pull latest code from GitHub
-echo "Step 1: Pulling latest code from GitHub..."
-git pull origin nayla
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-if [ $? -ne 0 ]; then
-    echo "❌ Git pull failed. Please resolve conflicts manually."
+# Configuration - UPDATE THESE!
+PROJECT_PATH="/path/to/production"  # UPDATE THIS
+DB_USER="your_db_user"               # UPDATE THIS
+DB_NAME="your_db_name"               # UPDATE THIS
+PHP_VERSION="8.2"                    # UPDATE THIS (8.1, 8.2, etc)
+
+echo -e "${YELLOW}⚠️  BEFORE RUNNING THIS SCRIPT:${NC}"
+echo "1. Update configuration variables above"
+echo "2. Make sure you have sudo access"
+echo "3. Ensure all files are uploaded to production"
+echo ""
+read -p "Have you updated the configuration? (yes/no): " confirm
+
+if [ "$confirm" != "yes" ]; then
+    echo -e "${RED}❌ Please update configuration first!${NC}"
     exit 1
 fi
 
-echo "✓ Code updated successfully"
+echo ""
+echo -e "${GREEN}✅ Starting deployment...${NC}"
 echo ""
 
-# Step 2: Clear all caches
-echo "Step 2: Clearing Laravel caches..."
+# Step 1: Backup
+echo "📦 Step 1: Creating backups..."
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+cd $PROJECT_PATH || exit
+
+# Backup database
+echo "   Backing up database..."
+mysqldump -u $DB_USER -p $DB_NAME > backup_db_$TIMESTAMP.sql
+if [ $? -eq 0 ]; then
+    echo -e "   ${GREEN}✓${NC} Database backup created: backup_db_$TIMESTAMP.sql"
+else
+    echo -e "   ${RED}✗${NC} Database backup failed!"
+    exit 1
+fi
+
+# Backup views
+echo "   Backing up views..."
+tar -czf backup_views_$TIMESTAMP.tar.gz resources/views/
+echo -e "   ${GREEN}✓${NC} Views backup created"
+
+echo ""
+
+# Step 2: Maintenance Mode
+echo "🔧 Step 2: Enabling maintenance mode..."
+php artisan down --message="Sistem sedang maintenance, akan kembali dalam 10 menit"
+echo -e "   ${GREEN}✓${NC} Maintenance mode enabled"
+echo ""
+
+# Step 3: Run Migration
+echo "🗄️  Step 3: Running database migration..."
+php artisan migrate --force
+if [ $? -eq 0 ]; then
+    echo -e "   ${GREEN}✓${NC} Migration completed successfully"
+else
+    echo -e "   ${RED}✗${NC} Migration failed!"
+    echo "   Rolling back..."
+    php artisan up
+    exit 1
+fi
+echo ""
+
+# Step 4: Clear Caches
+echo "🧹 Step 4: Clearing all caches..."
 php artisan config:clear
+echo -e "   ${GREEN}✓${NC} Config cache cleared"
+
 php artisan cache:clear
+echo -e "   ${GREEN}✓${NC} Application cache cleared"
+
 php artisan view:clear
+echo -e "   ${GREEN}✓${NC} View cache cleared"
+
 php artisan route:clear
+echo -e "   ${GREEN}✓${NC} Route cache cleared"
 
-echo "✓ Caches cleared"
+php artisan optimize:clear
+echo -e "   ${GREEN}✓${NC} Optimization cleared"
+
+# Delete compiled views manually
+rm -rf storage/framework/views/*
+echo -e "   ${GREEN}✓${NC} Compiled views deleted"
+
+# Rebuild
+php artisan optimize
+echo -e "   ${GREEN}✓${NC} Application optimized"
 echo ""
 
-# Step 3: Update COA mappings for Bahan Baku
-echo "Step 3: Updating COA mappings for Bahan Baku..."
-php artisan tinker --execute="
-\$updates = [
-    ['Ayam Potong', '1141'],
-    ['Ayam Kampung', '1142'],
-    ['Bebek', '1143'],
-];
-
-foreach (\$updates as \$update) {
-    \$bb = \App\Models\BahanBaku::where('nama_bahan', \$update[0])->first();
-    if (\$bb) {
-        \$bb->coa_persediaan_id = \$update[1];
-        \$bb->save();
-        echo \"✓ Updated {\$update[0]}: {\$update[1]}\n\";
-    }
-}
-"
-
-echo "✓ Bahan Baku COA mappings updated"
+# Step 5: Fix Permissions
+echo "🔐 Step 5: Fixing permissions..."
+chmod -R 755 storage bootstrap/cache
+chmod -R 777 storage/logs
+chmod -R 777 storage/framework/views
+chown -R www-data:www-data storage bootstrap/cache
+echo -e "   ${GREEN}✓${NC} Permissions fixed"
 echo ""
 
-# Step 4: Update COA mappings for Bahan Pendukung
-echo "Step 4: Updating COA mappings for Bahan Pendukung..."
-php artisan tinker --execute="
-\$updates = [
-    ['Tepung Terigu', '1152'],
-    ['Tepung Maizena', '1153'],
-    ['Lada', '1154'],
-    ['Bubuk Kaldu Ayam', '1155'],
-    ['Bubuk Bawang Putih', '1156'],
-    ['Minyak Goreng', '1151'],
-    ['Air Galon', '1150'],
-    ['Kemasan Makanan', '1157'],
-];
+# Step 6: Restart Services
+echo "🔄 Step 6: Restarting services..."
+echo "   Restarting PHP-FPM..."
+sudo systemctl restart php${PHP_VERSION}-fpm
+if [ $? -eq 0 ]; then
+    echo -e "   ${GREEN}✓${NC} PHP-FPM restarted"
+else
+    echo -e "   ${YELLOW}⚠${NC}  PHP-FPM restart may have failed, check manually"
+fi
 
-foreach (\$updates as \$update) {
-    \$bp = \App\Models\BahanPendukung::where('nama_bahan', \$update[0])->first();
-    if (\$bp) {
-        \$bp->coa_persediaan_id = \$update[1];
-        \$bp->save();
-        echo \"✓ Updated {\$update[0]}: {\$update[1]}\n\";
-    }
-}
-"
-
-echo "✓ Bahan Pendukung COA mappings updated"
+echo "   Restarting Apache..."
+sudo systemctl restart apache2
+if [ $? -eq 0 ]; then
+    echo -e "   ${GREEN}✓${NC} Apache restarted"
+else
+    echo -e "   ${YELLOW}⚠${NC}  Apache restart may have failed, trying httpd..."
+    sudo systemctl restart httpd
+fi
 echo ""
 
-# Step 5: Fix foreign key constraint
-echo "Step 5: Fixing foreign key constraint for pembelians..."
-php artisan tinker --execute="
-try {
-    DB::statement('ALTER TABLE pembelians DROP FOREIGN KEY pembelians_vendor_id_foreign');
-    DB::statement('ALTER TABLE pembelians ADD CONSTRAINT pembelians_vendor_id_foreign FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE');
-    echo \"✓ Foreign key constraint fixed\n\";
-} catch (\Exception \$e) {
-    echo \"⚠ Foreign key may already be correct: \" . \$e->getMessage() . \"\n\";
-}
-"
-
+# Step 7: Disable Maintenance Mode
+echo "✨ Step 7: Disabling maintenance mode..."
+php artisan up
+echo -e "   ${GREEN}✓${NC} Site is now live!"
 echo ""
 
-# Step 6: Final cache clear
-echo "Step 6: Final cache clear..."
-php artisan view:clear
-php artisan config:clear
-
-echo "✓ Final caches cleared"
+# Verification
+echo "========================================="
+echo "🎯 DEPLOYMENT COMPLETED!"
+echo "========================================="
 echo ""
-
-echo "=========================================="
-echo "✓ DEPLOYMENT COMPLETED SUCCESSFULLY"
-echo "=========================================="
+echo "Next steps:"
+echo "1. Verify vendor constraint:"
+echo "   php artisan tinker"
+echo '   DB::select("SHOW INDEX FROM vendors WHERE Key_name LIKE '\''%unique%'\''");'
 echo ""
-echo "Please test the following:"
-echo "1. Go to Transaksi > Pembelian > Tambah Pembelian"
-echo "2. Select 'Ayam Potong' as Bahan Baku"
-echo "3. Check Preview Jurnal should show 'Pers. Bahan Baku Ayam Potong' with badge '1141'"
-echo "4. Try saving the transaction"
+echo "2. Test in browser:"
+echo "   - Test vendor creation (same name, different kategori)"
+echo "   - Check pembelian form (accordion collapsed?)"
+echo "   - Test PDF export"
+echo "   - Clear browser cache: Ctrl+Shift+R"
+echo ""
+echo "3. Check logs:"
+echo "   tail -f storage/logs/laravel.log"
+echo ""
+echo -e "${GREEN}✅ All deployment steps completed successfully!${NC}"
+echo ""
+echo "Backups created:"
+echo "   - Database: backup_db_$TIMESTAMP.sql"
+echo "   - Views: backup_views_$TIMESTAMP.tar.gz"
 echo ""

@@ -87,14 +87,14 @@ class PembelianJournalService
             // 3. DEBIT: Biaya Kirim (jika ada)
             $biayaKirim = (float) ($pembelian->biaya_kirim ?? 0);
             if ($biayaKirim > 0) {
-                // Try to find Biaya Kirim COA, or use a generic BOP account
+                // Use Beban Transport Pembelian COA (558)
                 // CRITICAL: Filter by user_id for multi-tenant isolation
-                $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '5111')
+                $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '558')
                     ->where('user_id', auth()->id())
                     ->first();
                 if (!$biayaKirimCoa) {
-                    // Fallback to BOP Lain account
-                    $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '55')
+                    // Fallback to BOP Lainnya (557)
+                    $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '557')
                         ->where('user_id', auth()->id())
                         ->first();
                 }
@@ -104,15 +104,16 @@ class PembelianJournalService
                         'coa_id' => $biayaKirimCoa->id,
                         'debit' => $biayaKirim,
                         'credit' => 0,
-                        'memo' => 'Biaya Kirim'
+                        'memo' => 'Beban Transport Pembelian'
                     ];
                     
-                    Log::info("Jurnal Pembelian - Biaya Kirim", [
+                    Log::info("Jurnal Pembelian - Beban Transport Pembelian", [
                         'amount' => $biayaKirim,
-                        'coa_used' => $biayaKirimCoa->kode_akun
+                        'coa_used' => $biayaKirimCoa->kode_akun,
+                        'coa_name' => $biayaKirimCoa->nama_akun
                     ]);
                 } else {
-                    Log::warning("Biaya Kirim COA not found, skipping biaya kirim entry", [
+                    Log::warning("Beban Transport Pembelian COA not found, skipping biaya kirim entry", [
                         'biaya_kirim' => $biayaKirim
                     ]);
                 }

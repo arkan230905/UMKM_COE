@@ -3585,6 +3585,8 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::delete('/{returPenjualan}', [ReturPenjualanController::class, 'destroy'])->name('destroy');
             Route::get('/get-penjualan-details/{penjualanId}', [ReturPenjualanController::class, 'getPenjualanDetails'])->name('get-penjualan-details');
             Route::post('/{returPenjualan}/bayar-kredit', [ReturPenjualanController::class, 'bayarKredit'])->name('bayar-kredit');
+            Route::post('/{retur}/approve-customer-return', [ReturPenjualanController::class, 'approveCustomerReturn'])->name('approve-customer-return');
+            Route::post('/{retur}/reject-customer-return', [ReturPenjualanController::class, 'rejectCustomerReturn'])->name('reject-customer-return');
         });
 
 
