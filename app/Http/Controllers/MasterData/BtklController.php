@@ -118,10 +118,21 @@ class BtklController extends Controller
 
         [$jabatanBtkl, $employeeData] = $this->getJabatanBtklForUser($userId);
 
-        // Generate kode proses berikutnya untuk user ini
-        $lastBtkl   = DB::table('btkls')->where('user_id', $userId)->orderBy('kode_proses', 'desc')->first();
-        $nextNumber = $lastBtkl ? ((int) substr($lastBtkl->kode_proses, -3)) + 1 : 1;
-        $nextKode   = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        // Generate kode proses berikutnya untuk user ini dari tabel proses_produksis
+        // karena tabel inilah yang memiliki unique constraint
+        $lastProses = ProsesProduksi::where('user_id', $userId)
+            ->where('kode_proses', 'LIKE', 'PRO-%')
+            ->orderByRaw('CAST(SUBSTRING(kode_proses, 5) AS UNSIGNED) DESC')
+            ->first();
+        
+        if ($lastProses && $lastProses->kode_proses) {
+            $lastNumber = (int) substr($lastProses->kode_proses, 4);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        $nextKode = 'PRO-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
@@ -133,8 +144,16 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
      */
     public function store(Request $request)
     {
+        $userId = auth()->id();
+        
         $validated = $request->validate([
-            'kode_proses'      => 'required|string|max:20|unique:btkls,kode_proses',
+            'kode_proses'      => [
+                'required',
+                'string',
+                'max:20',
+                // Validasi unique untuk btkls
+                \Illuminate\Validation\Rule::unique('btkls', 'kode_proses')->where('user_id', $userId),
+            ],
             'nama_btkl'        => 'required|string|max:255',
             'jabatan_id'       => 'required|exists:jabatans,id',
             'satuan'           => 'required|in:Jam,Unit,Batch',
@@ -144,7 +163,6 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
         try {
             DB::beginTransaction();
 
-            $userId  = auth()->id();
             $jabatan = DB::table('jabatans')->where('id', $validated['jabatan_id'])->first();
 
             // Hitung pegawai user ini yang terdaftar di jabatan tersebut
@@ -157,6 +175,15 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             $tarifPerProduk = (float) ($jabatan->tarif_produk ?? 0);
 
             $validated['user_id'] = $userId;
+
+            // Cek apakah kode_proses sudah ada di proses_produksis untuk user ini
+            $existingProses = ProsesProduksi::where('user_id', $userId)
+                ->where('kode_proses', $validated['kode_proses'])
+                ->first();
+            
+            if ($existingProses) {
+                throw new \Exception('Kode proses "' . $validated['kode_proses'] . '" sudah digunakan. Silakan gunakan kode lain.');
+            }
 
             $btkl = Btkl::create($validated);
 
@@ -223,8 +250,18 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
      */
     public function update(Request $request, $id)
     {
+        $userId = auth()->id();
+        
         $validated = $request->validate([
-            'kode_proses'      => 'required|string|max:20|unique:btkls,kode_proses,' . $id,
+            'kode_proses'      => [
+                'required',
+                'string',
+                'max:20',
+                // Validasi unique untuk btkls, kecuali untuk record yang sedang di-update
+                \Illuminate\Validation\Rule::unique('btkls', 'kode_proses')
+                    ->where('user_id', $userId)
+                    ->ignore($id),
+            ],
             'nama_btkl'        => 'required|string|max:255',
             'jabatan_id'       => 'required|exists:jabatans,id',
             'satuan'           => 'required|in:Jam,Unit,Batch',
@@ -234,7 +271,6 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
         DB::beginTransaction();
 
         try {
-            $userId  = auth()->id();
             $jabatan = DB::table('jabatans')->where('id', $validated['jabatan_id'])->first();
 
             $jumlahPegawai = DB::table('pegawais')
@@ -246,6 +282,19 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
             $tarifPerProduk = (float) ($jabatan->tarif_produk ?? 0);
 
             $btkl = Btkl::findOrFail($id);
+            
+            // Cek apakah kode_proses berubah dan sudah digunakan di proses_produksis
+            if ($btkl->kode_proses !== $validated['kode_proses']) {
+                $existingProses = ProsesProduksi::where('user_id', $userId)
+                    ->where('kode_proses', $validated['kode_proses'])
+                    ->where('btkl_id', '!=', $btkl->id)
+                    ->first();
+                
+                if ($existingProses) {
+                    throw new \Exception('Kode proses "' . $validated['kode_proses'] . '" sudah digunakan. Silakan gunakan kode lain.');
+                }
+            }
+            
             $btkl->update($validated);
 
             $prosesProduksi = ProsesProduksi::where('btkl_id', $btkl->id)->first();

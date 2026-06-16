@@ -54,11 +54,15 @@ class ProsesProduksi extends Model
 
     /**
      * Generate kode proses otomatis
+     * MULTI-TENANT: Filter by user_id untuk isolasi data per user
      */
     public static function generateKode(): string
     {
-        // Get the last kode_proses with PRO- prefix, ordered by the numeric part
-        $lastProses = self::where('kode_proses', 'LIKE', 'PRO-%')
+        $userId = auth()->id();
+        
+        // Get the last kode_proses with PRO- prefix for this user, ordered by the numeric part
+        $lastProses = self::where('user_id', $userId)
+            ->where('kode_proses', 'LIKE', 'PRO-%')
             ->orderByRaw('CAST(SUBSTRING(kode_proses, 5) AS UNSIGNED) DESC')
             ->first();
         

@@ -42,15 +42,15 @@
 
                     {{-- Nama Proses --}}
                     <div class="col-md-6">
-                        <label for="nama_proses" class="form-label">Nama Proses <span class="text-danger">*</span></label>
+                        <label for="nama_btkl" class="form-label">Nama Proses <span class="text-danger">*</span></label>
                         <input type="text" 
-                               name="nama_proses" 
-                               id="nama_proses" 
-                               class="form-control @error('nama_proses') is-invalid @enderror" 
-                               value="{{ old('nama_proses') }}" 
+                               name="nama_btkl" 
+                               id="nama_btkl" 
+                               class="form-control @error('nama_btkl') is-invalid @enderror" 
+                               value="{{ old('nama_btkl') }}" 
                                placeholder="Contoh: Pengisian Cup Jasuke" 
                                required>
-                        @error('nama_proses')
+                        @error('nama_btkl')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -122,12 +122,12 @@
 
                     {{-- Deskripsi --}}
                     <div class="col-md-12">
-                        <label for="deskripsi" class="form-label">Deskripsi Proses</label>
-                        <textarea name="deskripsi" 
-                                  id="deskripsi" 
-                                  class="form-control @error('deskripsi') is-invalid @enderror" 
+                        <label for="deskripsi_proses" class="form-label">Deskripsi Proses</label>
+                        <textarea name="deskripsi_proses" 
+                                  id="deskripsi_proses" 
+                                  class="form-control @error('deskripsi_proses') is-invalid @enderror" 
                                   rows="3" 
-                                  placeholder="Jelaskan detail aktivitas proses ini">{{ old('deskripsi') }}</textarea>
+                                  placeholder="Jelaskan detail aktivitas proses ini">{{ old('deskripsi_proses') }}</textarea>
                     </div>
 
                     <div class="col-12">
