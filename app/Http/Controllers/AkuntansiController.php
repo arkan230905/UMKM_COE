@@ -1180,9 +1180,11 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         
         // ── DETAIL PENJUALAN PER PRODUK ────────────────────────────
         // Breakdown penjualan per produk untuk ditampilkan di bawah COA Penjualan
+        // 🔒 SECURITY: Filter by user_id untuk multi-tenant isolation
         $detailPenjualan = \DB::table('penjualan_details as pd')
             ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
             ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+            ->where('p.user_id', auth()->id())
             ->whereBetween('p.tanggal', [$from, $to])
             ->selectRaw('pr.nama_produk,
                          SUM(pd.jumlah) as total_qty,
@@ -1193,9 +1195,11 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
 
         // ── DETAIL HPP PER PRODUK ──────────────────────────────────
         // Breakdown HPP per produk untuk ditampilkan di bawah COA HPP
+        // 🔒 SECURITY: Filter by user_id untuk multi-tenant isolation
         $detailHpp = \DB::table('penjualan_details as pd')
             ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
             ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+            ->where('p.user_id', auth()->id())
             ->whereBetween('p.tanggal', [$from, $to])
             ->selectRaw('pr.nama_produk,
                          SUM(pd.jumlah) as total_qty,
