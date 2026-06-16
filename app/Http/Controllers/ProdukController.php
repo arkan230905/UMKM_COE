@@ -96,7 +96,9 @@ class ProdukController extends Controller
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
-        $coaPersediaan = \App\Models\Coa::where(function($query) {
+        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
+        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+            ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
                 $query->where('nama_akun', 'LIKE', '%pers. barang jadi%')
                       ->orWhere('nama_akun', 'LIKE', '%persediaan barang jadi%');
@@ -135,16 +137,12 @@ class ProdukController extends Controller
 
     public function store(Request $request)
     {
-        if ($request->hasFile('foto') && !$request->file('foto')->isValid()) {
-            return redirect()->back()->withInput()->withErrors(['foto' => 'Gagal mengunggah foto. Pastikan ukuran file tidak melebihi 2MB dan koneksi stabil. Error: ' . $request->file('foto')->getErrorMessage()]);
-        }
-
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             'harga_jual' => 'required|numeric|min:0',
             'hpp' => 'nullable|numeric|min:0',
             'margin_percent' => 'nullable|numeric|min:0',
@@ -158,15 +156,6 @@ class ProdukController extends Controller
         if ($request->hasFile('foto')) {
             try {
                 $file = $request->file('foto');
-                
-                // Validate file extension (not MIME type, which is unreliable)
-                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-                $fileExtension = strtolower($file->getClientOriginalExtension());
-                
-                if (!in_array($fileExtension, $allowedExtensions)) {
-                    return redirect()->back()->withInput()->withErrors(['foto' => 'Format file tidak didukung. Gunakan: JPG, JPEG, PNG, WEBP, atau GIF.']);
-                }
-                
                 $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
                 $destinationPath = public_path('storage/produk');
                 
@@ -210,7 +199,9 @@ class ProdukController extends Controller
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
-        $coaPersediaan = \App\Models\Coa::where(function($query) {
+        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
+        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+            ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
                 $query->where('nama_akun', 'LIKE', '%pers. barang jadi%')
                       ->orWhere('nama_akun', 'LIKE', '%persediaan barang jadi%');
@@ -279,20 +270,10 @@ class ProdukController extends Controller
         // Handle photo-only update (for AJAX requests from kelola-catalog)
         if ($request->ajax() && $request->hasFile('foto') && !$request->has('nama_produk')) {
             $request->validate([
-                'foto' => 'required|file|max:2048', // Validate by extension only, not MIME type
+                'foto' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             ]);
 
             try {
-                $file = $request->file('foto');
-                
-                // Validate file extension (not MIME type, which is unreliable)
-                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-                $fileExtension = strtolower($file->getClientOriginalExtension());
-                
-                if (!in_array($fileExtension, $allowedExtensions)) {
-                    return response()->json(['success' => false, 'message' => 'Format file tidak didukung. Gunakan: JPG, JPEG, PNG, WEBP, atau GIF.']);
-                }
-                
                 // Delete old photo if exists
                 if ($produk->foto) {
                     $oldPhotoPath = public_path('storage/' . $produk->foto);
@@ -301,6 +282,7 @@ class ProdukController extends Controller
                     }
                 }
 
+                $file = $request->file('foto');
                 $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
                 $destinationPath = public_path('storage/produk');
                 
@@ -319,17 +301,13 @@ class ProdukController extends Controller
             }
         }
 
-        if ($request->hasFile('foto') && !$request->file('foto')->isValid()) {
-            return redirect()->back()->withInput()->withErrors(['foto' => 'Gagal mengunggah foto. Pastikan ukuran file tidak melebihi 2MB dan koneksi stabil. Error: ' . $request->file('foto')->getErrorMessage()]);
-        }
-
         // Regular update validation
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
             'harga_jual' => 'required|string',
             'hpp' => 'nullable|numeric|min:0',
             'hpp_calculated' => 'nullable|numeric|min:0',
@@ -371,15 +349,6 @@ class ProdukController extends Controller
             \Log::info('Original filename: ' . $request->file('foto')->getClientOriginalName());
             \Log::info('File size: ' . $request->file('foto')->getSize());
             
-            // Validate file extension (not MIME type, which is unreliable)
-            $file = $request->file('foto');
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-            $fileExtension = strtolower($file->getClientOriginalExtension());
-            
-            if (!in_array($fileExtension, $allowedExtensions)) {
-                return redirect()->back()->withInput()->withErrors(['foto' => 'Format file tidak didukung. Gunakan: JPG, JPEG, PNG, WEBP, atau GIF.']);
-            }
-            
             // Delete old photo if exists
             if ($produk->foto) {
                 $oldPhotoPath = public_path('storage/' . $produk->foto);
@@ -390,6 +359,7 @@ class ProdukController extends Controller
             }
             
             try {
+                $file = $request->file('foto');
                 $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
                 $destinationPath = public_path('storage/produk');
                 

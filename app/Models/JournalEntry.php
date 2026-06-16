@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class JournalEntry extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'journal_entries';

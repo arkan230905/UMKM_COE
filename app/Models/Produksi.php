@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Produksi extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $fillable = [

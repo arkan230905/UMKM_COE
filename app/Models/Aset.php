@@ -12,7 +12,6 @@ use App\Models\KategoriAset;
 
 class Aset extends Model
 {
-    use \App\Traits\HasUserScope;
     protected $table = 'asets';
     
     protected $fillable = [

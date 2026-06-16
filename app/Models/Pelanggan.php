@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\MultiTenantModel;
 
 class Pelanggan extends Model
 {
-    use HasFactory, MultiTenantModel;
+    use HasFactory;
 
     protected $fillable = [
         'user_id',
@@ -27,7 +26,6 @@ class Pelanggan extends Model
 
         static::creating(function ($pelanggan) {
             // CRITICAL: Auto-fill user_id for multi-tenant isolation
-            // MultiTenantModel trait juga handle ini
             if (empty($pelanggan->user_id) && auth()->check()) {
                 $pelanggan->user_id = auth()->id();
             }

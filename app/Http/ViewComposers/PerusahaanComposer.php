@@ -24,13 +24,9 @@ class PerusahaanComposer
         if (!$perusahaan) {
             $slug = request()->route('perusahaan_slug');
             if ($slug) {
-                // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
-                $perusahaan = Perusahaan::where('user_id', auth()->id())
-                    ->where(function ($query) use ($slug) {
-                        $query->where('slug', strtolower($slug))
-                            ->orWhere('kode', strtoupper($slug))
-                            ->orWhere('nama', 'like', '%' . str_replace('-', ' ', $slug) . '%');
-                    })
+                $perusahaan = Perusahaan::where('slug', strtolower($slug))
+                    ->orWhere('kode', strtoupper($slug))
+                    ->orWhere('nama', 'like', '%' . str_replace('-', ' ', $slug) . '%')
                     ->first();
             }
         }

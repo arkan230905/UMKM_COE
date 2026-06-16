@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class JurnalUmum extends Model
 {
-    use \App\Traits\HasUserScope;
     protected $table = 'jurnal_umum';
     
     protected $fillable = [

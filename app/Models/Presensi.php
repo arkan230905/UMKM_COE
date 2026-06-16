@@ -8,7 +8,6 @@ use Carbon\Carbon;
 
 class Presensi extends Model
 {
-    use \App\Traits\HasUserScope;
     protected $table = 'presensis';
     protected $primaryKey = 'id';
     

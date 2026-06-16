@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class BebanOperasional extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'beban_operasional';

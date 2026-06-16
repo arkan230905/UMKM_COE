@@ -128,11 +128,9 @@ class LoginController extends Controller
                 'plain_password' => $validated['password'], // CRITICAL: Store plain password for display
                 'role' => 'pelanggan',
                 'email_verified_at' => now(),
-                // 🔒 SECURITY: CRITICAL FIX - Set perusahaan_id to the store owner's perusahaan_id
-                // This ensures pelanggan are properly scoped to their store and don't appear in other stores
-                'perusahaan_id' => $perusahaan->id,
-                // 🔒 SECURITY: Set user_id to the owner/seller who owns this perusahaan
-                'user_id' => $perusahaan->user_id,
+                // CRITICAL: Set user_id to NULL for pelanggan (they don't belong to any owner initially)
+                // They will be visible to all owners in master data
+                'user_id' => null,
             ]);
 
             // Auto-login after registration
