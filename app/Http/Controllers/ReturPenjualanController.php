@@ -23,7 +23,10 @@ class ReturPenjualanController extends Controller
         $penjualan = Penjualan::where('user_id', auth()->id())
             ->with(['penjualanDetails.produk'])
             ->findOrFail($penjualanId);
-        $pelanggans = User::where('role', 'pelanggan')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation - hanya tampilkan pelanggan milik user yang login
+        $pelanggans = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
+            ->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
@@ -125,7 +128,10 @@ class ReturPenjualanController extends Controller
         $penjualans = Penjualan::where('user_id', auth()->id())
             ->with(['penjualanDetails.produk'])
             ->get();
-        $pelanggans = User::where('role', 'pelanggan')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation - hanya tampilkan pelanggan milik user yang login
+        $pelanggans = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
+            ->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
