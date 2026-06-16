@@ -846,7 +846,26 @@ class PenjualanController extends Controller
             }
             
             // Update status to paid to trigger journal creation now that details exist
-            $penjualan->update(['payment_status' => 'paid']);
+            $penjualan->payment_status = 'paid';
+            $penjualan->save();
+            
+            // CRITICAL: Explicitly create journal after all details are saved
+            try {
+                $penjualan->load(['details.produk', 'produk']);
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan, auth()->id());
+                \Log::info('Journal explicitly created for penjualan', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create journal for penjualan in confirmPayment', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Don't throw - allow transaction to complete
+                // User can manually post journal later
+            }
             
             // Clear session
             session()->forget('penjualan_payment_data');
