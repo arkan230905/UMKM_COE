@@ -845,26 +845,30 @@ class PenjualanController extends Controller
                 ]);
             }
             
-            // Update status to paid to trigger journal creation now that details exist
-            $penjualan->payment_status = 'paid';
-            $penjualan->save();
+            // Update status to paid USING UPDATE METHOD to trigger event
+            $penjualan->update(['payment_status' => 'paid']);
             
             // CRITICAL: Explicitly create journal after all details are saved
+            // Refresh to ensure relationships are loaded
+            $penjualan = $penjualan->fresh(['details.produk', 'produk']);
+            
             try {
-                $penjualan->load(['details.produk', 'produk']);
                 \App\Services\JournalService::createJournalFromPenjualan($penjualan, auth()->id());
-                \Log::info('Journal explicitly created for penjualan', [
+                \Log::info('Journal explicitly created for penjualan in confirmPayment', [
                     'penjualan_id' => $penjualan->id,
-                    'nomor_penjualan' => $penjualan->nomor_penjualan
+                    'nomor_penjualan' => $penjualan->nomor_penjualan,
+                    'user_id' => auth()->id(),
+                    'grand_total' => $penjualan->grand_total
                 ]);
             } catch (\Exception $e) {
-                \Log::error('Failed to create journal for penjualan in confirmPayment', [
+                \Log::error('CRITICAL: Failed to create journal for penjualan in confirmPayment', [
                     'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
-                // Don't throw - allow transaction to complete
-                // User can manually post journal later
+                // Re-throw to alert user there's a problem
+                throw new \Exception('Penjualan berhasil disimpan, tetapi gagal membuat jurnal: ' . $e->getMessage());
             }
             
             // Clear session

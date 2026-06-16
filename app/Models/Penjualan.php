@@ -172,16 +172,22 @@ class Penjualan extends Model
         
         // Create journals when penjualan is created with payment_status = 'paid'
         static::created(function ($penjualan) {
+            \Log::info('Penjualan created event fired', [
+                'penjualan_id' => $penjualan->id,
+                'payment_status' => $penjualan->payment_status,
+                'user_id' => $penjualan->user_id
+            ]);
+            
             if ($penjualan->payment_status === 'paid') {
                 try {
                     \App\Services\JournalService::createJournalFromPenjualan($penjualan);
-                    \Log::info('Journal created successfully for penjualan (on creation)', [
+                    \Log::info('Journal created successfully from created event', [
                         'penjualan_id' => $penjualan->id,
                         'nomor_penjualan' => $penjualan->nomor_penjualan,
                         'payment_status' => $penjualan->payment_status
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error('Failed to create journal for penjualan on creation', [
+                    \Log::error('Failed to create journal from created event', [
                         'penjualan_id' => $penjualan->id,
                         'nomor_penjualan' => $penjualan->nomor_penjualan,
                         'error' => $e->getMessage(),
@@ -193,17 +199,25 @@ class Penjualan extends Model
         
         // Also handle updates when payment_status changes to 'paid'
         static::updated(function ($penjualan) {
+            \Log::info('Penjualan updated event fired', [
+                'penjualan_id' => $penjualan->id,
+                'payment_status' => $penjualan->payment_status,
+                'payment_status_changed' => $penjualan->wasChanged('payment_status'),
+                'user_id' => $penjualan->user_id,
+                'changes' => $penjualan->getChanges()
+            ]);
+            
             // Only create/update journals if payment_status changed to 'paid'
             if ($penjualan->wasChanged('payment_status') && $penjualan->payment_status === 'paid') {
                 try {
                     \App\Services\JournalService::createJournalFromPenjualan($penjualan);
-                    \Log::info('Journal created successfully for penjualan (payment confirmed)', [
+                    \Log::info('Journal created successfully from updated event', [
                         'penjualan_id' => $penjualan->id,
                         'nomor_penjualan' => $penjualan->nomor_penjualan,
                         'payment_status' => $penjualan->payment_status
                     ]);
                 } catch (\Exception $e) {
-                    \Log::error('Failed to create journal for penjualan', [
+                    \Log::error('Failed to create journal from updated event', [
                         'penjualan_id' => $penjualan->id,
                         'nomor_penjualan' => $penjualan->nomor_penjualan,
                         'error' => $e->getMessage(),
