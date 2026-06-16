@@ -91,11 +91,18 @@ class BebanOperasional extends Model
     }
 
     /**
-     * Generate kode otomatis
+     * Generate kode otomatis per user (multi-tenant)
      */
     public static function generateKode()
     {
-        $lastKode = self::orderBy('id', 'desc')->value('kode');
+        // CRITICAL: Get user_id for multi-tenant isolation
+        $userId = auth()->id();
+        
+        // Get last kode for current user
+        $lastKode = self::where('user_id', $userId)
+            ->orderBy('id', 'desc')
+            ->value('kode');
+            
         if (!$lastKode) {
             return 'BO001';
         }

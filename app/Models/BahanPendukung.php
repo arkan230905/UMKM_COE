@@ -150,11 +150,18 @@ class BahanPendukung extends Model
     }
 
     /**
-     * Generate kode bahan otomatis
+     * Generate kode bahan otomatis per user (multi-tenant)
      */
     public static function generateKode(): string
     {
-        $lastBahan = self::orderBy('id', 'desc')->first();
+        // CRITICAL: Get user_id for multi-tenant isolation
+        $userId = auth()->id();
+        
+        // Get last bahan for current user
+        $lastBahan = self::where('user_id', $userId)
+            ->orderBy('id', 'desc')
+            ->first();
+            
         $nextNumber = $lastBahan ? ((int) substr($lastBahan->kode_bahan, 4)) + 1 : 1;
         return 'BPD-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
