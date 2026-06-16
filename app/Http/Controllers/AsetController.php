@@ -129,10 +129,16 @@ class AsetController extends Controller
             $aset->is_posted_this_month = $isPostedThisMonth;
         }
 
-        // Get filter options - Add user_id filters
-        $jenisAsets = JenisAset::with(['kategories' => function($query) use ($user) {
-            $query->where('user_id', $user->id);
-        }])->get();
+        // Get filter options - Include global jenis asets (user_id = null) and user-specific ones
+        $jenisAsets = JenisAset::withoutGlobalScope('user')
+            ->where(function($q) use ($user) {
+                $q->where('user_id', $user->id)->orWhereNull('user_id');
+            })
+            ->with(['kategories' => function($query) use ($user) {
+                $query->where(function($q) use ($user) {
+                    $q->where('user_id', $user->id)->orWhereNull('user_id');
+                });
+            }])->get();
         $kategoriAsets = $request->has('jenis_aset')
             ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->where('user_id', $user->id)->get()
             : collect();
@@ -145,8 +151,16 @@ class AsetController extends Controller
      */
     public function create()
     {
-        $jenisAsets = JenisAset::with('kategories')
+        $jenisAsets = JenisAset::withoutGlobalScope('user')
+            ->where(function($q) {
+                $q->where('user_id', auth()->id())->orWhereNull('user_id');
+            })
             ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->with(['kategories' => function($query) {
+                $query->where(function($q) {
+                    $q->where('user_id', auth()->id())->orWhereNull('user_id');
+                });
+            }])
             ->get();
         $kodeAset = Aset::generateKodeAset();
         $metodePenyusutan = [
@@ -595,8 +609,16 @@ class AsetController extends Controller
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diedit.');
         }
 
-        $jenisAsets = JenisAset::with('kategories')
+        $jenisAsets = JenisAset::withoutGlobalScope('user')
+            ->where(function($q) {
+                $q->where('user_id', auth()->id())->orWhereNull('user_id');
+            })
             ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->with(['kategories' => function($query) {
+                $query->where(function($q) {
+                    $q->where('user_id', auth()->id())->orWhereNull('user_id');
+                });
+            }])
             ->get();
         $metodePenyusutan = [
             'garis_lurus' => 'Garis Lurus',
@@ -957,6 +979,10 @@ class AsetController extends Controller
         }
 
         $kategories = KategoriAset::where('jenis_aset_id', $jenisId)
+            ->where(function($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhereNull('user_id');
+            })
             ->select('id', 'nama', 'disusutkan', 'umur_ekonomis', 'tarif_penyusutan')
             ->orderBy('nama')
             ->get();
