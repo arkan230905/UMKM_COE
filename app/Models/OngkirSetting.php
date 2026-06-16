@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class OngkirSetting extends Model
 {
     protected $fillable = [
+        'user_id',  // 🔒 SECURITY: Add user_id for multi-tenant isolation
         'jarak_min', 'jarak_max', 'harga_ongkir', 'status',
     ];
 
@@ -16,6 +17,22 @@ class OngkirSetting extends Model
         'jarak_max' => 'float',
         'harga_ongkir' => 'float',
     ];
+
+    /**
+     * Boot the model and add global scope for multi-tenant isolation
+     */
+    protected static function booted()
+    {
+        // 🔒 SECURITY: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+
+        static::creating(function ($ongkir) {
+            // 🔒 SECURITY: Auto-fill user_id for multi-tenant isolation
+            if (empty($ongkir->user_id) && auth()->check()) {
+                $ongkir->user_id = auth()->id();
+            }
+        });
+    }
 
     public function getJarakLabel(): string
     {

@@ -13,9 +13,11 @@ class PenjualanSettingController extends Controller
     // Load data for the settings modal
     public function index()
     {
-        $paketMenus = PaketMenu::with('details.produk')->orderBy('created_at', 'desc')->get();
-        $ongkirSettings = OngkirSetting::orderBy('jarak_min')->get();
-        $produks = Produk::orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
+        // 🔒 SECURITY: Filter by user_id untuk multi-tenant isolation
+        $paketMenus = PaketMenu::with('details.produk')->where('user_id', auth()->id())->orderBy('created_at', 'desc')->get();
+        $ongkirSettings = OngkirSetting::where('user_id', auth()->id())->orderBy('jarak_min')->get();
+        // 🔒 SECURITY: Get produks owned by current user
+        $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
 
         return response()->json([
             'paket_menus' => $paketMenus,
@@ -27,8 +29,10 @@ class PenjualanSettingController extends Controller
     // Load page for paket menu management
     public function paketMenuPage()
     {
-        $paketMenus = PaketMenu::with('details.produk')->orderBy('created_at', 'desc')->get();
-        $produks = Produk::orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
+        // 🔒 SECURITY: Filter by user_id untuk multi-tenant isolation
+        $paketMenus = PaketMenu::with('details.produk')->where('user_id', auth()->id())->orderBy('created_at', 'desc')->get();
+        // 🔒 SECURITY: Get produks owned by current user
+        $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get(['id', 'nama_produk', 'harga_jual']);
 
         return view('transaksi.penjualan.paket-menu', compact('paketMenus', 'produks'));
     }
@@ -92,7 +96,8 @@ class PenjualanSettingController extends Controller
 
     public function updatePaket(Request $request, $id)
     {
-        $paket = PaketMenu::findOrFail($id);
+        // 🔒 SECURITY: Pastikan user hanya bisa edit paketnya sendiri
+        $paket = PaketMenu::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
 
         $request->validate([
             'nama_paket'  => 'required|string|max:255',
@@ -159,7 +164,8 @@ class PenjualanSettingController extends Controller
 
     public function destroyPaket($id)
     {
-        $paket = PaketMenu::findOrFail($id);
+        // 🔒 SECURITY: Pastikan user hanya bisa hapus paketnya sendiri
+        $paket = PaketMenu::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
 
         // ── Hapus juga Produk yang terhubung ────────────────────────
         try {
@@ -195,7 +201,8 @@ class PenjualanSettingController extends Controller
 
     public function updateOngkir(Request $request, $id)
     {
-        $ongkir = OngkirSetting::findOrFail($id);
+        // 🔒 SECURITY: Pastikan user hanya bisa edit ongkirnya sendiri
+        $ongkir = OngkirSetting::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
 
         $request->validate([
             'jarak_min' => 'required|numeric|min:0',
@@ -213,7 +220,8 @@ class PenjualanSettingController extends Controller
 
     public function destroyOngkir($id)
     {
-        OngkirSetting::findOrFail($id)->delete();
+        // 🔒 SECURITY: Pastikan user hanya bisa hapus ongkirnya sendiri
+        OngkirSetting::where('id', $id)->where('user_id', auth()->id())->firstOrFail()->delete();
         return response()->json(['success' => true, 'message' => 'Range ongkir berhasil dihapus']);
     }
 }
