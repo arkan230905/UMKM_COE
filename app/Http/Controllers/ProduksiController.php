@@ -229,97 +229,70 @@ class ProduksiController extends Controller
             
             // Periksa bahan baku dari produksi_details
             foreach ($produksi->details as $detail) {
-                // Check Bahan Baku - USING NOMINAL/VALUE from stock_movements
+                // Check Bahan Baku - USING QUANTITY not NOMINAL
                 if ($detail->bahanBaku) {
                     $bahan = $detail->bahanBaku;
                     
-                    // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
-                    $nominalButuh = (float)$detail->subtotal;
+                    // QUANTITY yang dibutuhkan dari detail  
+                    $qtyButuh = (float)$detail->qty_resep;
+                    $satuanResep = $detail->satuan_resep;
+                    $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan;
                     
-                    $userId = auth()->id();
+                    // Convert qty needed ke satuan bahan jika berbeda
+                    if ($satuanResep !== $satuanBahan) {
+                        $qtyButuh = $bahan->konversiBerdasarkanProduksi($qtyButuh, $satuanResep, $satuanBahan);
+                    }
                     
-                    // CRITICAL: Get CURRENT nominal from stock movements (same as Laporan Stok)
-                    // Sum ALL movements regardless of unit - this matches Laporan Stok calculation
-                    $totalCostIn = \DB::table('stock_movements')
-                        ->where('item_type', 'material')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId)
-                        ->where('direction', 'in')
-                        ->sum('total_cost');
-                    
-                    $totalCostOut = \DB::table('stock_movements')
-                        ->where('item_type', 'material')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId)
-                        ->where('direction', 'out')
-                        ->sum('total_cost');
-                    
-                    $nominalTersedia = $totalCostIn - $totalCostOut;
-                    
-                    // Get qty for display only (not for validation)
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->stok ?? 0);
+                    // Get ACTUAL stock quantity using stok_real_time
+                    $qtyTersedia = (float)$bahan->stok_real_time;
                     
                     // DEBUGGING
                     \Log::info("VALIDATION BAHAN BAKU - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
-                        'nominal_butuh' => $nominalButuh,
-                        'total_cost_in' => $totalCostIn,
-                        'total_cost_out' => $totalCostOut,
-                        'nominal_tersedia' => $nominalTersedia,
-                        'stok_qty_display' => $stokQty,
-                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
+                        'qty_butuh' => $qtyButuh,
+                        'satuan_resep' => $satuanResep,
+                        'satuan_bahan' => $satuanBahan,
+                        'qty_tersedia' => $qtyTersedia,
+                        'cukup' => ($qtyTersedia >= $qtyButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
-                    // ALWAYS validate based on NOMINAL (Rp) - same as Laporan Stok
-                    if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " di Laporan Stok";
+                    // Validate based on QUANTITY (kg, ekor, etc) - NOT NOMINAL
+                    if ($qtyTersedia < $qtyButuh) {
+                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh " . number_format($qtyButuh, 2) . " {$satuanBahan}, tersedia " . number_format($qtyTersedia, 2) . " {$satuanBahan}";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
                 
-                // Check Bahan Pendukung - USING NOMINAL/VALUE from stock_movements
+                // Check Bahan Pendukung - USING QUANTITY not NOMINAL
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
                     
-                    // NOMINAL yang dibutuhkan dari detail (already calculated correctly)
-                    $nominalButuh = (float)$detail->subtotal;
+                    // QUANTITY yang dibutuhkan dari detail
+                    $qtyButuh = (float)$detail->qty_resep;
+                    $satuanResep = $detail->satuan_resep;
+                    $satuanBahan = $bahan->satuan->nama ?? 'unit';
                     
-                    $userId = auth()->id();
+                    // Convert qty needed ke satuan bahan jika berbeda
+                    if ($satuanResep !== $satuanBahan) {
+                        $qtyButuh = $bahan->konversiBerdasarkanProduksi($qtyButuh, $satuanResep, $satuanBahan);
+                    }
                     
-                    // CRITICAL: Get CURRENT nominal from stock movements (same as Laporan Stok)
-                    $totalCostIn = \DB::table('stock_movements')
-                        ->where('item_type', 'support')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId)
-                        ->where('direction', 'in')
-                        ->sum('total_cost');
-                    
-                    $totalCostOut = \DB::table('stock_movements')
-                        ->where('item_type', 'support')
-                        ->where('item_id', $bahan->id)
-                        ->where('user_id', $userId)
-                        ->where('direction', 'out')
-                        ->sum('total_cost');
-                    
-                    $nominalTersedia = $totalCostIn - $totalCostOut;
-                    
-                    // Get qty for display only
-                    $stokQty = (float)($bahan->stok_real_time ?? $bahan->saldo_awal ?? 0);
+                    // Get ACTUAL stock quantity using stok_real_time
+                    $qtyTersedia = (float)$bahan->stok_real_time;
                     
                     // DEBUGGING
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
-                        'nominal_butuh' => $nominalButuh,
-                        'total_cost_in' => $totalCostIn,
-                        'total_cost_out' => $totalCostOut,
-                        'nominal_tersedia' => $nominalTersedia,
-                        'stok_qty_display' => $stokQty,
-                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
+                        'qty_butuh' => $qtyButuh,
+                        'satuan_resep' => $satuanResep,
+                        'satuan_bahan' => $satuanBahan,
+                        'qty_tersedia' => $qtyTersedia,
+                        'cukup' => ($qtyTersedia >= $qtyButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
-                    // ALWAYS validate based on NOMINAL (Rp) - same as Laporan Stok
-                    if ($nominalTersedia < $nominalButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh Rp " . number_format($nominalButuh, 0, ',', '.') . ", tersedia Rp " . number_format($nominalTersedia, 0, ',', '.') . " di Laporan Stok";
+                    // Validate based on QUANTITY - NOT NOMINAL
+                    if ($qtyTersedia < $qtyButuh) {
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh " . number_format($qtyButuh, 2) . " {$satuanBahan}, tersedia " . number_format($qtyTersedia, 2) . " {$satuanBahan}";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }
