@@ -263,36 +263,55 @@ class ProduksiController extends Controller
                     }
                 }
                 
-                // Check Bahan Pendukung - USING QUANTITY not NOMINAL
+                // Check Bahan Pendukung - USING NOMINAL (Rupiah) because it goes to BOP Proses
                 if ($detail->bahanPendukung) {
                     $bahan = $detail->bahanPendukung;
                     
-                    // QUANTITY yang dibutuhkan dari detail
-                    $qtyButuh = (float)$detail->qty_resep;
-                    $satuanResep = $detail->satuan_resep;
+                    // NOMINAL yang dibutuhkan dari detail (for BOP Proses)
+                    $nominalButuh = (float)$detail->subtotal;
+                    
+                    $userId = auth()->id();
+                    
+                    // CRITICAL: Get CURRENT nominal from stock movements (same as Laporan Stok)
+                    $totalCostIn = \DB::table('stock_movements')
+                        ->where('item_type', 'support')
+                        ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId)
+                        ->where('direction', 'in')
+                        ->sum('total_cost');
+                    
+                    $totalCostOut = \DB::table('stock_movements')
+                        ->where('item_type', 'support')
+                        ->where('item_id', $bahan->id)
+                        ->where('user_id', $userId)
+                        ->where('direction', 'out')
+                        ->sum('total_cost');
+                    
+                    $nominalTersedia = $totalCostIn - $totalCostOut;
+                    
+                    // Calculate qty for display: Qty = Nominal / Harga Satuan
+                    $hargaSatuan = $bahan->harga_satuan ?? 1;
+                    $qtyTersedia = $hargaSatuan > 0 ? ($nominalTersedia / $hargaSatuan) : 0;
+                    $qtyButuh = $hargaSatuan > 0 ? ($nominalButuh / $hargaSatuan) : 0;
                     $satuanBahan = $bahan->satuan->nama ?? 'unit';
-                    
-                    // Convert qty needed ke satuan bahan jika berbeda
-                    if ($satuanResep !== $satuanBahan) {
-                        $qtyButuh = $bahan->konversiBerdasarkanProduksi($qtyButuh, $satuanResep, $satuanBahan);
-                    }
-                    
-                    // Get ACTUAL stock quantity using stok_real_time
-                    $qtyTersedia = (float)$bahan->stok_real_time;
                     
                     // DEBUGGING
                     \Log::info("VALIDATION BAHAN PENDUKUNG - {$bahan->nama_bahan}:", [
                         'bahan_id' => $bahan->id,
-                        'qty_butuh' => $qtyButuh,
-                        'satuan_resep' => $satuanResep,
-                        'satuan_bahan' => $satuanBahan,
-                        'qty_tersedia' => $qtyTersedia,
-                        'cukup' => ($qtyTersedia >= $qtyButuh) ? 'YA' : 'TIDAK'
+                        'nominal_butuh' => $nominalButuh,
+                        'total_cost_in' => $totalCostIn,
+                        'total_cost_out' => $totalCostOut,
+                        'nominal_tersedia' => $nominalTersedia,
+                        'harga_satuan' => $hargaSatuan,
+                        'qty_tersedia_display' => $qtyTersedia,
+                        'qty_butuh_display' => $qtyButuh,
+                        'satuan' => $satuanBahan,
+                        'cukup' => ($nominalTersedia >= $nominalButuh) ? 'YA' : 'TIDAK'
                     ]);
                     
-                    // Validate based on QUANTITY - NOT NOMINAL
-                    if ($qtyTersedia < $qtyButuh) {
-                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh " . number_format($qtyButuh, 2) . " {$satuanBahan}, tersedia " . number_format($qtyTersedia, 2) . " {$satuanBahan}";
+                    // Validate based on NOMINAL (Rp) for Bahan Pendukung - matches Laporan Stok
+                    if ($nominalTersedia < $nominalButuh) {
+                        $shortages[] = "Stok {$bahan->nama_bahan} (Bahan Pendukung) tidak cukup. Butuh " . number_format($qtyButuh, 2) . " {$satuanBahan} (Rp " . number_format($nominalButuh, 0, ',', '.') . "), tersedia " . number_format($qtyTersedia, 2) . " {$satuanBahan} (Rp " . number_format($nominalTersedia, 0, ',', '.') . ")";
                         $shortNames[] = $bahan->nama_bahan;
                     }
                 }

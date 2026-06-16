@@ -112,22 +112,38 @@
                                                     
                                                     if ($detail->bahanPendukung) {
                                                         $bahan = $detail->bahanPendukung;
-                                                        $qtyNeeded = $detail->qty_resep;
                                                         
-                                                        // PERBAIKAN: Gunakan stok_real_time untuk bahan pendukung
-                                                        $available = (float)$bahan->stok_real_time;
+                                                        // BAHAN PENDUKUNG: Gunakan NOMINAL (Rupiah) untuk validasi karena masuk BOP Proses
+                                                        $nominalNeeded = (float)$detail->subtotal;
                                                         
-                                                        $satuanResep = $detail->satuan_resep;
+                                                        // Get nominal tersedia from stock movements (same as Laporan Stok)
+                                                        $userId = auth()->id();
+                                                        $totalCostIn = DB::table('stock_movements')
+                                                            ->where('item_type', 'support')
+                                                            ->where('item_id', $bahan->id)
+                                                            ->where('user_id', $userId)
+                                                            ->where('direction', 'in')
+                                                            ->sum('total_cost');
+                                                        
+                                                        $totalCostOut = DB::table('stock_movements')
+                                                            ->where('item_type', 'support')
+                                                            ->where('item_id', $bahan->id)
+                                                            ->where('user_id', $userId)
+                                                            ->where('direction', 'out')
+                                                            ->sum('total_cost');
+                                                        
+                                                        $nominalAvailable = $totalCostIn - $totalCostOut;
+                                                        
+                                                        // Calculate qty for display: Qty = Nominal / Harga Satuan
+                                                        $hargaSatuan = $bahan->harga_satuan ?? 1;
+                                                        $qtyAvailable = $hargaSatuan > 0 ? ($nominalAvailable / $hargaSatuan) : 0;
+                                                        $qtyNeeded = $hargaSatuan > 0 ? ($nominalNeeded / $hargaSatuan) : 0;
                                                         $satuanBahan = $bahan->satuan->nama ?? 'unit';
                                                         
-                                                        // Convert qty needed ke satuan bahan jika berbeda
-                                                        if ($satuanResep !== $satuanBahan) {
-                                                            $qtyNeeded = $bahan->konversiBerdasarkanProduksi($qtyNeeded, $satuanResep, $satuanBahan);
-                                                        }
-                                                        
-                                                        if ($available < $qtyNeeded) {
+                                                        // Validate based on NOMINAL (Rp)
+                                                        if ($nominalAvailable < $nominalNeeded) {
                                                             $stockSufficient = false;
-                                                            $shortageMessages[] = "{$bahan->nama_bahan} (Pendukung): butuh " . number_format($qtyNeeded, 2) . " {$satuanBahan}, tersedia " . number_format($available, 2) . " {$satuanBahan}";
+                                                            $shortageMessages[] = "{$bahan->nama_bahan} (Pendukung): butuh " . number_format($qtyNeeded, 2) . " {$satuanBahan} (Rp " . number_format($nominalNeeded, 0, ',', '.') . "), tersedia " . number_format($qtyAvailable, 2) . " {$satuanBahan} (Rp " . number_format($nominalAvailable, 0, ',', '.') . ")";
                                                         }
                                                     }
                                                 }
