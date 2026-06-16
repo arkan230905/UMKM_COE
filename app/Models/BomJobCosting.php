@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class BomJobCosting extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'bom_job_costings';

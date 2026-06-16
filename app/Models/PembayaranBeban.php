@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PembayaranBeban extends Model
 {
-    use \App\Traits\HasUserScope;
     use SoftDeletes;
     
     protected $table = 'pembayaran_beban';

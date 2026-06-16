@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    use \App\Traits\HasUserScope;
     protected $fillable = [
         'user_id',
         'nomor_order',

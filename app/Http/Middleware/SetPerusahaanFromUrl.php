@@ -24,26 +24,11 @@ class SetPerusahaanFromUrl
             return response('Perusahaan tidak ditemukan', 404);
         }
         
-        // Build query untuk find perusahaan
-        $query = Perusahaan::where(function ($q) use ($perusahaanSlug) {
-            $q->where('slug', strtolower($perusahaanSlug))
-                ->orWhere('kode', strtoupper($perusahaanSlug))
-                ->orWhere('nama', 'like', '%' . str_replace('-', ' ', $perusahaanSlug) . '%');
-        });
-        
-        // Check if this is a customer portal route (not admin routes)
-        $isCustomerPortal = $request->routeIs('pelanggan.*') || str_contains($request->getPathInfo(), '/pelanggan/');
-        
-        // 🔒 SECURITY: For non-customer-portal routes, filter by current user's perusahaan
-        if (!$isCustomerPortal && auth('web')->check()) {
-            $user = auth('web')->user();
-            if ($user && $user->perusahaan_id) {
-                // Owner/admin hanya bisa akses perusahaan mereka sendiri
-                $query->where('id', $user->perusahaan_id);
-            }
-        }
-        
-        $perusahaan = $query->first();
+        // Find perusahaan by slug, kode, or nama
+        $perusahaan = Perusahaan::where('slug', strtolower($perusahaanSlug))
+            ->orWhere('kode', strtoupper($perusahaanSlug))
+            ->orWhere('nama', 'like', '%' . str_replace('-', ' ', $perusahaanSlug) . '%')
+            ->first();
         
         if (!$perusahaan) {
             return response('Perusahaan tidak ditemukan', 404);

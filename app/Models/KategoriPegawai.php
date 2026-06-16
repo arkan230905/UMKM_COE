@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KategoriPegawai extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'kategori_pegawai';

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class RekapPresensiBulanan extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     // Menentukan nama tabel secara eksplisit

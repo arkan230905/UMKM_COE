@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CustomerAddress extends Model
 {
-    use \App\Traits\HasUserScope;
     protected $fillable = ['user_id', 'sub_district_id', 'street_address', 'label', 'is_default', 'latitude', 'longitude'];
 
     public function user(): BelongsTo

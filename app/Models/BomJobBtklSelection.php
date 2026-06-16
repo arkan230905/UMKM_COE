@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class BomJobBtklSelection extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'bom_job_btkl_selections';

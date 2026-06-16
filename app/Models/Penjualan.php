@@ -8,7 +8,6 @@ use Carbon\Carbon;
 
 class Penjualan extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'penjualans';

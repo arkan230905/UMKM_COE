@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class PembelianDetailKonversi extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'pembelian_detail_konversi';

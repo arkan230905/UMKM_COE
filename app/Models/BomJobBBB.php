@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class BomJobBBB extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
     protected $table = 'bom_job_bbb';
     protected $fillable = ['user_id', 'produk_id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan'];

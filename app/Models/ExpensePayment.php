@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExpensePayment extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $fillable = [

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class BopProses extends Model
 {
-    use \App\Traits\HasUserScope;
     use HasFactory;
 
     protected $table = 'bop_proses';
