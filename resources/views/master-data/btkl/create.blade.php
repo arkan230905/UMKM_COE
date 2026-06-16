@@ -56,7 +56,7 @@
                     </div>
 
                     {{-- Jabatan --}}
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         <label for="jabatan_id" class="form-label">Jabatan BTKL <span class="text-danger">*</span></label>
                         <select name="jabatan_id" 
                                 id="jabatan_id" 
@@ -72,25 +72,9 @@
                         @error('jabatan_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                    </div>
-
-                    {{-- Satuan --}}
-                    <div class="col-md-6">
-                        <label for="satuan" class="form-label">Satuan <span class="text-danger">*</span></label>
-                        <select name="satuan" 
-                                id="satuan" 
-                                class="form-select @error('satuan') is-invalid @enderror" 
-                                required>
-                            <option value="">-- Pilih Satuan --</option>
-                            @foreach($satuanOptions as $satuan)
-                                <option value="{{ $satuan }}" {{ old('satuan') == $satuan ? 'selected' : '' }}>
-                                    {{ $satuan }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('satuan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>Perhitungan BTKL menggunakan sistem <strong>per produk</strong>
+                        </small>
                     </div>
 
                     {{-- Tarif per Produk --}}

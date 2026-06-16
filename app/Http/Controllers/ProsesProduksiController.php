@@ -77,9 +77,8 @@ class ProsesProduksiController extends Controller
         
         $nextKode = 'PRO-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         $jabatanBtkl = $jabatans;
-        $satuanOptions = ['Jam', 'Unit', 'Batch'];
         
-        return view('master-data.btkl.create', compact('jabatans', 'jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
+        return view('master-data.btkl.create', compact('jabatans', 'jabatanBtkl', 'nextKode', 'employeeData'));
     }
 
     public function store(Request $request)
@@ -92,7 +91,6 @@ class ProsesProduksiController extends Controller
             'deskripsi_proses' => 'nullable|string',
             'tarif_per_produk' => 'required|numeric|min:0',
             'jumlah_pegawai' => 'nullable|integer|min:0',
-            'satuan' => 'required|in:Jam,Unit,Batch',
         ]);
 
         try {
@@ -137,7 +135,7 @@ class ProsesProduksiController extends Controller
                 'kode_proses'       => $kodeProses,
                 'nama_btkl'         => $validated['nama_btkl'],
                 'jabatan_id'        => $validated['jabatan_id'],
-                'satuan'            => $validated['satuan'],
+                'satuan'            => 'Produk', // Fixed: sistem per produk
                 'deskripsi_proses'  => $validated['deskripsi_proses'] ?? null,
                 'tarif_per_jam'     => $tarifPerProduk * $jumlahPegawai, // Total BTKL
             ]);
