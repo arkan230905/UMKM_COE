@@ -83,7 +83,7 @@
                                 <tbody>
                                     @foreach($dataProduk as $key => $data)
                                         @php
-                                            // Check stock availability
+                                            // Check stock availability using REAL-TIME stock
                                             $stockSufficient = true;
                                             $shortageMessages = [];
                                             
@@ -92,29 +92,42 @@
                                                     if ($detail->bahanBaku) {
                                                         $bahan = $detail->bahanBaku;
                                                         $qtyNeeded = $detail->qty_resep;
-                                                        $available = (float)($bahan->stok ?? 0);
+                                                        
+                                                        // PERBAIKAN: Gunakan stok_real_time untuk bahan baku
+                                                        $available = (float)$bahan->stok_real_time;
                                                         
                                                         $satuanResep = $detail->satuan_resep;
                                                         $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan;
                                                         
+                                                        // Convert qty needed ke satuan bahan jika berbeda
                                                         if ($satuanResep !== $satuanBahan) {
                                                             $qtyNeeded = $bahan->konversiBerdasarkanProduksi($qtyNeeded, $satuanResep, $satuanBahan);
                                                         }
                                                         
                                                         if ($available < $qtyNeeded) {
                                                             $stockSufficient = false;
-                                                            $shortageMessages[] = "{$bahan->nama_bahan}: butuh " . number_format($qtyNeeded, 2) . ", tersedia " . number_format($available, 2);
+                                                            $shortageMessages[] = "{$bahan->nama_bahan}: butuh " . number_format($qtyNeeded, 2) . " {$satuanBahan}, tersedia " . number_format($available, 2) . " {$satuanBahan}";
                                                         }
                                                     }
                                                     
                                                     if ($detail->bahanPendukung) {
                                                         $bahan = $detail->bahanPendukung;
                                                         $qtyNeeded = $detail->qty_resep;
-                                                        $available = (float)($bahan->saldo_awal ?? 0);
+                                                        
+                                                        // PERBAIKAN: Gunakan stok_real_time untuk bahan pendukung
+                                                        $available = (float)$bahan->stok_real_time;
+                                                        
+                                                        $satuanResep = $detail->satuan_resep;
+                                                        $satuanBahan = $bahan->satuan->nama ?? 'unit';
+                                                        
+                                                        // Convert qty needed ke satuan bahan jika berbeda
+                                                        if ($satuanResep !== $satuanBahan) {
+                                                            $qtyNeeded = $bahan->konversiBerdasarkanProduksi($qtyNeeded, $satuanResep, $satuanBahan);
+                                                        }
                                                         
                                                         if ($available < $qtyNeeded) {
                                                             $stockSufficient = false;
-                                                            $shortageMessages[] = "{$bahan->nama_bahan} (BP): butuh " . number_format($qtyNeeded, 2) . ", tersedia " . number_format($available, 2);
+                                                            $shortageMessages[] = "{$bahan->nama_bahan} (Pendukung): butuh " . number_format($qtyNeeded, 2) . " {$satuanBahan}, tersedia " . number_format($available, 2) . " {$satuanBahan}";
                                                         }
                                                     }
                                                 }
@@ -152,12 +165,14 @@
                                             </td>
                                             <td class="text-center">
                                                 @if($data->lastTemplate)
+                                                    <!-- Button untuk lihat detail template -->
                                                     <a href="{{ route('transaksi.produksi.show', $data->lastTemplate->id) }}" 
                                                        class="btn btn-sm btn-outline-info me-1"
                                                        data-bs-toggle="tooltip" title="Lihat Detail Template">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
                                                     
+                                                    <!-- Button Mulai Produksi Produk jika stok cukup -->
                                                     @if($stockSufficient)
                                                         <form action="{{ route('transaksi.produksi.mulai-hari-ini') }}" method="POST" style="display: inline;">
                                                             @csrf
@@ -165,18 +180,53 @@
                                                             <button type="submit" 
                                                                     class="btn btn-sm btn-success"
                                                                     onclick="return confirm('Mulai produksi {{ $data->produk->nama_produk }} hari ini dengan qty {{ number_format($data->qty_per_hari, 2) }}?')"
-                                                                    data-bs-toggle="tooltip" title="Mulai Produksi Hari Ini">
-                                                                <i class="fas fa-play"></i> Mulai Produksi
+                                                                    data-bs-toggle="tooltip" title="Mulai Produksi Produk Hari Ini">
+                                                                <i class="fas fa-play"></i> Mulai Produksi Produk
                                                             </button>
                                                         </form>
                                                     @else
+                                                        <!-- Button disabled dengan alert stok kurang -->
                                                         <button type="button" 
                                                                 class="btn btn-sm btn-danger" 
-                                                                disabled
-                                                                data-bs-toggle="tooltip" 
-                                                                title="Stok tidak cukup: {{ implode(', ', array_slice($shortageMessages, 0, 2)) }}{{ count($shortageMessages) > 2 ? '...' : '' }}">
-                                                            <i class="fas fa-exclamation-triangle"></i> Stok Kurang
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#stockShortageModal{{ $data->id }}"
+                                                                title="Klik untuk detail bahan yang kurang">
+                                                            <i class="fas fa-exclamation-triangle"></i> Stok Bahan Kurang
                                                         </button>
+                                                        
+                                                        <!-- Modal untuk detail kekurangan stok -->
+                                                        <div class="modal fade" id="stockShortageModal{{ $data->id }}" tabindex="-1">
+                                                            <div class="modal-dialog">
+                                                                <div class="modal-content">
+                                                                    <div class="modal-header bg-danger text-white">
+                                                                        <h5 class="modal-title">
+                                                                            <i class="fas fa-exclamation-triangle me-2"></i>Stok Bahan Tidak Cukup
+                                                                        </h5>
+                                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                                    </div>
+                                                                    <div class="modal-body">
+                                                                        <p class="mb-3">Produk <strong>{{ $data->produk->nama_produk }}</strong> tidak dapat diproduksi karena bahan berikut tidak mencukupi:</p>
+                                                                        <ul class="list-group">
+                                                                            @foreach($shortageMessages as $message)
+                                                                                <li class="list-group-item list-group-item-danger">
+                                                                                    <i class="fas fa-times-circle me-2"></i>{{ $message }}
+                                                                                </li>
+                                                                            @endforeach
+                                                                        </ul>
+                                                                        <div class="alert alert-warning mt-3 mb-0">
+                                                                            <i class="fas fa-info-circle me-2"></i>
+                                                                            Silakan lakukan pembelian bahan atau sesuaikan jumlah produksi.
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                                                        <a href="{{ route('transaksi.pembelian.create') }}" class="btn btn-primary">
+                                                                            <i class="fas fa-shopping-cart me-2"></i>Beli Bahan
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     @endif
                                                 @else
                                                     <span class="text-muted">No template</span>
