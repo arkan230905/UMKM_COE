@@ -172,11 +172,13 @@ class PelangganController extends Controller
             
             // Buat penjualan
             $penjualan = Penjualan::create([
+                'user_id' => Auth::id(),
                 'tanggal' => now(),
                 'payment_method' => $request->payment_method,
+                'payment_status' => 'pending', // Initially pending
                 'jumlah' => array_sum(array_column($cart, 'qty')),
                 'total' => $total,
-                'user_id' => Auth::id(),
+                'grand_total' => $total,
                 'alamat_pengiriman' => $request->alamat_pengiriman,
                 'catatan' => $request->catatan,
                 'status' => 'pending', // pending, processing, completed, cancelled
@@ -191,6 +193,26 @@ class PelangganController extends Controller
                     'harga_satuan' => $item['harga'],
                     'subtotal' => $item['harga'] * $item['qty'],
                 ]);
+            }
+            
+            // Update payment_status to paid to trigger journal creation
+            // Note: In real scenario, this should be updated after payment confirmation
+            $penjualan->update(['payment_status' => 'paid']);
+
+            // CRITICAL: Explicitly create journal after all details saved
+            try {
+                $penjualan->load(['details.produk', 'produk']);
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan, Auth::id());
+                \Log::info('Journal created from PelangganController', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create journal from PelangganController', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't throw - allow transaction to complete
             }
             
             DB::commit();

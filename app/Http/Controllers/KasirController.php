@@ -105,12 +105,15 @@ class KasirController extends Controller
 
             // Simpan penjualan
             $penjualan = Penjualan::create([
+                'user_id' => auth()->id(), // CRITICAL: Add user_id for multi-tenant
                 'nomor_penjualan' => $nomorPenjualan,
                 'tanggal' => now(),
                 'total' => $total,
+                'grand_total' => $total,
                 'bayar' => $request->bayar,
                 'kembalian' => $request->bayar - $total,
                 'payment_method' => $request->payment_method,
+                'payment_status' => 'pending', // Set pending first
                 'sumber_dana' => $request->sumber_dana,
                 'kasir_id' => session('kasir_id'),
                 'kasir_nama' => session('kasir_nama'),
@@ -131,12 +134,32 @@ class KasirController extends Controller
                     'penjualan_id' => $penjualan->id,
                     'produk_id' => $produk->id,
                     'jumlah' => $item['jumlah'],
+                    'harga_satuan' => $item['harga_jual'],
                     'harga_jual' => $item['harga_jual'],
                     'subtotal' => $item['jumlah'] * $item['harga_jual']
                 ]);
 
                 // Update stok
                 $produk->decrement('stok', $item['jumlah']);
+            }
+
+            // Update payment_status to paid to trigger journal creation
+            $penjualan->update(['payment_status' => 'paid']);
+
+            // CRITICAL: Explicitly create journal after all details saved
+            try {
+                $penjualan->load(['details.produk', 'produk']);
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan, auth()->id());
+                \Log::info('Journal created from KasirController', [
+                    'penjualan_id' => $penjualan->id,
+                    'nomor_penjualan' => $penjualan->nomor_penjualan
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create journal from KasirController', [
+                    'penjualan_id' => $penjualan->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't throw - allow transaction to complete
             }
 
             DB::commit();

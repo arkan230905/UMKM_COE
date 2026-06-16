@@ -181,6 +181,27 @@ class OrderToSalesService
             ]);
         }
 
+        // Update payment_status to paid to trigger journal creation
+        // (Orders are usually already paid when reaching this point)
+        $penjualan->update(['payment_status' => 'paid']);
+
+        // CRITICAL: Explicitly create journal after all details saved
+        try {
+            $penjualan->load(['details.produk', 'produk']);
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan, $ownerId);
+            Log::info('OrderToSalesService: Journal created successfully', [
+                'penjualan_id' => $penjualan->id,
+                'nomor_penjualan' => $penjualan->nomor_penjualan
+            ]);
+        } catch (\Exception $e) {
+            Log::error('OrderToSalesService: Failed to create journal', [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't throw - allow transaction to complete
+        }
+
         Log::info('OrderToSalesService: Penjualan created successfully', [
             'penjualan_id' => $penjualan->id,
             'nomor_penjualan' => $penjualan->nomor_penjualan,

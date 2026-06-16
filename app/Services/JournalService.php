@@ -129,14 +129,6 @@ class JournalService
     {
         $service = new static();
 
-        \Log::info("Starting journal creation for penjualan", [
-            'penjualan_id' => $penjualan->id,
-            'nomor_penjualan' => $penjualan->nomor_penjualan ?? 'N/A',
-            'user_id' => $penjualan->user_id,
-            'grand_total' => $penjualan->grand_total ?? $penjualan->total ?? 0,
-            'payment_method' => $penjualan->payment_method ?? 'N/A'
-        ]);
-
         // Pastikan relasi sudah di-load
         if (!$penjualan->relationLoaded('details')) {
             $penjualan->load('details.produk');
@@ -160,10 +152,9 @@ class JournalService
                        . implode("\n", $pesanList);
             }
             
-            \Log::error("Journal validation failed for penjualan", [
+            \Log::error("Journal validation failed", [
                 'penjualan_id' => $penjualan->id,
-                'missing_accounts' => $namaAkunMissing,
-                'error' => $pesan
+                'missing_accounts' => $namaAkunMissing
             ]);
             
             throw new \Exception($pesan);
