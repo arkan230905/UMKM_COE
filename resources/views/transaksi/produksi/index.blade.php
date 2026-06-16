@@ -189,13 +189,13 @@
                                                         <button type="button" 
                                                                 class="btn btn-sm btn-danger" 
                                                                 data-bs-toggle="modal"
-                                                                data-bs-target="#stockShortageModal{{ $data->id }}"
+                                                                data-bs-target="#stockShortageModal{{ $data->produk_id }}"
                                                                 title="Klik untuk detail bahan yang kurang">
                                                             <i class="fas fa-exclamation-triangle"></i> Stok Bahan Kurang
                                                         </button>
                                                         
                                                         <!-- Modal untuk detail kekurangan stok -->
-                                                        <div class="modal fade" id="stockShortageModal{{ $data->id }}" tabindex="-1">
+                                                        <div class="modal fade" id="stockShortageModal{{ $data->produk_id }}" tabindex="-1">
                                                             <div class="modal-dialog">
                                                                 <div class="modal-content">
                                                                     <div class="modal-header bg-danger text-white">
