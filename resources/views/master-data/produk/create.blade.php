@@ -80,8 +80,8 @@
 
                 <div class="mb-3">
                     <label for="foto" class="form-label">Foto Produk</label>
-                    <input type="file" name="foto" id="foto" class="form-control" accept="image/jpeg,image/png,image/jpg" onchange="previewImage(event)">
-                    <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maksimal 2MB.</small>
+                    <input type="file" name="foto" id="foto" class="form-control" accept="image/jpeg,image/png,image/jpg,image/webp,image/gif" onchange="previewImage(event)">
+                    <small class="form-text text-muted">Format: JPG, JPEG, PNG, WEBP, GIF. Maksimal 10MB.</small>
                     
                     <div id="preview-container" class="mt-3" style="display: none;">
                         <p class="small mb-2 text-muted">Preview foto:</p>
@@ -127,10 +127,10 @@ function previewImage(event) {
             return;
         }
         
-        // Validasi tipe file
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        // Validasi tipe file - updated to include webp and gif
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
         if (!validTypes.includes(file.type)) {
-            alert('Format file tidak valid! Gunakan JPG, JPEG, atau PNG.');
+            alert('Format file tidak valid! Gunakan JPG, JPEG, PNG, WEBP, atau GIF.');
             event.target.value = '';
             previewContainer.style.display = 'none';
             return;

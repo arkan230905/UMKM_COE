@@ -11,9 +11,10 @@ class PelangganController extends Controller
 {
     public function index(Request $request)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user (owner)
-        $userId = auth()->id();
-        $query = \App\Models\Pelanggan::where('user_id', $userId);
+        // 🔒 SECURITY: Filter by perusahaan_id untuk multi-tenant isolation
+        $query = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
+            ->withCount('orders');
 
         // Pencarian
         if ($request->filled('search')) {
@@ -68,8 +69,9 @@ class PelangganController extends Controller
 
     public function show($id)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user
-        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         
         return view('master-data.pelanggan.show', compact('pelanggan'));
@@ -77,8 +79,9 @@ class PelangganController extends Controller
 
     public function getPassword($id)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user
-        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         
         return response()->json([
@@ -88,8 +91,9 @@ class PelangganController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user
-        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
 
         $request->validate([
@@ -109,16 +113,18 @@ class PelangganController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user
-        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         return view('master-data.pelanggan.edit', compact('pelanggan'));
     }
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user
-        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
 
         $request->validate([
@@ -141,8 +147,9 @@ class PelangganController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Get pelanggan yang belong ke current user
-        $pelanggan = \App\Models\Pelanggan::where('user_id', auth()->id())
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
 
         $pelanggan->delete();

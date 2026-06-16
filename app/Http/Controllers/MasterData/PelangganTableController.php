@@ -12,10 +12,9 @@ class PelangganTableController extends Controller
 {
     public function index(Request $request)
     {
-        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation (bukan perusahaan_id)
-        // Pelanggan dibuat dengan user_id = owner's user_id
+        // 🔒 SECURITY: Filter by perusahaan_id untuk multi-tenant isolation
         $query = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id())
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->withCount('orders');
 
         // Filter Pencarian
@@ -61,9 +60,9 @@ class PelangganTableController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id())
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         
         return view('master-data.pelanggan.edit', compact('pelanggan'));
@@ -71,9 +70,9 @@ class PelangganTableController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id())
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
 
         $request->validate([
@@ -105,9 +104,9 @@ class PelangganTableController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id())
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         
         // Cek apakah pelanggan punya order
@@ -123,9 +122,9 @@ class PelangganTableController extends Controller
 
     public function resetPassword($id)
     {
-        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan dengan filter perusahaan_id
         $pelanggan = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id())
+            ->where('perusahaan_id', auth()->user()->perusahaan_id)
             ->findOrFail($id);
         
         // Reset password to default
