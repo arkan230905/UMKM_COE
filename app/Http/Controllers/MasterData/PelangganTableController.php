@@ -12,7 +12,10 @@ class PelangganTableController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::where('role', 'pelanggan')->withCount('orders');
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $query = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
+            ->withCount('orders');
 
         // Filter Pencarian
         if ($request->filled('search')) {
@@ -57,8 +60,9 @@ class PelangganTableController extends Controller
 
     public function edit($id)
     {
-        // 🔒 SECURITY: Get pelanggan
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
             ->findOrFail($id);
         
         return view('master-data.pelanggan.edit', compact('pelanggan'));
@@ -66,8 +70,9 @@ class PelangganTableController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 🔒 SECURITY: Get pelanggan
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
             ->findOrFail($id);
 
         $request->validate([
@@ -99,8 +104,9 @@ class PelangganTableController extends Controller
 
     public function destroy($id)
     {
-        // 🔒 SECURITY: Get pelanggan
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
             ->findOrFail($id);
         
         // Cek apakah pelanggan punya order
@@ -116,8 +122,9 @@ class PelangganTableController extends Controller
 
     public function resetPassword($id)
     {
-        // 🔒 SECURITY: Get pelanggan
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id())
             ->findOrFail($id);
         
         // Reset password to default
