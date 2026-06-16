@@ -128,8 +128,10 @@ class Penjualan extends Model
                 $attempt = 0;
                 
                 do {
+                    // CRITICAL: Filter by user_id untuk multi-tenant isolation
                     // Cari nomor terakhir untuk tanggal hari ini agar urutan direset per hari
-                    $lastNumber = static::where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
+                    $lastNumber = static::where('user_id', $penjualan->user_id)
+                        ->where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
                         ->orderBy('nomor_penjualan', 'desc')
                         ->value('nomor_penjualan');
                     
@@ -145,8 +147,10 @@ class Penjualan extends Model
                     // Format: SJ-YYYYMMDD-001
                     $nomorPenjualan = 'SJ-' . $date . '-' . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
                     
-                    // Cek apakah nomor sudah ada (untuk memastikan unique)
-                    $exists = static::where('nomor_penjualan', $nomorPenjualan)->exists();
+                    // CRITICAL: Cek apakah nomor sudah ada untuk user ini (multi-tenant)
+                    $exists = static::where('user_id', $penjualan->user_id)
+                        ->where('nomor_penjualan', $nomorPenjualan)
+                        ->exists();
                     
                     if (!$exists) {
                         $penjualan->nomor_penjualan = $nomorPenjualan;
@@ -211,17 +215,21 @@ class Penjualan extends Model
     }
 
     /**
-     * Generate unique nomor penjualan to prevent duplicates
+     * Generate unique nomor penjualan to prevent duplicates (per user for multi-tenant)
      */
-    public static function generateUniqueNomorPenjualan($date)
+    public static function generateUniqueNomorPenjualan($date, $userId = null)
     {
+        // Use authenticated user if not provided
+        $userId = $userId ?? auth()->id();
+        
         // Use a while loop to ensure we get a unique number
         $maxAttempts = 100;
         $attempts = 0;
         
         while ($attempts < $maxAttempts) {
-            // Get the highest number for today
-            $lastNomor = static::where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
+            // CRITICAL: Get the highest number for today FOR THIS USER
+            $lastNomor = static::where('user_id', $userId)
+                ->where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
                 ->orderBy('nomor_penjualan', 'desc')
                 ->value('nomor_penjualan');
             
@@ -235,8 +243,8 @@ class Penjualan extends Model
             
             $newNomor = 'SJ-' . $date . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
             
-            // Check if this number already exists (double-check)
-            if (!static::where('nomor_penjualan', $newNomor)->exists()) {
+            // CRITICAL: Check if this number already exists FOR THIS USER (double-check)
+            if (!static::where('user_id', $userId)->where('nomor_penjualan', $newNomor)->exists()) {
                 return $newNomor;
             }
             
