@@ -95,11 +95,12 @@ class ProdukController extends Controller
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
-        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
-        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+        // 🔒 SECURITY: Get COA Persediaan Barang Jadi milik perusahaan yang sedang login
+        // Filter by user_id untuk multi-tenant isolation
+        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
+                // Hanya "Pers. Barang Jadi" atau "Persediaan Barang Jadi"
                 $query->where('nama_akun', 'LIKE', '%pers. barang jadi%')
                       ->orWhere('nama_akun', 'LIKE', '%persediaan barang jadi%');
             })
@@ -198,11 +199,12 @@ class ProdukController extends Controller
         
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
-        // Get all COA Persediaan Barang Jadi (unique only, no duplicates)
-        // Must use withoutGlobalScopes() to bypass user_id filtering from global scope
-        $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+        // 🔒 SECURITY: Get COA Persediaan Barang Jadi milik perusahaan yang sedang login
+        // Filter by user_id untuk multi-tenant isolation
+        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
             ->where(function($query) {
                 // Cari berdasarkan nama akun yang mengandung kata kunci
+                // Hanya "Pers. Barang Jadi" atau "Persediaan Barang Jadi"
                 $query->where('nama_akun', 'LIKE', '%pers. barang jadi%')
                       ->orWhere('nama_akun', 'LIKE', '%persediaan barang jadi%');
             })
