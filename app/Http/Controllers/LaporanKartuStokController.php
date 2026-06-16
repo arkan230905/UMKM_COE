@@ -27,19 +27,19 @@ class LaporanKartuStokController extends Controller
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
 
-        // Get items for dropdown
-        $bahanBakus = BahanBaku::orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::orderBy('nama_bahan')->get();
+        // Get items for dropdown - CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $bahanBakus = BahanBaku::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $bahanPendukungs = BahanPendukung::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
 
         $stockReport = null;
         $selectedItem = null;
 
         if ($itemId) {
-            // Get selected item
+            // Get selected item - CRITICAL: Filter by user_id untuk multi-tenant isolation
             if ($itemType === KartuStok::ITEM_TYPE_BAHAN_BAKU) {
-                $selectedItem = BahanBaku::find($itemId);
+                $selectedItem = BahanBaku::where('user_id', auth()->id())->find($itemId);
             } elseif ($itemType === KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG) {
-                $selectedItem = BahanPendukung::find($itemId);
+                $selectedItem = BahanPendukung::where('user_id', auth()->id())->find($itemId);
             }
 
             if ($selectedItem) {
@@ -71,7 +71,8 @@ class LaporanKartuStokController extends Controller
         $items = [];
         
         if ($itemType === KartuStok::ITEM_TYPE_BAHAN_BAKU) {
-            $bahanBakus = BahanBaku::orderBy('nama_bahan')->get();
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $bahanBakus = BahanBaku::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
             foreach ($bahanBakus as $item) {
                 $stock = $this->stockService->getCurrentStock($item->id, $itemType);
                 $items[] = [
@@ -82,7 +83,8 @@ class LaporanKartuStokController extends Controller
                 ];
             }
         } elseif ($itemType === KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG) {
-            $bahanPendukungs = BahanPendukung::orderBy('nama_bahan')->get();
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $bahanPendukungs = BahanPendukung::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
             foreach ($bahanPendukungs as $item) {
                 $stock = $this->stockService->getCurrentStock($item->id, $itemType);
                 $items[] = [
@@ -111,11 +113,11 @@ class LaporanKartuStokController extends Controller
             return back()->with('error', 'Pilih item terlebih dahulu untuk export.');
         }
 
-        // Get selected item
+        // Get selected item - CRITICAL: Filter by user_id untuk multi-tenant isolation
         if ($itemType === KartuStok::ITEM_TYPE_BAHAN_BAKU) {
-            $selectedItem = BahanBaku::find($itemId);
+            $selectedItem = BahanBaku::where('user_id', auth()->id())->find($itemId);
         } else {
-            $selectedItem = BahanPendukung::find($itemId);
+            $selectedItem = BahanPendukung::where('user_id', auth()->id())->find($itemId);
         }
 
         if (!$selectedItem) {

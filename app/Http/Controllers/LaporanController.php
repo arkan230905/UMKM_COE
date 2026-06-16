@@ -1294,7 +1294,9 @@ class LaporanController extends Controller
         $totalPenjualanFiltered = $totalPenjualan; // Sudah sesuai filter dari query utama
         
         // Total penjualan tunai (cash) - sesuai filter tanggal
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualanTunai = Penjualan::with(['details'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'cash')
             ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
                 return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
@@ -1312,7 +1314,9 @@ class LaporanController extends Controller
         });
         
         // Total penjualan kredit - sesuai filter tanggal
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualanKredit = Penjualan::with(['details'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'credit')
             ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
                 return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
@@ -1332,8 +1336,10 @@ class LaporanController extends Controller
         $penjualan = $query->paginate(15);
 
         // Get data retur penjualan untuk tab retur
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         try {
             $returPenjualans = \App\Models\ReturPenjualan::with(['penjualan', 'pelanggan', 'detailReturPenjualans.produk'])
+                ->where('user_id', auth()->id())
                 ->when($request->tanggal_mulai && $request->tanggal_selesai, function($q) use ($request) {
                     return $q->whereBetween('tanggal', [$request->tanggal_mulai, $request->tanggal_selesai]);
                 })
@@ -1816,7 +1822,10 @@ class LaporanController extends Controller
     // === INVOICE PENJUALAN (PRINTABLE) ===
     public function invoicePenjualan($id)
     {
-        $penjualan = Penjualan::with(['produk','details.produk'])->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::with(['produk','details.produk'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         return view('laporan.penjualan.invoice', compact('penjualan'));
     }
 

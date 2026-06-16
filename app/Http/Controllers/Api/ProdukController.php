@@ -24,7 +24,8 @@ class ProdukController extends Controller
     public function getBomDetails($produkId)
     {
         try {
-            $produk = Produk::find($produkId);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $produk = Produk::where('user_id', auth()->id())->find($produkId);
             if (!$produk) {
                 return response()->json([
                     'success' => false,
@@ -110,7 +111,8 @@ class ProdukController extends Controller
                 ], 400);
             }
 
-            $produk = Produk::find($produkId);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $produk = Produk::where('user_id', auth()->id())->find($produkId);
             if (!$produk) {
                 return response()->json([
                     'success' => false,
