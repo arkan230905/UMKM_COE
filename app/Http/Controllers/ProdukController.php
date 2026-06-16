@@ -142,7 +142,7 @@ class ProdukController extends Controller
             'kategori_id' => 'nullable|exists:kategori_produks,id',
             'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:10240',
+            'foto' => 'nullable|file|max:10240', // Changed: removed 'image|mimes' - too strict
             'harga_jual' => 'required|numeric|min:0',
             'hpp' => 'nullable|numeric|min:0',
             'margin_percent' => 'nullable|numeric|min:0',
@@ -156,6 +156,15 @@ class ProdukController extends Controller
         if ($request->hasFile('foto')) {
             try {
                 $file = $request->file('foto');
+                
+                // Validate file extension (not MIME type, which is unreliable)
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                $fileExtension = strtolower($file->getClientOriginalExtension());
+                
+                if (!in_array($fileExtension, $allowedExtensions)) {
+                    return redirect()->back()->withInput()->withErrors(['foto' => 'Format file tidak didukung. Gunakan: JPG, JPEG, PNG, WEBP, atau GIF.']);
+                }
+                
                 $filename = time() . '_' . \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
                 $destinationPath = public_path('storage/produk');
                 
