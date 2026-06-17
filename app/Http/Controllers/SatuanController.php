@@ -172,80 +172,8 @@ class SatuanController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        // Check if this is an AJAX request
-        $isAjax = $request->ajax() || $request->wantsJson();
-        
-        try {
-            $satuan = Satuan::where('user_id', auth()->id())->findOrFail($id);
-            $satuanName = $satuan->nama;
-            
-            // Cek apakah satuan sedang digunakan oleh tabel lain
-            $blockers = [];
-            $bb = \App\Models\BahanBaku::where('satuan_id', $satuan->id)->count();
-            if ($bb > 0) $blockers[] = "Bahan Baku ($bb)";
-            
-            $bp = \App\Models\BahanPendukung::where('satuan_id', $satuan->id)->count();
-            if ($bp > 0) $blockers[] = "Bahan Pendukung ($bp)";
-            
-            $pr = \App\Models\Produk::where('satuan_id', $satuan->id)->count();
-            if ($pr > 0) $blockers[] = "Produk ($pr)";
-
-            if (!empty($blockers)) {
-                $msg = 'Satuan "' . $satuanName . '" tidak dapat dihapus karena masih digunakan pada data: ' . implode(', ', $blockers) . '.';
-                
-                if ($isAjax) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $msg
-                    ], 400); // 400 Bad Request
-                }
-
-                return redirect()->route('master-data.satuan.index')
-                    ->with('error', $msg);
-            }
-
-            // Hapus data
-            $satuan->delete();
-
-            // Check if request is AJAX
-            if ($isAjax) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Satuan berhasil dihapus!'
-                ]);
-            }
-
-            return redirect()->route('master-data.satuan.index')
-                ->with('success', 'Satuan berhasil dihapus!');
-                
-        } catch (\Illuminate\Database\QueryException $e) {
-            // Check for foreign key constraint violation
-            if ($e->getCode() == '23000') {
-                $message = 'Gagal menghapus data: Satuan sedang digunakan oleh data lain dan tidak dapat dihapus.';
-            } else {
-                $message = 'Gagal menghapus data: ' . $e->getMessage();
-            }
-            
-            if ($isAjax) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $message
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('error', $message);
-        } catch (\Exception $e) {
-            // Check if request is AJAX
-            if ($isAjax) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal menghapus data: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return redirect()->back()
-                ->with('error', 'Gagal menghapus data: ' . $e->getMessage());
-        }
+        // DISABLED: Delete functionality has been disabled to prevent deletion of units
+        // Units are reference data used across multiple modules and must be preserved
+        abort(403, 'Penghapusan data satuan tidak diizinkan. Silakan hubungi administrator jika perlu menghapus data satuan.');
     }
 }
