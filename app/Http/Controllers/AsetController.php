@@ -129,18 +129,10 @@ class AsetController extends Controller
             $aset->is_posted_this_month = $isPostedThisMonth;
         }
 
-        // Get filter options - Include global jenis asets (user_id = null) and user-specific ones
-        $jenisAsets = JenisAset::withoutGlobalScope('user')
-            ->where(function($q) use ($user) {
-                $q->where('user_id', $user->id)->orWhereNull('user_id');
-            })
-            ->with(['kategories' => function($query) use ($user) {
-                $query->where(function($q) use ($user) {
-                    $q->where('user_id', $user->id)->orWhereNull('user_id');
-                });
-            }])->get();
+        // Get filter options - User dapat melihat jenis aset miliknya dan global
+        $jenisAsets = JenisAset::with(['kategories'])->get();
         $kategoriAsets = $request->has('jenis_aset')
-            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->where('user_id', $user->id)->get()
+            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->get()
             : collect();
 
         return view('master-data.aset.index', compact('asets', 'jenisAsets', 'kategoriAsets'));
@@ -151,16 +143,8 @@ class AsetController extends Controller
      */
     public function create()
     {
-        $jenisAsets = JenisAset::withoutGlobalScope('user')
-            ->where(function($q) {
-                $q->where('user_id', auth()->id())->orWhereNull('user_id');
-            })
-            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
-            ->with(['kategories' => function($query) {
-                $query->where(function($q) {
-                    $q->where('user_id', auth()->id())->orWhereNull('user_id');
-                });
-            }])
+        $jenisAsets = JenisAset::whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->with(['kategories'])
             ->get();
         $kodeAset = Aset::generateKodeAset();
         $metodePenyusutan = [
@@ -170,11 +154,7 @@ class AsetController extends Controller
         ];
 
         // Load jenis aset list for custom asset types feature
-        $jenisAsetList = JenisAset::where(function($query) {
-                $query->where('user_id', auth()->id())
-                      ->orWhereNull('user_id'); // Include default "Aset Tetap"
-            })
-            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+        $jenisAsetList = JenisAset::whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
             ->orderBy('nama')
             ->get();
 
@@ -609,16 +589,8 @@ class AsetController extends Controller
                 ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diedit.');
         }
 
-        $jenisAsets = JenisAset::withoutGlobalScope('user')
-            ->where(function($q) {
-                $q->where('user_id', auth()->id())->orWhereNull('user_id');
-            })
-            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
-            ->with(['kategories' => function($query) {
-                $query->where(function($q) {
-                    $q->where('user_id', auth()->id())->orWhereNull('user_id');
-                });
-            }])
+        $jenisAsets = JenisAset::whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+            ->with(['kategories'])
             ->get();
         $metodePenyusutan = [
             'garis_lurus' => 'Garis Lurus',
@@ -627,11 +599,7 @@ class AsetController extends Controller
         ];
 
         // Load jenis aset list for custom asset types feature
-        $jenisAsetList = JenisAset::where(function($query) {
-                $query->where('user_id', auth()->id())
-                      ->orWhereNull('user_id'); // Include default "Aset Tetap"
-            })
-            ->whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
+        $jenisAsetList = JenisAset::whereRaw('LOWER(nama) != ?', ['aset tidak tetap'])
             ->orderBy('nama')
             ->get();
 

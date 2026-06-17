@@ -10,7 +10,11 @@ trait HasUserScope
     {
         static::addGlobalScope('user', function (Builder $builder) {
             if (auth()->check()) {
-                $builder->where(app(static::class)->getTable() . '.user_id', auth()->id());
+                // Allow both user-specific data AND global data (user_id = NULL)
+                $builder->where(function($query) {
+                    $query->where(app(static::class)->getTable() . '.user_id', auth()->id())
+                          ->orWhereNull(app(static::class)->getTable() . '.user_id');
+                });
             }
         });
 
