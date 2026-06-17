@@ -724,16 +724,8 @@
                                             <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
                                                 Retur
                                             </a>
-                                            <button type="submit" class="btn-minimal btn-danger" onclick="confirmDelete({{ $penjualan->id }})" data-bs-toggle="tooltip" title="Hapus Transaksi">
-                                                Hapus
-                                            </button>
                                         </div>
                                     </div>
-                                    <!-- Hidden form for delete -->
-                                    <form id="deleteForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
-                                        @csrf
-                                        @method('DELETE')
-                                    </form>
                                 </td>
                             </tr>
                         @endforeach
@@ -919,16 +911,17 @@
                                                     <a href="{{ route('transaksi.retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
                                                         Edit
                                                     </a>
-                                                    <button type="button" class="btn-minimal btn-danger" onclick="confirmDeleteRetur({{ $retur->id }})" data-bs-toggle="tooltip" title="Hapus Retur">
-                                                        Hapus
-                                                    </button>
+                                                    <a href="{{ route('transaksi.retur-penjualan.jurnal', $retur->id) }}" class="btn-minimal btn-primary" data-bs-toggle="tooltip" title="Lihat Jurnal">
+                                                        Jurnal
+                                                    </a>
+                                                    <a href="{{ route('transaksi.retur-penjualan.detail-retur', $retur->penjualan_id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Cetak/Export">
+                                                        Cetak
+                                                    </a>
+                                                    <a href="{{ route('transaksi.penjualan.index') }}" class="btn-minimal btn-secondary" data-bs-toggle="tooltip" title="Kembali">
+                                                        Retur
+                                                    </a>
                                                 </div>
                                             </div>
-                                            <!-- Hidden form for delete retur -->
-                                            <form id="deleteReturForm{{ $retur->id }}" action="{{ route('transaksi.retur-penjualan.destroy', $retur->id) }}" method="POST" style="display: none;">
-                                                @csrf
-                                                @method('DELETE')
-                                            </form>
                                         </td>
                                     </tr>
                                 @empty
@@ -1909,19 +1902,7 @@ function deleteBuktiModal(buktiId, penjualanId) {
     }
 }
 
-// Function to confirm delete penjualan
-function confirmDelete(penjualanId) {
-    if (confirm('Yakin ingin hapus transaksi ini?')) {
-        document.getElementById('deleteForm' + penjualanId).submit();
-    }
-}
 
-// Function to confirm delete retur
-function confirmDeleteRetur(returId) {
-    if (confirm('Yakin ingin hapus retur ini?')) {
-        document.getElementById('deleteReturForm' + returId).submit();
-    }
-}
 </script>
 
 <style>
