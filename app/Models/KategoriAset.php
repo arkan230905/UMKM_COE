@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KategoriAset extends Model
 {
+    use \App\Traits\HasUserScope; // Add multi-tenant scope
+    
     protected $table = 'kategori_asets';
     
     protected $fillable = [
@@ -18,6 +20,7 @@ class KategoriAset extends Model
         'umur_ekonomis',
         'tarif_penyusutan',
         'disusutkan',
+        'user_id', // Add user_id to fillable
     ];
 
     protected $casts = [

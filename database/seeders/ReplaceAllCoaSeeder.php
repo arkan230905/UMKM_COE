@@ -5,40 +5,34 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class DefaultCoaSeeder extends Seeder
+/**
+ * ReplaceAllCoaSeeder
+ *
+ * Menghapus SEMUA COA yang ada untuk SETIAP user, lalu mengisi ulang
+ * dengan daftar akun baru sesuai struktur yang telah disetujui.
+ *
+ * Jalankan dengan:
+ *   php artisan db:seed --class=ReplaceAllCoaSeeder
+ *
+ * PERHATIAN: Seeder ini akan menghapus seluruh data COA yang ada.
+ *            Pastikan sudah backup database sebelum menjalankan.
+ */
+class ReplaceAllCoaSeeder extends Seeder
 {
-    /**
-     * COA Default untuk User Baru
-     * Dipanggil otomatis saat user registrasi via CreateDefaultUserData listener
-     * Atau manual dengan: php artisan db:seed --class=DefaultCoaSeeder
-     *
-     * Mencakup produk: Ayam Crispy Macdi, Ayam Goreng Bundo, Jasuke
-     */
-    public function run(?int $userId = null): void
+    public function run(): void
     {
-        // Jika userId tidak diberikan, gunakan user pertama dari database
-        if ($userId === null) {
-            $user = DB::table('users')->first();
-            if (!$user) {
-                if ($this->command) {
-                    $this->command->error('No users found in database. Please create a user first.');
-                }
-                return;
-            }
-            $userId = $user->id;
-        }
+        $users = DB::table('users')->get();
 
-        // Jangan buat ulang jika sudah ada
-        if (DB::table('coas')->where('user_id', $userId)->exists()) {
+        if ($users->isEmpty()) {
             if ($this->command) {
-                $this->command->info("COA already exists for user ID: {$userId}");
+                $this->command->error('Tidak ada user ditemukan di database.');
             }
             return;
         }
 
         $now = now();
 
-        $coas = [
+        $coaList = [
             // =========================================================
             // ASET (11)
             // =========================================================
@@ -86,7 +80,7 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '1172', 'nama_akun' => 'Pers. Barang Dalam Proses - BTKL (WIP BTKL)',   'tipe_akun' => 'Aset',      'saldo_normal' => 'debit'],
             ['kode_akun' => '1173', 'nama_akun' => 'Pers. Barang Dalam Proses - BOP (WIP BOP)',     'tipe_akun' => 'Aset',      'saldo_normal' => 'debit'],
 
-            // Aset Lainnya
+            // Aset Tetap & Lainnya
             ['kode_akun' => '118',  'nama_akun' => 'Piutang',                                       'tipe_akun' => 'Aset',      'saldo_normal' => 'debit'],
             ['kode_akun' => '119',  'nama_akun' => 'Peralatan',                                     'tipe_akun' => 'Aset',      'saldo_normal' => 'debit'],
             ['kode_akun' => '120',  'nama_akun' => 'Akumulasi Penyusutan Peralatan',                'tipe_akun' => 'Aset',      'saldo_normal' => 'debit'],
@@ -179,33 +173,50 @@ class DefaultCoaSeeder extends Seeder
             // =========================================================
             // BEBAN - Harga Pokok Penjualan (56)
             // =========================================================
-            ['kode_akun' => '56',   'nama_akun' => 'Harga Pokok Penjualan',                         'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
-            ['kode_akun' => '561',  'nama_akun' => 'Harga Pokok Penjualan - Produk Ayam Crispy Macdi', 'tipe_akun' => 'Beban', 'saldo_normal' => 'debit'],
-            ['kode_akun' => '562',  'nama_akun' => 'Harga Pokok Penjualan - Produk Ayam Goreng Bundo', 'tipe_akun' => 'Beban', 'saldo_normal' => 'debit'],
-            ['kode_akun' => '563',  'nama_akun' => 'Harga Pokok Penjualan - Jasuke',                'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
+            ['kode_akun' => '56',   'nama_akun' => 'Harga Pokok Penjualan',                            'tipe_akun' => 'Beban',  'saldo_normal' => 'debit'],
+            ['kode_akun' => '561',  'nama_akun' => 'Harga Pokok Penjualan - Produk Ayam Crispy Macdi', 'tipe_akun' => 'Beban',  'saldo_normal' => 'debit'],
+            ['kode_akun' => '562',  'nama_akun' => 'Harga Pokok Penjualan - Produk Ayam Goreng Bundo', 'tipe_akun' => 'Beban',  'saldo_normal' => 'debit'],
+            ['kode_akun' => '563',  'nama_akun' => 'Harga Pokok Penjualan - Jasuke',                   'tipe_akun' => 'Beban',  'saldo_normal' => 'debit'],
         ];
 
-        $rows = [];
-        foreach ($coas as $coa) {
-            $rows[] = [
-                'user_id'            => $userId,
-                'kode_akun'          => $coa['kode_akun'],
-                'nama_akun'          => $coa['nama_akun'],
-                'tipe_akun'          => $coa['tipe_akun'],
-                'kategori_akun'      => $coa['tipe_akun'],
-                'saldo_normal'       => $coa['saldo_normal'],
-                'saldo_awal'         => 0,
-                'tanggal_saldo_awal' => $now,
-                'posted_saldo_awal'  => 0,
-                'created_at'         => $now,
-                'updated_at'         => $now,
-            ];
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        foreach ($users as $user) {
+            // Hapus COA lama milik user ini
+            $deleted = DB::table('coas')->where('user_id', $user->id)->delete();
+
+            // Siapkan data baru
+            $rows = [];
+            foreach ($coaList as $coa) {
+                $rows[] = [
+                    'user_id'            => $user->id,
+                    'kode_akun'          => $coa['kode_akun'],
+                    'nama_akun'          => $coa['nama_akun'],
+                    'tipe_akun'          => $coa['tipe_akun'],
+                    'kategori_akun'      => $coa['tipe_akun'],
+                    'saldo_normal'       => $coa['saldo_normal'],
+                    'saldo_awal'         => 0,
+                    'tanggal_saldo_awal' => $now,
+                    'posted_saldo_awal'  => 0,
+                    'created_at'         => $now,
+                    'updated_at'         => $now,
+                ];
+            }
+
+            DB::table('coas')->insert($rows);
+
+            if ($this->command) {
+                $this->command->info("User ID {$user->id} ({$user->name}): {$deleted} akun lama dihapus, " . count($rows) . " akun baru ditambahkan.");
+            }
         }
 
-        DB::table('coas')->insert($rows);
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         if ($this->command) {
-            $this->command->info("COA berhasil di-seed untuk user ID: {$userId} (" . count($rows) . " akun)");
+            $this->command->info('===================================================');
+            $this->command->info('COA berhasil diganti untuk ' . $users->count() . ' user.');
+            $this->command->info('Total akun per user: ' . count($coaList));
+            $this->command->info('===================================================');
         }
     }
 }
