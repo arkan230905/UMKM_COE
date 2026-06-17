@@ -274,7 +274,7 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="harga_perolehan" class="form-label text-dark">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
+                        <label for="harga_perolehan" class="form-label text-dark">Harga Beli (Rp) <span class="text-danger">*</span></label>
                         <input type="text" class="form-control bg-white text-dark @error('harga_perolehan') is-invalid @enderror" 
                                id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan') ? number_format(old('harga_perolehan'), 0, ',', '.') : '' }}" 
                                placeholder="0"
