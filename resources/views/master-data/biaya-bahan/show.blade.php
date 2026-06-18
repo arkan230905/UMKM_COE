@@ -112,6 +112,7 @@
                                     <tr>
                                         <th width="5%">#</th>
                                         <th>Nama Bahan</th>
+                                        <th>COA</th>
                                         <th class="text-center">Qty</th>
                                         <th class="text-center">Satuan</th>
                                         <th class="text-end">Harga Satuan</th>

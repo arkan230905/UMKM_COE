@@ -442,18 +442,28 @@ class BiayaBahanController extends Controller
             // Get product with user filtering
             $produk = Produk::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
             
-            // Get biaya bahan baku data for this product
+            // Get biaya bahan baku data for this product with COA relationship
             $bbbData = BiayaBahanBaku::where('user_id', auth()->id())
                 ->where('produk_id', $id)
-                ->with(['bahanBaku.satuan'])
+                ->with(['bahanBaku.satuan', 'coa'])
                 ->orderBy('created_at', 'desc')
                 ->get();
             
             // Transform data to match expected format
             $bbbData = $bbbData->map(function($detail) {
+                // Get COA info
+                $coaInfo = 'Tidak ada COA';
+                if ($detail->coa_id && $detail->coa) {
+                    $coaInfo = $detail->coa->kode_coa . ' - ' . $detail->coa->nama_coa;
+                } else {
+                    $coaInfo = '<span class="text-muted">Default (1141)</span>';
+                }
+                
                 return (object)[
                     'id' => $detail->id,
                     'nama_bahan' => $detail->bahanBaku->nama_bahan ?? 'Unknown',
+                    'coa_info' => $coaInfo,
+                    'coa_id' => $detail->coa_id,
                     'qty' => $detail->jumlah,
                     'satuan' => $detail->satuan, // Use the actual unit from biaya_bahan_baku
                     'harga_satuan' => $detail->harga_satuan,

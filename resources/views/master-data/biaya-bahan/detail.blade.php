@@ -77,12 +77,13 @@
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 5%;" class="text-center">No</th>
-                                <th style="width: 25%;">Nama Bahan Baku</th>
-                                <th style="width: 15%;" class="text-center">Jumlah</th>
-                                <th style="width: 15%;" class="text-center">Harga Satuan</th>
-                                <th style="width: 15%;" class="text-end">Subtotal</th>
-                                <th style="width: 10%;" class="text-center">Tanggal</th>
-                                <th style="width: 15%;" class="text-center">Aksi</th>
+                                <th style="width: 20%;">Nama Bahan Baku</th>
+                                <th style="width: 20%;">COA</th>
+                                <th style="width: 12%;" class="text-center">Jumlah</th>
+                                <th style="width: 12%;" class="text-center">Harga Satuan</th>
+                                <th style="width: 12%;" class="text-end">Subtotal</th>
+                                <th style="width: 8%;" class="text-center">Tanggal</th>
+                                <th style="width: 11%;" class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -93,6 +94,17 @@
                                         <div class="fw-semibold">{{ $bbb->nama_bahan }}</div>
                                         @if($bbb->keterangan)
                                             <small class="text-muted">{{ $bbb->keterangan }}</small>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($bbb->coa_id)
+                                            <span class="badge bg-info">
+                                                {!! $bbb->coa_info !!}
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary">
+                                                Default (1141)
+                                            </span>
                                         @endif
                                     </td>
                                     <td class="text-center">
@@ -124,7 +136,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <th colspan="4" class="text-end fw-bold">TOTAL:</th>
+                                <th colspan="5" class="text-end fw-bold">TOTAL:</th>
                                 <th class="text-end fw-bold text-primary h5">
                                     Rp {{ number_format($totalSubtotal, 0, ',', '.') }}
                                 </th>
