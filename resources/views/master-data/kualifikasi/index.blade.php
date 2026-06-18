@@ -60,6 +60,7 @@
                             <th style="min-width: 110px">Tunj. Konsumsi</th>
                             <th>Asuransi</th>
                             <th>Gaji Pokok</th>
+                            <th class="text-center">Target Produksi</th>
                             <th>Tarif/Produk</th>
                             <th class="text-center" style="width: 90px">Aksi</th>
                         </tr>
@@ -74,7 +75,7 @@
                                         <i class="fas fa-briefcase text-primary"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold">{{ $row->nama }}</div>
+                                        <div class="fw-semibold">{{ $row->nama_kualifikasi }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -88,25 +89,23 @@
                             <td class="fw-semibold">Rp {{ number_format($row->tunjangan_konsumsi,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->asuransi,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->gaji_pokok,0,',','.') }}</td>
+                            <td class="text-center">
+                                @if($row->kategori === 'btkl')
+                                    <span class="badge bg-info text-dark">{{ number_format($row->target_produksi,0,',','.') }} pcs</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td class="fw-semibold">Rp {{ number_format($row->tarif,0,',','.') }}</td>
                             <td class="text-center">
-                                <div class="d-flex justify-content-center gap-1">
-                                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm" style="padding: 0.25rem 0.5rem;">
-                                        <i class="fas fa-edit fa-xs"></i>
-                                    </a>
-                                    <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="m-0" onsubmit="return confirm('Yakin ingin menghapus kualifikasi {{ $row->nama }}?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" style="padding: 0.25rem 0.5rem;">
-                                            <i class="fas fa-trash fa-xs"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                                <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm" data-bs-toggle="tooltip" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="10" class="text-center py-4">
+                            <td colspan="11" class="text-center py-4">
                                 <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data kualifikasi tenaga kerja</p>
                             </td>

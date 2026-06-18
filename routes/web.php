@@ -1793,7 +1793,7 @@ use App\Http\Controllers\BopController;
 use App\Http\Controllers\BopBudgetController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\AsetController;
-use App\Http\Controllers\JabatanController;
+use App\Http\Controllers\KualifikasiController;
 use App\Http\Controllers\BiayaBahanController;
 use App\Http\Controllers\HargaController;
 
@@ -2691,9 +2691,9 @@ Route::middleware('auth')->group(function () {
                 return "<h1 style='color:red;'>ERROR: " . $e->getMessage() . "</h1><pre>" . $e->getTraceAsString() . "</pre>";
             }
         });
-        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
-        Route::get('api/jabatan/by-kategori', [JabatanController::class, 'getByKategori'])->name('jabatan.by-kategori');
-        Route::get('api/jabatan/detail', [JabatanController::class, 'getDetail'])->name('jabatan.detail');
+        Route::resource('kualifikasi-tenaga-kerja', KualifikasiController::class);
+        Route::get('api/kualifikasi/by-kategori', [KualifikasiController::class, 'getByKategori'])->name('kualifikasi.by-kategori');
+        Route::get('api/kualifikasi/detail', [KualifikasiController::class, 'getDetail'])->name('kualifikasi.detail');
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');
@@ -3193,7 +3193,7 @@ Route::middleware('auth')->group(function () {
                     'html' => $html,
                     'penggajian' => [
                         'id' => $penggajian->id,
-                        'nomor_penggajian' => 'PGJ' . str_pad($penggajian->id, 6, '0', STR_PAD_LEFT),
+                        'nomor_penggajian' => $penggajian->nomor_penggajian ?? 'PGJ' . str_pad($penggajian->id, 6, '0', STR_PAD_LEFT),
                         'total_gaji' => ($penggajian->gaji_pokok + $penggajian->tunjangan + $penggajian->bonus - $penggajian->asuransi - $penggajian->potongan),
                         'pegawai_name' => $penggajian->pegawai ? $penggajian->pegawai->nama : '-',
                         'tanggal' => $tanggalFormatted
@@ -3234,7 +3234,7 @@ Route::middleware('auth')->group(function () {
                 'journals' => $journalsArray,
                 'penggajian' => [
                     'id' => $penggajian->id,
-                    'nomor_penggajian' => 'PGJ' . str_pad($penggajian->id, 6, '0', STR_PAD_LEFT),
+                    'nomor_penggajian' => $penggajian->nomor_penggajian ?? 'PGJ' . str_pad($penggajian->id, 6, '0', STR_PAD_LEFT),
                     'total_gaji' => ($penggajian->gaji_pokok + $penggajian->tunjangan + $penggajian->bonus - $penggajian->asuransi - $penggajian->potongan),
                     'pegawai_name' => $penggajian->pegawai ? $penggajian->pegawai->nama : '-',
                     'tanggal' => $tanggalFormatted

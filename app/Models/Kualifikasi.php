@@ -1,26 +1,11 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/**
- * Jabatan Model - DEPRECATED
- * 
- * ⚠️ DEPRECATED: This model is kept for backward compatibility only.
- * Please use Kualifikasi model instead for new code.
- * 
- * This model acts as an alias/wrapper for Kualifikasi table.
- * All new functionality should be implemented in Kualifikasi.php
- * 
- * Migration path:
- * - Old column name: jabatan (string in pegawais table)
- * - New column name: kualifikasi (string in pegawais table)
- * - Both refer to the same Kualifikasi.nama_kualifikasi field
- */
-class Jabatan extends Model
+class Kualifikasi extends Model
 {
     protected $table = 'kualifikasis';
 
@@ -54,6 +39,7 @@ class Jabatan extends Model
         'deskripsi'
     ];
     
+    
     protected $casts = [
         'gaji_pokok' => 'decimal:2',
         'tunjangan' => 'decimal:2',
@@ -80,24 +66,6 @@ class Jabatan extends Model
     }
 
     /**
-     * DEPRECATED: Use nama_kualifikasi instead
-     * Getter for backward compatibility
-     */
-    public function getNamaAttribute()
-    {
-        return $this->attributes['nama_kualifikasi'] ?? null;
-    }
-
-    /**
-     * DEPRECATED: Use nama_kualifikasi instead
-     * Setter for backward compatibility
-     */
-    public function setNamaAttribute($value)
-    {
-        $this->attributes['nama_kualifikasi'] = $value;
-    }
-
-    /**
      * Relasi ke kategori pegawai
      */
     public function kategori(): BelongsTo
@@ -106,11 +74,14 @@ class Jabatan extends Model
     }
 
     /**
-     * Relasi ke pegawai
-     * DEPRECATED: Use Kualifikasi model's pegawais relation
+     * Relasi ke pegawai dengan multi-tenant isolation
+     * FIXED: Use kualifikasi (string) instead of kualifikasi_id for matching
+     * Note: Don't add where clause here, let global scope handle user_id filtering
      */
     public function pegawais(): HasMany
     {
+        // Match by kualifikasi name (string) instead of kualifikasi_id
+        // Global scope on Pegawai model will automatically filter by user_id
         return $this->hasMany(Pegawai::class, 'kualifikasi', 'nama_kualifikasi');
     }
 
@@ -132,7 +103,7 @@ class Jabatan extends Model
     }
 
     /**
-     * Scope untuk mencari jabatan
+     * Scope untuk mencari kualifikasi
      */
     public function scopeSearch($query, $search)
     {
@@ -149,16 +120,18 @@ class Jabatan extends Model
     }
 
     /**
-     * Generate kode jabatan otomatis per user
+     * Generate kode kualifikasi otomatis per user (multi-tenant)
      */
     public static function generateKode(): string
     {
-        $lastJabatan = self::where('user_id', auth()->id())
+        // 🔒 MULTI-TENANT: Only get from logged-in user
+        $lastKualifikasi = self::where('user_id', auth()->id())
             ->orderBy('id', 'desc')
             ->first();
         
-        if ($lastJabatan) {
-            $lastNumber = (int) substr($lastJabatan->kode_kualifikasi, 3);
+        if ($lastKualifikasi) {
+            // Extract number from BT-XXX format
+            $lastNumber = (int) substr($lastKualifikasi->kode_kualifikasi, 3);
             $nextNumber = $lastNumber + 1;
         } else {
             $nextNumber = 1;
@@ -168,17 +141,19 @@ class Jabatan extends Model
     }
 
     /**
-     * Boot method untuk auto-generate kode
+     * Boot method untuk auto-generate kode_kualifikasi
      */
     protected static function booted()
     {
         parent::boot();
         
         static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
             if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();
             }
             
+            // Auto-generate kode_kualifikasi if empty
             if (empty($model->kode_kualifikasi)) {
                 $model->kode_kualifikasi = self::generateKode();
             }

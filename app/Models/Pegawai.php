@@ -22,8 +22,10 @@ class Pegawai extends Model
         'no_telepon',
         'alamat',
         'jenis_kelamin',
-        'jabatan',
-        'jabatan_id',
+        'kualifikasi',
+        'kualifikasi_id',
+        'jabatan',         // Backward compatibility alias for kualifikasi
+        'jabatan_id',      // Backward compatibility alias for kualifikasi_id
         'kategori_id',
         'kategori',
         'gaji_pokok',
@@ -93,11 +95,20 @@ class Pegawai extends Model
     ];
 
     /**
-     * Relasi ke jabatan
+     * Relasi ke kualifikasi
+     */
+    public function kualifikasiRelasi(): BelongsTo
+    {
+        return $this->belongsTo(Kualifikasi::class, 'kualifikasi_id');
+    }
+
+    /**
+     * Relasi ke jabatan (alias untuk kualifikasi via kualifikasi_id)
+     * Digunakan untuk backward compatibility dengan PenggajianController
      */
     public function jabatanRelasi(): BelongsTo
     {
-        return $this->belongsTo(Jabatan::class, 'jabatan_id');
+        return $this->belongsTo(Jabatan::class, 'kualifikasi_id');
     }
 
     /**
@@ -113,52 +124,52 @@ class Pegawai extends Model
     {
         return $query->where('nama', 'like', "%{$search}%")
                     ->orWhere('kode_pegawai', 'like', "%{$search}%")
-                    ->orWhereHas('jabatanRelasi', function($q) use ($search) {
-                        $q->where('nama', 'like', "%{$search}%");
+                    ->orWhereHas('kualifikasiRelasi', function($q) use ($search) {
+                        $q->where('nama_kualifikasi', 'like', "%{$search}%");
                     });
     }
 
     /**
-     * Accessor: Ambil Tarif Per Produk dari jabatan jika di model kosong
+     * Accessor: Ambil Tarif Per Produk dari kualifikasi jika di model kosong
      */
     public function getTarifPerProdukAttribute($value)
     {
         if (isset($this->attributes['tarif']) && $this->attributes['tarif'] > 0) return $this->attributes['tarif'];
         
-        return $this->jabatanRelasi->tarif_produk ?? 0;
+        return $this->kualifikasiRelasi->tarif_produk ?? 0;
     }
 
     /**
-     * Get total tunjangan dari jabatan
+     * Get total tunjangan dari kualifikasi
      */
     public function getTotalTunjanganAttribute()
     {
-        if ($this->jabatanRelasi) {
-            return ($this->jabatanRelasi->tunjangan ?? 0) + 
-                   ($this->jabatanRelasi->tunjangan_transport ?? 0) + 
-                   ($this->jabatanRelasi->tunjangan_konsumsi ?? 0);
+        if ($this->kualifikasiRelasi) {
+            return ($this->kualifikasiRelasi->tunjangan ?? 0) + 
+                   ($this->kualifikasiRelasi->tunjangan_transport ?? 0) + 
+                   ($this->kualifikasiRelasi->tunjangan_konsumsi ?? 0);
         }
         return $this->tunjangan ?? 0;
     }
 
     /**
-     * Get tarif produk from related jabatan (kualifikasi)
+     * Get tarif produk from related kualifikasi
      */
-    public function getTarifProdukFromJabatanAttribute()
+    public function getTarifProdukFromKualifikasiAttribute()
     {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->tarif_produk ?? 0;
+        if (is_object($this->kualifikasiRelasi)) {
+            return $this->kualifikasiRelasi->tarif_produk ?? 0;
         }
         return $this->attributes['tarif'] ?? 0;
     }
 
     /**
-     * Get asuransi from related jabatan (kualifikasi)
+     * Get asuransi from related kualifikasi
      */
-    public function getAsuransiFromJabatanAttribute()
+    public function getAsuransiFromKualifikasiAttribute()
     {
-        if (is_object($this->jabatanRelasi)) {
-            return $this->jabatanRelasi->asuransi ?? 0;
+        if (is_object($this->kualifikasiRelasi)) {
+            return $this->kualifikasiRelasi->asuransi ?? 0;
         }
         return $this->attributes['asuransi'] ?? 0;
     }
@@ -168,9 +179,9 @@ class Pegawai extends Model
      */
     public function getKomponenGajiAttribute()
     {
-        $jabatan = $this->jabatanRelasi;
+        $kualifikasi = $this->kualifikasiRelasi;
 
-        if (!is_object($jabatan)) {
+        if (!is_object($kualifikasi)) {
             return [
                 'gaji_pokok' => $this->gaji_pokok ?? 0,
                 'tarif_per_produk' => $this->tarif ?? 0,
@@ -183,13 +194,13 @@ class Pegawai extends Model
         }
 
         return [
-            'gaji_pokok' => $jabatan->gaji_pokok ?? $this->gaji_pokok ?? 0,
+            'gaji_pokok' => $kualifikasi->gaji_pokok ?? $this->gaji_pokok ?? 0,
             'tarif_per_produk' => $this->tarif ?? 0,
-            'tunjangan_jabatan' => $jabatan->tunjangan ?? $this->tunjangan ?? 0,
-            'tunjangan_transport' => $jabatan->tunjangan_transport ?? 0,
-            'tunjangan_konsumsi' => $jabatan->tunjangan_konsumsi ?? 0,
-            'total_tunjangan' => ($jabatan->tunjangan ?? 0) + ($jabatan->tunjangan_transport ?? 0) + ($jabatan->tunjangan_konsumsi ?? 0),
-            'asuransi' => $jabatan->asuransi ?? $this->asuransi ?? 0,
+            'tunjangan_jabatan' => $kualifikasi->tunjangan ?? $this->tunjangan ?? 0,
+            'tunjangan_transport' => $kualifikasi->tunjangan_transport ?? 0,
+            'tunjangan_konsumsi' => $kualifikasi->tunjangan_konsumsi ?? 0,
+            'total_tunjangan' => ($kualifikasi->tunjangan ?? 0) + ($kualifikasi->tunjangan_transport ?? 0) + ($kualifikasi->tunjangan_konsumsi ?? 0),
+            'asuransi' => $kualifikasi->asuransi ?? $this->asuransi ?? 0,
         ];
     }
 }

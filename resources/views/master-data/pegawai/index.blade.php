@@ -55,7 +55,7 @@
                             <th class="text-center" style="width: 50px">No</th>
                             <th>Kode</th>
                             <th>Nama</th>
-                            <th>Jabatan</th>
+                            <th>Kualifikasi</th>
                             <th class="text-center">Kategori</th>
                             <th>Bank</th>
                             <th>No. Rekening</th>
@@ -74,7 +74,7 @@
                                 <div class="fw-semibold">{{ $pegawai->nama }}</div>
                                 <small class="text-muted">{{ $pegawai->email }}</small>
                             </td>
-                            <td>{{ $pegawai->jabatan }}</td>
+                            <td>{{ $pegawai->kualifikasiRelasi->nama_kualifikasi ?? $pegawai->kualifikasi ?? '-' }}</td>
                             <td class="text-center">
                                 <span class="badge bg-{{ $pegawai->jenis_pegawai == 'btkl' ? 'primary' : 'success' }}">
                                     {{ strtoupper($pegawai->jenis_pegawai) }}
@@ -85,23 +85,12 @@
                             <td>{{ $pegawai->nama_rekening ?? '-' }}</td>
                             <td><small>{{ $pegawai->alamat ?? '-' }}</small></td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.pegawai.edit', $pegawai) }}"
-                                       class="btn btn-outline-primary"
-                                       data-bs-toggle="tooltip"
-                                       title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('master-data.pegawai.destroy', $pegawai) }}" method="POST" class="d-inline delete-form" data-pegawai-nama="{{ $pegawai->nama }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="button"
-                                                class="btn btn-outline-danger delete-btn"
-                                                title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                                <a href="{{ route('master-data.pegawai.edit', $pegawai) }}"
+                                   class="btn btn-outline-primary btn-sm"
+                                   data-bs-toggle="tooltip"
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
                             </td>
                         </tr>
                         @empty
@@ -142,45 +131,11 @@
 
 
 @push('scripts')
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Inisialisasi tooltip
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Handle delete button dengan SweetAlert2
-    document.addEventListener('DOMContentLoaded', function() {
-        const deleteButtons = document.querySelectorAll('.delete-btn');
-        
-        deleteButtons.forEach(function(button) {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const form = this.closest('.delete-form');
-                const pegawaiNama = form.getAttribute('data-pegawai-nama');
-                
-                Swal.fire({
-                    title: 'Konfirmasi Hapus',
-                    html: `Apakah Anda yakin ingin menghapus pegawai:<br><strong>${pegawaiNama}</strong><br><small class="text-muted">Data yang sudah dihapus tidak dapat dikembalikan.</small>`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Ya, Hapus!',
-                    cancelButtonText: 'Batal',
-                    showLoaderOnConfirm: true,
-                    preConfirm: () => {
-                        return new Promise((resolve) => {
-                            form.submit();
-                            resolve();
-                        });
-                    },
-                    allowOutsideClick: () => !Swal.isLoading()
-                });
-            });
-        });
     });
     
     // Auto close alert setelah 5 detik

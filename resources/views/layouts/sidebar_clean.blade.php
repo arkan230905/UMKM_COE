@@ -11,7 +11,7 @@
         </li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.coa.index') }}" class="nav-link text-white">COA</a></li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.aset.index') }}" class="nav-link text-white">Aset</a></li>
-        <li class="nav-item mb-2"><a href="{{ route('master-data.jabatan.index') }}" class="nav-link text-white">Jabatan</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="nav-link text-white">Kualifikasi TK</a></li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.pegawai.index') }}" class="nav-link text-white">Pegawai</a></li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.presensi.index') }}" class="nav-link text-white">Presensi</a></li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.vendor.index') }}" class="nav-link text-white">Vendor</a></li>

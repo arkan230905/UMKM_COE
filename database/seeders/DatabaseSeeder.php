@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             FixMissingWipCoasForUsers::class,        // Fix missing WIP COAs (1171-1173) untuk user yang punya 117
             AddBankAccountsToAllUsers::class,        // Add 3 bank accounts: BCA (1111), Mandiri (1112), BRI (1113)
             CopyCoaTemplateToExistingUsers::class,   // Copy all template COAs to existing users
+            UpdateSaldoAwalAllUsersSeeder::class,    // Update saldo awal untuk akun-akun tertentu di semua user
         ]);
     }
 }
