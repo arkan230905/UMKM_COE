@@ -159,6 +159,7 @@
                                         </select>
                                     </td>
                                     <td class="text-end harga-display" style="width: 200px;">
+                                        <input type="hidden" name="bahan_baku[{{ $index }}][harga_satuan]" class="harga-satuan-input" value="{{ $detail->harga_satuan }}">
                                         <div class="harga-utama">-</div>
                                         <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
                                     </td>
@@ -241,6 +242,7 @@
                                     </select>
                                 </td>
                                 <td class="text-end harga-display" style="width: 200px;">
+                                    <input type="hidden" name="bahan_baku[new][harga_satuan]" class="harga-satuan-input" value="0">
                                     <div class="harga-utama">-</div>
                                     <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
                                 </td>
@@ -568,13 +570,20 @@ function addRowEventListeners(row) {
             console.log("🔄 Bahan changed:", this.value);
             const option = this.options[this.selectedIndex];
             if (option && option.dataset.harga) {
+                // Update hidden harga_satuan field
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
+                if (hargaSatuanInput) {
+                    hargaSatuanInput.value = option.dataset.harga;
+                    console.log("✅ Updated hidden harga_satuan:", option.dataset.harga);
+                }
+                
                 // Auto-fill satuan utama
                 if (option.dataset.satuan && satuanSelect) {
                     satuanSelect.value = option.dataset.satuan;
                     console.log("✅ Auto-filled satuan:", option.dataset.satuan);
                 }
                 
-                // Auto-set quantity to 1
+                // Auto-set quantity to 1 if empty
                 if (qtyInput && (!qtyInput.value || qtyInput.value === "0")) {
                     qtyInput.value = "1";
                     console.log("✅ Auto-set quantity to 1");
@@ -595,10 +604,12 @@ function addRowEventListeners(row) {
                 calculateRowSubtotal(row);
             } else {
                 // Clear displays if no selection
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
                 const hargaDisplay = row.querySelector(".harga-utama");
                 const hargaKonversiDiv = row.querySelector(".harga-konversi");
                 const subtotalDisplay = row.querySelector(".subtotal-display");
                 
+                if (hargaSatuanInput) hargaSatuanInput.value = "0";
                 if (hargaDisplay) hargaDisplay.innerHTML = "-";
                 if (hargaKonversiDiv) hargaKonversiDiv.innerHTML = "";
                 if (subtotalDisplay) subtotalDisplay.innerHTML = "-";
