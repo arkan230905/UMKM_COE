@@ -278,9 +278,6 @@
                                                     <button class="btn btn-sm btn-outline-primary" onclick="editSatuan({{ $satuan->id }})">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan({{ $satuan->id }})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
                                                 </td>
                                             </tr>
                                         @empty
@@ -597,9 +594,6 @@ function saveSatuan() {
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-primary" onclick="editSatuan(${data.id})">
                             <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan(${data.id})">
-                            <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>

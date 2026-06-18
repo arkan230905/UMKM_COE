@@ -46,16 +46,6 @@
                                title="Edit">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <form action="{{ route('master-data.satuan.destroy', $item->id) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="btn btn-outline-danger"
-                                        title="Hapus"
-                                        onclick="return confirm('Hapus data ini?')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
                         </div>
                     </td>
                 </tr>

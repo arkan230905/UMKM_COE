@@ -610,4 +610,93 @@ class JournalValidationService
             default    => 'Kas',
         };
     }
+
+    /**
+     * Validasi akun yang diperlukan untuk jurnal retur penjualan
+     * 
+     * @param \App\Models\ReturPenjualan $returPenjualan
+     * @return array ['valid' => bool, 'missing' => array]
+     */
+    public function validateReturPenjualan($returPenjualan): array
+    {
+        $userId = $returPenjualan->user_id ?? auth()->id() ?? null;
+        $missing = [];
+
+        // Akun yang dibutuhkan untuk retur penjualan:
+        // 1. Retur Penjualan (Revenue/Expense)
+        // 2. Kas / Bank / Piutang (sesuai payment method)
+        // 3. Persediaan Barang Jadi (jika ada tukar barang atau kredit)
+        // 4. HPP (jika ada tukar barang atau kredit)
+
+        // ── 1. Akun Retur Penjualan ──────────────────────────────────────
+        $returCoa = $this->findCoa('Retur Penjualan', 'Revenue', $userId);
+        if (!$returCoa) {
+            $missing[] = [
+                'key'   => 'retur_penjualan',
+                'nama'  => 'Retur Penjualan',
+                'tipe'  => 'Revenue',
+                'pesan' => 'Akun "Retur Penjualan" belum dibuat. Diperlukan untuk mencatat nilai retur.',
+            ];
+        }
+
+        // ── 2. Akun Kas/Bank/Piutang (debit) ────────────────────────────
+        // Ambil dari penjualan terkait jika ada
+        $debitCoa = null;
+        if ($returPenjualan->penjualan) {
+            $debitCoa = $this->findDebitCoa($returPenjualan->penjualan, $userId);
+        } else {
+            // Fallback: cari Kas sebagai default
+            $debitCoa = $this->findCoa('Kas', 'Asset', $userId);
+        }
+
+        if (!$debitCoa) {
+            $missing[] = [
+                'key'   => 'debit',
+                'nama'  => 'Kas / Bank / Piutang',
+                'tipe'  => 'Asset',
+                'pesan' => 'Akun "Kas", "Bank", atau "Piutang" belum dibuat. Diperlukan untuk mencatat penerimaan retur.',
+            ];
+        }
+
+        // ── 3. Persediaan Barang Jadi (untuk kredit/tukar barang) ────────
+        if (in_array($returPenjualan->jenis_retur ?? '', ['kredit', 'tukar_barang'])) {
+            $persediaanCoa = $this->findCoa('Persediaan Barang Jadi', 'Asset', $userId);
+            if (!$persediaanCoa) {
+                $missing[] = [
+                    'key'   => 'persediaan',
+                    'nama'  => 'Persediaan Barang Jadi',
+                    'tipe'  => 'Asset',
+                    'pesan' => 'Akun "Persediaan Barang Jadi" belum dibuat. Diperlukan untuk mencatat barang yang dikembalikan.',
+                ];
+            }
+
+            // ── 4. HPP (untuk kredit/tukar barang) ──────────────────────
+            if ($returPenjualan->detailReturPenjualans && $returPenjualan->detailReturPenjualans->count() > 0) {
+                $hppMissing = false;
+                foreach ($returPenjualan->detailReturPenjualans as $detail) {
+                    if ($detail->produk) {
+                        $hppCoa = $this->findHppCoa($detail->produk, $userId);
+                        if (!$hppCoa) {
+                            $hppMissing = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($hppMissing) {
+                    $missing[] = [
+                        'key'   => 'hpp',
+                        'nama'  => 'HPP (Harga Pokok Penjualan)',
+                        'tipe'  => 'Expense',
+                        'pesan' => 'Akun HPP untuk salah satu produk belum dibuat. Silakan lengkapi data HPP di master produk.',
+                    ];
+                }
+            }
+        }
+
+        return [
+            'valid'   => count($missing) === 0,
+            'missing' => $missing,
+        ];
+    }
 }
