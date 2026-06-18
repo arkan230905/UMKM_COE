@@ -398,4 +398,79 @@ class ReturPenjualanController extends Controller
         }
     }
 
+    /**
+     * Display jurnal for retur penjualan
+     */
+    public function showJurnal($id)
+    {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $returPenjualan = ReturPenjualan::where('user_id', auth()->id())
+            ->with(['detailReturPenjualans.produk', 'penjualan'])
+            ->findOrFail($id);
+
+        // Validasi akun yang diperlukan
+        $validator = new \App\Services\JournalValidationService();
+        $validation = $validator->validateReturPenjualan($returPenjualan);
+
+        // Ambil jurnal yang sudah ada dari jurnal_umum
+        $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
+            ->where('referensi', (string)$returPenjualan->id)
+            ->with('coa')
+            ->orderBy('id')
+            ->get();
+
+        // Jika jurnal belum ada dan validasi gagal, tampilkan error
+        if ($journalLines->isEmpty() && !$validation['valid']) {
+            $namaAkunMissing = array_map(fn($m) => $m['nama'], $validation['missing']);
+            if (count($namaAkunMissing) === 1) {
+                $pesan = "Jurnal retur penjualan tidak dapat dibuat.\n" . $validation['missing'][0]['pesan'];
+            } else {
+                $pesanList = array_map(fn($m) => '• ' . $m['pesan'], $validation['missing']);
+                $pesan = "Jurnal retur penjualan tidak dapat dibuat. Akun berikut belum tersedia:\n"
+                       . implode("\n", $pesanList);
+            }
+            
+            session()->flash('error', $pesan);
+        }
+
+        // Transform jurnal lines untuk kompatibilitas dengan view
+        $journalEntry = null;
+        if ($journalLines->isNotEmpty()) {
+            $journalEntry = (object) [
+                'linesWithAccount' => $journalLines->map(function($line) {
+                    return (object) [
+                        'debit' => $line->debit,
+                        'credit' => $line->kredit,
+                        'memo' => $line->keterangan,
+                        'coa' => $line->coa,
+                    ];
+                }),
+                'created_at' => $journalLines->first()->created_at,
+            ];
+        }
+
+        return view('transaksi.retur-penjualan.jurnal', compact('returPenjualan', 'validation', 'journalEntry'));
+    }
+
+    /**
+     * Buat atau rebuild jurnal retur penjualan
+     */
+    public function rebuildJurnal(Request $request, $id)
+    {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $returPenjualan = ReturPenjualan::where('user_id', auth()->id())
+            ->with(['detailReturPenjualans.produk', 'penjualan'])
+            ->findOrFail($id);
+
+        try {
+            \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+
+            return redirect()->route('transaksi.retur-penjualan.jurnal', $returPenjualan->id)
+                ->with('success', 'Jurnal retur penjualan berhasil dibuat/diperbarui.');
+        } catch (\RuntimeException $e) {
+            return redirect()->route('transaksi.retur-penjualan.jurnal', $returPenjualan->id)
+                ->with('error', $e->getMessage());
+        }
+    }
+
 }
