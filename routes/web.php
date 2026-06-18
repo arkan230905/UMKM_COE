@@ -3587,6 +3587,9 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::post('/{returPenjualan}/bayar-kredit', [ReturPenjualanController::class, 'bayarKredit'])->name('bayar-kredit');
             Route::post('/{retur}/approve-customer-return', [ReturPenjualanController::class, 'approveCustomerReturn'])->name('approve-customer-return');
             Route::post('/{retur}/reject-customer-return', [ReturPenjualanController::class, 'rejectCustomerReturn'])->name('reject-customer-return');
+            // Jurnal Retur Penjualan
+            Route::get('/{id}/jurnal', [ReturPenjualanController::class, 'showJurnal'])->name('jurnal');
+            Route::post('/{id}/jurnal/rebuild', [ReturPenjualanController::class, 'rebuildJurnal'])->name('jurnal.rebuild');
         });
 
 
