@@ -69,8 +69,16 @@ class BomController extends Controller
 $user_id = auth()->id();
         $produk_id = $request->produk_id;
 
-        // Clear existing selections for this product
-        HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)->delete();
+        // CRITICAL FIX: Only delete BBB selections for THIS SPECIFIC PRODUCT
+        // Filter by produk_id through biayaBahanBaku relationship
+        HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)
+            ->whereHas('biayaBahanBaku', function($q) use ($produk_id) {
+                $q->where('produk_id', $produk_id);
+            })
+            ->delete();
+        
+        // BTKL and BOP are shared across all products
+        // Delete ALL and recreate to keep consistency
         HargaPokokProduksiBtkl::where('user_id', $user_id)->delete();
         HargaPokokProduksiBop::where('user_id', $user_id)->delete();
 
@@ -148,8 +156,14 @@ $user_id = auth()->id();
     {
         $user_id = auth()->id();
         
-        // Delete all selections for this product
-        HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)->delete();
+        // CRITICAL FIX: Only delete BBB selections for THIS SPECIFIC PRODUCT
+        HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)
+            ->whereHas('biayaBahanBaku', function($q) use ($produk_id) {
+                $q->where('produk_id', $produk_id);
+            })
+            ->delete();
+        
+        // BTKL and BOP are shared, so delete all
         HargaPokokProduksiBtkl::where('user_id', $user_id)->delete();
         HargaPokokProduksiBop::where('user_id', $user_id)->delete();
 
