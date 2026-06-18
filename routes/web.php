@@ -3580,6 +3580,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::get('/', [ReturPenjualanController::class, 'index'])->name('index');
             Route::get('/detail-retur/{penjualanId}', [ReturPenjualanController::class, 'detailRetur'])->name('detail-retur');
             Route::post('/', [ReturPenjualanController::class, 'store'])->name('store');
+            Route::get('/{returPenjualan}', [ReturPenjualanController::class, 'show'])->name('show');
             Route::get('/{returPenjualan}/edit', [ReturPenjualanController::class, 'edit'])->name('edit');
             Route::put('/{returPenjualan}', [ReturPenjualanController::class, 'update'])->name('update');
             Route::delete('/{returPenjualan}', [ReturPenjualanController::class, 'destroy'])->name('destroy');
@@ -3587,9 +3588,6 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::post('/{returPenjualan}/bayar-kredit', [ReturPenjualanController::class, 'bayarKredit'])->name('bayar-kredit');
             Route::post('/{retur}/approve-customer-return', [ReturPenjualanController::class, 'approveCustomerReturn'])->name('approve-customer-return');
             Route::post('/{retur}/reject-customer-return', [ReturPenjualanController::class, 'rejectCustomerReturn'])->name('reject-customer-return');
-            // Jurnal Retur Penjualan
-            Route::get('/{id}/jurnal', [ReturPenjualanController::class, 'showJurnal'])->name('jurnal');
-            Route::post('/{id}/jurnal/rebuild', [ReturPenjualanController::class, 'rebuildJurnal'])->name('jurnal.rebuild');
         });
 
 

@@ -911,8 +911,8 @@
                                                     <a href="{{ route('transaksi.retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
                                                         Edit
                                                     </a>
-                                                    <a href="{{ route('transaksi.retur-penjualan.jurnal', $retur->id) }}" class="btn-minimal btn-primary" data-bs-toggle="tooltip" title="Lihat Jurnal">
-                                                        Jurnal
+                                                    <a href="{{ route('transaksi.retur-penjualan.show', $retur->id) }}" class="btn-minimal btn-primary" data-bs-toggle="tooltip" title="Lihat Detail & Jurnal">
+                                                        Detail
                                                     </a>
                                                     <a href="{{ route('transaksi.retur-penjualan.detail-retur', $retur->penjualan_id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Cetak/Export">
                                                         Cetak
