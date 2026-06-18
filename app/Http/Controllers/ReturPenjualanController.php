@@ -98,6 +98,14 @@ class ReturPenjualanController extends Controller
             $returPenjualan->calculateTotalRetur();
             $returPenjualan->processRetur();
 
+            // Auto-create jurnal untuk retur penjualan
+            try {
+                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to create journal for retur penjualan: ' . $e->getMessage());
+                // Continue even if journal creation fails
+            }
+
             DB::commit();
 
             return redirect()->route('transaksi.retur-penjualan.index')
@@ -211,6 +219,14 @@ class ReturPenjualanController extends Controller
 
             $returPenjualan->calculateTotalRetur();
             $returPenjualan->processRetur();
+
+            // Auto-create jurnal untuk retur penjualan
+            try {
+                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to create journal for retur penjualan: ' . $e->getMessage());
+                // Continue even if journal creation fails
+            }
 
             DB::commit();
 

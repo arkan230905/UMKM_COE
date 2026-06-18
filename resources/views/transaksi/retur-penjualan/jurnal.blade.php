@@ -52,12 +52,12 @@
             <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i>Kembali
             </a>
-            @if($validation['valid'])
+            @if($validation['valid'] && !$journalEntry)
                 <form action="{{ route('transaksi.retur-penjualan.jurnal.rebuild', $returPenjualan->id) }}" method="POST" class="d-inline">
                     @csrf
                     <button type="submit" class="btn btn-primary btn-sm"
                             onclick="return confirm('Buat ulang jurnal untuk retur ini?')">
-                        <i class="fas fa-sync me-1"></i>{{ $journalEntry ? 'Buat Ulang Jurnal' : 'Buat Jurnal' }}
+                        <i class="fas fa-sync me-1"></i>Buat Jurnal
                     </button>
                 </form>
             @endif
@@ -81,7 +81,7 @@
 
     <div class="row g-4">
 
-        {{-- Kolom Kiri: Info Transaksi --}}
+        {{-- Kolom Kiri: Info Retur --}}
         <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header">
@@ -214,7 +214,7 @@
                 <div class="alert alert-success mb-4">
                     <i class="fas fa-check-circle me-2"></i>
                     <strong>Semua akun tersedia.</strong>
-                    {{ $journalEntry ? 'Jurnal sudah dibuat.' : 'Klik "Buat Jurnal" untuk membuat jurnal retur ini.' }}
+                    {{ $journalEntry ? 'Jurnal telah dibuat secara otomatis.' : 'Jurnal akan dibuat otomatis.' }}
                 </div>
             @endif
 
@@ -290,15 +290,9 @@
             @elseif($validation['valid'])
                 <div class="card">
                     <div class="card-body text-center py-5">
-                        <i class="fas fa-book fa-3x text-muted mb-3 d-block"></i>
-                        <h6 class="text-muted">Jurnal belum dibuat</h6>
-                        <p class="text-muted small mb-3">Semua akun sudah tersedia. Klik tombol di bawah untuk membuat jurnal.</p>
-                        <form action="{{ route('transaksi.retur-penjualan.jurnal.rebuild', $returPenjualan->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus me-1"></i>Buat Jurnal Sekarang
-                            </button>
-                        </form>
+                        <i class="fas fa-hourglass-half fa-3x text-muted mb-3 d-block"></i>
+                        <h6 class="text-muted">Membuat jurnal...</h6>
+                        <p class="text-muted small">Jurnal sedang dibuat secara otomatis. Mohon tunggu sebentar.</p>
                     </div>
                 </div>
             @endif
