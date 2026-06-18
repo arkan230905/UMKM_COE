@@ -221,10 +221,10 @@ class BiayaBahanController extends Controller
         // Get product with user filtering
         $produk = Produk::where('id', $produk_id)->where('user_id', auth()->id())->firstOrFail();
         
-        // Get all biaya bahan baku for this product
+        // Get all biaya bahan baku for this product with COA relationship
         $biayaBahanList = BiayaBahanBaku::where('user_id', auth()->id())
             ->where('produk_id', $produk_id)
-            ->with(['bahanBaku.satuan'])
+            ->with(['bahanBaku.satuan', 'coa'])
             ->get();
             
         $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
@@ -233,7 +233,18 @@ class BiayaBahanController extends Controller
             ->get();
         $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        return view('master-data.biaya-bahan.edit', compact('produk', 'biayaBahanList', 'bahanBakus', 'satuans'));
+        // Get COAs for bahan baku
+        $coas = \App\Models\Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('kode_akun', 'LIKE', '51%')
+                      ->orWhere('kode_akun', 'LIKE', '114%')
+                      ->orWhere('kode_akun', 'LIKE', '115%')
+                      ->orWhere('kode_akun', 'LIKE', '116%');
+            })
+            ->orderBy('kode_akun')
+            ->get();
+        
+        return view('master-data.biaya-bahan.edit', compact('produk', 'biayaBahanList', 'bahanBakus', 'satuans', 'coas'));
     }
 
     /**
@@ -359,6 +370,7 @@ class BiayaBahanController extends Controller
                     'user_id' => auth()->id(),
                     'produk_id' => $produk_id,
                     'bahan_baku_id' => $bahanData['id'],
+                    'coa_id' => $bahanData['coa_id'] ?? null,
                     'jumlah' => $bahanData['jumlah'],
                     'satuan' => $bahanData['satuan'],
                     'harga_satuan' => $hargaSatuan,

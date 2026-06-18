@@ -74,6 +74,7 @@
                         <thead style="background-color: #9f7aea; color: white;">
                             <tr>
                                 <th>BAHAN BAKU</th>
+                                <th class="text-center">COA BAHAN</th>
                                 <th class="text-center">JUMLAH</th>
                                 <th class="text-center">SATUAN</th>
                                 <th class="text-end">HARGA SATUAN</th>
@@ -128,6 +129,17 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                    </td>
+                                    <td style="width: 200px;">
+                                        <select name="bahan_baku[{{ $index }}][coa_id]" class="form-select form-select-sm coa-select">
+                                            <option value="">-- Pilih COA --</option>
+                                            @foreach($coas as $coa)
+                                                <option value="{{ $coa->id }}" {{ $detail->coa_id == $coa->id ? 'selected' : '' }}>
+                                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted d-block mt-1">Akun untuk jurnal produksi</small>
                                     </td>
                                     <td style="width: 120px;">
                                         <input type="number" name="bahan_baku[{{ $index }}][jumlah]" 
@@ -204,6 +216,17 @@
                                         @endforeach
                                     </select>
                                 </td>
+                                <td style="width: 200px;">
+                                    <select name="bahan_baku[new][coa_id]" class="form-select form-select-sm coa-select">
+                                        <option value="">-- Pilih COA --</option>
+                                        @foreach($coas as $coa)
+                                            <option value="{{ $coa->id }}">
+                                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted d-block mt-1">Akun untuk jurnal produksi</small>
+                                </td>
                                 <td style="width: 120px;">
                                     <input type="number" name="bahan_baku[new][jumlah]" 
                                            class="form-control form-control-sm qty-input text-center" 
@@ -231,7 +254,7 @@
                         </tbody>
                         <tfoot style="background-color: #fef3c7;">
                             <tr>
-                                <th colspan="4" class="text-end">Total BBB</th>
+                                <th colspan="5" class="text-end">Total BBB</th>
                                 <th class="text-end" id="totalBahanBaku">Rp 0</th>
                                 <th></th>
                             </tr>
