@@ -872,8 +872,8 @@ return response()->json([
                     if ($biayaBahan->coa_id) {
                         $coa = \App\Models\Coa::find($biayaBahan->coa_id);
                         if ($coa) {
-                            $coaKode = $coa->kode_coa;
-                            $coaInfo = $coa->kode_coa . ' - ' . $coa->nama_coa;
+                            $coaKode = $coa->kode_akun;
+                            $coaInfo = $coa->kode_akun . ' - ' . $coa->nama_akun;
                         }
                     }
                     

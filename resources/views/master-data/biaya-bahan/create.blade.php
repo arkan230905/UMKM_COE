@@ -132,7 +132,7 @@
                                         <option value="">-- Pilih COA --</option>
                                         @foreach($coas as $coa)
                                             <option value="{{ $coa->id }}">
-                                                {{ $coa->kode_coa }} - {{ $coa->nama_coa }}
+                                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                             </option>
                                         @endforeach
                                     </select>

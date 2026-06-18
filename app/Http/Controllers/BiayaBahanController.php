@@ -83,14 +83,15 @@ class BiayaBahanController extends Controller
         
         // Get COAs for bahan baku (persediaan/inventory accounts)
         // Typically code 51 (BBB) or 114-116 (Persediaan)
+        // FIXED: Column name is kode_akun not kode_coa
         $coas = \App\Models\Coa::where('user_id', auth()->id())
             ->where(function($query) {
-                $query->where('kode_coa', 'LIKE', '51%')  // BBB accounts
-                      ->orWhere('kode_coa', 'LIKE', '114%') // Persediaan Bahan Baku
-                      ->orWhere('kode_coa', 'LIKE', '115%') // Persediaan Bahan Pendukung  
-                      ->orWhere('kode_coa', 'LIKE', '116%'); // Persediaan Barang Jadi
+                $query->where('kode_akun', 'LIKE', '51%')  // BBB accounts
+                      ->orWhere('kode_akun', 'LIKE', '114%') // Persediaan Bahan Baku
+                      ->orWhere('kode_akun', 'LIKE', '115%') // Persediaan Bahan Pendukung  
+                      ->orWhere('kode_akun', 'LIKE', '116%'); // Persediaan Barang Jadi
             })
-            ->orderBy('kode_coa')
+            ->orderBy('kode_akun')
             ->get();
         
         return view('master-data.biaya-bahan.create', compact('produk', 'bahanBakus', 'satuans', 'coas'));
@@ -454,7 +455,7 @@ class BiayaBahanController extends Controller
                 // Get COA info
                 $coaInfo = 'Tidak ada COA';
                 if ($detail->coa_id && $detail->coa) {
-                    $coaInfo = $detail->coa->kode_coa . ' - ' . $detail->coa->nama_coa;
+                    $coaInfo = $detail->coa->kode_akun . ' - ' . $detail->coa->nama_akun;
                 } else {
                     $coaInfo = '<span class="text-muted">Default (1141)</span>';
                 }
