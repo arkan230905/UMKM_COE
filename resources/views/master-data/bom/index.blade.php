@@ -187,8 +187,9 @@ function getTotalBbb($produkId) {
 
 function getTotalBtkl($produkId) {
     $total = 0;
-    // Since BTKL is not product-specific, get all BTKL for user
+    // BTKL is now product-specific - filter by produk_id
     $btkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', auth()->id())
+        ->where('produk_id', $produkId)
         ->with('prosesProduksi')
         ->get();
     
@@ -206,8 +207,9 @@ function getTotalBtkl($produkId) {
 
 function getTotalBop($produkId) {
     $total = 0;
-    // Since BOP is not product-specific, get all BOP for user
+    // BOP is now product-specific - filter by produk_id
     $bop = \App\Models\HargaPokokProduksiBop::where('user_id', auth()->id())
+        ->where('produk_id', $produkId)
         ->with('bopProses')
         ->get();
     

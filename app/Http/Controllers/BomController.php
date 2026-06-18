@@ -77,10 +77,14 @@ $user_id = auth()->id();
             })
             ->delete();
         
-        // BTKL and BOP are shared across all products
-        // Delete ALL and recreate to keep consistency
-        HargaPokokProduksiBtkl::where('user_id', $user_id)->delete();
-        HargaPokokProduksiBop::where('user_id', $user_id)->delete();
+        // CRITICAL FIX: BTKL and BOP are now ALSO product-specific
+        // Delete only for THIS product
+        HargaPokokProduksiBtkl::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
+            ->delete();
+        HargaPokokProduksiBop::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
+            ->delete();
 
 
         // Save BBB selections
@@ -93,21 +97,23 @@ $user_id = auth()->id();
             }
         }
 
-        // Save BTKL selections
+        // Save BTKL selections with produk_id
         if ($request->filled('selected_btkl')) {
             foreach ($request->selected_btkl as $proses_id) {
                 HargaPokokProduksiBtkl::create([
                     'user_id' => $user_id,
+                    'produk_id' => $produk_id,
                     'proses_produksis_id' => $proses_id,
                 ]);
             }
         }
 
-        // Save BOP selections
+        // Save BOP selections with produk_id
         if ($request->filled('selected_bop')) {
             foreach ($request->selected_bop as $bop_id) {
                 HargaPokokProduksiBop::create([
                     'user_id' => $user_id,
+                    'produk_id' => $produk_id,
                     'bop_proses_id' => $bop_id,
                 ]);
             }
@@ -121,16 +127,21 @@ $user_id = auth()->id();
     {
         $produk = Produk::findOrFail($produk_id);
         
-        // Get selected components for this product
+        // Get selected components for THIS SPECIFIC PRODUCT
         $selectedBbb = HargaPokokProduksiBiayaBahanBaku::where('user_id', auth()->id())
+            ->whereHas('biayaBahanBaku', function($q) use ($produk_id) {
+                $q->where('produk_id', $produk_id);
+            })
             ->with('biayaBahanBaku.bahanBaku')
             ->get();
             
         $selectedBtkl = HargaPokokProduksiBtkl::where('user_id', auth()->id())
+            ->where('produk_id', $produk_id)
             ->with('prosesProduksi')
             ->get();
             
         $selectedBop = HargaPokokProduksiBop::where('user_id', auth()->id())
+            ->where('produk_id', $produk_id)
             ->with('bopProses')
             ->get();
 
@@ -156,16 +167,20 @@ $user_id = auth()->id();
     {
         $user_id = auth()->id();
         
-        // CRITICAL FIX: Only delete BBB selections for THIS SPECIFIC PRODUCT
+        // CRITICAL FIX: Only delete selections for THIS SPECIFIC PRODUCT
         HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)
             ->whereHas('biayaBahanBaku', function($q) use ($produk_id) {
                 $q->where('produk_id', $produk_id);
             })
             ->delete();
         
-        // BTKL and BOP are shared, so delete all
-        HargaPokokProduksiBtkl::where('user_id', $user_id)->delete();
-        HargaPokokProduksiBop::where('user_id', $user_id)->delete();
+        HargaPokokProduksiBtkl::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
+            ->delete();
+            
+        HargaPokokProduksiBop::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
+            ->delete();
 
         return redirect()->route('master-data.harga-pokok-produksi.index')
             ->with('success', 'Harga Pokok Produksi berhasil dihapus!');

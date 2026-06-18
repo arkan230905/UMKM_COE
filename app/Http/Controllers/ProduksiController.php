@@ -878,8 +878,9 @@ return response()->json([
                 }
             }
 
-            // Get BTKL from new HPP system
+            // Get BTKL from new HPP system - filter by produk_id
             $selectedBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $user_id)
+                ->where('produk_id', $produkId)
                 ->with('prosesProduksi')
                 ->get();
 
@@ -897,8 +898,9 @@ return response()->json([
                 }
             }
 
-            // Get BOP from new HPP system with NEW STRUCTURE
+            // Get BOP from new HPP system with NEW STRUCTURE - filter by produk_id
             $selectedBop = \App\Models\HargaPokokProduksiBop::where('user_id', $user_id)
+                ->where('produk_id', $produkId)
                 ->with('bopProses') // Remove .prosesProduksi - no longer exists
                 ->get();
 
@@ -1167,6 +1169,7 @@ return response()->json([
 
         // Get BTKL
         $selectedBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
             ->with('prosesProduksi')
             ->get();
 
@@ -1187,6 +1190,7 @@ return response()->json([
 
         // Get BOP with NEW STRUCTURE (komponen_bahan_pendukung & komponen_lainnya)
         $selectedBop = \App\Models\HargaPokokProduksiBop::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
             ->with('bopProses') // Remove .prosesProduksi - no longer exists
             ->get();
 
@@ -1788,7 +1792,9 @@ return response()->json([
 
         // Get BTKL details from HPP
         $user_id = $produksi->user_id;
+        $produk_id = $produksi->produk_id;
         $hppBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
             ->with('prosesProduksi')
             ->get();
 
@@ -1813,6 +1819,7 @@ return response()->json([
         // BOP now has komponen_bahan_pendukung and komponen_lainnya
         // ========================================
         $hppBop = \App\Models\HargaPokokProduksiBop::where('user_id', $user_id)
+            ->where('produk_id', $produk_id)
             ->with('bopProses')
             ->get();
         

@@ -13,6 +13,7 @@ class HargaPokokProduksiBtkl extends Model
 
     protected $fillable = [
         'user_id',
+        'produk_id',
         'proses_produksis_id'
     ];
 

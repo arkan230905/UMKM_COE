@@ -60,9 +60,11 @@ class RegenerateProductionJournals extends Command
             
             // Get BOP breakdown with components
             $user_id = $produksi->user_id;
+            $produk_id = $produksi->produk_id;
             $qtyProd = $produksi->qty_produksi;
             
             $hppBop = HargaPokokProduksiBop::where('user_id', $user_id)
+                ->where('produk_id', $produk_id)
                 ->with('bopProses')
                 ->get();
             

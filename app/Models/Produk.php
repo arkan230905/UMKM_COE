@@ -206,8 +206,9 @@ class Produk extends Model
             }
         }
         
-        // Get BTKL (Biaya Tenaga Kerja Langsung) - user-wide, not product-specific
+        // Get BTKL (Biaya Tenaga Kerja Langsung) - now product-specific
         $selectedBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $userId)
+            ->where('produk_id', $this->id)
             ->with('prosesProduksi')
             ->get();
         
@@ -221,8 +222,9 @@ class Produk extends Model
             }
         }
         
-        // Get BOP (Biaya Overhead Pabrik) - user-wide, not product-specific
+        // Get BOP (Biaya Overhead Pabrik) - now product-specific
         $selectedBop = \App\Models\HargaPokokProduksiBop::where('user_id', $userId)
+            ->where('produk_id', $this->id)
             ->with('bopProses')
             ->get();
         
