@@ -86,11 +86,17 @@ class BukuBesarExport
 
             // Transaksi
             $saldo = (float)$saldoAwal;
+            $saldoNormal = strtolower($coa->saldo_normal ?? 'debit');
             
             foreach ($entries as $entry) {
                 $debit = (float)($entry->debit ?? 0);
                 $kredit = (float)($entry->kredit ?? 0);
-                $saldo += ($debit - $kredit);
+                
+                if ($saldoNormal === 'kredit') {
+                    $saldo += ($kredit - $debit);
+                } else {
+                    $saldo += ($debit - $kredit);
+                }
 
                 fputcsv($output, [
                     $coa->kode_akun,

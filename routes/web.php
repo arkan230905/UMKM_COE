@@ -3581,6 +3581,10 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::get('/detail-retur/{penjualanId}', [ReturPenjualanController::class, 'detailRetur'])->name('detail-retur');
             Route::post('/', [ReturPenjualanController::class, 'store'])->name('store');
             Route::get('/{returPenjualan}', [ReturPenjualanController::class, 'show'])->name('show');
+            Route::get('/{returPenjualan}/jurnal', function($returPenjualan) {
+                // Redirect old jurnal route to show page with jurnal tab anchor
+                return redirect()->route('transaksi.retur-penjualan.show', $returPenjualan) . '#jurnal-tab';
+            })->name('jurnal');
             Route::get('/{returPenjualan}/edit', [ReturPenjualanController::class, 'edit'])->name('edit');
             Route::put('/{returPenjualan}', [ReturPenjualanController::class, 'update'])->name('update');
             Route::delete('/{returPenjualan}', [ReturPenjualanController::class, 'destroy'])->name('destroy');

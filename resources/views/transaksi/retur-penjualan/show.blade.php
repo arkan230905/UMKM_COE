@@ -4,168 +4,380 @@
 
 @push('styles')
 <style>
-.jurnal-section {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
+    .text-theme { color: #5c3d2e !important; }
+    
+    .card-modern {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+        overflow: hidden;
+        background-color: #fff;
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-modern .card-header {
+        border-bottom: 1px solid #f3efea;
+        background-color: #fff;
+        padding: 1.25rem 1.5rem;
+    }
 
-.jurnal-table th { 
-    background: #f8f9fa; 
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-.jurnal-table td { 
-    font-size: 0.875rem; 
-    vertical-align: middle;
-}
+    .card-modern .card-body {
+        padding: 1.5rem;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        background-color: #faf7f2;
+        border: 1px solid #f1eae1;
+        height: 100%;
+    }
+    
+    .info-item-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(92, 61, 46, 0.08);
+        color: #5c3d2e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+    
+    .info-item-label {
+        font-size: 0.8rem;
+        color: #7c7267;
+        margin-bottom: 2px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-item-value {
+        font-size: 0.95rem;
+        color: #3e3327;
+        font-weight: 600;
+    }
 
-.debit-col  { 
-    color: #0d6efd; 
-    font-weight: 600;
-    text-align: right;
-}
-.kredit-col { 
-    color: #198754; 
-    font-weight: 600;
-    text-align: right;
-}
+    .table-modern th {
+        background-color: #faf7f2;
+        border-bottom: 2px solid #eeddcc !important;
+        color: #5c3d2e;
+        font-weight: 600;
+        padding: 12px 16px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .table-modern td {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1eae1;
+    }
 
-.balance-row td { 
-    background: #f0fff4; 
-    font-weight: 700;
-}
-.balance-row.unbalanced td { 
-    background: #fff5f5; 
-}
+    .jurnal-table th { 
+        background: #f8f9fa; 
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .jurnal-table td { 
+        font-size: 0.875rem; 
+        vertical-align: middle;
+    }
 
-.total-row {
-    background: #f8f9fa;
-    font-weight: 600;
-    text-align: right;
-}
+    .debit-col  { 
+        color: #0d6efd; 
+        font-weight: 600;
+        text-align: right;
+    }
+    .kredit-col { 
+        color: #198754; 
+        font-weight: 600;
+        text-align: right;
+    }
 
-.alert-missing {
-    border-left: 4px solid #dc3545;
-    background: #fff5f5;
-}
+    .balance-row td { 
+        background: #f0fff4; 
+        font-weight: 700;
+    }
+    .balance-row.unbalanced td { 
+        background: #fff5f5; 
+    }
+
+    .nav-tabs-modern {
+        border-bottom: 2px solid #f1eae1;
+        gap: 10px;
+    }
+    
+    .nav-tabs-modern .nav-link {
+        border: none !important;
+        border-bottom: 3px solid transparent !important;
+        color: #8c8276 !important;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 0 !important;
+        transition: all 0.3s ease;
+        background: transparent !important;
+    }
+    
+    .nav-tabs-modern .nav-link:hover {
+        color: #5c3d2e !important;
+        border-bottom-color: rgba(92, 61, 46, 0.3) !important;
+    }
+    
+    .nav-tabs-modern .nav-link.active {
+        color: #5c3d2e !important;
+        border-bottom-color: #5c3d2e !important;
+        font-weight: 700;
+    }
+
+    .btn-back-theme {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border: 1px solid #d4a574;
+        border-radius: 12px;
+        color: #5c3d2e;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        background: #fff;
+    }
+    
+    .btn-back-theme:hover {
+        background-color: #f5efe6;
+        border-color: #a0825d;
+    }
+
+    .btn-action-modern {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 15px 10px;
+        border-radius: 12px;
+        border: 1px solid #f1eae1;
+        background-color: #fff;
+        color: #7c7267;
+        transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        text-decoration: none !important;
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    .btn-action-modern i {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        transition: transform 0.3s ease;
+    }
+    
+    .btn-action-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(92, 61, 46, 0.1);
+        border-color: #d4a574;
+    }
+
+    .btn-action-detail:hover { color: #2e7d32; border-color: #81c784; background-color: #f1f8e9; }
+    .btn-action-jurnal:hover { color: #1565c0; border-color: #90caf9; background-color: #e3f2fd; }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container py-4">
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-            <h3 class="mb-2">
-                <i class="fas fa-eye me-2 text-primary"></i>Detail Retur Penjualan
+            <h3 class="mb-1 text-theme fw-bold">
+                <i class="fas fa-undo me-2"></i>Detail Retur Penjualan
             </h3>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0 small">
-                    <li class="breadcrumb-item"><a href="{{ route('transaksi.penjualan.index') }}">Penjualan</a></li>
-                    <li class="breadcrumb-item">Retur Penjualan</li>
-                    <li class="breadcrumb-item active">{{ $returPenjualan->nomor_retur }}</li>
-                </ol>
-            </nav>
+            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                {{ $returPenjualan->nomor_retur }}
+            </p>
         </div>
-        <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Kembali
-        </a>
+        <div>
+            <a href="{{ route('transaksi.penjualan.index') }}" class="btn-back-theme">
+                <i class="fas fa-arrow-left me-2"></i>Kembali
+            </a>
+        </div>
     </div>
 
-    <div class="row">
-        {{-- Info Retur --}}
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Retur</h6>
-                </div>
-                <div class="card-body">
-                    <table class="table table-sm table-borderless">
-                        <tr>
-                            <td class="text-muted" style="width:50%">No. Retur</td>
-                            <td><strong>{{ $returPenjualan->nomor_retur }}</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Tanggal</td>
-                            <td>{{ $returPenjualan->tanggal->format('d/m/Y') }}</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Jenis Retur</td>
-                            <td>
-                                @switch($returPenjualan->jenis_retur)
-                                    @case('refund')<span class="badge bg-danger">Refund</span>@break
-                                    @case('kredit')<span class="badge bg-info">Kredit</span>@break
-                                    @case('tukar_barang')<span class="badge bg-warning">Tukar Barang</span>@break
-                                @endswitch
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Status</td>
-                            <td>
-                                @switch($returPenjualan->status)
-                                    @case('belum_dibayar')<span class="badge bg-warning">Belum Dibayar</span>@break
-                                    @case('lunas')<span class="badge bg-success">Lunas</span>@break
-                                    @case('selesai')<span class="badge bg-success">Selesai</span>@break
-                                @endswitch
-                            </td>
-                        </tr>
-                        <tr><td colspan="2"><hr class="my-2"></td></tr>
-                        <tr>
-                            <td class="text-muted">Nilai Retur</td>
-                            <td>Rp {{ number_format((float)($returPenjualan->total_retur - $returPenjualan->ppn), 0, ',', '.') }}</td>
-                        </tr>
-                        @if($returPenjualan->ppn > 0)
-                        <tr>
-                            <td class="text-muted">PPN</td>
-                            <td>Rp {{ number_format((float)$returPenjualan->ppn, 0, ',', '.') }}</td>
-                        </tr>
-                        @endif
-                        <tr>
-                            <td class="text-muted fw-bold">Total</td>
-                            <td><strong>Rp {{ number_format((float)$returPenjualan->total_retur, 0, ',', '.') }}</strong></td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
+    {{-- Tab Navigation --}}
+    <div class="card-modern mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs-modern" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="detail-tab" data-bs-toggle="tab" data-bs-target="#detail-pane" type="button" role="tab" aria-controls="detail-pane" aria-selected="true">
+                        <i class="fas fa-info-circle me-2"></i>Detail
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="jurnal-tab" data-bs-toggle="tab" data-bs-target="#jurnal-pane" type="button" role="tab" aria-controls="jurnal-pane" aria-selected="false">
+                        <i class="fas fa-book me-2"></i>Jurnal
+                    </button>
+                </li>
+            </ul>
         </div>
 
-        {{-- Jurnal Section --}}
-        <div class="col-md-8">
-            <div class="jurnal-section">
-                {{-- Header --}}
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-book-open me-2 text-primary"></i>Jurnal Retur Penjualan
-                    </h5>
-                </div>
-
-                {{-- Status Validasi --}}
-                @if(!$validation['valid'])
-                    <div class="alert alert-missing mb-3">
-                        <h6 class="text-danger mb-2">
-                            <i class="fas fa-exclamation-triangle me-2"></i>Akun Tidak Lengkap
-                        </h6>
-                        <p class="mb-2 text-muted small">Akun berikut belum dibuat dan diperlukan untuk membuat jurnal:</p>
-                        @foreach($validation['missing'] as $item)
-                            <div class="mb-2">
-                                <strong>{{ $item['nama'] }}</strong>
-                                <span class="badge bg-secondary ms-1">{{ $item['tipe'] }}</span>
-                                <div class="small text-muted">{{ $item['pesan'] }}</div>
+        <div class="tab-content">
+            {{-- Detail Tab --}}
+            <div class="tab-pane fade show active" id="detail-pane" role="tabpanel" aria-labelledby="detail-tab">
+                <div class="card-body">
+                    <div class="row g-4">
+                        {{-- Left: Informasi Retur --}}
+                        <div class="col-md-6">
+                            <h6 class="mb-3 text-theme fw-bold"><i class="fas fa-info-circle me-2"></i>Informasi Retur</h6>
+                            
+                            <div class="row g-2 mb-4">
+                                <div class="col-12">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-hashtag"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">No. Retur</div>
+                                            <div class="info-item-value">{{ $returPenjualan->nomor_retur }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="far fa-calendar"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">Tanggal Retur</div>
+                                            <div class="info-item-value">{{ $returPenjualan->tanggal->format('d/m/Y') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">Jenis Retur</div>
+                                            <div class="info-item-value">
+                                                @switch($returPenjualan->jenis_retur)
+                                                    @case('refund')<span class="badge bg-danger">Refund</span>@break
+                                                    @case('kredit')<span class="badge bg-info">Kredit</span>@break
+                                                    @case('tukar_barang')<span class="badge bg-warning">Tukar Barang</span>@break
+                                                    @default<span class="badge bg-secondary">-</span>
+                                                @endswitch
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">Status</div>
+                                            <div class="info-item-value">
+                                                @switch($returPenjualan->status)
+                                                    @case('belum_dibayar')<span class="badge bg-warning">Belum Dibayar</span>@break
+                                                    @case('lunas')<span class="badge bg-success">Lunas</span>@break
+                                                    @case('selesai')<span class="badge bg-success">Selesai</span>@break
+                                                    @default<span class="badge bg-secondary">-</span>
+                                                @endswitch
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        @endforeach
-                        <div class="mt-3 d-flex gap-2">
-                            <a href="{{ route('master-data.coa.create') }}" class="btn btn-danger btn-sm">
-                                <i class="fas fa-plus me-1"></i>Tambah Akun COA
-                            </a>
-                            <a href="{{ route('master-data.coa.index') }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-list me-1"></i>Lihat Semua Akun
-                            </a>
+
+                            <h6 class="mb-3 text-theme fw-bold"><i class="fas fa-money-bill me-2"></i>Ringkasan Nilai</h6>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">Nilai Retur</div>
+                                            <div class="info-item-value">Rp {{ number_format((float)($returPenjualan->total_retur - $returPenjualan->ppn), 0, ',', '.') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if($returPenjualan->ppn > 0)
+                                <div class="col-12">
+                                    <div class="info-item">
+                                        <div class="info-item-icon">
+                                            <i class="fas fa-percent"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">PPN (11%)</div>
+                                            <div class="info-item-value">Rp {{ number_format((float)$returPenjualan->ppn, 0, ',', '.') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                                <div class="col-12">
+                                    <div class="info-item" style="background: linear-gradient(135deg, #fdfaf6, #f5efe6); border: 1px dashed #d4a574;">
+                                        <div class="info-item-icon" style="background: rgba(212, 165, 116, 0.15);">
+                                            <i class="fas fa-wallet"></i>
+                                        </div>
+                                        <div class="info-item-content">
+                                            <div class="info-item-label">Total Retur</div>
+                                            <div class="info-item-value" style="color: #5c3d2e;">Rp {{ number_format((float)$returPenjualan->total_retur, 0, ',', '.') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Right: Detail Barang Diretur --}}
+                        <div class="col-md-6">
+                            <h6 class="mb-3 text-theme fw-bold"><i class="fas fa-box me-2"></i>Detail Barang Diretur</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:5%">#</th>
+                                            <th>Produk</th>
+                                            <th class="text-end" style="width:10%">Qty</th>
+                                            <th class="text-end" style="width:20%">Harga/Unit</th>
+                                            <th class="text-end" style="width:20%">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($returPenjualan->detailReturPenjualans as $no => $detail)
+                                            <tr>
+                                                <td>{{ $no + 1 }}</td>
+                                                <td>
+                                                    <strong>{{ $detail->produk->nama_produk ?? '-' }}</strong>
+                                                    <br><small class="text-muted">SKU: {{ $detail->produk->kode_produk ?? '-' }}</small>
+                                                </td>
+                                                <td class="text-end">{{ $detail->qty_retur }}</td>
+                                                <td class="text-end">Rp {{ number_format($detail->harga_barang, 0, ',', '.') }}</td>
+                                                <td class="text-end fw-bold">Rp {{ number_format($detail->qty_retur * $detail->harga_barang, 0, ',', '.') }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                @else
+                </div>
+            </div>
+
+            {{-- Jurnal Tab --}}
+            <div class="tab-pane fade" id="jurnal-pane" role="tabpanel" aria-labelledby="jurnal-tab">
+                <div class="card-body">
                     @if($journalEntry)
                         {{-- Jurnal Tersedia --}}
                         @php
@@ -175,19 +387,19 @@
                             $isBalanced = round($totalDebit - $totalKredit, 2) === 0.0;
                         @endphp
 
-                        <div class="alert alert-success mb-3">
+                        <div class="alert alert-success mb-3 py-2">
                             <i class="fas fa-check-circle me-2"></i>
-                            <strong>Jurnal telah dibuat</strong> 
+                            <strong>Jurnal telah dibuat otomatis</strong> 
                             <span class="badge bg-success ms-2">{{ $isBalanced ? 'Balance ✓' : 'Tidak Balance' }}</span>
                         </div>
 
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover jurnal-table mb-0">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
-                                        <th style="width:12%">Kode Akun</th>
+                                        <th>Tanggal Jurnal</th>
+                                        <th>No. Referensi</th>
                                         <th>Nama Akun</th>
-                                        <th>Keterangan</th>
                                         <th class="text-end" style="width:15%">Debit</th>
                                         <th class="text-end" style="width:15%">Kredit</th>
                                     </tr>
@@ -195,14 +407,17 @@
                                 <tbody>
                                     @forelse($lines as $line)
                                         <tr>
-                                            <td><code>{{ $line->coa->kode_akun ?? '-' }}</code></td>
-                                            <td>{{ $line->coa->nama_akun ?? 'Akun tidak ditemukan' }}</td>
-                                            <td class="text-muted small">{{ $line->memo ?? '-' }}</td>
+                                            <td class="text-nowrap">{{ $journalEntry->created_at->format('d/m/Y') }}</td>
+                                            <td class="text-nowrap">{{ $returPenjualan->nomor_retur ?? '-' }}</td>
+                                            <td>
+                                                <div class="fw-bold">{{ $line->coa->nama_akun ?? 'Akun tidak ditemukan' }}</div>
+                                                <small class="text-muted">{{ $line->coa->kode_akun ?? '-' }}</small>
+                                            </td>
                                             <td class="debit-col">
-                                                {{ $line->debit > 0 ? 'Rp ' . number_format($line->debit, 0, ',', '.') : '-' }}
+                                                {{ $line->debit > 0 ? 'Rp ' . number_format((float)$line->debit, 0, ',', '.') : '-' }}
                                             </td>
                                             <td class="kredit-col">
-                                                {{ $line->credit > 0 ? 'Rp ' . number_format($line->credit, 0, ',', '.') : '-' }}
+                                                {{ $line->credit > 0 ? 'Rp ' . number_format((float)$line->credit, 0, ',', '.') : '-' }}
                                             </td>
                                         </tr>
                                     @empty
@@ -213,7 +428,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="balance-row {{ !$isBalanced ? 'unbalanced' : '' }}">
-                                        <td colspan="3" class="text-end"><strong>TOTAL</strong></td>
+                                        <td colspan="3" class="text-end"><strong>TOTAL DEBIT & KREDIT</strong></td>
                                         <td class="debit-col"><strong>Rp {{ number_format($totalDebit, 0, ',', '.') }}</strong></td>
                                         <td class="kredit-col"><strong>Rp {{ number_format($totalKredit, 0, ',', '.') }}</strong></td>
                                     </tr>
@@ -228,59 +443,33 @@
                                 </tfoot>
                             </table>
                         </div>
-
-                        <div class="mt-2 small text-muted">
-                            Dibuat: {{ $journalEntry->created_at->format('d/m/Y H:i') }}
-                        </div>
                     @else
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-info-circle me-2"></i>
-                            <strong>Jurnal sedang disiapkan...</strong> Sistem sedang membuat jurnal untuk transaksi ini.
+                            <strong>Jurnal belum tersedia.</strong> Jurnal akan dibuat otomatis ketika halaman dimuat.
                         </div>
                     @endif
-                @endif
-            </div>
-        </div>
-    </div>
-
-    {{-- Detail Items --}}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0"><i class="fas fa-list me-2"></i>Detail Barang Diretur</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th style="width:5%">#</th>
-                                    <th>Produk</th>
-                                    <th class="text-end" style="width:10%">Qty</th>
-                                    <th class="text-end" style="width:15%">Harga/Unit</th>
-                                    <th class="text-end" style="width:15%">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($returPenjualan->detailReturPenjualans as $no => $detail)
-                                    <tr>
-                                        <td>{{ $no + 1 }}</td>
-                                        <td>
-                                            <strong>{{ $detail->produk->nama_produk ?? '-' }}</strong>
-                                            <br><small class="text-muted">SKU: {{ $detail->produk->kode_produk ?? '-' }}</small>
-                                        </td>
-                                        <td class="text-end">{{ $detail->qty_retur }}</td>
-                                        <td class="text-end">Rp {{ number_format($detail->harga_barang, 0, ',', '.') }}</td>
-                                        <td class="text-end">Rp {{ number_format($detail->qty_retur * $detail->harga_barang, 0, ',', '.') }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle fragment/anchor navigation to tab
+        const urlHash = window.location.hash;
+        if (urlHash === '#jurnal-tab') {
+            const jurnalTab = document.getElementById('jurnal-tab');
+            if (jurnalTab) {
+                const tab = new bootstrap.Tab(jurnalTab);
+                tab.show();
+                // Scroll to the tab
+                jurnalTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    });
+</script>
+@endpush

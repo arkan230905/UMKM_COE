@@ -713,9 +713,9 @@
                                             <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
                                                 Edit
                                             </a>
-                                            <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-jurnal" data-bs-toggle="tooltip" title="Lihat Jurnal">
+                                            <button type="button" class="btn-minimal btn-jurnal" data-bs-toggle="modal" data-bs-target="#jurnalModal{{ $penjualan->id }}" title="Lihat Jurnal">
                                                 Jurnal
-                                            </a>
+                                            </button>
                                         </div>
                                         <div class="action-row gap-1">
                                             <button type="button" class="btn-minimal btn-success" data-bs-toggle="modal" data-bs-target="#strukModal{{ $penjualan->id }}" title="Cetak Struk">
@@ -904,22 +904,13 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="action-layout">
-                                                <div class="action-row gap-1">
-                                                    <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}" title="Detail Retur">
+                                                <div class="action-row gap-1 justify-content-center">
+                                                    <a href="{{ route('transaksi.retur-penjualan.show', $retur->id) }}" class="btn-minimal btn-detail" title="Lihat Detail">
                                                         Detail
+                                                    </a>
+                                                    <button type="button" class="btn-minimal btn-primary" data-bs-toggle="modal" data-bs-target="#jurnalReturModal{{ $retur->id }}" title="Lihat Jurnal">
+                                                        Jurnal
                                                     </button>
-                                                    <a href="{{ route('transaksi.retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
-                                                        Edit
-                                                    </a>
-                                                    <a href="{{ route('transaksi.retur-penjualan.show', $retur->id) }}" class="btn-minimal btn-primary" data-bs-toggle="tooltip" title="Lihat Detail & Jurnal">
-                                                        Detail
-                                                    </a>
-                                                    <a href="{{ route('transaksi.retur-penjualan.detail-retur', $retur->penjualan_id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Cetak/Export">
-                                                        Cetak
-                                                    </a>
-                                                    <a href="{{ route('transaksi.penjualan.index') }}" class="btn-minimal btn-secondary" data-bs-toggle="tooltip" title="Kembali">
-                                                        Retur
-                                                    </a>
                                                 </div>
                                             </div>
                                         </td>
@@ -1445,6 +1436,147 @@
 </div>
 @endforeach
 
+<!-- Jurnal Modal (Penjualan) -->
+@foreach($penjualans as $penjualan)
+<div class="modal fade" id="jurnalModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="jurnalModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1055;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jurnalModalLabel{{ $penjualan->id }}">
+                    <i class="fas fa-book-open me-2 text-primary"></i>Jurnal Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                @php
+                    $validationError = null;
+                    // Fetch journal
+                    $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sale')
+                        ->where('referensi', (string)$penjualan->id)
+                        ->with('coa')
+                        ->orderByDesc('debit')
+                        ->orderBy('id')
+                        ->get();
+                    
+                    if ($journalLines->isEmpty()) {
+                        try {
+                            $validator = new \App\Services\JournalValidationService();
+                            $validation = $validator->validate($penjualan);
+                            
+                            if ($validation['valid']) {
+                                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+                                // Ambil ulang setelah berhasil dibuat
+                                $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sale')
+                                    ->where('referensi', (string)$penjualan->id)
+                                    ->with('coa')
+                                    ->orderByDesc('debit')
+                                    ->orderBy('id')
+                                    ->get();
+                            } else {
+                                $validationError = $validation['missing'];
+                            }
+                        } catch (\Exception $e) {
+                            \Log::warning('Auto-create journal via modal failed: ' . $e->getMessage());
+                        }
+                    }
+
+                    $totalDebit = $journalLines->sum('debit');
+                    $totalKredit = $journalLines->sum('kredit');
+                    $isBalanced = round($totalDebit - $totalKredit, 2) === 0.0;
+                @endphp
+
+                @if($journalLines->isNotEmpty())
+                    <div class="alert alert-success mb-3 py-2">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Jurnal tersedia</strong> 
+                        <span class="badge bg-success ms-2">{{ $isBalanced ? 'Balance ✓' : 'Tidak Balance' }}</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tanggal Jurnal</th>
+                                    <th>No. Referensi</th>
+                                    <th>Nama Akun</th>
+                                    <th class="text-end" style="width:15%">Debit</th>
+                                    <th class="text-end" style="width:15%">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($journalLines as $line)
+                                    <tr>
+                                        <td class="text-nowrap">{{ $journalLines->first()->created_at->format('d/m/Y') }}</td>
+                                        <td class="text-nowrap">{{ $penjualan->nomor_penjualan ?? '-' }}</td>
+                                        <td>
+                                            <div class="fw-bold">{{ $line->coa->nama_akun ?? 'Akun tidak ditemukan' }}</div>
+                                            <small class="text-muted">{{ $line->coa->kode_akun ?? '-' }}</small>
+                                        </td>
+                                        <td class="text-end fw-semibold text-primary">
+                                            {{ $line->debit > 0 ? 'Rp ' . number_format($line->debit, 0, ',', '.') : '-' }}
+                                        </td>
+                                        <td class="text-end fw-semibold text-success">
+                                            {{ $line->kredit > 0 ? 'Rp ' . number_format($line->kredit, 0, ',', '.') : '-' }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="{{ !$isBalanced ? 'bg-danger text-white' : 'bg-light' }}">
+                                    <td colspan="3" class="text-end"><strong>TOTAL DEBIT & KREDIT</strong></td>
+                                    <td class="text-end fw-bold">Rp {{ number_format($totalDebit, 0, ',', '.') }}</td>
+                                    <td class="text-end fw-bold">Rp {{ number_format($totalKredit, 0, ',', '.') }}</td>
+                                </tr>
+                                @if(!$isBalanced)
+                                    <tr>
+                                        <td colspan="5" class="text-center text-danger small py-2">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            Jurnal tidak seimbang! Selisih: Rp {{ number_format(abs($totalDebit - $totalKredit), 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endif
+                            </tfoot>
+                        </table>
+                    </div>
+                @else
+                    @if($validationError)
+                        <div class="alert alert-danger mb-3">
+                            <h6 class="text-danger mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Akun Tidak Lengkap
+                            </h6>
+                            <p class="mb-2 text-muted small">Sistem mencoba membuat jurnal otomatis, namun akun berikut belum tersedia:</p>
+                            @foreach($validationError as $item)
+                                <div class="mb-2">
+                                    <strong>{{ $item['nama'] }}</strong>
+                                    <span class="badge bg-secondary ms-1">{{ $item['tipe'] }}</span>
+                                    <div class="small text-muted">{{ $item['pesan'] }}</div>
+                                </div>
+                            @endforeach
+                            <div class="mt-3 d-flex gap-2">
+                                <a href="{{ route('master-data.coa.create') }}" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Tambah Akun COA
+                                </a>
+                                <a href="{{ route('master-data.coa.index') }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-list me-1"></i>Lihat Semua Akun
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Jurnal gagal dibentuk otomatis.</strong> Silakan pastikan data transaksi valid atau hubungi administrator.
+                        </div>
+                    @endif
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
 <!-- Retur Detail Modal -->
 @foreach($salesReturns as $retur)
 <div class="modal fade" id="returDetailModal{{ $retur->id }}" tabindex="-1" aria-labelledby="returDetailModalLabel{{ $retur->id }}" aria-hidden="true">
@@ -1534,6 +1666,147 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<!-- Jurnal Retur Modal -->
+@foreach($salesReturns as $retur)
+<div class="modal fade" id="jurnalReturModal{{ $retur->id }}" tabindex="-1" aria-labelledby="jurnalReturModalLabel{{ $retur->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jurnalReturModalLabel{{ $retur->id }}">
+                    <i class="fas fa-book-open me-2 text-primary"></i>Jurnal Retur Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                @php
+                    $validationError = null;
+                    // Fetch journal
+                    $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
+                        ->where('referensi', (string)$retur->id)
+                        ->with('coa')
+                        ->orderByDesc('debit')
+                        ->orderBy('id')
+                        ->get();
+                    
+                    if ($journalLines->isEmpty()) {
+                        try {
+                            $validator = new \App\Services\JournalValidationService();
+                            $validation = $validator->validateReturPenjualan($retur);
+                            
+                            if ($validation['valid']) {
+                                \App\Services\JournalService::createJournalFromReturPenjualan($retur);
+                                // Ambil ulang setelah berhasil dibuat
+                                $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
+                                    ->where('referensi', (string)$retur->id)
+                                    ->with('coa')
+                                    ->orderByDesc('debit')
+                                    ->orderBy('id')
+                                    ->get();
+                            } else {
+                                $validationError = $validation['missing'];
+                            }
+                        } catch (\Exception $e) {
+                            \Log::warning('Auto-create journal via modal failed: ' . $e->getMessage());
+                        }
+                    }
+
+                    $totalDebit = $journalLines->sum('debit');
+                    $totalKredit = $journalLines->sum('kredit');
+                    $isBalanced = round($totalDebit - $totalKredit, 2) === 0.0;
+                @endphp
+
+                @if($journalLines->isNotEmpty())
+                    <div class="alert alert-success mb-3 py-2">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Jurnal tersedia</strong> 
+                        <span class="badge bg-success ms-2">{{ $isBalanced ? 'Balance ✓' : 'Tidak Balance' }}</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tanggal Jurnal</th>
+                                    <th>No. Referensi</th>
+                                    <th>Nama Akun</th>
+                                    <th class="text-end" style="width:15%">Debit</th>
+                                    <th class="text-end" style="width:15%">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($journalLines as $line)
+                                    <tr>
+                                        <td class="text-nowrap">{{ $journalLines->first()->created_at->format('d/m/Y') }}</td>
+                                        <td class="text-nowrap">{{ $retur->nomor_retur ?? '-' }}</td>
+                                        <td>
+                                            <div class="fw-bold">{{ $line->coa->nama_akun ?? 'Akun tidak ditemukan' }}</div>
+                                            <small class="text-muted">{{ $line->coa->kode_akun ?? '-' }}</small>
+                                        </td>
+                                        <td class="text-end fw-semibold text-primary">
+                                            {{ $line->debit > 0 ? 'Rp ' . number_format($line->debit, 0, ',', '.') : '-' }}
+                                        </td>
+                                        <td class="text-end fw-semibold text-success">
+                                            {{ $line->kredit > 0 ? 'Rp ' . number_format($line->kredit, 0, ',', '.') : '-' }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="{{ !$isBalanced ? 'bg-danger text-white' : 'bg-light' }}">
+                                    <td colspan="3" class="text-end"><strong>TOTAL DEBIT & KREDIT</strong></td>
+                                    <td class="text-end fw-bold">Rp {{ number_format($totalDebit, 0, ',', '.') }}</td>
+                                    <td class="text-end fw-bold">Rp {{ number_format($totalKredit, 0, ',', '.') }}</td>
+                                </tr>
+                                @if(!$isBalanced)
+                                    <tr>
+                                        <td colspan="5" class="text-center text-danger small py-2">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            Jurnal tidak seimbang! Selisih: Rp {{ number_format(abs($totalDebit - $totalKredit), 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endif
+                            </tfoot>
+                        </table>
+                    </div>
+                @else
+                    @if($validationError)
+                        <div class="alert alert-danger mb-3">
+                            <h6 class="text-danger mb-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Akun Tidak Lengkap
+                            </h6>
+                            <p class="mb-2 text-muted small">Sistem mencoba membuat jurnal otomatis, namun akun berikut belum tersedia:</p>
+                            @foreach($validationError as $item)
+                                <div class="mb-2">
+                                    <strong>{{ $item['nama'] }}</strong>
+                                    <span class="badge bg-secondary ms-1">{{ $item['tipe'] }}</span>
+                                    <div class="small text-muted">{{ $item['pesan'] }}</div>
+                                </div>
+                            @endforeach
+                            <div class="mt-3 d-flex gap-2">
+                                <a href="{{ route('master-data.coa.create') }}" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Tambah Akun COA
+                                </a>
+                                <a href="{{ route('master-data.coa.index') }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-list me-1"></i>Lihat Semua Akun
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Jurnal gagal dibentuk otomatis.</strong> Silakan pastikan data transaksi valid atau hubungi administrator.
+                        </div>
+                    @endif
+                @endif
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>

@@ -47,6 +47,58 @@ class ReturPenjualanController extends Controller
             ->with(['detailReturPenjualans.produk', 'penjualan'])
             ->findOrFail($id);
 
+        // Validasi akun yang diperlukan (for display purposes only)
+        $validator = new \App\Services\JournalValidationService();
+        $validation = $validator->validateReturPenjualan($returPenjualan);
+
+        // Ambil jurnal yang sudah ada dari jurnal_umum
+        $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
+            ->where('referensi', (string)$returPenjualan->id)
+            ->with('coa')
+            ->orderBy('id')
+            ->get();
+
+        // Jika jurnal belum ada, buat otomatis (tidak perlu check validation lagi, karena service sudah handle fallback)
+        if ($journalLines->isEmpty()) {
+            try {
+                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+                // Ambil jurnal yang baru dibuat
+                $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
+                    ->where('referensi', (string)$returPenjualan->id)
+                    ->with('coa')
+                    ->orderBy('id')
+                    ->get();
+            } catch (\Exception $e) {
+                \Log::error('Failed to auto-create journal for retur penjualan ' . $returPenjualan->id . ': ' . $e->getMessage());
+            }
+        }
+
+        // Transform jurnal lines untuk kompatibilitas dengan view
+        $journalEntry = null;
+        if ($journalLines->isNotEmpty()) {
+            $journalEntry = (object) [
+                'linesWithAccount' => $journalLines->map(function($line) {
+                    return (object) [
+                        'debit' => $line->debit,
+                        'credit' => $line->kredit,
+                        'memo' => $line->keterangan,
+                        'coa' => $line->coa,
+                    ];
+                }),
+                'created_at' => $journalLines->first()->created_at,
+            ];
+        }
+
+        return view('transaksi.retur-penjualan.show', compact('returPenjualan', 'validation', 'journalEntry'));
+    }
+
+    public function jurnal($id)
+    {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $returPenjualan = ReturPenjualan::where('user_id', auth()->id())
+            ->with(['detailReturPenjualans.produk', 'penjualan'])
+            ->findOrFail($id);
+
         // Validasi akun yang diperlukan
         $validator = new \App\Services\JournalValidationService();
         $validation = $validator->validateReturPenjualan($returPenjualan);
@@ -89,7 +141,7 @@ class ReturPenjualanController extends Controller
             ];
         }
 
-        return view('transaksi.retur-penjualan.show', compact('returPenjualan', 'validation', 'journalEntry'));
+        return view('transaksi.retur-penjualan.jurnal', compact('returPenjualan', 'validation', 'journalEntry'));
     }
 
     public function store(Request $request)
