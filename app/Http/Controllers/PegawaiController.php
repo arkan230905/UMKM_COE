@@ -20,7 +20,7 @@ class PegawaiController extends Controller
         $jenis = request('jenis');
         
         // CRITICAL: Always filter by user_id for multi-tenant
-        $query = Pegawai::where('user_id', auth()->id());
+        $query = Pegawai::with('kualifikasiRelasi')->where('user_id', auth()->id());
         
         // Filter berdasarkan jenis pegawai (opsional)
         if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {

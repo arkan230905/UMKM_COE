@@ -77,3 +77,18 @@ Route::get('/produk/{id}', function($id) {
         ]
     ]);
 })->name('api.produk.show');
+
+// Total Produksi API Routes
+Route::get('/total-produksi', function(Request $request) {
+    // Get latest produksi per product
+    $latestProduksis = \App\Models\Produksi::selectRaw('MAX(id) as max_id')
+        ->groupBy('produk_id')
+        ->pluck('max_id');
+        
+    $data = \App\Models\Produksi::whereIn('produksis.id', $latestProduksis)
+        ->join('produks', 'produksis.produk_id', '=', 'produks.id')
+        ->select('produks.nama_produk', 'produksis.jumlah_produksi_bulanan as produksi_bulanan')
+        ->get();
+
+    return response()->json($data);
+})->name('api.total-produksi');

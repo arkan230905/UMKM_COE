@@ -43,7 +43,7 @@
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach ($pegawais as $p)
                                 <option value="{{ $p->id }}">
-                                    {{ $p->nama }}
+                                    {{ $p->nama }} ({{ $p->kualifikasiRelasi->nama_kualifikasi ?? $p->kualifikasi ?? 'Tanpa Kualifikasi' }})
                                 </option>
                             @endforeach
                         </select>
@@ -66,18 +66,13 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="coa_kasbank" class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
-                        <select name="coa_kasbank" id="coa_kasbank" class="form-select @error('coa_kasbank') is-invalid @enderror" required onchange="updateMetodePembayaran()">
+                        <label for="metode_pembayaran" class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
+                        <select name="metode_pembayaran" id="metode_pembayaran" class="form-select @error('metode_pembayaran') is-invalid @enderror" required>
                             <option value="">-- Pilih --</option>
-                            @foreach ($kasbank as $kb)
-                                <option value="{{ $kb->kode_akun }}" data-nama="{{ strtolower($kb->nama_akun) }}">
-                                    {{ $kb->nama_akun }}
-                                </option>
-                            @endforeach
+                            <option value="tunai" {{ old('metode_pembayaran') == 'tunai' ? 'selected' : '' }}>Tunai</option>
+                            <option value="transfer_bank" {{ old('metode_pembayaran', 'transfer_bank') == 'transfer_bank' ? 'selected' : '' }}>Transfer Bank</option>
                         </select>
-                        <!-- Hidden field untuk metode_pembayaran -->
-                        <input type="hidden" name="metode_pembayaran" id="metode_pembayaran" value="transfer_bank">
-                        @error('coa_kasbank')
+                        @error('metode_pembayaran')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
@@ -130,64 +125,28 @@
                         <label class="form-label">Tarif / Produk <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" id="tarif_produk_input" name="tarif_produk" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()" required>
+                            <input type="text" id="tarif_produk_input" name="tarif_produk" class="form-control input-rupiah bg-light" value="0" readonly>
                         </div>
                         <small class="form-text text-muted d-block mt-1" id="tarif_status"></small>
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Gaji Produksi (Mentah)</label>
+                        <label class="form-label">Gaji Pokok</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="text" id="display_gaji_mentah" class="form-control" value="0" disabled>
+                            <input type="text" id="display_gaji_mentah" name="gaji_pokok_display" class="form-control fw-bold text-primary" value="0" disabled>
                         </div>
-                    </div>
-
-                    <div class="col-12">
-                        <hr>
-                    </div>
-
-                    <div class="col-md-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="aktif_bulat" name="pembulatan_aktif" onchange="togglePembulatan()">
-                            <label class="form-check-label" for="aktif_bulat">
-                                Aktifkan Pembulatan Gaji
-                            </label>
-                        </div>
-                    </div>
-
-                    <div id="panel_bulat" class="col-md-6" style="display: none;">
-                        <label for="step_bulat" class="form-label">Bulatkan ke Kelipatan</label>
-                        <select name="pembulatan_step" id="step_bulat" class="form-select" onchange="hitungOtomatis()">
-                            <option value="1000">Rp 1.000</option>
-                            <option value="10000">Rp 10.000</option>
-                            <option value="100000" selected>Rp 100.000</option>
-                            <option value="500000">Rp 500.000</option>
-                        </select>
-                    </div>
-
-                    <div id="info_selisih" class="col-md-6" style="display: none;">
-                        <div class="alert alert-info py-2 mb-0">
-                            <strong>Selisih Pembulatan:</strong> Rp <span id="selisih_value">0</span>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Gaji Produksi Final</label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="text" id="display_gaji_final" class="form-control fw-bold text-primary" value="0" disabled>
-                        </div>
+                        <small class="form-text text-muted d-block mt-1">Diambil otomatis dari Kualifikasi pegawai</small>
                     </div>
                 </div>
 
                 <!-- SECTION 4: TUNJANGAN DAN ASURANSI -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="tunj_jabatan" class="form-label">Tunjangan Kualifikasi</label>
+                        <label for="tunj_jabatan" class="form-label">Tunjangan Jabatan</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="tunjangan_jabatan" id="tunj_jabatan" class="form-control input-rupiah bg-light" value="0" readonly>
                         </div>
                     </div>
 
@@ -195,7 +154,7 @@
                         <label for="tunj_transport" class="form-label">Tunjangan Transport</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_transport" id="tunj_transport" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="tunjangan_transport" id="tunj_transport" class="form-control input-rupiah bg-light" value="0" readonly>
                         </div>
                     </div>
 
@@ -203,7 +162,7 @@
                         <label for="tunj_konsumsi" class="form-label">Tunjangan Konsumsi</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control input-rupiah bg-light" value="0" readonly>
                         </div>
                     </div>
 
@@ -211,20 +170,31 @@
                         <label for="bpjs" class="form-label">Asuransi BPJS</label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
-                            <input type="number" name="asuransi" id="bpjs" class="form-control input-rupiah" value="0" min="0" oninput="hitungOtomatis()">
+                            <input type="text" name="asuransi" id="bpjs" class="form-control input-rupiah bg-light" value="0" readonly>
                         </div>
                     </div>
                 </div>
 
                 <!-- TOTAL GAJI -->
                 <div class="row g-3 mb-4">
-                    <div class="col-12">
+                    <div class="col-md-6">
                         <div class="alert alert-light border py-3">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <small class="text-muted d-block">Total Gaji Bulan Ini</small>
+                                    <small class="text-muted d-block">Total Gaji Karyawan</small>
                                     <h4 class="mb-0 text-primary" id="display_total_gaji">Rp 0</h4>
-                                    <small class="text-muted">Gaji produksi + tunjangan – asuransi</small>
+                                    <small class="text-muted">Gaji pokok + tunjangan (diterima karyawan)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-light border py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted d-block">Total Biaya Perusahaan</small>
+                                    <h4 class="mb-0 text-primary" id="display_total_biaya">Rp 0</h4>
+                                    <small class="text-muted">Total gaji karyawan + asuransi ditanggung perusahaan</small>
                                 </div>
                             </div>
                         </div>
@@ -245,7 +215,7 @@
                     </div>
                 </div>
 
-                <!-- Hidden input untuk gaji final -->
+                <!-- Hidden input untuk gaji final - sudah bukan form field, hanya untuk submit -->
                 <input type="hidden" name="gaji_produksi_final" id="h-final" value="0">
             </form>
         </div>
@@ -255,32 +225,16 @@
 <script>
     // Konstanta
     let TARIF_PRODUK = 0;
+    let GAJI_POKOK = 0;  // Nilai aktual dari kualifikasis.gaji_pokok
     let IS_PRODUKSI = true;
+    let TUNJANGAN_JABATAN = 0;
+    let TUNJANGAN_TRANSPORT = 0;
+    let TUNJANGAN_KONSUMSI = 0;
+    let ASURANSI_BPJS = 0;
 
-    // Update Metode Pembayaran berdasarkan pilihan COA Kas/Bank
+    // Update Metode Pembayaran (removed as we use direct select now)
     function updateMetodePembayaran() {
-        const select = document.getElementById('coa_kasbank');
-        const hiddenField = document.getElementById('metode_pembayaran');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (selectedOption && selectedOption.value) {
-            const namaAkun = selectedOption.getAttribute('data-nama') || selectedOption.text.toLowerCase();
-            
-            // Deteksi apakah Tunai atau Transfer berdasarkan nama akun
-            if (namaAkun.includes('kas') || namaAkun.includes('tunai') || namaAkun.includes('cash')) {
-                hiddenField.value = 'tunai';
-                console.log('Metode Pembayaran: Tunai');
-            } else if (namaAkun.includes('bank') || namaAkun.includes('transfer')) {
-                hiddenField.value = 'transfer_bank';
-                console.log('Metode Pembayaran: Transfer Bank');
-            } else {
-                // Default ke transfer_bank
-                hiddenField.value = 'transfer_bank';
-                console.log('Metode Pembayaran: Transfer Bank (default)');
-            }
-        } else {
-            hiddenField.value = 'transfer_bank';
-        }
+        // No longer needed
     }
 
     // Format Rupiah dengan titik pemisah ribuan
@@ -320,6 +274,7 @@
     // Clear form state - RESET semua field tunjangan ke 0
     function clearFormState() {
         TARIF_PRODUK = 0;
+        GAJI_POKOK = 0;
         IS_PRODUKSI = true;
         document.getElementById('tarif_produk_input').value = 0;
         document.getElementById('kategori').value = '';
@@ -329,16 +284,13 @@
         document.getElementById('total_produk').style.backgroundColor = '#fff';
         document.getElementById('tarif_status').textContent = '';
         document.getElementById('tunj_jabatan').value = 0;
-        document.getElementById('tunj_transport').value = 0; // BUG 1 FIX: Default 0, bukan 150000
-        document.getElementById('tunj_konsumsi').value = 0;  // BUG 1 FIX: Default 0, bukan 375000
+        document.getElementById('tunj_transport').value = 0;
+        document.getElementById('tunj_konsumsi').value = 0;
         document.getElementById('bpjs').value = 0;
         document.getElementById('display_gaji_mentah').value = '0';
-        document.getElementById('display_gaji_final').value = '0';
         document.getElementById('display_total_gaji').textContent = 'Rp 0';
+        document.getElementById('display_total_biaya').textContent = 'Rp 0';
         document.getElementById('rata_rata_hari').value = '0';
-        document.getElementById('aktif_bulat').checked = false;
-        document.getElementById('panel_bulat').style.display = 'none';
-        document.getElementById('info_selisih').style.display = 'none';
         document.getElementById('h-final').value = 0;
     }
 
@@ -370,15 +322,23 @@
                 console.log('API Response:', data);
                 
                 const tarifDariKualifikasi = parseInt(data.tarif) || 0;
+                // Ambil Gaji Pokok aktual dari kualifikasi (bukan hasil perkalian)
+                GAJI_POKOK = parseInt(data.gaji_pokok) || 0;
+                
+                // Simpan tunjangan dan asuransi ke variabel global
+                TUNJANGAN_JABATAN = parseInt(data.tunjangan_jabatan) || 0;
+                TUNJANGAN_TRANSPORT = parseInt(data.tunjangan_transport) || 0;
+                TUNJANGAN_KONSUMSI = parseInt(data.tunjangan_konsumsi) || 0;
+                ASURANSI_BPJS = parseInt(data.asuransi) || 0;
                 
                 if (tarifDariKualifikasi > 0) {
                     TARIF_PRODUK = tarifDariKualifikasi;
-                    tarifField.value = tarifDariKualifikasi;
+                    tarifField.value = formatRupiah(tarifDariKualifikasi);
                     tarifStatus.textContent = '✓ Tarif dari kualifikasi: ' + (data.kualifikasi_nama || data.jabatan_nama || 'pegawai');
                     tarifStatus.className = 'form-text text-success d-block mt-1';
                 } else {
                     TARIF_PRODUK = 0;
-                    tarifField.value = 0;
+                    tarifField.value = '0';
                     tarifStatus.textContent = 'Tarif dari kualifikasi: ' + (data.kualifikasi_nama || data.jabatan_nama || 'pegawai');
                     tarifStatus.className = 'form-text text-muted d-block mt-1';
                 }
@@ -392,11 +352,13 @@
                     IS_PRODUKSI = true;
                 }
                 
-                // BUG 1 FIX: Set tunjangan dari API setelah pegawai dipilih
-                document.getElementById('tunj_jabatan').value = parseInt(data.tunjangan_jabatan) || 0;
-                document.getElementById('tunj_transport').value = parseInt(data.tunjangan_transport) || 0;
-                document.getElementById('tunj_konsumsi').value = parseInt(data.tunjangan_konsumsi) || 0;
-                document.getElementById('bpjs').value = parseInt(data.asuransi) || 0;
+                // Set tunjangan dari API setelah pegawai dipilih
+                document.getElementById('tunj_jabatan').value = formatRupiah(TUNJANGAN_JABATAN);
+                document.getElementById('tunj_transport').value = formatRupiah(TUNJANGAN_TRANSPORT);
+                document.getElementById('tunj_konsumsi').value = formatRupiah(TUNJANGAN_KONSUMSI);
+                document.getElementById('bpjs').value = formatRupiah(ASURANSI_BPJS);
+                
+                console.log('Gaji Pokok from API:', GAJI_POKOK);
                 
                 updateTotalProduk();
                 hitungOtomatis();
@@ -499,59 +461,38 @@
             });
     }
 
-    // Toggle Pembulatan
-    function togglePembulatan() {
-        const checkbox = document.getElementById('aktif_bulat');
-        const panel = document.getElementById('panel_bulat');
-        const infoBox = document.getElementById('info_selisih');
-        
-        if (checkbox.checked) {
-            panel.style.display = 'block';
-            infoBox.style.display = 'block';
-        } else {
-            panel.style.display = 'none';
-            infoBox.style.display = 'none';
-        }
-        
-        hitungOtomatis();
-    }
-
     // Hitung Otomatis
     function hitungOtomatis() {
         const totalProduk = parseInt(document.getElementById('total_produk').value) || 0;
         const hariKerja = parseInt(document.getElementById('hari_kerja').value) || 26;
-        // BUG 2 FIX: Unformat sebelum hitung
         const tunjanganJabatan = parseRupiah(document.getElementById('tunj_jabatan').value) || 0;
         const tunjanganTransport = parseRupiah(document.getElementById('tunj_transport').value) || 0;
         const tunjanganKonsumsi = parseRupiah(document.getElementById('tunj_konsumsi').value) || 0;
         const bpjs = parseRupiah(document.getElementById('bpjs').value) || 0;
-        const aktifBulat = document.getElementById('aktif_bulat').checked;
-        const stepBulat = parseInt(document.getElementById('step_bulat').value) || 100000;
 
-        // Update TARIF_PRODUK dari input field - unformat juga
+        // Update TARIF_PRODUK dari input field (hanya untuk referensi HPP, bukan untuk hitung gaji)
         TARIF_PRODUK = parseRupiah(document.getElementById('tarif_produk_input').value) || 0;
 
         const rataRataHari = hariKerja > 0 ? Math.round(totalProduk / hariKerja) : 0;
         document.getElementById('rata_rata_hari').value = formatRupiah(rataRataHari);
 
-        const gajiMentah = totalProduk * TARIF_PRODUK;
-
-        let gajiFinal = gajiMentah;
-        let selisih = 0;
-
-        if (aktifBulat) {
-            gajiFinal = Math.ceil(gajiMentah / stepBulat) * stepBulat;
-            selisih = gajiFinal - gajiMentah;
-            document.getElementById('selisih_value').textContent = formatRupiah(selisih);
-        }
-
+        // Gaji Pokok = nilai aktual dari kualifikasis.gaji_pokok (BUKAN tarif x produk)
+        // Tarif/Produk hanya dipakai untuk alokasi HPP, bukan untuk menghitung ulang gaji
+        const gajiPokok = GAJI_POKOK;
         const totalTunjangan = tunjanganJabatan + tunjanganTransport + tunjanganKonsumsi;
-        const totalGaji = gajiFinal + totalTunjangan - bpjs;
 
-        document.getElementById('display_gaji_mentah').value = formatRupiah(gajiMentah);
-        document.getElementById('display_gaji_final').value = formatRupiah(gajiFinal);
-        document.getElementById('display_total_gaji').textContent = 'Rp ' + formatRupiah(totalGaji);
-        document.getElementById('h-final').value = gajiFinal;
+        console.log('hitungOtomatis - GAJI_POKOK:', GAJI_POKOK, 'gajiPokok display:', formatRupiah(gajiPokok));
+
+        // Total Gaji Karyawan = Gaji Pokok + Tunjangan (yang diterima karyawan)
+        const totalGajiKaryawan = gajiPokok + totalTunjangan;
+
+        // Total Biaya Perusahaan = Total Gaji Karyawan + Asuransi BPJS
+        const totalBiayaPerusahaan = totalGajiKaryawan + bpjs;
+
+        document.getElementById('display_gaji_mentah').value = formatRupiah(gajiPokok);
+        document.getElementById('display_total_gaji').textContent = 'Rp ' + formatRupiah(totalGajiKaryawan);
+        document.getElementById('display_total_biaya').textContent = 'Rp ' + formatRupiah(totalBiayaPerusahaan);
+        document.getElementById('h-final').value = gajiPokok;
     }
 
     // Form Submit
@@ -578,14 +519,13 @@
             return;
         }
 
-        // BUG 2 FIX: Unformat semua field input-rupiah sebelum submit
-        // Agar value yang dikirim ke server adalah integer bersih
+        // Unformat semua field input-rupiah sebelum submit
         document.querySelectorAll('.input-rupiah').forEach(function(input) {
             input.value = parseRupiah(input.value);
         });
 
-        const gajiFinal = parseRupiah(document.getElementById('display_gaji_final').value);
-        document.getElementById('h-final').value = gajiFinal;
+        // h-final = Gaji Pokok aktual dari kualifikasi
+        document.getElementById('h-final').value = GAJI_POKOK;
     });
 
     // Initialize
@@ -593,7 +533,6 @@
         console.log('Form initialized');
         clearFormState();
         setupRupiahFormatting(); // BUG 2 FIX: Setup format listener
-        updateMetodePembayaran(); // Initialize metode_pembayaran
         hitungOtomatis();
     });
 

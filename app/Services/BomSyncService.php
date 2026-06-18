@@ -97,12 +97,12 @@ class BomSyncService
     }
     
     /**
-     * Sync BOM when jabatan data changes (affects BTKL calculations)
+     * Sync BOM when kualifikasi data changes (affects BTKL calculations)
      */
-    public static function syncBomFromJabatanChange($jabatanId)
+    public static function syncBomFromKualifikasiChange($kualifikasiId)
     {
-        Log::warning("BomSyncService::syncBomFromJabatanChange disabled - table bom_job_costings does not exist", [
-            'jabatanId' => $jabatanId
+        Log::warning("BomSyncService::syncBomFromKualifikasiChange disabled - table bom_job_costings does not exist", [
+            'kualifikasiId' => $kualifikasiId
         ]);
         return;
     }

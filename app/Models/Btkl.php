@@ -17,7 +17,7 @@ class Btkl extends Model
         'user_id',
         'kode_proses',
         'nama_btkl',
-        'jabatan_id',
+        'kualifikasi_id',
         'deskripsi_proses',
         'is_active',
     ];
@@ -49,11 +49,11 @@ class Btkl extends Model
     ];
 
     /**
-     * Relasi ke model Jabatan
+     * Relasi ke model Kualifikasi
      */
-    public function jabatan()
+    public function kualifikasi()
     {
-        return $this->belongsTo(Jabatan::class, 'jabatan_id');
+        return $this->belongsTo(Kualifikasi::class, 'kualifikasi_id');
     }
 
     /**
@@ -65,13 +65,13 @@ class Btkl extends Model
     }
 
     /**
-     * Get tarif per produk dari jabatan
+     * Get tarif per produk dari kualifikasi
      *
      * @return float
      */
     public function getTarifPerProdukAttribute()
     {
-        return $this->jabatan ? ($this->jabatan->tarif_produk ?? 0) : 0;
+        return $this->kualifikasi ? ($this->kualifikasi->tarif_produk ?? 0) : 0;
     }
 
     /**
@@ -96,13 +96,13 @@ class Btkl extends Model
     }
 
     /**
-     * Get nama tenaga kerja (alias untuk jabatan nama)
+     * Get nama tenaga kerja (alias untuk kualifikasi nama)
      *
      * @return string
      */
     public function getNamaTenagaKerjaAttribute()
     {
-        return $this->jabatan ? ($this->jabatan->nama_jabatan ?? $this->jabatan->nama ?? '-') : '-';
+        return $this->kualifikasi ? ($this->kualifikasi->nama_kualifikasi ?? '-') : '-';
     }
 
     /**
@@ -137,13 +137,13 @@ class Btkl extends Model
     }
 
     /**
-     * Check if tarif is consistent with jabatan
+     * Check if tarif is consistent with kualifikasi
      *
      * @return bool
      */
     public function getIsConsistentAttribute()
     {
-        if (!$this->jabatan) {
+        if (!$this->kualifikasi) {
             return false;
         }
 
@@ -152,7 +152,7 @@ class Btkl extends Model
             return true; // Belum ada proses, dianggap konsisten
         }
 
-        $expectedTarif = $this->jabatan->tarif_produk ?? 0;
+        $expectedTarif = $this->kualifikasi->tarif_produk ?? 0;
         
         // Toleransi 1 rupiah
         return abs($proses->tarif_per_produk - $expectedTarif) < 1;

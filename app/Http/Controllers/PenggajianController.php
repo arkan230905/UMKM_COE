@@ -63,7 +63,7 @@ class PenggajianController extends Controller
         session()->forget('errors');
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $pegawais = Pegawai::with('jabatanRelasi')
+        $pegawais = Pegawai::with(['jabatanRelasi', 'kualifikasiRelasi'])
             ->select('pegawais.*')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
@@ -98,7 +98,7 @@ class PenggajianController extends Controller
         session()->forget('errors');
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $pegawais = Pegawai::with('jabatanRelasi')
+        $pegawais = Pegawai::with(['jabatanRelasi', 'kualifikasiRelasi'])
             ->select('pegawais.*')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
@@ -145,11 +145,19 @@ class PenggajianController extends Controller
             $tanggalAwal = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth();
             $tanggalAkhir = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
             
+            // Dapatkan kualifikasi pegawai untuk acuan filter
+            $jabatan = $this->resolvePegawaiJabatan($pegawai);
+
             // Query produksi berdasarkan bulan dan tahun (tanpa filter pegawai_id karena produksi untuk seluruh pabrik)
-            $produksi = \App\Models\Produksi::where('user_id', auth()->id())
-                ->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir])
-                ->orderBy('tanggal', 'desc')
-                ->first();
+            $query = \App\Models\Produksi::where('user_id', auth()->id())
+                ->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir]);
+
+            // Gunakan target_produksi dari kualifikasi sebagai acuan filter di transaksi produksi
+            if ($jabatan && $jabatan->target_produksi > 0) {
+                $query->where('jumlah_produksi_bulanan', $jabatan->target_produksi);
+            }
+
+            $produksi = $query->orderBy('tanggal', 'desc')->first();
             
             // Jika tidak ada record, return 0
             if (!$produksi) {
@@ -254,6 +262,7 @@ class PenggajianController extends Controller
             
             if ($jabatan) {
                 $tarif = (int) ($jabatan->tarif_produk ?? 0);
+                // Accessor otomatis fallback ke gaji jika gaji_pokok kosong
                 $gajiPokok = (int) ($jabatan->gaji_pokok ?? 0);
                 $tunjanganJabatan = (int) ($jabatan->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($jabatan->tunjangan_transport ?? 0);
@@ -325,7 +334,7 @@ class PenggajianController extends Controller
     {
         try {
             $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())
-                ->where('nama', $nama)
+                ->where('nama_kualifikasi', $nama)
                 ->first();
             
             if (!$jabatan) {
@@ -369,7 +378,7 @@ class PenggajianController extends Controller
             $request->validate([
                 'pegawai_id' => 'required|exists:pegawais,id',
                 'tanggal_penggajian' => 'required|date',
-                'coa_kasbank' => 'required|string',
+                'metode_pembayaran' => 'required|string|in:tunai,transfer_bank',
             ]);
 
             $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($request->pegawai_id);
@@ -393,15 +402,20 @@ class PenggajianController extends Controller
                 // STEP 1: Calculate total produk
                 $totalProduk = $totalProdukInput > 0 ? $totalProdukInput : ($produkPerHari * $hariKerja);
 
-                // STEP 2: Get tarif from jabatan
+                // STEP 2: Get jabatan/kualifikasi
                 $jabatan = $this->resolvePegawaiJabatan($pegawai);
                 $tarifProduk = (float) ($jabatan ? ($jabatan->tarif_produk ?? 0) : ($pegawai->tarif_per_jam ?? 0));
 
-                // STEP 3: Calculate gaji produksi
-                $gajiProduksi = (float) ($request->gaji_produksi_mentah ?? ($totalProduk * $tarifProduk));
+                // STEP 3: Gaji Pokok diambil LANGSUNG dari kualifikasis.gaji_pokok (nilai aktual)
+                // BUKAN dihitung ulang dari tarif x produk (untuk menghindari selisih pembulatan)
+                // Tarif/Produk hanya dipakai untuk alokasi biaya HPP per unit, bukan untuk hitung gaji
+                // Accessor di model otomatis fallback ke gaji jika gaji_pokok kosong
+                $gajiDariKualifikasi = (float) ($jabatan ? ($jabatan->gaji_pokok ?? 0) : 0);
 
-                // STEP 4: Gaji pokok untuk produksi adalah gaji produksi final.
-                $gajiProduksiFinal = $gajiProduksiFinalInput > 0 ? $gajiProduksiFinalInput : $gajiProduksi;
+                // STEP 4: Gaji Pokok Final = nilai dari kualifikasi (prioritas), fallback ke input form
+                $gajiProduksiFinal = $gajiDariKualifikasi > 0
+                    ? $gajiDariKualifikasi
+                    : ($gajiProduksiFinalInput > 0 ? $gajiProduksiFinalInput : 0);
 
                 // STEP 5: Get tunjangan & asuransi dari form, fallback ke jabatan.
                 $tunjanganJabatan = (float) ($request->tunjangan_jabatan ?? ($jabatan ? ($jabatan->tunjangan ?? 0) : 0));
@@ -413,15 +427,33 @@ class PenggajianController extends Controller
                 $potongan = (float) ($request->potongan ?? 0);
 
                 // STEP 6: Calculate total gaji
-                $totalGaji = $gajiProduksiFinal + $totalTunjangan + $bonus - $asuransi - $potongan;
+                // Total Gaji Karyawan = Gaji Pokok Final + Tunjangan + Bonus - Potongan (yang diterima karyawan)
+                $totalGajiKaryawan = $gajiProduksiFinal + $totalTunjangan + $bonus - $potongan;
+                // Total Biaya Perusahaan = Total Gaji Karyawan + Asuransi BPJS (beban perusahaan)
+                $totalGaji = $totalGajiKaryawan + $asuransi;
+
+                // Determine COA Kas/Bank based on metode_pembayaran
+                $metodePembayaran = $request->metode_pembayaran ?? 'transfer_bank';
+                $coaKasBank = null;
+                if ($metodePembayaran === 'tunai') {
+                    $coa = \App\Helpers\AccountHelper::getKasAccounts(auth()->id())->first();
+                    $coaKasBank = $coa ? $coa->kode_akun : '112';
+                } else {
+                    $coa = \App\Helpers\AccountHelper::getBankAccounts(auth()->id())->first();
+                    if (!$coa) {
+                        $coa = \App\Helpers\AccountHelper::getBankAccountsForTransfer(auth()->id())->first();
+                    }
+                    $coaKasBank = $coa ? $coa->kode_akun : '111';
+                }
 
                 // Create penggajian record
                 $penggajian = Penggajian::create([
                     'pegawai_id' => $pegawai->id,
+                    'nomor_penggajian' => $this->generateNomorPenggajian(),
                     'periode_bulan' => \Carbon\Carbon::parse($request->tanggal_penggajian)->month,
                     'periode_tahun' => \Carbon\Carbon::parse($request->tanggal_penggajian)->year,
                     'tanggal_penggajian' => $request->tanggal_penggajian,
-                    'coa_kasbank' => $request->coa_kasbank,
+                    'coa_kasbank' => $coaKasBank,
                     'gaji_pokok' => $gajiProduksiFinal,
                     'tarif_per_jam' => 0,
                     'tunjangan_jabatan' => $tunjanganJabatan,
@@ -438,7 +470,7 @@ class PenggajianController extends Controller
                     'total_gaji' => $totalGaji,
                     'status_pembayaran' => 'belum_lunas',
                     'status_posting' => 'belum_posting',
-                    'metode_pembayaran' => $request->metode_pembayaran ?? 'transfer_bank',
+                    'metode_pembayaran' => $metodePembayaran,
                     'total_produk_bulan' => $totalProduk,
                     'tarif_produk' => $tarifProduk,
                     'keterangan' => $request->keterangan ?? null,
@@ -523,7 +555,8 @@ class PenggajianController extends Controller
             $bonus = (float) $penggajian->bonus;
             $potongan = (float) $penggajian->potongan;
             
-            $totalGaji = $gajiProduksiFinal + $totalTunjangan + $bonus - $asuransi - $potongan;
+            $totalGajiKaryawan = $gajiProduksiFinal + $totalTunjangan + $bonus - $potongan;
+            $totalGaji = $totalGajiKaryawan + $asuransi;
 
             // STEP 3: Update dengan data terbaru
             $penggajian->update([
@@ -657,7 +690,9 @@ class PenggajianController extends Controller
             // Gunakan helper method getCoaBebanGaji() untuk mapping otomatis
             $koaBebanGajiCode = $this->getCoaBebanGaji($pegawai);
 
-            $coaBebanGaji = Coa::where('kode_akun', $koaBebanGajiCode)->first();
+            $coaBebanGaji = Coa::where('kode_akun', $koaBebanGajiCode)
+                ->where('user_id', auth()->id())
+                ->first();
 
             if (!$coaBebanGaji) {
                 throw new \Exception("COA dengan kode {$koaBebanGajiCode} tidak ditemukan. " .
@@ -674,7 +709,8 @@ class PenggajianController extends Controller
             $asuransi = $penggajian->asuransi ?? 0;
             $potongan = $penggajian->potongan ?? 0;
             
-            $totalHutang = $gajiPokok + $totalTunjangan + $bonus - $asuransi - $potongan;
+            // Hutang Gaji Pegawai = yang diterima karyawan (asuransi BPJS masuk ke Hutang Asuransi terpisah)
+            $totalHutang = $gajiPokok + $totalTunjangan + $bonus - $potongan;
             
             $keterangan = "Penggajian {$pegawai->nama}";
 
@@ -820,7 +856,9 @@ class PenggajianController extends Controller
     {
         try {
             $coaHutangGaji = $this->getOrCreateCoa('211', 'Hutang Gaji Pegawai', '2');
-            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)
+                ->where('user_id', auth()->id())
+                ->first();
             
             if (!$coaKasBank) {
                 throw new \Exception('Akun kas/bank tidak valid');
@@ -910,7 +948,9 @@ class PenggajianController extends Controller
             $coaPotongan = $this->getOrCreateCoa('516', 'Potongan Gaji', '5');
 
             // Pastikan akun kas/bank valid
-            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)
+                ->where('user_id', auth()->id())
+                ->first();
             if (!$coaKasBank) {
                 throw new \Exception('Akun kas/bank tidak valid');
             }
@@ -1433,13 +1473,13 @@ class PenggajianController extends Controller
                 ->where('user_id', $penggajian->user_id ?? auth()->id())
                 ->whereBetween('tanggal', [$tanggalAwal, $tanggalAkhir]);
 
-            if ($pegawai && Schema::hasColumn('produksis', 'pegawai_id')) {
-                $query->where('pegawai_id', $pegawai->id);
-            } elseif ($pegawai && Schema::hasColumn('produksis', 'employee_id')) {
-                $query->where('employee_id', $pegawai->id);
+            // Gunakan target_produksi dari kualifikasi sebagai acuan filter produk
+            if ($kualifikasi && $kualifikasi->target_produksi > 0) {
+                $query->where('jumlah_produksi_bulanan', $kualifikasi->target_produksi);
             }
 
-            $produkDihasilkan = (float) $query->sum('jumlah_produksi_bulanan');
+            $produksi = $query->orderBy('tanggal', 'desc')->first();
+            $produkDihasilkan = $produksi ? (float) $produksi->jumlah_produksi_bulanan : 0;
         }
 
         $gajiDasar = (float) ($penggajian->gaji_pokok ?? 0);
@@ -1447,11 +1487,12 @@ class PenggajianController extends Controller
             $gajiDasar = $produkDihasilkan * $tarifProduk;
         }
 
-        $totalGaji = $gajiDasar
+        $totalGajiKaryawan = $gajiDasar
             + (float) ($penggajian->total_tunjangan ?? 0)
             + (float) ($penggajian->bonus ?? 0)
-            - (float) ($penggajian->asuransi ?? 0)
             - (float) ($penggajian->potongan ?? 0);
+
+        $totalGaji = $totalGajiKaryawan + (float) ($penggajian->asuransi ?? 0);
 
         return [
             'tarif_produk' => $tarifProduk,
@@ -1479,17 +1520,17 @@ class PenggajianController extends Controller
         // Query jabatans table
         $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
 
-        // Try by jabatan_id (if it exists in pegawai)
-        if ($pegawai->jabatan_id) {
-            $jabatan = (clone $query)->find($pegawai->jabatan_id);
+        // Try by kualifikasi_id (if it exists in pegawai)
+        if ($pegawai->kualifikasi_id) {
+            $jabatan = (clone $query)->find($pegawai->kualifikasi_id);
             if ($jabatan) {
                 return $jabatan;
             }
         }
 
-        // Try by nama (match pegawai.jabatan string with jabatan.nama)
-        if (!empty($pegawai->jabatan)) {
-            return (clone $query)->where('nama', $pegawai->jabatan)->first();
+        // Try by nama (match pegawai.kualifikasi string with jabatan.nama_kualifikasi)
+        if (!empty($pegawai->kualifikasi)) {
+            return (clone $query)->where('nama_kualifikasi', $pegawai->kualifikasi)->first();
         }
 
         return null;
@@ -1663,18 +1704,32 @@ class PenggajianController extends Controller
 
             // Tentukan akun COA dengan validasi ketat
             if ($jenisPegawai === 'btkl') {
-                $coaBebanGaji = Coa::where('kode_akun', '52')->first(); // BIAYA TENAGA KERJA LANGSUNG (BTKL)
+                $coaBebanGaji = Coa::where('kode_akun', '52')
+                    ->where('user_id', auth()->id())
+                    ->first(); // BIAYA TENAGA KERJA LANGSUNG (BTKL)
             } else {
-                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BOP TENAGA KERJA TIDAK LANGSUNG
+                $coaBebanGaji = Coa::where('kode_akun', '54')
+                    ->where('user_id', auth()->id())
+                    ->first(); // BOP TENAGA KERJA TIDAK LANGSUNG
             }
             
-            $coaBebanTunjangan = Coa::where('kode_akun', '513')->first(); // Beban Tunjangan
-            $coaBebanBonus = Coa::where('kode_akun', '515')->first(); // Beban Bonus
-            $coaBebanAsuransi = Coa::where('kode_akun', '514')->first(); // Beban Asuransi
-            $coaPotongan = Coa::where('kode_akun', '516')->first(); // Potongan Gaji (contra account)
+            $coaBebanTunjangan = Coa::where('kode_akun', '513')
+                ->where('user_id', auth()->id())
+                ->first(); // Beban Tunjangan
+            $coaBebanBonus = Coa::where('kode_akun', '515')
+                ->where('user_id', auth()->id())
+                ->first(); // Beban Bonus
+            $coaBebanAsuransi = Coa::where('kode_akun', '514')
+                ->where('user_id', auth()->id())
+                ->first(); // Beban Asuransi
+            $coaPotongan = Coa::where('kode_akun', '516')
+                ->where('user_id', auth()->id())
+                ->first(); // Potongan Gaji (contra account)
 
             // Tentukan akun kredit (Kas/Bank)
-            $coaKredit = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+            $coaKredit = Coa::where('kode_akun', $penggajian->coa_kasbank)
+                ->where('user_id', auth()->id())
+                ->first();
 
             // Validasi COA tersedia - SEMUA HARUS ADA
             $missingCoas = [];
@@ -1896,27 +1951,32 @@ class PenggajianController extends Controller
             $jabatanNama = $pegawai->jabatanRelasi?->nama ?? $pegawai->jabatan ?? '';
             $jabatanLower = strtolower($jabatanNama);
 
-            // Keyword: Perbumbuan → Akun 520
-            if (strpos($jabatanLower, 'perbumbuan') !== false ||
-                strpos($jabatanLower, 'bumbu') !== false) {
-                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Perbumbuan) → COA 520");
-                return '520';
-            }
-
-            // Keyword: Penggorengan/Pengukusan → Akun 521
+            // Keyword: Penggorengan → Akun 521
             if (strpos($jabatanLower, 'penggorengan') !== false ||
-                strpos($jabatanLower, 'goreng') !== false ||
-                strpos($jabatanLower, 'pengukusan') !== false ||
-                strpos($jabatanLower, 'kukus') !== false) {
-                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Penggorengan/Pengukusan) → COA 521");
+                strpos($jabatanLower, 'goreng') !== false) {
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Penggorengan) → COA 521");
                 return '521';
             }
 
-            // Keyword: Pengemasan → Akun 522
+            // Keyword: Perbumbuan → Akun 522
+            if (strpos($jabatanLower, 'perbumbuan') !== false ||
+                strpos($jabatanLower, 'bumbu') !== false) {
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Perbumbuan) → COA 522");
+                return '522';
+            }
+
+            // Keyword: Pengemasan → Akun 523
             if (strpos($jabatanLower, 'pengemasan') !== false ||
                 strpos($jabatanLower, 'kemasan') !== false) {
-                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Pengemasan) → COA 522");
-                return '522';
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Pengemasan) → COA 523");
+                return '523';
+            }
+
+            // Keyword: Pengukusan → Akun 524
+            if (strpos($jabatanLower, 'pengukusan') !== false ||
+                strpos($jabatanLower, 'kukus') !== false) {
+                \Log::info("COA Mapping: {$pegawai->nama} [{$jabatanNama}] (Pengukusan) → COA 524");
+                return '524';
             }
 
             // Default BTKL: tidak cocok keyword apapun → parent akun 52
@@ -1927,5 +1987,34 @@ class PenggajianController extends Controller
         // JIKA BTKTL (INDIRECT LABOR) - Admin, Gudang, QC, Supervisor, dll
         \Log::info("COA Mapping: {$pegawai->nama} (BTKTL) → COA 53");
         return '53';
+    }
+
+    /**
+     * Generate nomor penggajian dengan format PGJ/YYYY/XXX
+     * Per user per tahun, mulai dari 001
+     */
+    private function generateNomorPenggajian($tahun = null)
+    {
+        $tahun = $tahun ?? now()->year;
+        $userId = auth()->id();
+        
+        // Hitung jumlah penggajian yang sudah ada untuk user ini di tahun ini
+        $count = Penggajian::where('user_id', $userId)
+            ->whereYear('created_at', $tahun)
+            ->count();
+        
+        // Nomor berikutnya adalah count + 1
+        $nomorUrut = str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+        
+        $nomor = "PGJ/{$tahun}/{$nomorUrut}";
+        
+        \Log::info("Generated nomor penggajian", [
+            'user_id' => $userId,
+            'tahun' => $tahun,
+            'nomor' => $nomor,
+            'count' => $count
+        ]);
+        
+        return $nomor;
     }
 }
