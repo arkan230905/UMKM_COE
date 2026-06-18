@@ -81,7 +81,19 @@ class BiayaBahanController extends Controller
         $bahanBakus = BahanBaku::where('user_id', auth()->id())->orderBy('nama_bahan')->get();
         $satuans = Satuan::where('user_id', auth()->id())->orderBy('nama')->get();
         
-        return view('master-data.biaya-bahan.create', compact('produk', 'bahanBakus', 'satuans'));
+        // Get COAs for bahan baku (persediaan/inventory accounts)
+        // Typically code 51 (BBB) or 114-116 (Persediaan)
+        $coas = \App\Models\Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('kode_coa', 'LIKE', '51%')  // BBB accounts
+                      ->orWhere('kode_coa', 'LIKE', '114%') // Persediaan Bahan Baku
+                      ->orWhere('kode_coa', 'LIKE', '115%') // Persediaan Bahan Pendukung  
+                      ->orWhere('kode_coa', 'LIKE', '116%'); // Persediaan Barang Jadi
+            })
+            ->orderBy('kode_coa')
+            ->get();
+        
+        return view('master-data.biaya-bahan.create', compact('produk', 'bahanBakus', 'satuans', 'coas'));
     }
 
     /**
@@ -179,6 +191,7 @@ class BiayaBahanController extends Controller
                 'user_id' => auth()->id(),
                 'produk_id' => $request->produk_id,
                 'bahan_baku_id' => $item['id'],
+                'coa_id' => $item['coa_id'] ?? null,
                 'jumlah' => $item['jumlah'],
                 'satuan' => $item['satuan'],
                 'harga_satuan' => $hargaSatuanAktual, // Use converted price

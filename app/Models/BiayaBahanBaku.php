@@ -16,6 +16,7 @@ class BiayaBahanBaku extends Model
         'user_id',
         'produk_id',
         'bahan_baku_id',
+        'coa_id',
         'jumlah',
         'satuan',
         'harga_satuan',
@@ -51,6 +52,14 @@ class BiayaBahanBaku extends Model
     public function bahanBaku()
     {
         return $this->belongsTo(BahanBaku::class);
+    }
+
+    /**
+     * Relationship to COA (Chart of Accounts)
+     */
+    public function coa()
+    {
+        return $this->belongsTo(Coa::class, 'coa_id');
     }
 
     /**

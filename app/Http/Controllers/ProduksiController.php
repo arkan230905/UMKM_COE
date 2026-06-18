@@ -865,12 +865,27 @@ return response()->json([
                 $biayaBahan = $hpp->biayaBahanBaku;
                 if ($biayaBahan && $biayaBahan->bahanBaku) {
                     $bahan = $biayaBahan->bahanBaku;
+                    
+                    // Get COA info if exists
+                    $coaInfo = '';
+                    $coaKode = '';
+                    if ($biayaBahan->coa_id) {
+                        $coa = \App\Models\Coa::find($biayaBahan->coa_id);
+                        if ($coa) {
+                            $coaKode = $coa->kode_coa;
+                            $coaInfo = $coa->kode_coa . ' - ' . $coa->nama_coa;
+                        }
+                    }
+                    
                     $breakdown['biaya_bahan']['bahan_baku'][] = [
                         'nama' => $bahan->nama_bahan,
                         'qty' => $biayaBahan->jumlah,
                         'satuan' => $biayaBahan->satuan ?: ($bahan->satuan->nama ?? 'Unit'),
                         'satuan_bahan' => $bahan->satuan->nama ?? 'Unit',
                         'harga_per_unit' => $biayaBahan->subtotal,
+                        'coa_id' => $biayaBahan->coa_id,
+                        'coa_kode' => $coaKode,
+                        'coa_info' => $coaInfo ?: 'Default (1141 - Pers. Bahan Baku)',
                         'coa_persediaan_kode' => $bahan->coa_persediaan_id ?? '1141',
                         'coa_persediaan_nama' => optional(\App\Models\Coa::where('kode_akun', $bahan->coa_persediaan_id)->first())->nama_akun ?? 'Pers. Bahan Baku',
                         'konversi_info' => $this->getKonversiInfo($bahan, $biayaBahan->satuan ?: ($bahan->satuan->nama ?? 'Unit'))
@@ -1158,6 +1173,7 @@ return response()->json([
             if ($biayaBahan && $biayaBahan->bahanBaku) {
                 $breakdown['bbb'][] = [
                     'bahan_baku_id' => $biayaBahan->bahan_baku_id,
+                    'coa_id' => $biayaBahan->coa_id, // Add COA ID for journal posting
                     'nama' => $biayaBahan->bahanBaku->nama_bahan,
                     'jumlah' => $biayaBahan->jumlah,
                     'satuan' => $biayaBahan->satuan,
@@ -1431,8 +1447,15 @@ return response()->json([
             foreach ($hppData['bbb'] as $bbb) {
                 $totalBahan = $bbb['subtotal'] * $qtyProd;
                 if ($totalBahan > 0) {
-                    // Get COA from bahan baku or use default
-                    $coaId = $this->getCoaIdByKode('1141'); // Default: Persediaan Bahan Baku
+                    // PENTING: Gunakan COA yang spesifik dari biaya_bahan_baku
+                    // Jika tidak ada, gunakan default 1141 (Persediaan Bahan Baku)
+                    $coaId = null;
+                    if (!empty($bbb['coa_id'])) {
+                        $coaId = $bbb['coa_id'];
+                    } else {
+                        // Fallback to default COA
+                        $coaId = $this->getCoaIdByKode('1141'); // Default: Persediaan Bahan Baku
+                    }
 
                     \App\Models\JurnalUmum::create([
                         'user_id' => $user_id,
