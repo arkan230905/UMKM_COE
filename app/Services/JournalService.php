@@ -893,4 +893,204 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
 
         $service->postWithUser($tanggal, 'sales_return', $returPenjualan->id, 'Retur Penjualan Refund #' . $returPenjualan->nomor_retur, $lines, $userId);
     }
+
+    /**
+     * Create journal entries for retur penjualan (sales return)
+     * Handles: refund, kredit, and tukar_barang
+     */
+    public static function createJournalFromReturPenjualan($returPenjualan): void
+    {
+        $service = new static();
+        
+        // Clear existing journal entries
+        $service->deleteByRef('sales_return', $returPenjualan->id);
+        
+        $lines = [];
+        $userId = $returPenjualan->user_id ?? auth()->id();
+        $tanggal = $returPenjualan->tanggal instanceof \Carbon\Carbon ? 
+                   $returPenjualan->tanggal->format('Y-m-d') : 
+                   $returPenjualan->tanggal;
+
+        // Get required accounts
+        $returCoa = Coa::where('user_id', $userId)
+            ->where(function($q) {
+                $q->where('nama_akun', 'Retur Penjualan')
+                  ->orWhere('nama_akun', 'like', '%Retur%Penjualan%');
+            })->first();
+        
+        if (!$returCoa) {
+            throw new \RuntimeException('Akun "Retur Penjualan" belum dibuat.');
+        }
+
+        $jenisRetur = $returPenjualan->jenis_retur ?? 'refund';
+        $totalRetur = (float)($returPenjualan->total_retur ?? 0);
+        $nilaiRetur = $totalRetur - (float)($returPenjualan->ppn ?? 0);
+
+        if ($jenisRetur === 'refund') {
+            // REFUND: Debit Retur Penjualan, Credit Kas/Bank/Piutang
+            $lines[] = [
+                'code' => $returCoa->kode_akun,
+                'debit' => $nilaiRetur,
+                'credit' => 0,
+                'memo' => 'Retur Penjualan - Refund'
+            ];
+
+            // Get debit account from penjualan if available
+            if ($returPenjualan->penjualan && $returPenjualan->penjualan->coa_id) {
+                $debitCoa = Coa::find($returPenjualan->penjualan->coa_id);
+            } else {
+                $debitCoa = Coa::where('user_id', $userId)
+                    ->where('nama_akun', 'Kas')
+                    ->first();
+            }
+
+            if (!$debitCoa) {
+                throw new \RuntimeException('Akun "Kas/Bank/Piutang" belum dibuat.');
+            }
+
+            $lines[] = [
+                'code' => $debitCoa->kode_akun,
+                'debit' => 0,
+                'credit' => $nilaiRetur,
+                'memo' => 'Penerimaan Retur Penjualan'
+            ];
+
+            // Handle PPN if exists
+            if ((float)($returPenjualan->ppn ?? 0) > 0) {
+                $ppnCoa = Coa::where('user_id', $userId)
+                    ->where('nama_akun', 'PPN Keluaran')
+                    ->first();
+
+                if ($ppnCoa) {
+                    $lines[] = [
+                        'code' => $ppnCoa->kode_akun,
+                        'debit' => (float)($returPenjualan->ppn ?? 0),
+                        'credit' => 0,
+                        'memo' => 'Pembalikan PPN'
+                    ];
+                }
+            }
+
+        } elseif ($jenisRetur === 'kredit') {
+            // KREDIT: Debit Retur Penjualan, Credit Piutang
+            $lines[] = [
+                'code' => $returCoa->kode_akun,
+                'debit' => $nilaiRetur,
+                'credit' => 0,
+                'memo' => 'Retur Penjualan - Kredit'
+            ];
+
+            // Get piutang account
+            $piutangCoa = Coa::where('user_id', $userId)
+                ->where('nama_akun', 'Piutang Usaha')
+                ->first();
+
+            if (!$piutangCoa) {
+                throw new \RuntimeException('Akun "Piutang Usaha" belum dibuat.');
+            }
+
+            $lines[] = [
+                'code' => $piutangCoa->kode_akun,
+                'debit' => 0,
+                'credit' => $nilaiRetur,
+                'memo' => 'Pengurangn Piutang - Retur'
+            ];
+
+            // Add inventory reversal entries
+            $inventoryLines = $service->createInventoryReversalLines($returPenjualan, $userId);
+            $lines = array_merge($lines, $inventoryLines);
+
+        } elseif ($jenisRetur === 'tukar_barang') {
+            // TUKAR BARANG: Similar to kredit + inventory handling
+            $lines[] = [
+                'code' => $returCoa->kode_akun,
+                'debit' => $nilaiRetur,
+                'credit' => 0,
+                'memo' => 'Retur Penjualan - Tukar Barang'
+            ];
+
+            // Get sales account
+            $penjualanCoa = Coa::where('user_id', $userId)
+                ->where('nama_akun', 'Penjualan')
+                ->first();
+
+            if (!$penjualanCoa) {
+                throw new \RuntimeException('Akun "Penjualan" belum dibuat.');
+            }
+
+            $lines[] = [
+                'code' => $penjualanCoa->kode_akun,
+                'debit' => 0,
+                'credit' => $nilaiRetur,
+                'memo' => 'Penjualan Tukar Barang'
+            ];
+
+            // Add inventory lines
+            $inventoryLines = $service->createInventoryReversalLines($returPenjualan, $userId);
+            $lines = array_merge($lines, $inventoryLines);
+        }
+
+        // Post the journal
+        $memo = 'Retur Penjualan #' . $returPenjualan->nomor_retur . ' (' . ucfirst($jenisRetur) . ')';
+        $service->postWithUser($tanggal, 'sales_return', $returPenjualan->id, $memo, $lines, $userId);
+    }
+
+    /**
+     * Create inventory reversal lines for retur penjualan
+     * (when goods are returned to inventory)
+     */
+    private function createInventoryReversalLines($returPenjualan, $userId): array
+    {
+        $lines = [];
+
+        if (!$returPenjualan->detailReturPenjualans || $returPenjualan->detailReturPenjualans->isEmpty()) {
+            return $lines;
+        }
+
+        // Get persediaan and hpp accounts
+        $persediaanCoa = Coa::where('user_id', $userId)
+            ->where('nama_akun', 'like', '%Persediaan%Barang Jadi%')
+            ->first();
+
+        if (!$persediaanCoa) {
+            throw new \RuntimeException('Akun "Persediaan Barang Jadi" belum dibuat.');
+        }
+
+        // For each returned item, create reversalentries
+        $totalHpp = 0;
+        foreach ($returPenjualan->detailReturPenjualans as $detail) {
+            if ($detail->produk && $detail->harga_satuan > 0) {
+                $hpp = (float)($detail->harga_satuan) * (int)($detail->jumlah ?? 1);
+                $totalHpp += $hpp;
+            }
+        }
+
+        if ($totalHpp > 0) {
+            // Debit: Persediaan Barang Jadi
+            $lines[] = [
+                'code' => $persediaanCoa->kode_akun,
+                'debit' => $totalHpp,
+                'credit' => 0,
+                'memo' => 'Pengembalian Barang ke Persediaan'
+            ];
+
+            // Credit: HPP (Harga Pokok Penjualan)
+            $hppCoa = Coa::where('user_id', $userId)
+                ->where(function($q) {
+                    $q->where('nama_akun', 'HPP')
+                      ->orWhere('nama_akun', 'like', '%Harga Pokok%');
+                })->first();
+
+            if ($hppCoa) {
+                $lines[] = [
+                    'code' => $hppCoa->kode_akun,
+                    'debit' => 0,
+                    'credit' => $totalHpp,
+                    'memo' => 'Pembalikan HPP - Retur'
+                ];
+            }
+        }
+
+        return $lines;
+    }
 }
