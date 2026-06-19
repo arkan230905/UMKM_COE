@@ -44,7 +44,7 @@ class UpdateSaldoAwalAllUsersSeeder extends Seeder
                 'saldo_awal' => 50000000,
             ],
             [
-                'kode_akun' => '1123',
+                'kode_akun' => '1113',
                 'nama_akun' => 'Bank Mandiri',
                 'saldo_awal' => 50000000,
             ],
@@ -101,6 +101,39 @@ class UpdateSaldoAwalAllUsersSeeder extends Seeder
         foreach ($users as $user) {
             $this->command->line("\n👤 Processing user: {$user->name} (ID: {$user->id})");
             $this->command->line("────────────────────────────────────");
+
+            // Karena Bank Mandiri diubah dari 1123 ke 1113, kita harus memastikan jika ada akun 1123 di-rename ke 1113 untuk menjaga relasi dan saldo.
+            $oldMandiri = DB::table('coas')
+                ->where('user_id', $user->id)
+                ->where('kode_akun', '1123')
+                ->first();
+            if ($oldMandiri) {
+                $exists1113 = DB::table('coas')->where('user_id', $user->id)->where('kode_akun', '1113')->exists();
+                if (!$exists1113) {
+                    DB::table('coas')
+                        ->where('id', $oldMandiri->id)
+                        ->update(['kode_akun' => '1113']);
+                } else {
+                    // Jika 1113 sudah ada, hapus yang 1123 jika kosong atau aman (kita asumsikan aman jika tidak update)
+                    DB::table('coas')->where('id', $oldMandiri->id)->delete();
+                }
+            }
+
+            // Seabank 1124 ke 1114
+            $oldSeabank = DB::table('coas')
+                ->where('user_id', $user->id)
+                ->where('kode_akun', '1124')
+                ->first();
+            if ($oldSeabank) {
+                $exists1114 = DB::table('coas')->where('user_id', $user->id)->where('kode_akun', '1114')->exists();
+                if (!$exists1114) {
+                    DB::table('coas')
+                        ->where('id', $oldSeabank->id)
+                        ->update(['kode_akun' => '1114']);
+                } else {
+                    DB::table('coas')->where('id', $oldSeabank->id)->delete();
+                }
+            }
 
             foreach ($saldoAwalData as $data) {
                 $coa = DB::table('coas')
@@ -172,7 +205,7 @@ class UpdateSaldoAwalAllUsersSeeder extends Seeder
         $tipeMap = [
             '1111' => 'Aset',
             '1112' => 'Aset',
-            '1123' => 'Aset',
+            '1113' => 'Aset',
             '112' => 'Aset',
             '113' => 'Aset',
             '118' => 'Aset',
@@ -191,7 +224,7 @@ class UpdateSaldoAwalAllUsersSeeder extends Seeder
         $saldoNormalMap = [
             '1111' => 'debit',
             '1112' => 'debit',
-            '1123' => 'debit',
+            '1113' => 'debit',
             '112' => 'debit',
             '113' => 'debit',
             '118' => 'debit',
