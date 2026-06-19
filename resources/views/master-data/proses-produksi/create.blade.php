@@ -56,7 +56,7 @@
                                 @endphp
                                 @foreach($jabatanBtkl as $jabatan)
                                     @php
-                                        $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama_kualifikasi)->count();
+                                        $pegawaiCount = \App\Models\Pegawai::where('kualifikasi_id', $jabatan->id)->count();
                                     @endphp
                                     <option value="{{ $jabatan->id }}" 
                                             data-tarif="{{ $jabatan->tarif_produk ?? $jabatan->tarif }}"
