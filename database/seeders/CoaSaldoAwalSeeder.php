@@ -43,7 +43,7 @@ class CoaSaldoAwalSeeder extends Seeder
                 'tanggal_saldo_awal' => now()->format('Y-m-d'),
             ],
             [
-                'kode_akun' => '1123',
+                'kode_akun' => '1113',
                 'nama_akun' => 'Bank Mandiri',
                 'tipe_akun' => 'Aset',
                 'saldo_normal' => 'debit',

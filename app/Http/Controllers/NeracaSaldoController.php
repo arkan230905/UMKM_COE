@@ -219,13 +219,14 @@ class NeracaSaldoController extends Controller
                 $saldoAkhir = $account['saldo_akhir'] ?? 0;
 
                 // Simpan/update sebagai saldo_awal bulan berikutnya di coa_period_balances
+                // FIXED: Hapus coa_id karena kolom tidak ada di tabel coa_period_balances
+                // Tabel hanya menggunakan kode_akun sebagai referensi
                 \App\Models\CoaPeriodBalance::updateOrCreate(
                     [
                         'period_id'  => $periode->id,
                         'kode_akun'  => $account['kode_akun'],
                     ],
                     [
-                        'coa_id'     => $account['id'] ?? null,
                         'saldo_awal' => $saldoAkhir,
                         'saldo_akhir'=> $saldoAkhir,
                         'updated_at' => now(),

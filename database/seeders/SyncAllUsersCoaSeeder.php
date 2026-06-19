@@ -4,57 +4,32 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
-class DefaultCoaSeeder extends Seeder
+class SyncAllUsersCoaSeeder extends Seeder
 {
     /**
-     * COA Default untuk User Baru
-     * Dipanggil otomatis saat user registrasi via CreateDefaultUserData listener
-     * Atau manual dengan: php artisan db:seed --class=DefaultCoaSeeder
-     *
-     * Mencakup produk: Ayam Crispy Macdi, Ayam Goreng Bundo, Jasuke, Pisang Tanduk
-     *
-     * Daftar COA sesuai dengan Chart of Accounts resmi perusahaan:
-     * Total: 101 akun
+     * Seeder untuk memastikan SEMUA COA masuk ke SEMUA USER tanpa menghapus yang sudah ada.
+     * Ini juga mencakup saldo awal sesuai dengan permintaan terbaru.
      */
-    public function run(?int $userId = null): void
+    public function run(): void
     {
-        // Jika userId tidak diberikan, gunakan user pertama dari database
-        if ($userId === null) {
-            $user = DB::table('users')->first();
-            if (!$user) {
-                if ($this->command) {
-                    $this->command->error('No users found in database. Please create a user first.');
-                }
-                return;
-            }
-            $userId = $user->id;
-        }
+        $now = Carbon::now();
+        $users = DB::table('users')->get();
 
-        // Jangan buat ulang jika sudah ada
-        if (DB::table('coas')->where('user_id', $userId)->exists()) {
-            if ($this->command) {
-                $this->command->info("COA already exists for user ID: {$userId}");
-            }
+        if ($users->isEmpty()) {
+            $this->command->error('No users found in database.');
             return;
         }
 
-        $now = now();
-
         $coas = [
-            // =========================================================
             // ASET (11)
-            // =========================================================
             ['kode_akun' => '11',    'nama_akun' => 'Aset',                                            'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
-
-            // Kas Bank (111)
             ['kode_akun' => '111',   'nama_akun' => 'Kas Bank',                                        'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '1111',  'nama_akun' => 'Bank BRI',                                        'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 100000000],
             ['kode_akun' => '1112',  'nama_akun' => 'Bank BCA',                                        'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 50000000],
             ['kode_akun' => '1113',  'nama_akun' => 'Bank Mandiri',                                    'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 50000000],
             ['kode_akun' => '1114',  'nama_akun' => 'Seabank',                                         'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
-
-            // Kas & Kas Kecil
             ['kode_akun' => '112',   'nama_akun' => 'Kas',                                             'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 75000000],
             ['kode_akun' => '113',   'nama_akun' => 'Kas Kecil',                                       'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 1000000],
 
@@ -91,7 +66,6 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '1172',  'nama_akun' => 'Pers. Barang Dalam Proses - BTKL (WIP BTKL)',     'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '1173',  'nama_akun' => 'Pers. Barang Dalam Proses - BOP (WIP BOP)',       'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // Aset Lainnya
             ['kode_akun' => '118',   'nama_akun' => 'Piutang',                                         'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 11000000],
             ['kode_akun' => '119',   'nama_akun' => 'Peralatan',                                       'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '120',   'nama_akun' => 'Akumulasi Penyusutan Peralatan',                  'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
@@ -103,24 +77,18 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '126',   'nama_akun' => 'Akumulasi Penyusutan Mesin',                      'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '127',   'nama_akun' => 'PPN Masukkan',                                    'tipe_akun' => 'Aset',      'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // KEWAJIBAN (21)
-            // =========================================================
+            // Hutang (21)
             ['kode_akun' => '21',    'nama_akun' => 'Hutang',                                          'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '211',   'nama_akun' => 'Hutang Usaha',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 12000000],
             ['kode_akun' => '212',   'nama_akun' => 'Hutang Gaji',                                     'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '213',   'nama_akun' => 'PPN Keluaran',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // MODAL (31)
-            // =========================================================
+            // Modal (31)
             ['kode_akun' => '31',    'nama_akun' => 'Modal',                                           'tipe_akun' => 'Modal',     'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '311',   'nama_akun' => 'Modal Usaha',                                     'tipe_akun' => 'Modal',     'saldo_normal' => 'kredit', 'saldo_awal' => 275000000],
             ['kode_akun' => '312',   'nama_akun' => 'Prive',                                           'tipe_akun' => 'Modal',     'saldo_normal' => 'kredit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // PENDAPATAN (41)
-            // =========================================================
+            // Pendapatan (41)
             ['kode_akun' => '41',    'nama_akun' => 'Penjualan',                                       'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '411',   'nama_akun' => 'Penjualan - Produk Ayam Crispy Macdi',            'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '412',   'nama_akun' => 'Penjualan - Produk Ayam Goreng Bundo',            'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
@@ -129,9 +97,7 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '42',    'nama_akun' => 'Retur Penjualan',                                 'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '43',    'nama_akun' => 'Pendapatan Lain-Lain',                            'tipe_akun' => 'Pendapatan', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // BEBAN - BBB (Biaya Bahan Baku) (51)
-            // =========================================================
+            // Beban (51)
             ['kode_akun' => '51',    'nama_akun' => 'BBB - Biaya Bahan Baku',                          'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '511',   'nama_akun' => 'BBB - ayam potong',                               'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '512',   'nama_akun' => 'BBB - ayam kampung',                              'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
@@ -142,18 +108,12 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '517',   'nama_akun' => 'Beban Bonus',                                     'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '518',   'nama_akun' => 'Potongan Gaji',                                   'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // BEBAN - BTKL (Biaya Tenaga Kerja Langsung) (52)
-            // =========================================================
             ['kode_akun' => '52',    'nama_akun' => 'BTKL-Biaya Tenaga Kerja Langsung',                'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '521',   'nama_akun' => 'Beban Gaji dan upah (BTKL)  - Penggorengan',      'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '522',   'nama_akun' => 'Beban Gaji dan upah (BTKL)  - Perbumbuan',        'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '523',   'nama_akun' => 'Beban Gaji dan upah (BTKL)  - Pengemasan',        'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '524',   'nama_akun' => 'Beban Gaji dan upah (BTKL)  - Pengukusan',        'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // BEBAN - BOP (Biaya Overhead Pabrik) (53)
-            // =========================================================
             ['kode_akun' => '53',    'nama_akun' => 'BOP',                                             'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '531',   'nama_akun' => 'BOP-Air',                                         'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '532',   'nama_akun' => 'BOP-Minyak Goreng',                               'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
@@ -167,17 +127,11 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '5.311', 'nama_akun' => 'BOP - Coklat',                                    'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '5.322', 'nama_akun' => 'BOP-Kemasan',                                     'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // BEBAN - BOP BTKTL (Biaya Tenaga Kerja Tidak Langsung) (54)
-            // =========================================================
             ['kode_akun' => '54',    'nama_akun' => 'BOP BTKTL-Biaya Tenaga Kerja Tidak Langsung',     'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '541',   'nama_akun' => 'BOP BTKTL - Admin Produksi',                      'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '542',   'nama_akun' => 'BOP BTKTL - Manager Produksi',                    'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '543',   'nama_akun' => 'BOP BTKTL - Mandor',                              'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // BEBAN - BOP Lainnya (55)
-            // =========================================================
             ['kode_akun' => '55',    'nama_akun' => 'BOP Lainnya',                                     'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '551',   'nama_akun' => 'BOP - Listrik',                                   'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '552',   'nama_akun' => 'BOP - Air',                                       'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
@@ -189,9 +143,6 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '558',   'nama_akun' => 'Beban Transport Pembelian',                       'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '559',   'nama_akun' => 'Diskon Pembelian',                                'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
 
-            // =========================================================
-            // BEBAN - Harga Pokok Penjualan (56)
-            // =========================================================
             ['kode_akun' => '56',    'nama_akun' => 'Harga Pokok Penjualan',                           'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '561',   'nama_akun' => 'Harga Pokok Penjualan - Produk Ayam Crispy Macdi','tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
             ['kode_akun' => '562',   'nama_akun' => 'Harga Pokok Penjualan - Produk Ayam Goreng Bundo','tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
@@ -199,27 +150,77 @@ class DefaultCoaSeeder extends Seeder
             ['kode_akun' => '564',   'nama_akun' => 'Harga Pokok Penjualan - Pisang Tanduk',           'tipe_akun' => 'Beban',     'saldo_normal' => 'debit', 'saldo_awal' => 0],
         ];
 
-        $rows = [];
-        foreach ($coas as $coa) {
-            $rows[] = [
-                'user_id'            => $userId,
-                'kode_akun'          => $coa['kode_akun'],
-                'nama_akun'          => $coa['nama_akun'],
-                'tipe_akun'          => $coa['tipe_akun'],
-                'kategori_akun'      => $coa['tipe_akun'],
-                'saldo_normal'       => $coa['saldo_normal'],
-                'saldo_awal'         => $coa['saldo_awal'],
-                'tanggal_saldo_awal' => $now,
-                'posted_saldo_awal'  => 0,
-                'created_at'         => $now,
-                'updated_at'         => $now,
-            ];
+        foreach ($users as $user) {
+            $this->command->info("Syncing COA for User: {$user->name} (ID: {$user->id})");
+
+            $createdCount = 0;
+            $updatedCount = 0;
+
+            // Handle rename for older codes to prevent conflicts
+            $this->handleRenames($user->id);
+
+            foreach ($coas as $coaData) {
+                $existing = DB::table('coas')
+                    ->where('user_id', $user->id)
+                    ->where('kode_akun', $coaData['kode_akun'])
+                    ->first();
+
+                if ($existing) {
+                    DB::table('coas')
+                        ->where('id', $existing->id)
+                        ->update([
+                            'nama_akun'          => $coaData['nama_akun'],
+                            'tipe_akun'          => $coaData['tipe_akun'],
+                            'kategori_akun'      => $coaData['tipe_akun'],
+                            'saldo_normal'       => $coaData['saldo_normal'],
+                            'saldo_awal'         => $coaData['saldo_awal'],
+                            'updated_at'         => $now,
+                        ]);
+                    $updatedCount++;
+                } else {
+                    DB::table('coas')->insert([
+                        'user_id'            => $user->id,
+                        'kode_akun'          => $coaData['kode_akun'],
+                        'nama_akun'          => $coaData['nama_akun'],
+                        'tipe_akun'          => $coaData['tipe_akun'],
+                        'kategori_akun'      => $coaData['tipe_akun'],
+                        'saldo_normal'       => $coaData['saldo_normal'],
+                        'saldo_awal'         => $coaData['saldo_awal'],
+                        'tanggal_saldo_awal' => $now,
+                        'posted_saldo_awal'  => 0,
+                        'created_at'         => $now,
+                        'updated_at'         => $now,
+                    ]);
+                    $createdCount++;
+                }
+            }
+
+            $this->command->info("  - Updated: {$updatedCount} | Created: {$createdCount}");
         }
 
-        DB::table('coas')->insert($rows);
+        $this->command->info("✅ Semua COA berhasil di-sync ke semua user beserta saldo awalnya!");
+    }
 
-        if ($this->command) {
-            $this->command->info("COA berhasil di-seed untuk user ID: {$userId} (" . count($rows) . " akun)");
+    private function handleRenames($userId)
+    {
+        $renames = [
+            '1123' => '1113', // Mandiri
+            '1124' => '1114', // Seabank
+            '5311' => '5.311', // Coklat
+            '5322' => '5.322', // Kemasan
+        ];
+
+        foreach ($renames as $old => $new) {
+            $oldRecord = DB::table('coas')->where('user_id', $userId)->where('kode_akun', $old)->first();
+            if ($oldRecord) {
+                $existsNew = DB::table('coas')->where('user_id', $userId)->where('kode_akun', $new)->exists();
+                if (!$existsNew) {
+                    DB::table('coas')->where('id', $oldRecord->id)->update(['kode_akun' => $new]);
+                } else {
+                    DB::table('coas')->where('id', $oldRecord->id)->delete();
+                }
+            }
         }
     }
 }
+
