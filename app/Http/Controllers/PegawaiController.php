@@ -204,7 +204,7 @@ class PegawaiController extends Controller
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
         if (strtolower($validated['kategori']) === 'btkl') {
-            \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
+            \App\Services\BomSyncService::syncBomFromKualifikasiChange($kualifikasi->id);
         }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
@@ -328,7 +328,7 @@ class PegawaiController extends Controller
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
         if (strtolower($validated['kategori']) === 'btkl') {
-            \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
+            \App\Services\BomSyncService::syncBomFromKualifikasiChange($kualifikasi->id);
         }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
