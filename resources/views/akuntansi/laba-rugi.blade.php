@@ -60,8 +60,7 @@
                                 @endphp
                                 @if($bal != 0)
                                 <tr>
-                                    <td class="ps-4">{{ $acc->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $acc->kode_akun }}</td>
+                                    <td class="ps-4" colspan="2">{{ $acc->kode_akun }} - {{ $acc->nama_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
                                 </tr>
                                 @endif
@@ -102,8 +101,7 @@
                                 @endphp
                                 @if($bal != 0)
                                 <tr>
-                                    <td class="ps-4">{{ $acc->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $acc->kode_akun }}</td>
+                                    <td class="ps-4" colspan="2">{{ $acc->kode_akun }} - {{ $acc->nama_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
                                 </tr>
                                 @endif
@@ -165,13 +163,12 @@
                                 @endphp
                                 @if($bal != 0)
                                 <tr>
-                                    <td class="ps-4">
-                                        {{ $acc->nama_akun }}
+                                    <td class="ps-4" colspan="2">
+                                        {{ $acc->kode_akun }} - {{ $acc->nama_akun }}
                                         @if(str_contains(strtolower($acc->nama_akun), 'gaji'))
                                             <small class="text-muted">(BTKTL - Biaya Tenaga Kerja Tidak Langsung)</small>
                                         @endif
                                     </td>
-                                    <td class="text-muted small">{{ $acc->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
                                 </tr>
                                 @endif

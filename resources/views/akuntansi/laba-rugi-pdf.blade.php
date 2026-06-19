@@ -174,8 +174,7 @@
                     @endphp
                     @if($bal != 0)
                     <tr>
-                        <td class="account-name">{{ $acc->nama_akun }}</td>
-                        <td class="account-code">{{ $acc->kode_akun }}</td>
+                        <td class="account-name" colspan="2">{{ $acc->kode_akun }} - {{ $acc->nama_akun }}</td>
                         <td class="amount">Rp {{ number_format($bal, 0, ',', '.') }}</td>
                     </tr>
                     @endif
@@ -207,8 +206,7 @@
                     @endphp
                     @if($bal != 0)
                     <tr>
-                        <td class="account-name">{{ $acc->nama_akun }}</td>
-                        <td class="account-code">{{ $acc->kode_akun }}</td>
+                        <td class="account-name" colspan="2">{{ $acc->kode_akun }} - {{ $acc->nama_akun }}</td>
                         <td class="amount">Rp {{ number_format($bal, 0, ',', '.') }}</td>
                     </tr>
                     @endif
@@ -262,13 +260,12 @@
                     @endphp
                     @if($bal != 0)
                     <tr>
-                        <td class="account-name">
-                            {{ $acc->nama_akun }}
+                        <td class="account-name" colspan="2">
+                            {{ $acc->kode_akun }} - {{ $acc->nama_akun }}
                             @if(str_contains(strtolower($acc->nama_akun), 'gaji'))
                                 <div style="font-size: 9px; color: #888; font-weight: normal; margin-top: 2px;">BTKTL (Gaji Admin, Supervisor)</div>
                             @endif
                         </td>
-                        <td class="account-code">{{ $acc->kode_akun }}</td>
                         <td class="amount">Rp {{ number_format($bal, 0, ',', '.') }}</td>
                     </tr>
                     @endif

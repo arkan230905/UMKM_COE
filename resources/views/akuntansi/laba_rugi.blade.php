@@ -179,7 +179,7 @@
         @php $s = $getSaldo($coa); @endphp
         <div class="lr-row">
             <div class="rname">
-                <div class="main">{{ $coa->nama_akun }}</div>
+                <div class="main">{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</div>
             </div>
             <div class="ramt">Rp {{ number_format($s,0,',','.') }}</div>
         </div>
@@ -210,7 +210,7 @@
     {{-- HPP sebagai pengurang --}}
     <div class="lr-hpp">
         <div class="rname">
-            <div class="main">Modal Barang Terjual (HPP)</div>
+            <div class="main">{{ $hppCoa ? $hppCoa->kode_akun . ' - ' . $hppCoa->nama_akun : 'Modal Barang Terjual (HPP)' }}</div>
             <div class="hint">Biaya pokok produk yang terjual</div>
         </div>
         <div class="ramt">− Rp {{ number_format($totalHpp,0,',','.') }}</div>
@@ -257,7 +257,7 @@
         @php $s = $getSaldo($coa); @endphp
         <div class="lr-row">
             <div class="rname">
-                <div class="main">{{ $coa->nama_akun }}</div>
+                <div class="main">{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</div>
             </div>
             <div class="ramt">Rp {{ number_format($s,0,',','.') }}</div>
         </div>

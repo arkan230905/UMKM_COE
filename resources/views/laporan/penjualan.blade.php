@@ -344,9 +344,18 @@
                                     <option value="credit" {{ request('metode_pembayaran') == 'credit' ? 'selected' : '' }}>Kredit</option>
                                 </select>
                             </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100" style="border-radius: 6px; font-weight: 500; padding: 0.5rem;">
-                                    <i class="fas fa-search me-2"></i>Filter
+                            <div class="col-md-2">
+                                <label class="form-label">Produk</label>
+                                <select name="produk_id" class="form-select">
+                                    <option value="">Semua Produk</option>
+                                    @foreach($produks ?? [] as $p)
+                                        <option value="{{ $p->id }}" {{ request('produk_id') == $p->id ? 'selected' : '' }}>{{ $p->nama_produk }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100" style="border-radius: 6px; font-weight: 500; padding: 0.5rem;" title="Filter">
+                                    <i class="fas fa-search"></i>
                                 </button>
                             </div>
                         </form>
@@ -485,16 +494,70 @@
                             <thead>
                                 <tr>
                                     <th>No.</th>
-                                    <th>No. Transaksi</th>
-                                    <th>Tanggal</th>
-                                    <th>Pembayaran</th>
+                                    <th class="nowrap sortable" data-sort="nomor_penjualan" style="cursor: pointer;">
+                                        No. Transaksi
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by', 'tanggal') == 'nomor_penjualan')
+                                                @if(request('sort_order', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
+                                    <th class="nowrap sortable" data-sort="tanggal" style="cursor: pointer;">
+                                        Tanggal
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by', 'tanggal') == 'tanggal')
+                                                @if(request('sort_order', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
+                                    <th class="nowrap sortable" data-sort="payment_method" style="cursor: pointer;">
+                                        Pembayaran
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by', 'tanggal') == 'payment_method')
+                                                @if(request('sort_order', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
                                     <th>Produk</th>
                                     <th class="text-end">Qty</th>
                                     <th class="text-end">Harga/Satuan</th>
                                     <th class="text-end">HPP</th>
                                     <th class="text-end">Profit</th>
-                                    <th class="text-end">Diskon</th>
-                                    <th class="text-end">Total Akhir</th>
+                                    <th class="text-end nowrap sortable" data-sort="total" style="cursor: pointer;">
+                                        Diskon
+                                    </th>
+                                    <th class="text-end nowrap sortable" data-sort="grand_total" style="cursor: pointer;">
+                                        Total Akhir
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by', 'tanggal') == 'grand_total')
+                                                @if(request('sort_order', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
                                     <th>Qty Retur</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
@@ -761,6 +824,15 @@
                                 </select>
                             </div>
                             <div class="col-md-2">
+                                <label class="form-label">Produk</label>
+                                <select name="produk_id" class="form-select">
+                                    <option value="">Semua Produk</option>
+                                    @foreach($produks ?? [] as $p)
+                                        <option value="{{ $p->id }}" {{ request('produk_id') == $p->id ? 'selected' : '' }}>{{ $p->nama_produk }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Periode</label>
                                 <select name="periode_retur" class="form-select">
                                     <option value="harian">Harian</option>
@@ -768,9 +840,9 @@
                                     <option value="bulanan" selected>Bulanan</option>
                                 </select>
                             </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100" style="border-radius: 6px; font-weight: 500; padding: 0.5rem;">
-                                    <i class="fas fa-search me-2"></i>Filter
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100" style="border-radius: 6px; font-weight: 500; padding: 0.5rem;" title="Filter">
+                                    <i class="fas fa-search"></i>
                                 </button>
                             </div>
                         </form>
@@ -886,13 +958,78 @@
                             <thead>
                                 <tr>
                                     <th>No.</th>
-                                    <th>No. Retur</th>
-                                    <th>Tanggal</th>
+                                    <th class="nowrap sortable-retur" data-sort="nomor_retur" style="cursor: pointer;">
+                                        No. Retur
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by_retur', 'tanggal') == 'nomor_retur')
+                                                @if(request('sort_order_retur', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
+                                    <th class="nowrap sortable-retur" data-sort="tanggal" style="cursor: pointer;">
+                                        Tanggal
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by_retur', 'tanggal') == 'tanggal')
+                                                @if(request('sort_order_retur', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
                                     <th>No. Penjualan</th>
                                     <th>Deskripsi</th>
-                                    <th>Kompensasi</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Total Retur</th>
+                                    <th class="nowrap sortable-retur" data-sort="jenis_retur" style="cursor: pointer;">
+                                        Kompensasi
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by_retur', 'tanggal') == 'jenis_retur')
+                                                @if(request('sort_order_retur', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
+                                    <th class="nowrap sortable-retur" data-sort="status" style="cursor: pointer;">
+                                        Status
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by_retur', 'tanggal') == 'status')
+                                                @if(request('sort_order_retur', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
+                                    <th class="text-end nowrap sortable-retur" data-sort="total_retur" style="cursor: pointer;">
+                                        Total Retur
+                                        <span class="sort-icon ms-2">
+                                            @if(request('sort_by_retur', 'tanggal') == 'total_retur')
+                                                @if(request('sort_order_retur', 'desc') == 'asc')
+                                                    <i class="fas fa-sort-up text-primary"></i>
+                                                @else
+                                                    <i class="fas fa-sort-down text-primary"></i>
+                                                @endif
+                                            @else
+                                                <i class="fas fa-sort text-muted"></i>
+                                            @endif
+                                        </span>
+                                    </th>
                                     <th>Produk</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
@@ -983,10 +1120,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const salesChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
+            labels: {!! json_encode($summaryData['chart']['labels'] ?? []) !!},
             datasets: [{
                 label: 'Penjualan Produk',
-                data: [200000, 180000, 220000, 250000, 300000, 280000, 320000, 350000, 380000, 400000, 420000, 380000, 360000, 340000, 380000, 400000, 420000, 380000, 360000, 340000, 380000, 400000, 420000, 380000, 360000, 340000, 380000, 400000, 420000, 380000],
+                data: {!! json_encode($summaryData['chart']['produk'] ?? []) !!},
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 tension: 0.4,
@@ -994,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 borderWidth: 3
             }, {
                 label: 'Ongkir',
-                data: [15000, 12000, 18000, 20000, 25000, 22000, 28000, 30000, 32000, 35000, 38000, 32000, 30000, 28000, 32000, 35000, 38000, 32000, 30000, 28000, 32000, 35000, 38000, 32000, 30000, 28000, 32000, 35000, 38000, 32000],
+                data: {!! json_encode($summaryData['chart']['ongkir'] ?? []) !!},
                 borderColor: '#3b82f6',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 tension: 0.4,
@@ -1002,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 borderWidth: 3
             }, {
                 label: 'PPN',
-                data: [22000, 19800, 24200, 27500, 33000, 30800, 35200, 38500, 41800, 44000, 46200, 41800, 39600, 37400, 41800, 44000, 46200, 41800, 39600, 37400, 41800, 44000, 46200, 41800, 39600, 37400, 41800, 44000, 46200, 41800],
+                data: {!! json_encode($summaryData['chart']['ppn'] ?? []) !!},
                 borderColor: '#8b5cf6',
                 backgroundColor: 'rgba(139, 92, 246, 0.1)',
                 tension: 0.4,
@@ -1164,6 +1301,8 @@ document.addEventListener('DOMContentLoaded', function() {
         addInput('tanggal_mulai', tanggalMulai);
         addInput('tanggal_selesai', tanggalSelesai);
         addInput('metode_pembayaran', metodePembayaran);
+        const produkId = document.querySelector('select[name="produk_id"]').value;
+        addInput('produk_id', produkId);
 
         // Submit form
         document.body.appendChild(form);
@@ -1176,6 +1315,56 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.innerHTML = originalText;
         }, 2000);
     });
+
+    // Handle sortable column clicks for Penjualan
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentSortBy = urlParams.get('sort_by') || 'tanggal';
+            const currentSortOrder = urlParams.get('sort_order') || 'desc';
+
+            let newSortOrder = 'asc';
+            if (currentSortBy === sortBy && currentSortOrder === 'asc') {
+                newSortOrder = 'desc';
+            }
+
+            urlParams.set('sort_by', sortBy);
+            urlParams.set('sort_order', newSortOrder);
+            urlParams.set('tab', 'penjualan');
+
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        });
+    });
+
+    // Handle sortable column clicks for Retur
+    document.querySelectorAll('.sortable-retur').forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentSortBy = urlParams.get('sort_by_retur') || 'tanggal';
+            const currentSortOrder = urlParams.get('sort_order_retur') || 'desc';
+
+            let newSortOrder = 'asc';
+            if (currentSortBy === sortBy && currentSortOrder === 'asc') {
+                newSortOrder = 'desc';
+            }
+
+            urlParams.set('sort_by_retur', sortBy);
+            urlParams.set('sort_order_retur', newSortOrder);
+            urlParams.set('tab', 'retur');
+
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+        });
+    });
+
+    // Handle tab persistence
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab === 'retur') {
+        const returTab = new bootstrap.Tab(document.getElementById('retur-tab'));
+        returTab.show();
+    }
 });
 </script>
 @endsection

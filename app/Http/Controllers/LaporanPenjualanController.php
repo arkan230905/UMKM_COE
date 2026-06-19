@@ -19,6 +19,11 @@ class LaporanPenjualanController extends Controller
         $periode = $request->get('periode', 'bulanan');
         $metodePembayaran = $request->get('metode_pembayaran');
         $statusTransaksi = $request->get('status_transaksi');
+        $produkId = $request->get('produk_id');
+        $sortBy = $request->get('sort_by', 'tanggal');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        $produks = \App\Models\Produk::where('user_id', auth()->id())->get();
 
         // Build query for penjualan - CRITICAL: Filter by logged-in user (owner)
         $query = Penjualan::with(['produk', 'details.produk', 'returPenjualans.detailReturPenjualans'])
@@ -29,13 +34,29 @@ class LaporanPenjualanController extends Controller
             $query->where('payment_method', $metodePembayaran);
         }
 
-        $penjualans = $query->orderBy('tanggal', 'desc')->paginate(5);
+        if ($produkId) {
+            $query->where(function($q) use ($produkId) {
+                $q->where('produk_id', $produkId)
+                  ->orWhereHas('details', function($q2) use ($produkId) {
+                      $q2->where('produk_id', $produkId);
+                  });
+            });
+        }
+
+        $allowedSorts = ['nomor_penjualan', 'tanggal', 'payment_method', 'total', 'grand_total'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'tanggal';
+        }
+
+        $penjualans = $query->orderBy($sortBy, $sortOrder)->paginate(5);
 
         // Calculate summary data
-        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran, $statusTransaksi);
+        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran, $statusTransaksi, $produkId, $periode);
 
         // Get retur data
-        $returData = $this->getReturData($tanggalMulai, $tanggalSelesai);
+        $returSortBy = $request->get('sort_by_retur', 'tanggal');
+        $returSortOrder = $request->get('sort_order_retur', 'desc');
+        $returData = $this->getReturData($tanggalMulai, $tanggalSelesai, $produkId, $returSortBy, $returSortOrder);
 
         return view('laporan.penjualan', compact(
             'penjualans',
@@ -45,10 +66,12 @@ class LaporanPenjualanController extends Controller
             'tanggalSelesai',
             'periode',
             'metodePembayaran',
-            'statusTransaksi'
+            'statusTransaksi',
+            'produks',
+            'produkId'
         ));
     }
-    private function calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran = null, $statusTransaksi = null)
+    private function calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran = null, $statusTransaksi = null, $produkId = null, $periode = 'bulanan')
     {
         $query = Penjualan::with(['details.produk', 'produk'])
             ->where('user_id', auth()->id()) // CRITICAL: Multi-tenant isolation
@@ -58,7 +81,16 @@ class LaporanPenjualanController extends Controller
             $query->where('payment_method', $metodePembayaran);
         }
 
-        $penjualans = $query->get();
+        if ($produkId) {
+            $query->where(function($q) use ($produkId) {
+                $q->where('produk_id', $produkId)
+                  ->orWhereHas('details', function($q2) use ($produkId) {
+                      $q2->where('produk_id', $produkId);
+                  });
+            });
+        }
+
+        $penjualans = $query->orderBy('tanggal', 'asc')->get();
 
         $totalPenjualanProduk = 0;
         $totalOngkir = 0;
@@ -66,39 +98,82 @@ class LaporanPenjualanController extends Controller
         $totalDiskon = 0;
         $totalTransaksi = $penjualans->count();
 
+        $chartGrouped = [];
+        $start = \Carbon\Carbon::parse($tanggalMulai);
+        $end = \Carbon\Carbon::parse($tanggalSelesai);
+        
+        for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+            if ($periode == 'bulanan') {
+                $key = $date->format('M Y');
+            } elseif ($periode == 'mingguan') {
+                $key = 'W' . $date->weekOfYear . ' ' . $date->format('Y');
+            } else {
+                $key = $date->format('d/m/Y');
+            }
+            if (!isset($chartGrouped[$key])) {
+                $chartGrouped[$key] = ['produk' => 0, 'ongkir' => 0, 'ppn' => 0];
+            }
+        }
+
         foreach ($penjualans as $penjualan) {
+            $hasMatchingProduct = false;
+            $transactionTotalProduk = 0;
+            $transactionTotalDiskon = 0;
+
             // Calculate product subtotal berdasarkan details atau header
             $detailCount = $penjualan->details->count();
             
-            if ($detailCount > 1) {
-                // Multiple details
+            if ($detailCount > 0) {
                 foreach ($penjualan->details as $detail) {
+                    if ($produkId && $detail->produk_id != $produkId) {
+                        continue;
+                    }
+                    $hasMatchingProduct = true;
                     $subtotal = $detail->jumlah * $detail->harga_satuan;
-                    $totalPenjualanProduk += $subtotal;
-                    $totalDiskon += $detail->diskon_nominal ?? 0;
+                    $transactionTotalProduk += $subtotal;
+                    $transactionTotalDiskon += $detail->diskon_nominal ?? 0;
                 }
-            } elseif ($detailCount === 1) {
-                // Single detail
-                $detail = $penjualan->details[0];
-                $subtotal = $detail->jumlah * $detail->harga_satuan;
-                $totalPenjualanProduk += $subtotal;
-                $totalDiskon += $detail->diskon_nominal ?? 0;
             } else {
                 // Header level data
-                $hdrHarga = $penjualan->harga_satuan;
-                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                if (!$produkId || $penjualan->produk_id == $produkId) {
+                    $hasMatchingProduct = true;
+                    $hdrHarga = $penjualan->harga_satuan;
+                    if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                        $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                    }
+                    $subtotal = ($penjualan->jumlah ?? 0) * ($hdrHarga ?? 0);
+                    $transactionTotalProduk += $subtotal;
+                    $transactionTotalDiskon += $penjualan->diskon_nominal ?? 0;
                 }
-                $subtotal = ($penjualan->jumlah ?? 0) * ($hdrHarga ?? 0);
-                $totalPenjualanProduk += $subtotal;
-                $totalDiskon += $penjualan->diskon_nominal ?? 0;
             }
 
-            $totalOngkir += $penjualan->biaya_ongkir ?? 0;
-        }
+            if ($hasMatchingProduct) {
+                $totalPenjualanProduk += $transactionTotalProduk;
+                $totalDiskon += $transactionTotalDiskon;
+                
+                $ongkir = $penjualan->biaya_ongkir ?? 0;
+                $totalOngkir += $ongkir;
+                
+                $ppn = ($transactionTotalProduk + $ongkir) * 0.11;
+                $totalPPN += $ppn;
 
-        // Calculate PPN (11% of product subtotal + ongkir)
-        $totalPPN = ($totalPenjualanProduk + $totalOngkir) * 0.11;
+                $date = \Carbon\Carbon::parse($penjualan->tanggal);
+                if ($periode == 'bulanan') {
+                    $key = $date->format('M Y');
+                } elseif ($periode == 'mingguan') {
+                    $key = 'W' . $date->weekOfYear . ' ' . $date->format('Y');
+                } else {
+                    $key = $date->format('d/m/Y');
+                }
+
+                if (!isset($chartGrouped[$key])) {
+                    $chartGrouped[$key] = ['produk' => 0, 'ongkir' => 0, 'ppn' => 0];
+                }
+                $chartGrouped[$key]['produk'] += $transactionTotalProduk;
+                $chartGrouped[$key]['ongkir'] += $ongkir;
+                $chartGrouped[$key]['ppn'] += $ppn;
+            }
+        }
 
         $totalPendapatanKotor = $totalPenjualanProduk + $totalOngkir + $totalPPN;
         $totalPendapatanBersih = $totalPendapatanKotor - $totalDiskon;
@@ -111,9 +186,15 @@ class LaporanPenjualanController extends Controller
             'total_transaksi' => $totalTransaksi,
             'total_pendapatan_kotor' => $totalPendapatanKotor,
             'total_pendapatan_bersih' => $totalPendapatanBersih,
+            'chart' => [
+                'labels' => array_keys($chartGrouped),
+                'produk' => array_column($chartGrouped, 'produk'),
+                'ongkir' => array_column($chartGrouped, 'ongkir'),
+                'ppn' => array_column($chartGrouped, 'ppn'),
+            ]
         ];
     }
-    private function getReturData($tanggalMulai, $tanggalSelesai)
+    private function getReturData($tanggalMulai, $tanggalSelesai, $produkId = null, $sortBy = 'tanggal', $sortOrder = 'desc')
     {
         try {
             $returQuery = ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
@@ -121,7 +202,19 @@ class LaporanPenjualanController extends Controller
                     $query->where('user_id', auth()->id()); // CRITICAL: Multi-tenant isolation
                 })
                 ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
-            $returs = $returQuery->get();
+
+            if ($produkId) {
+                $returQuery->whereHas('detailReturPenjualans', function($q) use ($produkId) {
+                    $q->where('produk_id', $produkId);
+                });
+            }
+
+            $allowedSorts = ['nomor_retur', 'tanggal', 'jenis_retur', 'status', 'total_retur'];
+            if (!in_array($sortBy, $allowedSorts)) {
+                $sortBy = 'tanggal';
+            }
+
+            $returs = $returQuery->orderBy($sortBy, $sortOrder)->get();
 
             $totalRetur = $returs->count();
             $totalNilaiRetur = $returs->sum('total_retur');
@@ -153,6 +246,8 @@ class LaporanPenjualanController extends Controller
         $tanggalMulai = $request->get('tanggal_mulai', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $tanggalSelesai = $request->get('tanggal_selesai', Carbon::now()->format('Y-m-d'));
         $metodePembayaran = $request->get('metode_pembayaran');
+        $produkId = $request->get('produk_id');
+        $periode = $request->get('periode', 'bulanan');
 
         // Build query for penjualan
         $query = Penjualan::with(['produk', 'details.produk', 'returPenjualans.detailReturPenjualans'])
@@ -163,13 +258,22 @@ class LaporanPenjualanController extends Controller
             $query->where('payment_method', $metodePembayaran);
         }
 
+        if ($produkId) {
+            $query->where(function($q) use ($produkId) {
+                $q->where('produk_id', $produkId)
+                  ->orWhereHas('details', function($q2) use ($produkId) {
+                      $q2->where('produk_id', $produkId);
+                  });
+            });
+        }
+
         $penjualans = $query->orderBy('tanggal', 'desc')->get();
 
         // Calculate summary data
-        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran);
+        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran, null, $produkId, $periode);
 
         // Get retur data
-        $returData = $this->getReturData($tanggalMulai, $tanggalSelesai);
+        $returData = $this->getReturData($tanggalMulai, $tanggalSelesai, $produkId);
 
         // Create PDF
         $pdf = \PDF::loadView('laporan.penjualan-pdf', compact(
@@ -178,7 +282,8 @@ class LaporanPenjualanController extends Controller
             'returData',
             'tanggalMulai',
             'tanggalSelesai',
-            'metodePembayaran'
+            'metodePembayaran',
+            'produkId'
         ));
 
         $pdf->setPaper('A4', 'landscape');
