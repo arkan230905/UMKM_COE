@@ -53,9 +53,9 @@
                         <i class="fas fa-check-circle me-1"></i> Posting Saldo
                     </button>
                     @if(isset($neracaSaldoData['is_posted']) && $neracaSaldoData['is_posted'])
-                        <span class="badge bg-success d-flex align-items-center" id="postingStatusBadge" style="font-size: 0.85em; padding: 8px 12px;"><i class="bi bi-check-circle me-1"></i> Sudah Diposting</span>
+                        <span class="badge bg-success d-flex align-items-center" id="postingStatusBadge" style="font-size: 1rem; padding: 0.375rem 0.75rem; font-weight: 500; letter-spacing: 0.5px; line-height: 1.5;"><i class="bi bi-check-circle me-1"></i> Sudah Diposting</span>
                     @else
-                        <span class="badge bg-secondary d-flex align-items-center" id="postingStatusBadge" style="font-size: 0.85em; padding: 8px 12px;">Belum Diposting</span>
+                        <span class="badge bg-secondary d-flex align-items-center" id="postingStatusBadge" style="font-size: 1rem; padding: 0.375rem 0.75rem; font-weight: 500; letter-spacing: 0.5px; line-height: 1.5;">Belum Diposting</span>
                     @endif
                 </div>
             </form>
@@ -226,57 +226,6 @@
         </div>
     </div>
 
-    <!-- Summary Information -->
-    <div class="row mt-3">
-        <div class="col-md-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title text-primary">
-                        <i class="bi bi-info-circle"></i> Informasi Neraca Saldo
-                    </h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <ul class="mb-0 small text-muted">
-                                <li><strong>Sumber Data:</strong> Buku Besar (journal_lines)</li>
-                                <li><strong>Perhitungan:</strong> Saldo akhir = Saldo awal + Mutasi periode</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <ul class="mb-0 small text-muted">
-                                <li><strong>Prinsip:</strong> Total Debit harus sama dengan Total Kredit</li>
-                                <li><strong>Periode:</strong> {{ $labelPeriode }}</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title text-success">
-                        <i class="bi bi-calculator"></i> Ringkasan
-                    </h6>
-                    <div class="small">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Total Debit:</span>
-                            <strong class="text-primary">Rp {{ number_format($neracaSaldoData['total_debit'], 0, ',', '.') }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Total Kredit:</span>
-                            <strong class="text-success">Rp {{ number_format($neracaSaldoData['total_kredit'], 0, ',', '.') }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Status:</span>
-                            <span class="badge bg-{{ $neracaSaldoData['is_balanced'] ? 'success' : 'warning' }}">
-                                {{ $neracaSaldoData['is_balanced'] ? 'SEIMBANG' : 'TIDAK SEIMBANG' }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     @if(!$neracaSaldoData['is_balanced'])
         <div class="alert alert-warning shadow-sm mt-3">
@@ -684,33 +633,9 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
 
-        // Update summary cards if they exist
-        updateSummaryCards(data);
-    }
 
-    // Function to update summary cards
-    function updateSummaryCards(data) {
-        // Update ringkasan di card kanan bawah
-        const summaryCard = document.querySelector('.col-md-4 .card-body');
-        if (summaryCard) {
-            const debitElement = summaryCard.querySelector('.text-primary');
-            const kreditElement = summaryCard.querySelector('.text-success');
-            const statusElement = summaryCard.querySelector('.badge');
-            
-            if (debitElement) {
-                debitElement.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(data.total_debit)}`;
-            }
-            
-            if (kreditElement) {
-                kreditElement.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(data.total_kredit)}`;
-            }
-            
-            if (statusElement) {
-                statusElement.className = `badge bg-${data.is_balanced ? 'success' : 'warning'}`;
-                statusElement.textContent = data.is_balanced ? 'SEIMBANG' : 'TIDAK SEIMBANG';
-            }
-        }
-    }
+
+
 
     // Event listeners
     refreshBtn.addEventListener('click', function(e) {
