@@ -121,7 +121,20 @@ class PembelianJournalService
             
             // 4. CREDIT: Kas/Bank atau Utang berdasarkan metode pembayaran
             $totalAmount = $subtotalAmount + $ppnNominal + $biayaKirim;
+            
+            Log::info("Getting credit account info", [
+                'pembelian_id' => $pembelian->id,
+                'bank_id' => $pembelian->bank_id,
+                'payment_method' => $pembelian->payment_method
+            ]);
+            
             $creditInfo = $this->getCreditAccountInfo($pembelian);
+            
+            Log::info("Credit account determined", [
+                'coa_id' => $creditInfo['coa_id'],
+                'coa_code' => $creditInfo['coa_code'],
+                'coa_name' => $creditInfo['coa_name']
+            ]);
             
             $lines[] = [
                 'coa_id' => $creditInfo['coa_id'],
@@ -132,6 +145,7 @@ class PembelianJournalService
             
             Log::info("Jurnal Pembelian - Pembayaran", [
                 'method' => $pembelian->payment_method,
+                'bank_id' => $pembelian->bank_id,
                 'coa' => $creditInfo['coa_code'],
                 'coa_name' => $creditInfo['coa_name'],
                 'amount' => $totalAmount
@@ -320,64 +334,42 @@ class PembelianJournalService
         $coaName = null;
         $memo = '';
         
-        switch ($pembelian->payment_method) {
-            case 'cash':
-                if ($pembelian->bank_id) {
-                    // Gunakan akun kas/bank spesifik
-                    // Note: Coa model already has global scope for user_id filtering
-                    // But we make it explicit for clarity
-                    $coa = Coa::where('id', $pembelian->bank_id)
-                        ->where('user_id', auth()->id())
-                        ->first();
-                    if ($coa) {
-                        $coaId = $coa->id;
-                        $coaCode = $coa->kode_akun;
-                        $coaName = $coa->nama_akun;
-                        $memo = $coa->nama_akun; // Langsung pakai nama COA
-                    }
-                }
-                
-                // Fallback ke Kas
-                if (!$coaId) {
-                    $coa = $this->getCoaByCode('112'); // Kas
-                    $coaId = $coa->id;
-                    $coaCode = $coa->kode_akun;
-                    $coaName = $coa->nama_akun;
-                    $memo = $coa->nama_akun;
-                }
-                break;
-                
-            case 'transfer':
-                if ($pembelian->bank_id) {
-                    // Gunakan akun bank spesifik
-                    // Note: Coa model already has global scope for user_id filtering
-                    // But we make it explicit for clarity
-                    $coa = Coa::where('id', $pembelian->bank_id)
-                        ->where('user_id', auth()->id())
-                        ->first();
-                    if ($coa) {
-                        $coaId = $coa->id;
-                        $coaCode = $coa->kode_akun;
-                        $coaName = $coa->nama_akun;
-                        $memo = $coa->nama_akun; // Langsung pakai nama COA
-                    }
-                }
-                
-                // Fallback ke Kas di Bank
-                if (!$coaId) {
-                    $coa = $this->getCoaByCode('111'); // Kas Bank
-                    $coaId = $coa->id;
-                    $coaCode = $coa->kode_akun;
-                    $coaName = $coa->nama_akun;
-                    $memo = $coa->nama_akun;
-                }
-                break;
-                
-            case 'credit':
-            default:
-                // Utang Usaha
-                $coa = $this->getCoaByCode('210'); // Hutang Usaha
-                $coaId = $coa->id;
+        // PRIORITAS 1: Gunakan bank_id yang sudah dipilih user (PALING PENTING!)
+        if ($pembelian->bank_id) {
+            $coa = Coa::where('id', $pembelian->bank_id)
+                ->where('user_id', auth()->id())
+                ->first();
+            
+            if ($coa) {
+                return [
+                    'coa_id' => $coa->id,
+                    'coa_code' => $coa->kode_akun,
+                    'coa_name' => $coa->nama_akun,
+                    'memo' => $coa->nama_akun
+                ];
+            }
+        }
+        
+        // PRIORITAS 2: Jika payment_method credit, gunakan Hutang Usaha
+        if ($pembelian->payment_method === 'credit') {
+            $coa = $this->getCoaByCode('210'); // Hutang Usaha
+            return [
+                'coa_id' => $coa->id,
+                'coa_code' => $coa->kode_akun,
+                'coa_name' => $coa->nama_akun,
+                'memo' => 'Hutang Usaha'
+            ];
+        }
+        
+        // FALLBACK: Kas Bank (seharusnya tidak sampai sini jika bank_id ada)
+        $coa = $this->getCoaByCode('111');
+        return [
+            'coa_id' => $coa->id,
+            'coa_code' => $coa->kode_akun,
+            'coa_name' => $coa->nama_akun,
+            'memo' => $coa->nama_akun
+        ];
+    }
                 $coaCode = $coa->kode_akun;
                 $coaName = $coa->nama_akun;
                 $memo = $coa->nama_akun;
