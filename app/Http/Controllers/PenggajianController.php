@@ -484,7 +484,7 @@ class PenggajianController extends Controller
                 \Log::info('PRODUK-BASED penggajian created successfully', [
                     'penggajian_id' => $penggajian->id,
                     'total_produk' => $totalProduk,
-                    'gaji_produksi_mentah' => $gajiProduksi,
+                    'gaji_produksi_mentah' => $gajiProduksiFinal,
                     'gaji_produksi_final' => $gajiProduksiFinal,
                     'total_gaji' => $totalGaji,
                 ]);
