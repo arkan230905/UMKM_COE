@@ -49,20 +49,20 @@
                             <select name="jabatan_id" id="jabatanSelect" class="form-select @error('jabatan_id') is-invalid @enderror" required onchange="calculateBTKL()">
                                 <option value="">-- Pilih Jabatan BTKL --</option>
                                 @php
-                                    $jabatanBtkl = \App\Models\Jabatan::where('kategori', 'btkl')
+                                    $jabatanBtkl = \App\Models\Kualifikasi::where('kategori', 'btkl')
                                         ->where('user_id', auth()->id())
-                                        ->orderBy('nama')
+                                        ->orderBy('nama_kualifikasi')
                                         ->get();
                                 @endphp
                                 @foreach($jabatanBtkl as $jabatan)
                                     @php
-                                        $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
+                                        $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama_kualifikasi)->count();
                                     @endphp
                                     <option value="{{ $jabatan->id }}" 
                                             data-tarif="{{ $jabatan->tarif_produk ?? $jabatan->tarif }}"
                                             data-pegawai-count="{{ $pegawaiCount }}"
                                             {{ old('jabatan_id') == $jabatan->id ? 'selected' : '' }}>
-                                        {{ $jabatan->nama }} ({{ $pegawaiCount }} pegawai @ Rp {{ number_format($jabatan->tarif_produk ?? $jabatan->tarif, 0, ',', '.') }}/produk)
+                                        {{ $jabatan->nama_kualifikasi }} ({{ $pegawaiCount }} pegawai @ Rp {{ number_format($jabatan->tarif_produk ?? $jabatan->tarif, 0, ',', '.') }}/produk)
                                     </option>
                                 @endforeach
                             </select>
