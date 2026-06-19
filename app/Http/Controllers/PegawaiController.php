@@ -47,9 +47,9 @@ class PegawaiController extends Controller
     public function create()
     {
         // CRITICAL: Filter jabatans by user_id for multi-tenant
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_produk as tarif')
+        $jabatans = \App\Models\Jabatan::select('id','nama_kualifikasi','kategori','tunjangan','asuransi','gaji_pokok','tarif_produk as tarif')
             ->where('user_id', auth()->id())
-            ->orderBy('nama')
+            ->orderBy('nama_kualifikasi')
             ->get();
         
         // Get unique kategori values from Jabatan table
@@ -213,9 +213,9 @@ class PegawaiController extends Controller
     public function edit(Pegawai $pegawai)
     {
         // CRITICAL: Filter jabatans by user_id for multi-tenant
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_produk')
+        $jabatans = \App\Models\Jabatan::select('id','nama_kualifikasi','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_produk')
             ->where('user_id', auth()->id())
-            ->orderBy('nama')
+            ->orderBy('nama_kualifikasi')
             ->get();
         
         // Get unique kategori values from Jabatan table

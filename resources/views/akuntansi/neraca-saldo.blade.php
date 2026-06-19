@@ -149,47 +149,6 @@
     </div>
   </div>
 
-  @if($coas->count() > 0)
-  <div class="row mt-3">
-    <div class="col-md-6">
-      <div class="card border-info">
-        <div class="card-header bg-info text-white">
-          <strong><i class="bi bi-info-circle"></i> Informasi Neraca Saldo</strong>
-        </div>
-        <div class="card-body">
-          <ul class="mb-0">
-            <li><strong>Sumber Data:</strong> Buku Besar (journal_lines)</li>
-            <li><strong>Perhitungan:</strong> Saldo = Saldo Awal + Mutasi periode</li>
-            <li><strong>Prinsip:</strong> Total Debit harus sama dengan Total Kredit</li>
-            <li><strong>Periode:</strong> {{ \Carbon\Carbon::parse(request('tahun', date('Y')) . '-' . request('bulan', date('m')) . '-01')->isoFormat('MMMM YYYY') }}</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card border-success">
-        <div class="card-header bg-success text-white">
-          <strong><i class="bi bi-calculator"></i> Ringkasan</strong>
-        </div>
-        <div class="card-body">
-          <table class="table table-sm mb-0">
-            <tr>
-              <td><strong>Total Debit:</strong></td>
-              <td class="text-end"><strong>Rp {{ number_format($totalDebit, 0, ',', '.') }}</strong></td>
-            </tr>
-            <tr>
-              <td><strong>Total Kredit:</strong></td>
-              <td class="text-end"><strong>Rp {{ number_format($totalKredit, 0, ',', '.') }}</strong></td>
-            </tr>
-            <tr class="table-{{ $isBalanced ? 'success' : 'danger' }}">
-              <td><strong>Status:</strong></td>
-              <td class="text-end"><strong>{{ $isBalanced ? 'SEIMBANG ✓' : 'TIDAK SEIMBANG ✗' }}</strong></td>
-            </tr>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-  @endif
+
 </div>
 @endsection

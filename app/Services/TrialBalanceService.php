@@ -28,15 +28,38 @@ class TrialBalanceService
      */
     public function calculateTrialBalance($startDate, $endDate)
     {
+        // Cek apakah rantai posting terputus DULU sebelum iterasi
+        $periodeStr = Carbon::parse($startDate)->format('Y-m');
+        $hasPostedBefore = DB::table('coa_period_balances')->where('user_id', auth()->id())->exists();
+        $isChainBroken = false;
+        
+        if ($hasPostedBefore) {
+            $hasCurrentPeriodBalances = DB::table('coa_period_balances as cpb')
+                ->join('coa_periods as cp', 'cpb.period_id', '=', 'cp.id')
+                ->where('cpb.user_id', auth()->id())
+                ->where('cp.periode', $periodeStr)
+                ->exists();
+                
+            if (!$hasCurrentPeriodBalances) {
+                $isChainBroken = true;
+            }
+        }
+
+        // Cek apakah periode ini sudah diposting ke bulan berikutnya
+        $nextMonthStr = Carbon::parse($startDate)->addMonth()->format('Y-m');
+        $isPosted = DB::table('coa_period_balances as cpb')
+            ->join('coa_periods as cp', 'cpb.period_id', '=', 'cp.id')
+            ->where('cpb.user_id', auth()->id())
+            ->where('cp.periode', $nextMonthStr)
+            ->exists();
+
         // Ambil semua COA yang aktif, diurutkan berdasarkan kode akun
-        // PERBAIKAN: Filter by current user untuk multi-tenancy, lalu group by kode_akun
         $coas = Coa::select('id', 'kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal')
             ->where('user_id', auth()->id())
             ->orderBy('kode_akun')
             ->get()
             ->groupBy('kode_akun')
             ->map(function ($group) {
-                // Ambil COA pertama dari setiap grup kode_akun
                 return $group->first();
             });
 
@@ -50,45 +73,29 @@ class TrialBalanceService
             $isPersediaan = $this->isPersediaanAccount($coa);
             
             if ($isPersediaan) {
-                // UNTUK AKUN PERSEDIAAN: Ambil saldo akhir langsung dari Buku Besar
                 $saldoAkhirBukuBesar = $this->getSaldoAkhirFromBukuBesar($coa->id, $endDate);
                 $displayBalance = $this->mapSaldoBukuBesarToTrialBalance($saldoAkhirBukuBesar);
                 
-                // Data untuk akun persediaan
                 $accountData = [
                     'kode_akun' => $coa->kode_akun,
                     'nama_akun' => $coa->nama_akun,
                     'tipe_akun' => $coa->tipe_akun,
                     'saldo_awal' => $this->getSaldoAwal($coa, $startDate),
-                    'mutasi_debit' => 0, // Tidak relevan untuk persediaan
-                    'mutasi_kredit' => 0, // Tidak relevan untuk persediaan
+                    'mutasi_debit' => 0,
+                    'mutasi_kredit' => 0,
                     'saldo_akhir' => $saldoAkhirBukuBesar,
                     'debit' => $displayBalance['debit'],
                     'kredit' => $displayBalance['kredit'],
                     'is_debit_normal' => $this->isDebitNormalAccount($coa),
-                    'source' => 'buku_besar' // Penanda bahwa ini dari Buku Besar
+                    'source' => 'buku_besar'
                 ];
                 
             } else {
-                // UNTUK AKUN LAINNYA: Gunakan logika lama (perhitungan periode)
-                
-                // 1. Ambil saldo awal akun
                 $saldoAwal = $this->getSaldoAwal($coa, $startDate);
-
-                // 2. Hitung mutasi periode dari buku besar (journal_lines)
                 $mutasiPeriode = $this->getMutasiPeriode($coa->id, $startDate, $endDate);
                 $totalDebitPeriode = $mutasiPeriode['total_debit'];
                 $totalKreditPeriode = $mutasiPeriode['total_kredit'];
-
-                // 3. Hitung saldo akhir berdasarkan normal balance akun
-                $saldoAkhir = $this->calculateSaldoAkhir(
-                    $coa, 
-                    $saldoAwal, 
-                    $totalDebitPeriode, 
-                    $totalKreditPeriode
-                );
-
-                // 4. Map saldo akhir ke kolom debit/kredit untuk tampilan neraca saldo
+                $saldoAkhir = $this->calculateSaldoAkhir($coa, $saldoAwal, $totalDebitPeriode, $totalKreditPeriode);
                 $displayBalance = $this->mapToTrialBalanceColumns($saldoAkhir, $coa);
                 
                 $accountData = [
@@ -102,22 +109,20 @@ class TrialBalanceService
                     'debit' => $displayBalance['debit'],
                     'kredit' => $displayBalance['kredit'],
                     'is_debit_normal' => $this->isDebitNormalAccount($coa),
-                    'source' => 'periode' // Penanda bahwa ini dari perhitungan periode
+                    'source' => 'periode'
                 ];
             }
 
             // Skip akun yang tidak memiliki aktivitas atau saldo
-            if ($this->shouldSkipAccount($accountData['saldo_awal'], $accountData['mutasi_debit'], $accountData['mutasi_kredit'], $accountData['saldo_akhir'])) {
+            if ($this->shouldSkipAccount($accountData['saldo_awal'], $accountData['mutasi_debit'], $accountData['mutasi_kredit'], $accountData['saldo_akhir'], $isChainBroken)) {
                 continue;
             }
 
             $trialBalanceData[] = $accountData;
 
-            // Akumulasi total untuk balance check
             $totalDebit += $displayBalance['debit'];
             $totalKredit += $displayBalance['kredit'];
 
-            // Debug info untuk akun dengan saldo besar
             if (abs($accountData['saldo_akhir']) > 100000 || $displayBalance['debit'] > 100000 || $displayBalance['kredit'] > 100000) {
                 $debugInfo[] = [
                     'kode' => $coa->kode_akun,
@@ -132,8 +137,6 @@ class TrialBalanceService
             }
         }
 
-        // REMOVED: Jurnal penyeimbang otomatis dihapus sesuai permintaan user
-        // User ingin neraca saldo seimbang murni dari jurnal yang benar
         $imbalanceWarning = null;
 
         return [
@@ -148,7 +151,9 @@ class TrialBalanceService
                 'formatted_period' => Carbon::parse($startDate)->format('d/m/Y') . ' - ' . Carbon::parse($endDate)->format('d/m/Y')
             ],
             'debug_info' => $debugInfo,
-            'imbalance_warning' => $imbalanceWarning
+            'imbalance_warning' => $imbalanceWarning,
+            'is_chain_broken' => $isChainBroken,
+            'is_posted' => $isPosted
         ];
     }
 
@@ -318,25 +323,45 @@ class TrialBalanceService
         */
     }
 
-    /**
-     * Ambil saldo awal akun
-     * 
-     * Untuk akun persediaan, gunakan saldo dari inventory (sama dengan AkuntansiController)
-     * Untuk akun lainnya, gunakan saldo_awal dari COA
-     */
     private function getSaldoAwal($coa, $startDate)
     {
         $kodeAkun = $coa->kode_akun;
         
-        // Untuk akun persediaan, gunakan logika yang sama dengan AkuntansiController
         $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
         $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
         
         if (in_array($kodeAkun, $bahanBakuCoas) || in_array($kodeAkun, $bahanPendukungCoas)) {
             return $this->getInventorySaldoAwal($kodeAkun);
-        } else {
-            return (float) ($coa->saldo_awal ?? 0);
         }
+        
+        $periodeStr = Carbon::parse($startDate)->format('Y-m');
+
+        // Cek saldo awal spesifik untuk periode ini dari posting bulan sebelumnya
+        $periodBalance = DB::table('coa_period_balances as cpb')
+            ->join('coa_periods as cp', 'cpb.period_id', '=', 'cp.id')
+            ->where('cpb.user_id', auth()->id())
+            ->where('cp.periode', $periodeStr)
+            ->where('cpb.kode_akun', $kodeAkun)
+            ->first();
+
+        if ($periodBalance) {
+            return (float) $periodBalance->saldo_awal;
+        }
+
+        // Jika tidak ada di coa_period_balances, cek apakah user PERNAH melakukan posting
+        $hasPostedBefore = DB::table('coa_period_balances')
+            ->where('user_id', auth()->id())
+            ->exists();
+            
+        if ($hasPostedBefore) {
+            // Jika user pernah posting (misal Juni), tapi periode ini (misal Agustus) tidak ada saldonya,
+            // berarti bulan sebelumnya (Juli) BELUM diposting. Saldo awal = 0 karena rantai terputus.
+            return 0; 
+        }
+
+        // Jika belum pernah ada posting sama sekali di sistem untuk user ini,
+        // gunakan saldo awal default dari tabel coas (seeder awal).
+        return (float) ($coa->saldo_awal ?? 0);
     }
 
     /**
@@ -513,10 +538,15 @@ class TrialBalanceService
      * Tampilkan akun jika:
      * - Memiliki saldo awal tidak nol, ATAU
      * - Memiliki mutasi debit/kredit di periode ini, ATAU  
-     * - Memiliki saldo akhir tidak nol
+     * - Memiliki saldo akhir tidak nol, ATAU
+     * - Rantai posting terputus (untuk menampilkan semua akun dengan saldo 0)
      */
-    private function shouldSkipAccount($saldoAwal, $totalDebit, $totalKredit, $saldoAkhir)
+    private function shouldSkipAccount($saldoAwal, $totalDebit, $totalKredit, $saldoAkhir, $isChainBroken = false)
     {
+        if ($isChainBroken) {
+            return false; // Jangan skip akun apapun jika rantai terputus
+        }
+        
         // Tampilkan jika ada aktivitas atau saldo
         return $saldoAwal == 0 && $totalDebit == 0 && $totalKredit == 0 && abs($saldoAkhir) < 0.01;
     }
