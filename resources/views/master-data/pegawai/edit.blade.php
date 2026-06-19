@@ -72,12 +72,12 @@
 
         <div class="row">
             <div class="col-md-6 mb-3">
-                <label for="jabatan_id" class="form-label">Jabatan</label>
-                <select name="jabatan_id" id="jabatan_id" class="form-select" required onchange="loadJabatanDetail()">
-                    <option value="">-- Pilih Jabatan --</option>
-                    @foreach($jabatans as $j)
+                <label for="kualifikasi_id" class="form-label">Kualifikasi</label>
+                <select name="kualifikasi_id" id="kualifikasi_id" class="form-select" required onchange="loadJabatanDetail()">
+                    <option value="">-- Pilih Kualifikasi --</option>
+                    @foreach($kualifikasis as $j)
                         <option value="{{ $j->id }}"
-                                data-nama="{{ $j->nama }}"
+                                data-nama="{{ $j->nama_kualifikasi }}"
                                 data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-tunjangan-transport="{{ $j->tunjangan_transport }}"
@@ -85,14 +85,14 @@
                                 data-asuransi="{{ $j->asuransi }}"
                                 data-gaji="{{ $j->gaji_pokok }}"
                                 data-tarif="{{ $j->tarif_per_jam }}"
-                                {{ old('jabatan_id', $pegawai->jabatan_id)==$j->id?'selected':'' }}>
-                            {{ $j->nama }}
+                                {{ old('kualifikasi_id', $pegawai->kualifikasi_id)==$j->id?'selected':'' }}>
+                            {{ $j->nama_kualifikasi }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
-            <!-- Preview otomatis dari Jabatan -->
+            <!-- Preview otomatis dari Kualifikasi -->
             <div class="col-12">
                 <div class="alert alert-secondary small" id="preview-box" style="display:none">
                     <h6>Detail Kualifikasi Jabatan:</h6>

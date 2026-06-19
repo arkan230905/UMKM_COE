@@ -46,14 +46,14 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        // CRITICAL: Filter jabatans by user_id for multi-tenant
-        $jabatans = \App\Models\Jabatan::select('id','nama_kualifikasi','kategori','tunjangan','asuransi','gaji_pokok','tarif_produk as tarif')
+        // CRITICAL: Filter kualifikasis by user_id for multi-tenant
+        $kualifikasis = \App\Models\Kualifikasi::select('id','nama_kualifikasi','kategori','tunjangan','asuransi','gaji_pokok','tarif_produk as tarif')
             ->where('user_id', auth()->id())
             ->orderBy('nama_kualifikasi')
             ->get();
         
-        // Get unique kategori values from Jabatan table
-        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+        // Get unique kategori values from Kualifikasi table
+        $kategoris = \App\Models\Kualifikasi::where('user_id', auth()->id())
             ->whereNotNull('kategori')
             ->where('kategori', '!=', '')
             ->distinct()
@@ -64,7 +64,7 @@ class PegawaiController extends Controller
             ->unique()
             ->values();
         
-        return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
+        return view('master-data.pegawai.create', compact('kualifikasis', 'kategoris'));
     }
 
     // Simpan data baru
@@ -81,7 +81,7 @@ class PegawaiController extends Controller
             ],
 'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'jabatan_id' => 'required|exists:jabatans,id',
+            'kualifikasi_id' => 'required|exists:kualifikasis,id',
             'kategori' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
             'bank' => 'required|string|max:100',
@@ -114,10 +114,10 @@ class PegawaiController extends Controller
                 ->withInput();
         }
 
-        $jabatan = \App\Models\Jabatan::find($validated['jabatan_id']);
+        $kualifikasi = \App\Models\Kualifikasi::find($validated['kualifikasi_id']);
         
-        if (!$jabatan) {
-            return back()->withErrors(['error' => 'Jabatan tidak ditemukan'])->withInput();
+        if (!$kualifikasi) {
+            return back()->withErrors(['error' => 'Kualifikasi tidak ditemukan'])->withInput();
         }
 
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
@@ -154,13 +154,14 @@ class PegawaiController extends Controller
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'kategori' => $validated['kategori'],
-            'jabatan' => $jabatan->nama,
+            'kualifikasi_id' => $validated['kualifikasi_id'],
+            'kualifikasi' => $kualifikasi->nama_kualifikasi,
             'jenis_pegawai' => strtolower($validated['kategori']),
 
-            'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
-            'tarif_per_produk' => $jabatan->tarif_produk ?? 0,
-            'tunjangan' => $jabatan->tunjangan ?? 0,
-            'asuransi' => $jabatan->asuransi ?? 0,
+            'gaji_pokok' => $kualifikasi->gaji_pokok ?? 0,
+            'tarif_per_produk' => $kualifikasi->tarif_produk ?? 0,
+            'tunjangan' => $kualifikasi->tunjangan ?? 0,
+            'asuransi' => $kualifikasi->asuransi ?? 0,
 'bank' => $validated['bank'],
             'nomor_rekening' => $validated['nomor_rekening'],
             'nama_rekening' => $validated['nama_rekening'],
@@ -212,21 +213,21 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        // CRITICAL: Filter jabatans by user_id for multi-tenant
-        $jabatans = \App\Models\Jabatan::select('id','nama_kualifikasi','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_produk')
+        // CRITICAL: Filter kualifikasis by user_id for multi-tenant
+        $kualifikasis = \App\Models\Kualifikasi::select('id','nama_kualifikasi','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_produk')
             ->where('user_id', auth()->id())
             ->orderBy('nama_kualifikasi')
             ->get();
         
-        // Get unique kategori values from Jabatan table
-        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+        // Get unique kategori values from Kualifikasi table
+        $kategoris = \App\Models\Kualifikasi::where('user_id', auth()->id())
             ->whereNotNull('kategori')
             ->where('kategori', '!=', '')
             ->distinct()
             ->orderBy('kategori')
             ->pluck('kategori');
         
-        return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
+        return view('master-data.pegawai.edit', compact('pegawai','kualifikasis', 'kategoris'));
     }
 
     // Update data pegawai
@@ -251,7 +252,7 @@ class PegawaiController extends Controller
             ],
 'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'jabatan_id' => 'required|exists:jabatans,id',
+            'kualifikasi_id' => 'required|exists:kualifikasis,id',
             'kategori' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
             'bank' => 'nullable|string|max:100',
@@ -259,10 +260,10 @@ class PegawaiController extends Controller
             'nama_rekening' => 'nullable|string|max:100',
         ]);
 
-        $jabatan = \App\Models\Jabatan::find($validated['jabatan_id']);
+        $kualifikasi = \App\Models\Kualifikasi::find($validated['kualifikasi_id']);
         
-        if (!$jabatan) {
-            return back()->withErrors(['error' => 'Jabatan tidak ditemukan'])->withInput();
+        if (!$kualifikasi) {
+            return back()->withErrors(['error' => 'Kualifikasi tidak ditemukan'])->withInput();
         }
         
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
@@ -275,13 +276,14 @@ class PegawaiController extends Controller
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'kategori' => $validated['kategori'],
-            'jabatan' => $jabatan->nama,
+            'kualifikasi_id' => $validated['kualifikasi_id'],
+            'kualifikasi' => $kualifikasi->nama_kualifikasi,
             'jenis_pegawai' => strtolower($validated['kategori']),
 
-            'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
-            'tarif_per_produk' => $jabatan->tarif_produk ?? 0,
-            'tunjangan' => $jabatan->tunjangan ?? 0,
-            'asuransi' => $jabatan->asuransi ?? 0,
+            'gaji_pokok' => $kualifikasi->gaji_pokok ?? 0,
+            'tarif_per_produk' => $kualifikasi->tarif_produk ?? 0,
+            'tunjangan' => $kualifikasi->tunjangan ?? 0,
+            'asuransi' => $kualifikasi->asuransi ?? 0,
 ];
         
         // Add bank info if provided
