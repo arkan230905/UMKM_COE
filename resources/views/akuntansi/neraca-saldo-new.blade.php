@@ -52,6 +52,11 @@
                             {{ isset($neracaSaldoData['is_chain_broken']) && $neracaSaldoData['is_chain_broken'] ? 'disabled' : '' }}>
                         <i class="fas fa-check-circle me-1"></i> Posting Saldo
                     </button>
+                    @if(isset($neracaSaldoData['is_posted']) && $neracaSaldoData['is_posted'])
+                        <span class="badge bg-success d-flex align-items-center" id="postingStatusBadge" style="font-size: 0.85em; padding: 8px 12px;"><i class="bi bi-check-circle me-1"></i> Sudah Diposting</span>
+                    @else
+                        <span class="badge bg-secondary d-flex align-items-center" id="postingStatusBadge" style="font-size: 0.85em; padding: 8px 12px;">Belum Diposting</span>
+                    @endif
                 </div>
             </form>
         </div>
@@ -93,19 +98,16 @@
 
     <!-- Main Content -->
     <div id="mainContent">
+        @php
+            $namaBulanArr = ['01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni','07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'];
+            $labelPeriode = ($namaBulanArr[$bulan] ?? $bulan) . ' ' . $tahun;
+        @endphp
         <!-- Company Header -->
         <div class="mb-4">
             <div class="p-4 bg-white rounded-3 shadow-sm" style="width: 100%;">
                 <div class="text-center">
                     <h4 class="fw-bold mb-2">PT MANUFAKTUR COE</h4>
-                    <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
-                        <p class="text-muted mb-0 small">Laporan Keuangan {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</p>
-                        @if(isset($neracaSaldoData['is_posted']) && $neracaSaldoData['is_posted'])
-                            <span class="badge bg-success" id="postingStatusBadge"><i class="bi bi-check-circle me-1"></i> Sudah Diposting</span>
-                        @else
-                            <span class="badge bg-secondary" id="postingStatusBadge">Belum Diposting</span>
-                        @endif
-                    </div>
+                    <p class="text-muted mb-2 small" id="periodeLabel">Laporan Keuangan {{ $labelPeriode }}</p>
                     <h5 class="fw-bold text-dark mb-0">Neraca Saldo</h5>
                 </div>
             </div>
@@ -169,7 +171,7 @@
                                     <td colspan="4" class="text-center py-5 text-muted">
                                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                         <h5>Tidak ada data transaksi</h5>
-                                        <p>Belum ada transaksi untuk periode {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</p>
+                                        <p>Belum ada transaksi untuk periode {{ $labelPeriode }}</p>
                                     </td>
                                 </tr>
                             @endif
@@ -242,7 +244,7 @@
                         <div class="col-md-6">
                             <ul class="mb-0 small text-muted">
                                 <li><strong>Prinsip:</strong> Total Debit harus sama dengan Total Kredit</li>
-                                <li><strong>Periode:</strong> {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</li>
+                                <li><strong>Periode:</strong> {{ $labelPeriode }}</li>
                             </ul>
                         </div>
                     </div>
@@ -492,13 +494,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     updatePdfLink();
                     
                     // Update page title safely
-                    const periodElement = document.querySelector('.text-center p.text-muted.mb-2.small');
+                    const periodElement = document.getElementById('periodeLabel');
                     if (periodElement) {
-                        const periodText = new Date(tahun, bulan - 1).toLocaleDateString('id-ID', { 
-                            month: 'long', 
-                            year: 'numeric' 
-                        });
-                        periodElement.textContent = `Laporan Keuangan ${periodText}`;
+                        const namaBulanMap = {'01':'Januari','02':'Februari','03':'Maret','04':'April','05':'Mei','06':'Juni','07':'Juli','08':'Agustus','09':'September','10':'Oktober','11':'November','12':'Desember'};
+                        const labelBulan = namaBulanMap[bulan] || bulan;
+                        periodElement.textContent = `Laporan Keuangan ${labelBulan} ${tahun}`;
                     }
 
                     // Update posting button and chain broken alert
