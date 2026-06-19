@@ -107,7 +107,6 @@
                             <input type="number" name="hari_kerja" id="hari_kerja" class="form-control" value="26" min="1" max="31" oninput="hitungOtomatis()">
                             <span class="input-group-text">hari</span>
                         </div>
-                        <small class="form-text text-muted">Default: 26 hari/bulan</small>
                     </div>
 
                     <div class="col-md-6">
@@ -136,7 +135,6 @@
                             <span class="input-group-text">Rp</span>
                             <input type="text" id="display_gaji_mentah" class="form-control fw-bold text-primary" readonly value="0">
                         </div>
-                        <small class="form-text text-muted d-block mt-1">Diambil otomatis dari Kualifikasi pegawai</small>
                     </div>
                 </div>
 
@@ -187,7 +185,7 @@
                                             <i class="bi bi-person fs-5"></i>
                                         </div>
                                         <div>
-                                            <h6 class="mb-0 fw-bold">Diterima Karyawan</h6>
+                                            <h6 class="mb-0 fw-bold">Diterima Pegawai</h6>
                                             <small class="text-muted">Gaji pokok + semua tunjangan</small>
                                         </div>
                                     </div>
@@ -388,7 +386,7 @@
             
             totalProdukField.readOnly = true;
             totalProdukField.style.backgroundColor = '#f5f5f5';
-            totalProdukStatus.textContent = '✓ Otomatis dari Transaksi Produksi (readonly)';
+            totalProdukStatus.textContent = '';
             totalProdukStatus.className = 'form-text text-success d-block mt-1';
             totalProdukField.placeholder = 'Otomatis dari Transaksi Produksi';
             
@@ -455,7 +453,7 @@
                     document.getElementById('total_produk_status').textContent = '⚠ Data produksi bulanan kosong/0';
                     document.getElementById('total_produk_status').className = 'form-text text-warning d-block mt-1';
                 } else {
-                    document.getElementById('total_produk_status').textContent = '✓ Otomatis dari Transaksi Produksi (readonly)';
+                    document.getElementById('total_produk_status').textContent = '';
                     document.getElementById('total_produk_status').className = 'form-text text-success d-block mt-1';
                 }
                 

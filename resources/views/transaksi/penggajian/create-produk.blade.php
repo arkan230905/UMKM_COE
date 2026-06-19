@@ -107,7 +107,6 @@
                             <input type="number" name="hari_kerja" id="hari_kerja" class="form-control" value="26" min="1" max="31" oninput="hitungOtomatis()">
                             <span class="input-group-text">hari</span>
                         </div>
-                        <small class="form-text text-muted">Default: 26 hari/bulan</small>
                     </div>
 
                     <div class="col-md-6">
@@ -136,7 +135,6 @@
                             <span class="input-group-text">Rp</span>
                             <input type="text" id="display_gaji_mentah" name="gaji_pokok_display" class="form-control fw-bold text-primary" value="0" disabled>
                         </div>
-                        <small class="form-text text-muted d-block mt-1">Diambil otomatis dari Kualifikasi pegawai</small>
                     </div>
                 </div>
 
@@ -187,7 +185,7 @@
                                             <i class="bi bi-person fs-5"></i>
                                         </div>
                                         <div>
-                                            <h6 class="mb-0 fw-bold">Diterima Karyawan</h6>
+                                            <h6 class="mb-0 fw-bold">Diterima Pegawai</h6>
                                             <small class="text-muted">Gaji pokok + semua tunjangan</small>
                                         </div>
                                     </div>
@@ -417,7 +415,7 @@
                     if (IS_PRODUKSI) {
                         totalField.readOnly = true;
                         totalField.style.backgroundColor = '#f5f5f5';
-                        statusTotal.textContent = '✓ Otomatis dari Transaksi Produksi (readonly)';
+                        statusTotal.textContent = '';
                         statusTotal.style.color = 'green';
                         updateTotalProduk(); // Fetch produksi
                     } else {
