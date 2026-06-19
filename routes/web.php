@@ -2873,6 +2873,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple-post');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
+            // BOP Proses V2 Management (Bahan Pendukung dengan Auto-Calculation)
+            Route::get('/create-proses-v2', [\App\Http\Controllers\MasterData\BopController::class, 'createProsesV2'])->name('create-proses-v2');
+            Route::post('/store-proses-v2', [\App\Http\Controllers\MasterData\BopController::class, 'storeProsesV2'])->name('store-proses-v2');
+            
             // Beban Operasional Routes
             Route::prefix('beban-operasional')->name('beban-operasional.')->group(function () {
                 Route::post('/store', [\App\Http\Controllers\MasterData\BopController::class, 'storeBebanOperasional'])->name('store');

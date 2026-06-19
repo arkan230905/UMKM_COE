@@ -1,0 +1,369 @@
+@extends('layouts.app')
+
+@section('title', 'Tambah BOP Proses - Bahan Pendukung')
+
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <h2 class="mb-4 text-white"><i class="fas fa-chart-pie me-2"></i>Tambah BOP Proses - Bahan Pendukung</h2>
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <div class="card shadow-sm">
+        <div class="card-body" style="color: white !important;">
+            <style>
+                .card-body input, .card-body select, .card-body textarea {
+                    color: white !important;
+                    background-color: rgba(0,0,0,0.8) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                }
+                .card-body input[readonly] {
+                    background-color: rgba(100,100,100,0.5) !important;
+                    cursor: not-allowed;
+                }
+                .card-body input::placeholder {
+                    color: rgba(255,255,255,0.7) !important;
+                }
+                .card-body .input-group-text {
+                    color: white !important;
+                    background-color: rgba(0,0,0,0.6) !important;
+                    border-color: rgba(255,255,255,0.3) !important;
+                }
+                .info-card {
+                    background: rgba(0,123,255,0.1);
+                    border: 1px solid rgba(0,123,255,0.3);
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                }
+                .table-dark th, .table-dark td {
+                    border-color: rgba(255,255,255,0.2) !important;
+                }
+            </style>
+            
+            <form action="{{ route('master-data.bop.store-proses-v2') }}" method="POST" id="createBopForm">
+                @csrf
+                
+                <!-- Nama BOP Proses -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <label for="nama_bop_proses" class="form-label text-white">Nama BOP Proses <span class="text-danger">*</span></label>
+                        <input type="text" 
+                               name="nama_bop_proses" 
+                               id="nama_bop_proses" 
+                               class="form-control @error('nama_bop_proses') is-invalid @enderror" 
+                               value="{{ old('nama_bop_proses') }}"
+                               placeholder="Contoh: BOP Proses Produksi A"
+                               required>
+                        @error('nama_bop_proses')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Jumlah Produksi Per Bulan (Global) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="jumlah_produksi_perbulan" class="form-label text-white">
+                            Jumlah Produksi Produk Per Bulan <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" 
+                                   name="jumlah_produksi_perbulan" 
+                                   id="jumlah_produksi_perbulan" 
+                                   class="form-control @error('jumlah_produksi_perbulan') is-invalid @enderror" 
+                                   value="{{ old('jumlah_produksi_perbulan') }}"
+                                   min="1"
+                                   placeholder="0"
+                                   required>
+                            <span class="input-group-text">unit/bulan</span>
+                        </div>
+                        <small class="text-light">Target produksi produk dalam satu bulan</small>
+                        @error('jumlah_produksi_perbulan')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Bahan Pendukung -->
+                <div class="row g-3">
+                    <div class="col-12">
+                        <h5 class="text-white mb-3">
+                            <i class="fas fa-boxes me-2"></i>Bahan Pendukung
+                        </h5>
+                        <small class="text-light">Pilih bahan pendukung yang digunakan dalam proses produksi</small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover" id="bahanPendukungTable">
+                                <thead>
+                                    <tr>
+                                        <th width="20%">Bahan Pendukung</th>
+                                        <th width="10%">Satuan</th>
+                                        <th width="15%">Harga Per Satuan</th>
+                                        <th width="12%">Qty Penggunaan/Bulan</th>
+                                        <th width="15%">Total Nominal/Bulan</th>
+                                        <th width="13%">Rp/Produk</th>
+                                        <th width="10%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bahanPendukungContainer">
+                                    <!-- Dynamic rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" id="addBahanBtn" class="btn btn-success btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Tambah Bahan Pendukung
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Perhitungan -->
+                <div class="info-card mt-4">
+                    <h6 class="text-warning mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP Bahan Pendukung</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Total Nominal Per Bulan:</strong><br>
+                            <span class="fs-5 text-warning">Rp <span id="totalNominalBulan">0</span></span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Total BOP Per Produk:</strong><br>
+                            <span class="fs-5 text-success">Rp <span id="totalBopPerProduk">0.00</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Simpan BOP Proses
+                    </button>
+                    <a href="{{ route('master-data.bop.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('bahanPendukungContainer');
+    const addBtn = document.getElementById('addBahanBtn');
+    const jumlahProduksiInput = document.getElementById('jumlah_produksi_perbulan');
+    
+    // Bahan Pendukung data from backend
+    const bahanPendukungList = @json($bahanPendukungs);
+    
+    let rowCount = 0;
+    
+    // Add initial empty row
+    addBahanRow();
+    
+    // Add bahan row function
+    function addBahanRow(data = {}) {
+        rowCount++;
+        const rowId = `bahan_${rowCount}`;
+        
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.className = 'bahan-row';
+        row.innerHTML = `
+            <td>
+                <select name="bahan_pendukung[${rowCount}][bahan_pendukung_id]" 
+                        class="form-select form-select-sm bahan-select" 
+                        data-row-id="${rowId}"
+                        required>
+                    <option value="">-- Pilih Bahan --</option>
+                    ${bahanPendukungList.map(bahan => 
+                        `<option value="${bahan.id}" 
+                                 data-satuan="${bahan.satuan?.nama || 'Unit'}" 
+                                 data-harga="${bahan.harga_satuan || 0}"
+                                 ${data.bahan_pendukung_id == bahan.id ? 'selected' : ''}>
+                            ${bahan.nama_bahan}
+                        </option>`
+                    ).join('')}
+                </select>
+            </td>
+            <td>
+                <input type="text" 
+                       name="bahan_pendukung[${rowCount}][satuan]" 
+                       class="form-control form-control-sm satuan-input" 
+                       value="${data.satuan || ''}"
+                       readonly 
+                       placeholder="-">
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="number" 
+                           name="bahan_pendukung[${rowCount}][harga_satuan]" 
+                           class="form-control form-control-sm harga-satuan-input" 
+                           value="${data.harga_satuan || 0}"
+                           readonly 
+                           step="0.01"
+                           placeholder="0">
+                </div>
+            </td>
+            <td>
+                <input type="number" 
+                       name="bahan_pendukung[${rowCount}][qty_penggunaan_bulan]" 
+                       class="form-control form-control-sm qty-input" 
+                       data-row-id="${rowId}"
+                       value="${data.qty_penggunaan_bulan || ''}"
+                       min="0" 
+                       step="0.01" 
+                       placeholder="0"
+                       required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm total-nominal-input" 
+                           value="0"
+                           readonly>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm rp-produk-input" 
+                           value="0.00"
+                           readonly>
+                </div>
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-danger btn-sm delete-row" data-row-id="${rowId}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        container.appendChild(row);
+        
+        // Add event listeners
+        attachRowEvents(row);
+        
+        return row;
+    }
+    
+    // Attach events to row
+    function attachRowEvents(row) {
+        const bahanSelect = row.querySelector('.bahan-select');
+        const qtyInput = row.querySelector('.qty-input');
+        const deleteBtn = row.querySelector('.delete-row');
+        
+        bahanSelect.addEventListener('change', function() {
+            updateBahanInfo(row);
+        });
+        
+        qtyInput.addEventListener('input', function() {
+            calculateRow(row);
+        });
+        
+        deleteBtn.addEventListener('click', function() {
+            if (container.children.length > 1) {
+                row.remove();
+                updateTotals();
+            } else {
+                alert('Minimal harus ada 1 bahan pendukung');
+            }
+        });
+    }
+    
+    // Update bahan info when selected
+    function updateBahanInfo(row) {
+        const bahanSelect = row.querySelector('.bahan-select');
+        const selectedOption = bahanSelect.options[bahanSelect.selectedIndex];
+        
+        const satuanInput = row.querySelector('.satuan-input');
+        const hargaSatuanInput = row.querySelector('.harga-satuan-input');
+        
+        if (bahanSelect.value) {
+            const satuan = selectedOption.dataset.satuan || '-';
+            const harga = parseFloat(selectedOption.dataset.harga) || 0;
+            
+            satuanInput.value = satuan;
+            hargaSatuanInput.value = harga;
+            
+            calculateRow(row);
+        } else {
+            satuanInput.value = '';
+            hargaSatuanInput.value = 0;
+            row.querySelector('.total-nominal-input').value = 0;
+            row.querySelector('.rp-produk-input').value = '0.00';
+            updateTotals();
+        }
+    }
+    
+    // Calculate row values
+    function calculateRow(row) {
+        const hargaSatuan = parseFloat(row.querySelector('.harga-satuan-input').value) || 0;
+        const qtyPenggunaan = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const jumlahProduksi = parseFloat(jumlahProduksiInput.value) || 1;
+        
+        // Total Nominal/Bulan = Harga Satuan × Qty Penggunaan
+        const totalNominal = hargaSatuan * qtyPenggunaan;
+        
+        // Rp/Produk = Total Nominal ÷ Jumlah Produksi
+        const rpPerProduk = totalNominal / jumlahProduksi;
+        
+        row.querySelector('.total-nominal-input').value = formatNumber(totalNominal);
+        row.querySelector('.rp-produk-input').value = formatNumber(rpPerProduk);
+        
+        updateTotals();
+    }
+    
+    // Update totals
+    function updateTotals() {
+        let totalNominalBulan = 0;
+        let totalBopPerProduk = 0;
+        
+        document.querySelectorAll('.bahan-row').forEach(row => {
+            const totalNominalInput = row.querySelector('.total-nominal-input');
+            const rpProdukInput = row.querySelector('.rp-produk-input');
+            
+            const totalNominal = parseFloat(totalNominalInput.value.replace(/,/g, '')) || 0;
+            const rpProduk = parseFloat(rpProdukInput.value.replace(/,/g, '')) || 0;
+            
+            totalNominalBulan += totalNominal;
+            totalBopPerProduk += rpProduk;
+        });
+        
+        document.getElementById('totalNominalBulan').textContent = formatNumber(totalNominalBulan);
+        document.getElementById('totalBopPerProduk').textContent = formatNumber(totalBopPerProduk);
+    }
+    
+    // Recalculate all rows when jumlah produksi changes
+    jumlahProduksiInput.addEventListener('input', function() {
+        document.querySelectorAll('.bahan-row').forEach(row => {
+            calculateRow(row);
+        });
+    });
+    
+    // Add button event
+    addBtn.addEventListener('click', function() {
+        addBahanRow();
+    });
+    
+    // Format number helper
+    function formatNumber(num) {
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(num);
+    }
+});
+</script>
+@endsection
