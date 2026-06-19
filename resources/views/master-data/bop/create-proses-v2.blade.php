@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container-fluid px-4 py-4">
-    <h2 class="mb-4 text-white"><i class="fas fa-chart-pie me-2"></i>Tambah BOP Proses - Bahan Pendukung</h2>
+    <h2 class="mb-4 text-dark"><i class="fas fa-chart-pie me-2"></i>Tambah BOP Proses - Bahan Pendukung</h2>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -17,34 +17,65 @@
     @endif
 
     <div class="card shadow-sm">
-        <div class="card-body" style="color: white !important;">
+        <div class="card-body" style="color: #333 !important;">
             <style>
                 .card-body input, .card-body select, .card-body textarea {
-                    color: white !important;
-                    background-color: rgba(0,0,0,0.8) !important;
-                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    color: #333 !important;
+                    background-color: #fff !important;
+                    border: 1px solid #ddd !important;
                 }
                 .card-body input[readonly] {
-                    background-color: rgba(100,100,100,0.5) !important;
+                    background-color: #f5f5f5 !important;
                     cursor: not-allowed;
+                    color: #666 !important;
                 }
                 .card-body input::placeholder {
-                    color: rgba(255,255,255,0.7) !important;
+                    color: #999 !important;
                 }
                 .card-body .input-group-text {
-                    color: white !important;
-                    background-color: rgba(0,0,0,0.6) !important;
-                    border-color: rgba(255,255,255,0.3) !important;
+                    color: #333 !important;
+                    background-color: #f8f9fa !important;
+                    border-color: #ddd !important;
                 }
                 .info-card {
-                    background: rgba(0,123,255,0.1);
-                    border: 1px solid rgba(0,123,255,0.3);
+                    background: #f8f9fa;
+                    border: 1px solid #dee2e6;
                     border-radius: 8px;
                     padding: 15px;
                     margin-bottom: 20px;
                 }
-                .table-dark th, .table-dark td {
-                    border-color: rgba(255,255,255,0.2) !important;
+                .info-card h6 {
+                    color: #495057 !important;
+                    font-weight: 600;
+                }
+                .info-card strong {
+                    color: #212529 !important;
+                }
+                .info-card .text-warning {
+                    color: #856404 !important;
+                }
+                .info-card .text-success {
+                    color: #155724 !important;
+                }
+                .table thead th {
+                    background-color: #495057 !important;
+                    color: white !important;
+                    border-color: #6c757d !important;
+                }
+                .table tbody td {
+                    background-color: #fff !important;
+                    color: #333 !important;
+                    border-color: #dee2e6 !important;
+                }
+                .form-label {
+                    color: #212529 !important;
+                    font-weight: 500;
+                }
+                h5, h6 {
+                    color: #212529 !important;
+                }
+                small.text-muted, small.text-light {
+                    color: #6c757d !important;
                 }
             </style>
             
@@ -54,7 +85,7 @@
                 <!-- Nama BOP Proses -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-12">
-                        <label for="nama_bop_proses" class="form-label text-white">Nama BOP Proses <span class="text-danger">*</span></label>
+                        <label for="nama_bop_proses" class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
                         <input type="text" 
                                name="nama_bop_proses" 
                                id="nama_bop_proses" 
@@ -71,7 +102,7 @@
                 <!-- Jumlah Produksi Per Bulan (Global) -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="jumlah_produksi_perbulan" class="form-label text-white">
+                        <label for="jumlah_produksi_perbulan" class="form-label">
                             Jumlah Produksi Produk Per Bulan <span class="text-danger">*</span>
                         </label>
                         <div class="input-group">
@@ -85,7 +116,7 @@
                                    required>
                             <span class="input-group-text">unit/bulan</span>
                         </div>
-                        <small class="text-light">Target produksi produk dalam satu bulan</small>
+                        <small class="text-muted">Target produksi produk dalam satu bulan</small>
                         @error('jumlah_produksi_perbulan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -95,15 +126,15 @@
                 <!-- Bahan Pendukung -->
                 <div class="row g-3">
                     <div class="col-12">
-                        <h5 class="text-white mb-3">
+                        <h5 class="mb-3">
                             <i class="fas fa-boxes me-2"></i>Bahan Pendukung
                         </h5>
-                        <small class="text-light">Pilih bahan pendukung yang digunakan dalam proses produksi</small>
+                        <small class="text-muted">Pilih bahan pendukung yang digunakan dalam proses produksi</small>
                     </div>
 
                     <div class="col-12">
                         <div class="table-responsive">
-                            <table class="table table-dark table-hover" id="bahanPendukungTable">
+                            <table class="table table-bordered table-hover" id="bahanPendukungTable">
                                 <thead>
                                     <tr>
                                         <th width="20%">Bahan Pendukung</th>
@@ -129,7 +160,7 @@
 
                 <!-- Ringkasan Perhitungan -->
                 <div class="info-card mt-4">
-                    <h6 class="text-warning mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP Bahan Pendukung</h6>
+                    <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP Bahan Pendukung</h6>
                     <div class="row">
                         <div class="col-md-6">
                             <strong>Total Nominal Per Bulan:</strong><br>
