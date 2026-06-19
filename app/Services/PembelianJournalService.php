@@ -370,19 +370,6 @@ class PembelianJournalService
             'memo' => $coa->nama_akun
         ];
     }
-                $coaCode = $coa->kode_akun;
-                $coaName = $coa->nama_akun;
-                $memo = $coa->nama_akun;
-                break;
-        }
-        
-        return [
-            'coa_id' => $coaId,
-            'coa_code' => $coaCode,
-            'coa_name' => $coaName,
-            'memo' => $memo
-        ];
-    }
     
     /**
      * Dapatkan COA berdasarkan kode
