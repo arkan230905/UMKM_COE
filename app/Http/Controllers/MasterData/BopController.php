@@ -37,7 +37,7 @@ class BopController extends Controller
             foreach ($prosesProduksis as $proses) {
                 $jabatan = null;
                 if ($proses->jabatan_id) {
-                    $jabatan = \App\Models\Jabatan::find($proses->jabatan_id);
+                    $jabatan = \App\Models\Kualifikasi::find($proses->jabatan_id);
                 }
                 
                 $tarifPerProduk = $proses->tarif_per_produk ?? 0;
@@ -47,7 +47,7 @@ class BopController extends Controller
                 $btklData[$proses->id] = [
                     'tarif_btkl_per_jam' => $tarifBtkl,
                     'nama_btkl' => $proses->nama_proses,
-                    'jabatan' => $jabatan ? ($jabatan->nama_jabatan ?? $jabatan->nama) : 'Tidak diketahui'
+                    'jabatan' => $jabatan ? ($jabatan->nama_kualifikasi ?? $jabatan->nama_kualifikasi) : 'Tidak diketahui'
                 ];
             }
 

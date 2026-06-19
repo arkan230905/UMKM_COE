@@ -105,8 +105,8 @@ class PenggajianController extends Controller
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
-        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
-            ->select('nama', 'kategori')
+        $kategoris = \App\Models\Kualifikasi::where('user_id', auth()->id())
+            ->select('nama_kualifikasi as nama', 'kategori')
             ->distinct()
             ->orderBy('nama')
             ->get();
@@ -333,7 +333,7 @@ class PenggajianController extends Controller
     public function getMasterKategori($nama)
     {
         try {
-            $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())
+            $jabatan = \App\Models\Kualifikasi::where('user_id', auth()->id())
                 ->where('nama_kualifikasi', $nama)
                 ->first();
             
@@ -1506,7 +1506,7 @@ class PenggajianController extends Controller
      * Resolve pegawai's jabatan/kualifikasi data
      * UPDATED: Now uses KualifikasiTenagaKerja (new system) instead of Jabatan (old system)
      */
-    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Jabatan
+    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Kualifikasi
     {
         if (!$pegawai) {
             return null;
@@ -1517,8 +1517,8 @@ class PenggajianController extends Controller
             return $pegawai->jabatanRelasi;
         }
 
-        // Query jabatans table
-        $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
+        // Query kualifikasis table
+        $query = \App\Models\Kualifikasi::where('user_id', $pegawai->user_id ?? auth()->id());
 
         // Try by kualifikasi_id (if it exists in pegawai)
         if ($pegawai->kualifikasi_id) {
@@ -1873,7 +1873,7 @@ class PenggajianController extends Controller
             $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
             
             // Get all jabatan/kualifikasi data
-            $jabatans = \App\Models\Jabatan::all();
+            $jabatans = \App\Models\Kualifikasi::all();
             
             // Add resolved kualifikasi
             $resolvedJab = $this->resolvePegawaiJabatan($pegawai);
