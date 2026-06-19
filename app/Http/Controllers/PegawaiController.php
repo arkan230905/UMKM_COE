@@ -103,16 +103,7 @@ class PegawaiController extends Controller
                 ->withInput();
         }
 
-        // Manual check for duplicate nama
-        $existingNama = Pegawai::where('user_id', auth()->id())
-            ->where('nama', $validated['nama'])
-            ->first();
-        
-        if ($existingNama) {
-            return back()
-                ->withErrors(['nama' => 'Nama pegawai sudah ada'])
-                ->withInput();
-        }
+
 
         $kualifikasi = \App\Models\Kualifikasi::find($validated['kualifikasi_id']);
         
@@ -242,13 +233,11 @@ class PegawaiController extends Controller
         $validated = $request->validate([
 
             'nama' => 'required|string|max:255',
-            // MULTI-TENANT: email unique hanya dalam scope user yang sama, kecuali record ini sendiri
+            // Email unique secara global (karena di-sync ke tabel users), kecuali record ini sendiri
             'email' => [
                 'required',
                 'email',
-                \Illuminate\Validation\Rule::unique('pegawais', 'email')
-                    ->where('user_id', auth()->id())
-                    ->ignore($pegawai->id),
+                \Illuminate\Validation\Rule::unique('pegawais', 'email')->ignore($pegawai->id),
             ],
 'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
