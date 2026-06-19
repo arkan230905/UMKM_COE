@@ -48,13 +48,26 @@
                         <i class="fas fa-file-pdf me-1"></i> Export PDF
                     </a>
                     <button type="button" class="btn btn-success" id="postingBtn"
-                            onclick="konfirmasiPosting('{{ $bulan }}', '{{ $tahun }}')">
+                            onclick="konfirmasiPosting('{{ $bulan }}', '{{ $tahun }}', {{ isset($neracaSaldoData['is_posted']) && $neracaSaldoData['is_posted'] ? 'true' : 'false' }})"
+                            {{ isset($neracaSaldoData['is_chain_broken']) && $neracaSaldoData['is_chain_broken'] ? 'disabled' : '' }}>
                         <i class="fas fa-check-circle me-1"></i> Posting Saldo
                     </button>
                 </div>
             </form>
         </div>
     </div>
+
+    @if(isset($neracaSaldoData['is_chain_broken']) && $neracaSaldoData['is_chain_broken'])
+        <div class="alert alert-danger shadow-sm mb-4" id="chainBrokenAlert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-octagon fs-4 me-3"></i>
+                <div>
+                    <h6 class="mb-1 fw-bold">Peringatan: Rantai Posting Terputus</h6>
+                    <p class="mb-0">Periode ini belum memiliki saldo awal karena periode sebelumnya belum diposting. Silakan posting periode sebelumnya terlebih dahulu.</p>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -85,7 +98,14 @@
             <div class="p-4 bg-white rounded-3 shadow-sm" style="width: 100%;">
                 <div class="text-center">
                     <h4 class="fw-bold mb-2">PT MANUFAKTUR COE</h4>
-                    <p class="text-muted mb-2 small">Laporan Keuangan {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</p>
+                    <div class="d-flex justify-content-center align-items-center gap-2 mb-2">
+                        <p class="text-muted mb-0 small">Laporan Keuangan {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</p>
+                        @if(isset($neracaSaldoData['is_posted']) && $neracaSaldoData['is_posted'])
+                            <span class="badge bg-success" id="postingStatusBadge"><i class="bi bi-check-circle me-1"></i> Sudah Diposting</span>
+                        @else
+                            <span class="badge bg-secondary" id="postingStatusBadge">Belum Diposting</span>
+                        @endif
+                    </div>
                     <h5 class="fw-bold text-dark mb-0">Neraca Saldo</h5>
                 </div>
             </div>
@@ -472,15 +492,59 @@ document.addEventListener('DOMContentLoaded', function() {
                     updatePdfLink();
                     
                     // Update page title safely
-                    const headerElement = document.querySelector('.card-header h5');
-                    if (headerElement) {
+                    const periodElement = document.querySelector('.text-center p.text-muted.mb-2.small');
+                    if (periodElement) {
                         const periodText = new Date(tahun, bulan - 1).toLocaleDateString('id-ID', { 
                             month: 'long', 
                             year: 'numeric' 
                         });
-                        const periodElement = headerElement.parentElement.querySelector('small');
-                        if (periodElement) {
-                            periodElement.textContent = `Periode: ${periodText}`;
+                        periodElement.textContent = `Laporan Keuangan ${periodText}`;
+                    }
+
+                    // Update posting button and chain broken alert
+                    const postingBtn = document.getElementById('postingBtn');
+                    let chainBrokenAlert = document.getElementById('chainBrokenAlert');
+                    
+                    if (data.data.is_chain_broken) {
+                        if (postingBtn) {
+                            postingBtn.disabled = true;
+                            postingBtn.setAttribute('onclick', `konfirmasiPosting('${bulan}', '${tahun}', ${data.data.is_posted})`);
+                        }
+                        
+                        if (!chainBrokenAlert) {
+                            const alertHtml = `
+                                <div class="alert alert-danger shadow-sm mb-4" id="chainBrokenAlert">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-octagon fs-4 me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1 fw-bold">Peringatan: Rantai Posting Terputus</h6>
+                                            <p class="mb-0">Periode ini belum memiliki saldo awal karena periode sebelumnya belum diposting. Silakan posting periode sebelumnya terlebih dahulu.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            const formContainer = document.querySelector('.container-fluid > .d-flex').nextElementSibling;
+                            formContainer.insertAdjacentHTML('beforebegin', alertHtml);
+                        }
+                    } else {
+                        if (postingBtn) {
+                            postingBtn.disabled = false;
+                            postingBtn.setAttribute('onclick', `konfirmasiPosting('${bulan}', '${tahun}', ${data.data.is_posted})`);
+                        }
+                        if (chainBrokenAlert) chainBrokenAlert.remove();
+                    }
+                    
+                    // Update posting status badge
+                    let postingBadge = document.getElementById('postingStatusBadge');
+                    if (data.data.is_posted) {
+                        if (postingBadge) {
+                            postingBadge.className = 'badge bg-success';
+                            postingBadge.innerHTML = '<i class="bi bi-check-circle me-1"></i> Sudah Diposting';
+                        }
+                    } else {
+                        if (postingBadge) {
+                            postingBadge.className = 'badge bg-secondary';
+                            postingBadge.innerHTML = 'Belum Diposting';
                         }
                     }
                     
@@ -658,8 +722,6 @@ document.addEventListener('DOMContentLoaded', function() {
     bulanSelect.addEventListener('change', updatePdfLink);
     tahunInput.addEventListener('input', updatePdfLink);
 
-    // REMOVED: Jurnal penyeimbang JavaScript functions dihapus sesuai permintaan user
-
     // Form submission with AJAX
     periodForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -682,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </form>
 
 <script>
-function konfirmasiPosting(bulan, tahun) {
+function konfirmasiPosting(bulan, tahun, isPosted = false) {
     const namaBulan = {
         '01':'Januari','02':'Februari','03':'Maret','04':'April',
         '05':'Mei','06':'Juni','07':'Juli','08':'Agustus',
@@ -694,12 +756,17 @@ function konfirmasiPosting(bulan, tahun) {
     let nextT = b === 12 ? t + 1 : t;
     let nextBStr = String(nextB).padStart(2,'0');
 
-    if (confirm(
-        `Posting saldo akhir ${namaBulan[bulan]} ${tahun} sebagai saldo awal ${namaBulan[nextBStr]} ${nextT}?\n\n` +
-        `Tindakan ini akan menyimpan saldo akhir semua akun bulan ini\n` +
-        `sebagai saldo awal bulan berikutnya.\n\n` +
-        `Lanjutkan?`
-    )) {
+    let msg = `Posting saldo akhir ${namaBulan[bulan]} ${tahun} sebagai saldo awal ${namaBulan[nextBStr]} ${nextT}?\n\n` +
+              `Tindakan ini akan menyimpan saldo akhir semua akun bulan ini\n` +
+              `sebagai saldo awal bulan berikutnya.\n\n`;
+
+    if (isPosted) {
+        msg += `PERINGATAN: Periode ini sudah pernah diposting. Posting ulang akan menimpa saldo awal bulan berikutnya.\n\nLanjutkan?`;
+    } else {
+        msg += `Lanjutkan?`;
+    }
+
+    if (confirm(msg)) {
         document.getElementById('postingBulan').value = bulan;
         document.getElementById('postingTahun').value = tahun;
         document.getElementById('formPosting').submit();

@@ -10,6 +10,7 @@ class CoaPeriodBalance extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'coa_id',
         'kode_akun',
         'period_id',
