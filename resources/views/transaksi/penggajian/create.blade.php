@@ -177,24 +177,40 @@
 
                 <!-- TOTAL GAJI -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <div class="alert alert-light border py-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="text-muted d-block">Total Gaji Karyawan</small>
-                                    <h4 class="mb-0 text-primary" id="display_total_gaji">Rp 0</h4>
-                                    <small class="text-muted">Gaji pokok + tunjangan (diterima karyawan)</small>
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <!-- Baris Pertama: Diterima Karyawan -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-primary bg-opacity-10 p-2 rounded text-primary">
+                                            <i class="bi bi-person fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">Diterima Karyawan</h6>
+                                            <small class="text-muted">Gaji pokok + semua tunjangan</small>
+                                        </div>
+                                    </div>
+                                    <h3 class="mb-0 fw-bold text-primary" id="display_total_gaji">Rp 0</h3>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="alert alert-light border py-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="text-muted d-block">Total Biaya Perusahaan</small>
-                                    <h4 class="mb-0 text-primary" id="display_total_biaya">Rp 0</h4>
-                                    <small class="text-muted">Total gaji karyawan + asuransi ditanggung perusahaan</small>
+
+                                <!-- Baris Kedua: BPJS -->
+                                <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                                    <small class="text-muted"><i class="bi bi-plus-lg me-1"></i> Asuransi BPJS (beban perusahaan)</small>
+                                    <small class="text-muted fw-semibold" id="display_bpjs_beban">Rp 0</small>
+                                </div>
+
+                                <!-- Baris Ketiga: Total Biaya Perusahaan -->
+                                <div class="bg-info bg-opacity-10 rounded p-3 mt-3 border border-info border-opacity-25">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="bg-info text-white p-2 rounded">
+                                                <i class="bi bi-building"></i>
+                                            </div>
+                                            <h6 class="mb-0 fw-bold text-dark">Total Biaya Perusahaan</h6>
+                                        </div>
+                                        <h4 class="mb-0 fw-bold text-info-emphasis" id="display_total_biaya">Rp 0</h4>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -483,6 +499,9 @@
         document.getElementById('display_gaji_mentah').value = formatRupiah(gajiPokok);
         document.getElementById('display_total_gaji').textContent = 'Rp ' + formatRupiah(totalGajiKaryawan);
         document.getElementById('display_total_biaya').textContent = 'Rp ' + formatRupiah(totalBiayaPerusahaan);
+        if(document.getElementById('display_bpjs_beban')) {
+            document.getElementById('display_bpjs_beban').textContent = 'Rp ' + formatRupiah(bpjs);
+        }
         document.getElementById('h-final').value = gajiPokok;
     }
 
