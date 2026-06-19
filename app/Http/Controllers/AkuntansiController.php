@@ -1239,7 +1239,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'labaKotor', 'labaBersih',
             'hppAmount', 'totalDiskonPenjualan',
             'detailPenjualan', 'detailHpp',
-            'accountData'
+            'accountData', 'hppCoa'
         ) + [
             'totalHpp' => $hppAmount,
             'getSaldo' => function($coa) use ($accountData) {

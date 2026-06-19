@@ -185,6 +185,12 @@
                             Metode: {{ strtoupper($metodePembayaran) }}
                         </div>
                     @endif
+                    @if(isset($produkId) && $produkId)
+                        @php $filterProduk = \App\Models\Produk::find($produkId); @endphp
+                        <div class="report-period">
+                            Produk: {{ $filterProduk ? strtoupper($filterProduk->nama_produk) : 'SEMUA' }}
+                        </div>
+                    @endif
                 </td>
             </tr>
         </table>
