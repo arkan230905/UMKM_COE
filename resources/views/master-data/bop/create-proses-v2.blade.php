@@ -162,13 +162,9 @@
                 <div class="info-card mt-4">
                     <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP Bahan Pendukung</h6>
                     <div class="row">
-                        <div class="col-md-6">
-                            <strong>Total Nominal Per Bulan:</strong><br>
-                            <span class="fs-5 text-warning">Rp <span id="totalNominalBulan">0</span></span>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12 text-center">
                             <strong>Total BOP Per Produk:</strong><br>
-                            <span class="fs-5 text-success">Rp <span id="totalBopPerProduk">0.00</span></span>
+                            <span class="fs-4 text-success fw-bold">Rp <span id="totalBopPerProduk">0</span></span>
                         </div>
                     </div>
                 </div>
@@ -270,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="input-group-text">Rp</span>
                     <input type="text" 
                            class="form-control form-control-sm rp-produk-input" 
-                           value="0.00"
+                           value="0"
                            readonly>
                 </div>
             </td>
@@ -333,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             satuanInput.value = '';
             hargaSatuanInput.value = 0;
             row.querySelector('.total-nominal-input').value = 0;
-            row.querySelector('.rp-produk-input').value = '0.00';
+            row.querySelector('.rp-produk-input').value = 0;
             updateTotals();
         }
     }
@@ -348,32 +344,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalNominal = hargaSatuan * qtyPenggunaan;
         
         // Rp/Produk = Total Nominal ÷ Jumlah Produksi
-        const rpPerProduk = totalNominal / jumlahProduksi;
+        const rpPerProdukRaw = totalNominal / jumlahProduksi;
+        
+        // ROUND to nearest integer (>= 0.5 rounds up, < 0.5 rounds down)
+        const rpPerProduk = Math.round(rpPerProdukRaw);
         
         row.querySelector('.total-nominal-input').value = formatNumber(totalNominal);
-        row.querySelector('.rp-produk-input').value = formatNumber(rpPerProduk);
+        row.querySelector('.rp-produk-input').value = rpPerProduk.toLocaleString('id-ID');
         
         updateTotals();
     }
     
     // Update totals
     function updateTotals() {
-        let totalNominalBulan = 0;
         let totalBopPerProduk = 0;
         
         document.querySelectorAll('.bahan-row').forEach(row => {
-            const totalNominalInput = row.querySelector('.total-nominal-input');
             const rpProdukInput = row.querySelector('.rp-produk-input');
             
-            const totalNominal = parseFloat(totalNominalInput.value.replace(/,/g, '')) || 0;
-            const rpProduk = parseFloat(rpProdukInput.value.replace(/,/g, '')) || 0;
+            // Parse the displayed rounded value
+            const rpProduk = parseFloat(rpProdukInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
             
-            totalNominalBulan += totalNominal;
             totalBopPerProduk += rpProduk;
         });
         
-        document.getElementById('totalNominalBulan').textContent = formatNumber(totalNominalBulan);
-        document.getElementById('totalBopPerProduk').textContent = formatNumber(totalBopPerProduk);
+        // Display as integer (already rounded from individual rows)
+        document.getElementById('totalBopPerProduk').textContent = totalBopPerProduk.toLocaleString('id-ID');
     }
     
     // Recalculate all rows when jumlah produksi changes
