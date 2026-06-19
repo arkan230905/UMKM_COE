@@ -198,18 +198,18 @@ button[aria-expanded="false"] .transition-icon {
                 
                 <div class="col-md-3">
                     <label class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
-                    <select name="bank_id" class="form-select" required>
+                    <select name="bank_id" id="payment_method_select" class="form-select" required>
                         <option value="">-- Pilih Metode Pembayaran --</option>
                         @foreach($kasbank as $kb)
                             @if($kb->nama_akun)
-                                <option value="{{ $kb->id }}">
-                                    💵 {{ $kb->nama_akun }}
-                                    (Saldo: Rp {{ number_format($kb->saldo_realtime ?? $kb->saldo_awal ?? 0, 0, ',', '.') }})
+                                <option value="{{ $kb->id }}" data-saldo="{{ $kb->saldo_realtime ?? $kb->saldo_awal ?? 0 }}">
+                                    {{ $kb->kode_akun }} - {{ $kb->nama_akun }} (Saldo: Rp {{ number_format($kb->saldo_realtime ?? $kb->saldo_awal ?? 0, 0, ',', '.') }})
                                 </option>
                             @endif
                         @endforeach
-                        <option value="credit">💳 Kredit (Hutang)</option>
+                        <option value="credit">Kredit (Hutang)</option>
                     </select>
+                    <small class="text-muted" id="saldo_info"></small>
                 </div>
             </div>
         </div>
@@ -670,6 +670,34 @@ if (subSatuanData.bahan_baku && subSatuanData.bahan_baku[5]) {
     console.log('Ayam Potong (ID 5) data:', subSatuanData.bahan_baku[5]);
 }
 console.log('=== END DEBUG ===');
+
+// Payment Method Handler - Show saldo info
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentSelect = document.getElementById('payment_method_select');
+    const saldoInfo = document.getElementById('saldo_info');
+    
+    if (paymentSelect && saldoInfo) {
+        paymentSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const saldo = selectedOption.getAttribute('data-saldo');
+            
+            if (saldo && this.value !== 'credit') {
+                const saldoNum = parseFloat(saldo);
+                const formatted = new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(saldoNum);
+                
+                saldoInfo.innerHTML = '<i class="fas fa-wallet me-1"></i>Saldo tersedia: ' + formatted;
+                saldoInfo.className = saldoNum > 0 ? 'text-success' : 'text-warning';
+            } else {
+                saldoInfo.innerHTML = '';
+            }
+        });
+    }
+});
 
 // Format number with clean decimal display
 function formatCleanNumber(num) {
@@ -1282,28 +1310,51 @@ function updateJournalPreview() {
     // Get payment method
     const bankSelect = document.querySelector('select[name="bank_id"]');
     const selectedValue = bankSelect ? bankSelect.value : '';
+    const selectedOption = bankSelect ? bankSelect.options[bankSelect.selectedIndex] : null;
     
-    // Determine payment method based on selected value
+    // Determine payment method and COA based on selected bank_id
+    let paymentCoaKode = '210'; // Default: Hutang Usaha
+    let paymentCoaNama = 'Hutang Usaha';
     let paymentMethod = 'credit'; // default
-    let bankName = 'Hutang Usaha';
     
-    if (selectedValue === 'credit') {
+    if (selectedValue === 'credit' || !selectedValue) {
+        // Kredit (Hutang)
         paymentMethod = 'credit';
-        bankName = 'Hutang Usaha';
-    } else if (selectedValue && selectedValue !== '') {
-        // Check if it's a cash or bank account based on the text
-        const selectedText = bankSelect.options[bankSelect.selectedIndex].text.toLowerCase();
-        if (selectedText.includes('kas')) {
-            paymentMethod = 'cash';
-            bankName = 'Kas';
-        } else if (selectedText.includes('bank') || selectedText.includes('transfer')) {
-            paymentMethod = 'transfer';
-            bankName = 'Kas di Bank';
+        paymentCoaKode = '210';
+        paymentCoaNama = 'Hutang Usaha';
+    } else if (selectedValue && selectedValue !== '' && selectedOption) {
+        // Ambil COA dari option text yang format: "111 - Kas Bank (Saldo: Rp xxx)"
+        const optionText = selectedOption.text;
+        
+        // Extract kode akun dan nama akun dari text
+        const match = optionText.match(/^(\d+)\s*-\s*([^(]+)/);
+        
+        if (match) {
+            paymentCoaKode = match[1].trim(); // "1111"
+            paymentCoaNama = match[2].trim(); // "Bank BRI"
+            
+            // Tentukan payment method berdasarkan panjang kode
+            if (paymentCoaKode.length >= 4) {
+                // 4 digit atau lebih = Bank
+                paymentMethod = 'transfer';
+            } else {
+                // 3 digit = Kas
+                paymentMethod = 'cash';
+            }
         } else {
-            // Default to cash for other account types
-            paymentMethod = 'cash';
-            bankName = bankSelect.options[bankSelect.selectedIndex].text.replace(/[^\w\s]/gi, '').trim();
+            // Fallback jika parsing gagal
+            paymentCoaKode = '111';
+            paymentCoaNama = optionText.split('(')[0].trim();
+            paymentMethod = 'transfer';
         }
+        
+        console.log('💰 Payment Method Debug:', {
+            selectedValue: selectedValue,
+            optionText: optionText,
+            paymentCoaKode: paymentCoaKode,
+            paymentCoaNama: paymentCoaNama,
+            paymentMethod: paymentMethod
+        });
     }
     
     // Show/hide journal preview section
@@ -1365,17 +1416,6 @@ function updateJournalPreview() {
     
     // 4. Pembayaran (Kredit)
     let j4 = '';
-    let paymentCoaKode = '210'; // Default: Hutang Usaha
-    let paymentCoaNama = 'Hutang Usaha';
-    
-    if (paymentMethod === 'cash') {
-        paymentCoaKode = '112';
-        paymentCoaNama = 'Kas';
-    } else if (paymentMethod === 'transfer') {
-        paymentCoaKode = '111';
-        paymentCoaNama = 'Kas di Bank';
-    }
-    
     if (total > 0) {
         j4 += rowK(paymentCoaNama, paymentCoaKode, paymentCoaNama, total);
     }

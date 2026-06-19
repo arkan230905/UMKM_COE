@@ -275,13 +275,13 @@
 
                 <div class="row mt-4">
                     <div class="col-md-12">
-                        <div class="d-flex justify-content-between">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Simpan
-                            </button>
+                        <div class="d-flex justify-content-end gap-2">
                             <a href="{{ route('master-data.bahan-baku.index') }}" class="btn btn-secondary">
                                 <i class="fas fa-times"></i> Batal
                             </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
                         </div>
                     </div>
                 </div>
