@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
  * - Tambah: 11511 (Pers. Bahan Pendukung Coklat), 11512 (Pers. Bahan Pendukung Kemasan)
  * - Hapus: 1160 (ganti ke 11512)
  * - Tambah: 1164 (Pers. Barang Jadi Pisang Tanduk)
- * - Koreksi Kewajiban: 211=Hutang Usaha, 212=Hutang Gaji, 213=PPN Keluaran
+ * - Koreksi Kewajiban: 211=Hutang Usaha, 212=Hutang Gaji, 213=Hutang Asuransi, 214=PPN Keluaran
  *   (sebelumnya: 210=Hutang Usaha, 211=Hutang Gaji, 212=PPN Keluaran)
  * - Tambah: 414 (Penjualan - Pisang Tanduk)
  * - Tambah: 514 (BBB - Pisang), 515 (Beban Tunjangan), 516 (Beban Asuransi),
@@ -82,7 +82,8 @@ return new class extends Migration
             ['kode_akun' => '21',    'nama_akun' => 'Hutang',                                          'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '211',   'nama_akun' => 'Hutang Usaha',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 12000000],
             ['kode_akun' => '212',   'nama_akun' => 'Hutang Gaji',                                     'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
-            ['kode_akun' => '213',   'nama_akun' => 'PPN Keluaran',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '213',   'nama_akun' => 'Hutang Asuransi',                                 'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '214',   'nama_akun' => 'PPN Keluaran',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
 
             // MODAL (31)
             ['kode_akun' => '31',    'nama_akun' => 'Modal',                                           'tipe_akun' => 'Modal',     'saldo_normal' => 'kredit', 'saldo_awal' => 0],
@@ -165,7 +166,8 @@ return new class extends Migration
         return [
             '211' => 'Hutang Usaha',
             '212' => 'Hutang Gaji',
-            '213' => 'PPN Keluaran',
+            '213' => 'Hutang Asuransi',
+            '214' => 'PPN Keluaran',
             '537' => 'BOP - Bubuk Bawang Putih',
             '538' => 'BOP - Susu',
             '539' => 'BOP - Keju',
@@ -244,7 +246,7 @@ return new class extends Migration
 
             // 3. Rename kode lama 210 (Hutang Usaha) jika masih ada dan 211 belum ada dengan nama yang benar
             //    Sebelumnya seeder memakai 210=Hutang Usaha, 211=Hutang Gaji, 212=PPN Keluaran
-            //    Sekarang: 211=Hutang Usaha, 212=Hutang Gaji, 213=PPN Keluaran
+            //    Sekarang: 211=Hutang Usaha, 212=Hutang Gaji, 213=Hutang Asuransi, 214=PPN Keluaran
             //    Jika user punya 210=Hutang Usaha tapi tidak punya 211=Hutang Usaha, rename kodenya
             $has210 = DB::table('coas')
                 ->where('user_id', $userId)
@@ -291,7 +293,7 @@ return new class extends Migration
     public function down(): void
     {
         // Hapus akun-akun yang BARU ditambahkan oleh migration ini
-        $newKodes = ['11511', '11512', '1164', '213', '414', '514', '515', '516', '517', '518', '5311', '5322', '564'];
+        $newKodes = ['11511', '11512', '1164', '213', '214', '414', '514', '515', '516', '517', '518', '5311', '5322', '564'];
 
         DB::table('coas')
             ->whereIn('kode_akun', $newKodes)

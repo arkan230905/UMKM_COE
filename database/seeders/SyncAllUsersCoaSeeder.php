@@ -81,7 +81,8 @@ class SyncAllUsersCoaSeeder extends Seeder
             ['kode_akun' => '21',    'nama_akun' => 'Hutang',                                          'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
             ['kode_akun' => '211',   'nama_akun' => 'Hutang Usaha',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 12000000],
             ['kode_akun' => '212',   'nama_akun' => 'Hutang Gaji',                                     'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
-            ['kode_akun' => '213',   'nama_akun' => 'PPN Keluaran',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '213',   'nama_akun' => 'Hutang Asuransi',                                 'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
+            ['kode_akun' => '214',   'nama_akun' => 'PPN Keluaran',                                    'tipe_akun' => 'Kewajiban', 'saldo_normal' => 'kredit', 'saldo_awal' => 0],
 
             // Modal (31)
             ['kode_akun' => '31',    'nama_akun' => 'Modal',                                           'tipe_akun' => 'Modal',     'saldo_normal' => 'kredit', 'saldo_awal' => 0],
