@@ -17,13 +17,18 @@ class AccountHelper
     /**
      * Get semua akun Kas & Bank dengan format metode-akun COA
      * Format: Nama Akun = lowercase(nama) (kode_akun)
+     * Includes all sub-accounts: 111x (Bank), 112x (Kas), 113x (Kas Kecil)
      * 
      * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getKasBankAccounts($userId = null)
     {
-        $query = Coa::whereIn('kode_akun', ['111', '112', '113'])
+        $query = Coa::where(function($q) {
+                $q->where('kode_akun', 'like', '111%')  // Bank accounts
+                  ->orWhere('kode_akun', 'like', '112%') // Kas accounts
+                  ->orWhere('kode_akun', 'like', '113%'); // Kas Kecil accounts
+            })
             ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
         
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
