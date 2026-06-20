@@ -131,23 +131,66 @@
                     </div>
                 </div>
 
+                <!-- BOP Proses Lainnya -->
+                <div class="row g-3 mt-4">
+                    <div class="col-12">
+                        <h5 class="text-white mb-3">
+                            <i class="fas fa-cogs me-2"></i>BOP Proses Lainnya
+                        </h5>
+                        <small class="text-light">Komponen BOP lainnya seperti listrik, gas, penyusutan mesin, dll</small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="bopLainnyaTable">
+                                <thead>
+                                    <tr>
+                                        <th width="30%">Nama Komponen</th>
+                                        <th width="20%">Nominal Per Bulan</th>
+                                        <th width="20%">Rp/Produk</th>
+                                        <th width="20%">Keterangan</th>
+                                        <th width="10%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bopLainnyaContainer">
+                                    <!-- Dynamic rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" id="addLainnyaBtn" class="btn btn-success btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Tambah Komponen Lainnya
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Ringkasan Perhitungan -->
                 <div class="info-card mt-4">
                     <h6 class="text-warning mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan</h6>
                     <div class="row">
                         <div class="col-md-3">
+                            <strong>BOP Komponen:</strong><br>
+                            <span class="fs-5 text-warning">Rp <span id="totalBopKomponen">0</span></span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>BOP Lainnya:</strong><br>
+                            <span class="fs-5 text-info">Rp <span id="totalBopLainnya">0</span></span>
+                        </div>
+                        <div class="col-md-3">
                             <strong>Total BOP per Produk:</strong><br>
-                            <span class="fs-5 text-warning">Rp <span id="totalBopPerProduk">0</span></span>
+                            <span class="fs-5 text-success">Rp <span id="totalBopPerProduk">0</span></span>
                         </div>
                         <div class="col-md-3">
                             <strong>BTKL per Produk:</strong><br>
                             <span class="fs-5 text-info">Rp <span id="btklPerProduk">0</span></span>
                         </div>
-                        <div class="col-md-3">
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
                             <strong>Total Biaya per Produk:</strong><br>
-                            <span class="fs-5 text-success">Rp <span id="totalBiayaPerProduk">0.00</span></span>
+                            <span class="fs-4 text-success">Rp <span id="totalBiayaPerProduk">0.00</span></span>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <strong>Kapasitas per Jam:</strong><br>
                             <span class="fs-5 text-info"><span id="kapasitasPerJam">0</span> unit</span>
                         </div>
@@ -173,6 +216,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const prosesInfo = document.getElementById('prosesInfo');
     const komponenContainer = document.getElementById('komponenBopContainer');
     const addKomponenBtn = document.getElementById('addKomponenBtn');
+    const lainnyaContainer = document.getElementById('bopLainnyaContainer');
+    const addLainnyaBtn = document.getElementById('addLainnyaBtn');
     
     // Static list of BOP components
     const komponenOptions = [
@@ -187,6 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
     
     let komponenCount = 0;
+    let lainnyaCount = 0;
     
     // Load existing components
     @php
@@ -198,6 +244,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const existingKomponen = @json($existingKomponen);
     
+    // Load existing BOP Lainnya
+    @php
+        $existingLainnya = [];
+        if ($bopProses->bop_lainnya && is_array($bopProses->bop_lainnya)) {
+            $existingLainnya = $bopProses->bop_lainnya;
+        }
+    @endphp
+    
+    const existingLainnya = @json($existingLainnya);
+    
     // Add existing components
     if (existingKomponen.length > 0) {
         existingKomponen.forEach(function(komponen) {
@@ -206,6 +262,16 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         // Add initial empty row if no existing components
         addKomponenRow();
+    }
+    
+    // Add existing BOP Lainnya
+    if (existingLainnya.length > 0) {
+        existingLainnya.forEach(function(lainnya) {
+            addLainnyaRow(lainnya.nama_komponen || '', lainnya.nominal_per_bulan || '', lainnya.keterangan || '');
+        });
+    } else {
+        // Add initial empty row if no existing BOP Lainnya
+        addLainnyaRow();
     }
     
     // Event delegation for dynamic input changes
@@ -302,6 +368,120 @@ document.addEventListener('DOMContentLoaded', function() {
         addKomponenRow();
     });
     
+    // =========================================
+    // BOP LAINNYA SECTION
+    // =========================================
+    
+    // Add lainnya row function
+    function addLainnyaRow(namaKomponen = '', nominalPerBulan = '', keterangan = '') {
+        lainnyaCount++;
+        const rowId = `lainnya_${lainnyaCount}`;
+        
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.className = 'lainnya-row';
+        row.innerHTML = `
+            <td>
+                <input type="text" 
+                       name="bop_lainnya[${lainnyaCount}][nama_komponen]" 
+                       class="form-control form-control-sm nama-komponen-input" 
+                       value="${namaKomponen}"
+                       placeholder="Contoh: Listrik, Gas, Penyusutan Mesin"
+                       required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="number" 
+                           name="bop_lainnya[${lainnyaCount}][nominal_per_bulan]" 
+                           class="form-control form-control-sm nominal-bulan-input" 
+                           data-row-id="${rowId}"
+                           value="${nominalPerBulan}"
+                           min="0"
+                           step="0.01"
+                           placeholder="0"
+                           required>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm rp-produk-lainnya-input" 
+                           value="0"
+                           readonly>
+                </div>
+            </td>
+            <td>
+                <input type="text" 
+                       name="bop_lainnya[${lainnyaCount}][keterangan]" 
+                       class="form-control form-control-sm" 
+                       value="${keterangan}"
+                       placeholder="Keterangan opsional">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-danger btn-sm delete-lainnya-row" data-row-id="${rowId}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        lainnyaContainer.appendChild(row);
+        
+        // Add event listeners
+        attachLainnyaRowEvents(row);
+        
+        // Trigger calculation after adding row
+        updateCalculation();
+        
+        return row;
+    }
+    
+    // Attach events to lainnya row
+    function attachLainnyaRowEvents(row) {
+        const nominalInput = row.querySelector('.nominal-bulan-input');
+        const deleteBtn = row.querySelector('.delete-lainnya-row');
+        
+        nominalInput.addEventListener('input', function() {
+            calculateLainnyaRow(row);
+        });
+        
+        deleteBtn.addEventListener('click', function() {
+            if (lainnyaContainer.children.length > 1) {
+                row.remove();
+                updateCalculation();
+            } else {
+                alert('Minimal harus ada 1 komponen BOP lainnya');
+            }
+        });
+    }
+    
+    // Calculate lainnya row values
+    function calculateLainnyaRow(row) {
+        const nominalPerBulan = parseFloat(row.querySelector('.nominal-bulan-input').value) || 0;
+        const selectedOption = prosesSelect.options[prosesSelect.selectedIndex];
+        const kapasitas = parseInt(selectedOption?.dataset?.kapasitas) || 0;
+        
+        // Assume 30 days per month and 8 hours per day for monthly production
+        // Monthly production = kapasitas per jam * 8 hours * 30 days
+        const jumlahProduksiPerBulan = kapasitas * 8 * 30;
+        
+        // Rp/Produk = Nominal Per Bulan ÷ Jumlah Produksi Per Bulan
+        const rpPerProdukRaw = jumlahProduksiPerBulan > 0 ? nominalPerBulan / jumlahProduksiPerBulan : 0;
+        
+        // ROUND to nearest integer
+        const rpPerProduk = Math.round(rpPerProdukRaw);
+        
+        row.querySelector('.rp-produk-lainnya-input').value = rpPerProduk.toLocaleString('id-ID');
+        
+        updateCalculation();
+    }
+    
+    // Add button event for lainnya
+    addLainnyaBtn.addEventListener('click', function() {
+        addLainnyaRow();
+    });
+    
     // Update info when process is selected
     prosesSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -335,12 +515,23 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update hidden input for kapasitas
         document.getElementById('kapasitasValue').value = kapasitas;
         
-        // Calculate total BOP per produk from all rate inputs
-        let totalBopPerProduk = 0;
+        // Calculate total BOP Komponen per produk from all rate inputs
+        let totalBopKomponen = 0;
         const rateInputs = document.querySelectorAll('.rate-input');
         rateInputs.forEach(function(input) {
-            totalBopPerProduk += parseFloat(input.value) || 0;
+            totalBopKomponen += parseFloat(input.value) || 0;
         });
+        
+        // Calculate total BOP Lainnya per produk
+        let totalBopLainnya = 0;
+        document.querySelectorAll('.lainnya-row').forEach(row => {
+            const rpProdukInput = row.querySelector('.rp-produk-lainnya-input');
+            const rpProduk = parseFloat(rpProdukInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
+            totalBopLainnya += rpProduk;
+        });
+        
+        // Total BOP per produk = BOP Komponen + BOP Lainnya
+        const totalBopPerProduk = totalBopKomponen + totalBopLainnya;
         
         // Calculate BTKL per produk
         const btklPerProduk = kapasitas > 0 ? tarif / kapasitas : 0;
@@ -349,6 +540,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalBiayaPerProduk = btklPerProduk + totalBopPerProduk;
         
         // Update display
+        document.getElementById('totalBopKomponen').textContent = totalBopKomponen.toLocaleString('id-ID');
+        document.getElementById('totalBopLainnya').textContent = totalBopLainnya.toLocaleString('id-ID');
         document.getElementById('totalBopPerProduk').textContent = totalBopPerProduk.toLocaleString('id-ID');
         document.getElementById('btklPerProduk').textContent = formatNumberClean(btklPerProduk);
         document.getElementById('totalBiayaPerProduk').textContent = formatNumberClean(totalBiayaPerProduk);

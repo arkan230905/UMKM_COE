@@ -19,6 +19,7 @@ class BopProses extends Model
         'komponen_lainnya', // JSON: Komponen lainnya (listrik, gas, penyusutan, dll)
         'total_bop_per_produk',
         'total_biaya_per_produk',
+        'jumlah_produksi_perbulan', // Jumlah produksi produk per bulan untuk perhitungan Rp/produk
         'keterangan',
         'is_active'
     ];

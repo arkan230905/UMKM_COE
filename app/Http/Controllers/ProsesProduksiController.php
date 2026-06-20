@@ -39,7 +39,7 @@ class ProsesProduksiController extends Controller
 
     public function create()
     {
-        $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
+        $jabatans = \App\Models\Kualifikasi::where('user_id', auth()->id())->orderBy('nama_kualifikasi')->get();
         return view('master-data.proses-produksi.create', compact('jabatans'));
     }
 
@@ -54,7 +54,7 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-            $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())->findOrFail($validated['jabatan_id']);
+            $jabatan = \App\Models\Kualifikasi::where('user_id', auth()->id())->findOrFail($validated['jabatan_id']);
             
             // Gunakan tarif_produk dari jabatan sebagai tarif per produk
             $tarifPerProduk = $jabatan->tarif_produk ?? $validated['tarif_per_produk'];
@@ -94,7 +94,7 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-            $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())->findOrFail($validated['jabatan_id']);
+            $jabatan = \App\Models\Kualifikasi::where('user_id', auth()->id())->findOrFail($validated['jabatan_id']);
             
             // Gunakan tarif_produk dari jabatan sebagai tarif per produk
             $tarifPerProduk = $jabatan->tarif_produk ?? $validated['tarif_per_produk'];
@@ -123,7 +123,7 @@ class ProsesProduksiController extends Controller
     public function edit(ProsesProduksi $prosesProduksi)
     {
         if ($prosesProduksi->user_id != auth()->id()) { abort(404); }
-        $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())->orderBy('nama')->get();
+        $jabatans = \App\Models\Kualifikasi::where('user_id', auth()->id())->orderBy('nama_kualifikasi')->get();
         return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'jabatans'));
     }
 
