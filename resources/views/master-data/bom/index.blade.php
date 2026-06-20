@@ -103,24 +103,24 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-success">
+                                    <span class="fw-bold text-success">
                                         Rp {{ number_format(getTotalBbb($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-warning">
+                                    <span class="fw-bold text-warning">
                                         Rp {{ number_format(getTotalBtkl($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-danger">
+                                    <span class="fw-bold text-danger">
                                         Rp {{ number_format(getTotalBop($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
                                 <td>
-                                    <div class="fw-bold text-primary">
+                                    <span class="fw-bold text-primary">
                                         Rp {{ number_format(getTotalHpp($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
