@@ -185,7 +185,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <a href="{{ route('master-data.bop.edit-proses-v2', $bop->id) }}" 
+                                        <a href="{{ route('master-data.bop.edit-bop-proses', $bop->id) }}" 
                                                class="btn btn-sm btn-warning text-white rounded-pill px-3"
                                                data-bs-toggle="tooltip" 
                                                title="Edit BOP">
