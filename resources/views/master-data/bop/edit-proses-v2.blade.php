@@ -32,7 +32,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <form action="{{ route('master-data.bop.update-proses-v2', $bopProses->id) }}" method="POST" id="editBopForm">
+            <form action="{{ route('master-data.bop.update-bop-proses', $bopProses->id) }}" method="POST" id="editBopForm">
                 @csrf
                 @method('PUT')
                 
