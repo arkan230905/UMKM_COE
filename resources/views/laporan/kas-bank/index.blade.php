@@ -95,6 +95,36 @@
         </div>
     </div>
 
+    <!-- Kas & Bank Breakdown -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-money-bill-wave me-1 text-success"></i>Total Kas
+                    </div>
+                    <div class="h4 mb-0 {{ $totalKas < 0 ? 'text-danger' : 'text-success' }} fw-bold">
+                        Rp {{ number_format($totalKas, 0, ',', '.') }}
+                    </div>
+                    <div class="text-muted small">Saldo kas fisik</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-university me-1 text-primary"></i>Total Bank
+                    </div>
+                    <div class="h4 mb-0 {{ $totalBank < 0 ? 'text-danger' : 'text-primary' }} fw-bold">
+                        Rp {{ number_format($totalBank, 0, ',', '.') }}
+                    </div>
+                    <div class="text-muted small">Saldo rekening bank</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if($totalKeseluruhan < 0)
     <!-- Warning Alert for Negative Balance -->
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
