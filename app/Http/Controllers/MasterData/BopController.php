@@ -1217,9 +1217,13 @@ class BopController extends Controller
                 'bahan_pendukung.*.satuan' => 'required_with:bahan_pendukung|string',
                 'bahan_pendukung.*.harga_satuan' => 'required_with:bahan_pendukung|numeric|min:0',
                 'bahan_pendukung.*.qty_penggunaan_bulan' => 'required_with:bahan_pendukung|numeric|min:0',
+                'bahan_pendukung.*.coa_debit' => 'nullable|string',
+                'bahan_pendukung.*.coa_kredit' => 'nullable|string',
                 'bop_lainnya' => 'nullable|array',
                 'bop_lainnya.*.nama_komponen' => 'required_with:bop_lainnya|string|max:255',
                 'bop_lainnya.*.nominal_per_bulan' => 'required_with:bop_lainnya|numeric|min:0',
+                'bop_lainnya.*.coa_debit' => 'nullable|string',
+                'bop_lainnya.*.coa_kredit' => 'nullable|string',
                 'bop_lainnya.*.keterangan' => 'nullable|string',
             ], [
                 'nama_bop_proses.required' => 'Nama BOP Proses wajib diisi',
@@ -1267,7 +1271,9 @@ class BopController extends Controller
                         'harga_satuan' => round($hargaSatuan, 2),
                         'qty_penggunaan_bulan' => round($qtyPenggunaan, 2),
                         'total_nominal_bulan' => round($totalNominalBulan, 2),
-                        'rp_per_produk' => $rpPerProduk, // Already rounded to integer
+                        'total' => $rpPerProduk, // Changed from rp_per_produk to total for model compatibility
+                        'coa_debit' => $item['coa_debit'] ?? null,
+                        'coa_kredit' => $item['coa_kredit'] ?? null,
                     ];
                     
                     \Log::info('BOP V2 - Bahan Pendukung processed', [
@@ -1302,7 +1308,9 @@ class BopController extends Controller
                     $komponenLainnya[] = [
                         'nama_komponen' => $namaKomponen,
                         'nominal_per_bulan' => round($nominalPerBulan, 2),
-                        'rp_per_produk' => $rpPerProduk, // Already rounded to integer
+                        'nilai_per_produk' => $rpPerProduk, // Changed from rp_per_produk to nilai_per_produk for model compatibility
+                        'coa_debit' => $item['coa_debit'] ?? null,
+                        'coa_kredit' => $item['coa_kredit'] ?? null,
                         'keterangan' => $keterangan,
                     ];
                     
