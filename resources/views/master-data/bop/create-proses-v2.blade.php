@@ -158,11 +158,52 @@
                     </div>
                 </div>
 
+                <!-- BOP Proses Lainnya -->
+                <div class="row g-3 mt-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">
+                            <i class="fas fa-cogs me-2"></i>BOP Proses Lainnya
+                        </h5>
+                        <small class="text-muted">Komponen BOP lainnya seperti listrik, gas, penyusutan mesin, dll</small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="bopLainnyaTable">
+                                <thead>
+                                    <tr>
+                                        <th width="30%">Nama Komponen</th>
+                                        <th width="20%">Nominal Per Bulan</th>
+                                        <th width="20%">Rp/Produk</th>
+                                        <th width="20%">Keterangan</th>
+                                        <th width="10%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bopLainnyaContainer">
+                                    <!-- Dynamic rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" id="addLainnyaBtn" class="btn btn-success btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Tambah Komponen Lainnya
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Ringkasan Perhitungan -->
                 <div class="info-card mt-4">
-                    <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP Bahan Pendukung</h6>
+                    <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP</h6>
                     <div class="row">
-                        <div class="col-md-12 text-center">
+                        <div class="col-md-4 text-center border-end">
+                            <strong>BOP Bahan Pendukung:</strong><br>
+                            <span class="fs-5 text-primary fw-bold">Rp <span id="totalBopBahanPendukung">0</span></span>
+                        </div>
+                        <div class="col-md-4 text-center border-end">
+                            <strong>BOP Lainnya:</strong><br>
+                            <span class="fs-5 text-info fw-bold">Rp <span id="totalBopLainnya">0</span></span>
+                        </div>
+                        <div class="col-md-4 text-center">
                             <strong>Total BOP Per Produk:</strong><br>
                             <span class="fs-4 text-success fw-bold">Rp <span id="totalBopPerProduk">0</span></span>
                         </div>
@@ -192,9 +233,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const bahanPendukungList = @json($bahanPendukungs);
     
     let rowCount = 0;
+    let lainnyaRowCount = 0;
     
-    // Add initial empty row
+    // Add initial empty row for Bahan Pendukung
     addBahanRow();
+    
+    // Add initial empty row for BOP Lainnya
+    addLainnyaRow();
     
     // Add bahan row function
     function addBahanRow(data = {}) {
@@ -357,18 +402,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update totals
     function updateTotals() {
-        let totalBopPerProduk = 0;
+        let totalBopBahanPendukung = 0;
+        let totalBopLainnya = 0;
         
+        // Sum Bahan Pendukung
         document.querySelectorAll('.bahan-row').forEach(row => {
             const rpProdukInput = row.querySelector('.rp-produk-input');
             
             // Parse the displayed rounded value
             const rpProduk = parseFloat(rpProdukInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
             
-            totalBopPerProduk += rpProduk;
+            totalBopBahanPendukung += rpProduk;
         });
         
+        // Sum BOP Lainnya
+        document.querySelectorAll('.lainnya-row').forEach(row => {
+            const rpProdukInput = row.querySelector('.rp-produk-lainnya-input');
+            
+            // Parse the displayed rounded value
+            const rpProduk = parseFloat(rpProdukInput.value.replace(/\./g, '').replace(/,/g, '')) || 0;
+            
+            totalBopLainnya += rpProduk;
+        });
+        
+        // Total BOP Per Produk = Bahan Pendukung + Lainnya
+        const totalBopPerProduk = totalBopBahanPendukung + totalBopLainnya;
+        
         // Display as integer (already rounded from individual rows)
+        document.getElementById('totalBopBahanPendukung').textContent = totalBopBahanPendukung.toLocaleString('id-ID');
+        document.getElementById('totalBopLainnya').textContent = totalBopLainnya.toLocaleString('id-ID');
         document.getElementById('totalBopPerProduk').textContent = totalBopPerProduk.toLocaleString('id-ID');
     }
     
@@ -382,6 +444,129 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add button event
     addBtn.addEventListener('click', function() {
         addBahanRow();
+    });
+    
+    // =========================================
+    // BOP LAINNYA SECTION
+    // =========================================
+    
+    const lainnyaContainer = document.getElementById('bopLainnyaContainer');
+    const addLainnyaBtn = document.getElementById('addLainnyaBtn');
+    
+    // Add lainnya row function
+    function addLainnyaRow(data = {}) {
+        lainnyaRowCount++;
+        const rowId = `lainnya_${lainnyaRowCount}`;
+        
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.className = 'lainnya-row';
+        row.innerHTML = `
+            <td>
+                <input type="text" 
+                       name="bop_lainnya[${lainnyaRowCount}][nama_komponen]" 
+                       class="form-control form-control-sm nama-komponen-input" 
+                       value="${data.nama_komponen || ''}"
+                       placeholder="Contoh: Listrik, Gas, Penyusutan Mesin"
+                       required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="number" 
+                           name="bop_lainnya[${lainnyaRowCount}][nominal_per_bulan]" 
+                           class="form-control form-control-sm nominal-bulan-input" 
+                           data-row-id="${rowId}"
+                           value="${data.nominal_per_bulan || ''}"
+                           min="0"
+                           step="0.01"
+                           placeholder="0"
+                           required>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm rp-produk-lainnya-input" 
+                           value="0"
+                           readonly>
+                </div>
+            </td>
+            <td>
+                <input type="text" 
+                       name="bop_lainnya[${lainnyaRowCount}][keterangan]" 
+                       class="form-control form-control-sm" 
+                       value="${data.keterangan || ''}"
+                       placeholder="Keterangan opsional">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-danger btn-sm delete-lainnya-row" data-row-id="${rowId}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        lainnyaContainer.appendChild(row);
+        
+        // Add event listeners
+        attachLainnyaRowEvents(row);
+        
+        return row;
+    }
+    
+    // Attach events to lainnya row
+    function attachLainnyaRowEvents(row) {
+        const nominalInput = row.querySelector('.nominal-bulan-input');
+        const deleteBtn = row.querySelector('.delete-lainnya-row');
+        
+        nominalInput.addEventListener('input', function() {
+            calculateLainnyaRow(row);
+        });
+        
+        deleteBtn.addEventListener('click', function() {
+            if (lainnyaContainer.children.length > 1) {
+                row.remove();
+                updateTotals();
+            } else {
+                alert('Minimal harus ada 1 komponen BOP lainnya');
+            }
+        });
+    }
+    
+    // Calculate lainnya row values
+    function calculateLainnyaRow(row) {
+        const nominalPerBulan = parseFloat(row.querySelector('.nominal-bulan-input').value) || 0;
+        const jumlahProduksi = parseFloat(jumlahProduksiInput.value) || 1;
+        
+        // Rp/Produk = Nominal Per Bulan ÷ Jumlah Produksi
+        const rpPerProdukRaw = nominalPerBulan / jumlahProduksi;
+        
+        // ROUND to nearest integer
+        const rpPerProduk = Math.round(rpPerProdukRaw);
+        
+        row.querySelector('.rp-produk-lainnya-input').value = rpPerProduk.toLocaleString('id-ID');
+        
+        updateTotals();
+    }
+    
+    // Add button event for lainnya
+    addLainnyaBtn.addEventListener('click', function() {
+        addLainnyaRow();
+    });
+    
+    // Recalculate lainnya rows when jumlah produksi changes
+    const originalJumlahProduksiListener = jumlahProduksiInput.onchange;
+    jumlahProduksiInput.addEventListener('input', function() {
+        // Recalculate bahan pendukung rows
+        document.querySelectorAll('.bahan-row').forEach(row => {
+            calculateRow(row);
+        });
+        
+        // Recalculate BOP lainnya rows
+        document.querySelectorAll('.lainnya-row').forEach(row => {
+            calculateLainnyaRow(row);
+        });
     });
     
     // Format number helper

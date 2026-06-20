@@ -1205,26 +1205,32 @@ class BopController extends Controller
             'nama_bop_proses' => $request->input('nama_bop_proses'),
             'jumlah_produksi_perbulan' => $request->input('jumlah_produksi_perbulan'),
             'bahan_pendukung' => $request->input('bahan_pendukung'),
+            'bop_lainnya' => $request->input('bop_lainnya'),
         ]);
 
         try {
             $validated = $request->validate([
                 'nama_bop_proses' => 'required|string|max:255',
                 'jumlah_produksi_perbulan' => 'required|integer|min:1',
-                'bahan_pendukung' => 'required|array|min:1',
-                'bahan_pendukung.*.bahan_pendukung_id' => 'required|exists:bahan_pendukungs,id',
-                'bahan_pendukung.*.satuan' => 'required|string',
-                'bahan_pendukung.*.harga_satuan' => 'required|numeric|min:0',
-                'bahan_pendukung.*.qty_penggunaan_bulan' => 'required|numeric|min:0',
+                'bahan_pendukung' => 'nullable|array',
+                'bahan_pendukung.*.bahan_pendukung_id' => 'required_with:bahan_pendukung|exists:bahan_pendukungs,id',
+                'bahan_pendukung.*.satuan' => 'required_with:bahan_pendukung|string',
+                'bahan_pendukung.*.harga_satuan' => 'required_with:bahan_pendukung|numeric|min:0',
+                'bahan_pendukung.*.qty_penggunaan_bulan' => 'required_with:bahan_pendukung|numeric|min:0',
+                'bop_lainnya' => 'nullable|array',
+                'bop_lainnya.*.nama_komponen' => 'required_with:bop_lainnya|string|max:255',
+                'bop_lainnya.*.nominal_per_bulan' => 'required_with:bop_lainnya|numeric|min:0',
+                'bop_lainnya.*.keterangan' => 'nullable|string',
             ], [
                 'nama_bop_proses.required' => 'Nama BOP Proses wajib diisi',
                 'jumlah_produksi_perbulan.required' => 'Jumlah Produksi Per Bulan wajib diisi',
                 'jumlah_produksi_perbulan.min' => 'Jumlah Produksi Per Bulan minimal 1',
-                'bahan_pendukung.required' => 'Minimal harus ada 1 bahan pendukung',
-                'bahan_pendukung.*.bahan_pendukung_id.required' => 'Bahan pendukung harus dipilih',
+                'bahan_pendukung.*.bahan_pendukung_id.required_with' => 'Bahan pendukung harus dipilih',
                 'bahan_pendukung.*.bahan_pendukung_id.exists' => 'Bahan pendukung tidak ditemukan',
-                'bahan_pendukung.*.qty_penggunaan_bulan.required' => 'Qty Penggunaan Per Bulan wajib diisi',
+                'bahan_pendukung.*.qty_penggunaan_bulan.required_with' => 'Qty Penggunaan Per Bulan wajib diisi',
                 'bahan_pendukung.*.qty_penggunaan_bulan.min' => 'Qty Penggunaan Per Bulan harus >= 0',
+                'bop_lainnya.*.nama_komponen.required_with' => 'Nama komponen BOP Lainnya wajib diisi',
+                'bop_lainnya.*.nominal_per_bulan.required_with' => 'Nominal Per Bulan wajib diisi',
             ]);
 
             DB::beginTransaction();
@@ -1233,41 +1239,155 @@ class BopController extends Controller
             $komponenBahanPendukung = [];
             $jumlahProduksi = (int) $validated['jumlah_produksi_perbulan'];
             
-            foreach ($validated['bahan_pendukung'] as $index => $item) {
-                $bahanPendukungId = (int) $item['bahan_pendukung_id'];
-                $hargaSatuan = (float) $item['harga_satuan'];
-                $qtyPenggunaan = (float) $item['qty_penggunaan_bulan'];
-                
-                // Skip if qty is 0
-                if ($qtyPenggunaan <= 0) {
-                    continue;
+            if (!empty($validated['bahan_pendukung'])) {
+                foreach ($validated['bahan_pendukung'] as $index => $item) {
+                    $bahanPendukungId = (int) $item['bahan_pendukung_id'];
+                    $hargaSatuan = (float) $item['harga_satuan'];
+                    $qtyPenggunaan = (float) $item['qty_penggunaan_bulan'];
+                    
+                    // Skip if qty is 0
+                    if ($qtyPenggunaan <= 0) {
+                        continue;
+                    }
+                    
+                    // Calculate: Total Nominal/Bulan = Harga Satuan × Qty Penggunaan
+                    $totalNominalBulan = $hargaSatuan * $qtyPenggunaan;
+                    
+                    // Calculate: Rp/Produk = Total Nominal ÷ Jumlah Produksi (ROUNDED)
+                    $rpPerProdukRaw = $jumlahProduksi > 0 ? $totalNominalBulan / $jumlahProduksi : 0;
+                    $rpPerProduk = round($rpPerProdukRaw); // Round to nearest integer
+                    
+                    // Get bahan pendukung data for nama
+                    $bahan = \App\Models\BahanPendukung::find($bahanPendukungId);
+                    
+                    $komponenBahanPendukung[] = [
+                        'bahan_pendukung_id' => $bahanPendukungId,
+                        'nama' => $bahan->nama_bahan ?? 'Unknown',
+                        'satuan' => $item['satuan'],
+                        'harga_satuan' => round($hargaSatuan, 2),
+                        'qty_penggunaan_bulan' => round($qtyPenggunaan, 2),
+                        'total_nominal_bulan' => round($totalNominalBulan, 2),
+                        'rp_per_produk' => $rpPerProduk, // Already rounded to integer
+                    ];
+                    
+                    \Log::info('BOP V2 - Bahan Pendukung processed', [
+                        'id' => $bahanPendukungId,
+                        'nama' => $bahan->nama_bahan ?? 'Unknown',
+                        'harga_satuan' => $hargaSatuan,
+                        'qty_penggunaan' => $qtyPenggunaan,
+                        'total_nominal' => $totalNominalBulan,
+                        'rp_per_produk' => $rpPerProduk,
+                    ]);
                 }
-                
-                // Calculate: Total Nominal/Bulan = Harga Satuan × Qty Penggunaan
-                $totalNominalBulan = $hargaSatuan * $qtyPenggunaan;
-                
-                // Calculate: Rp/Produk = Total Nominal ÷ Jumlah Produksi
-                $rpPerProduk = $jumlahProduksi > 0 ? $totalNominalBulan / $jumlahProduksi : 0;
-                
-                // Get bahan pendukung data for nama
-                $bahan = \App\Models\BahanPendukung::find($bahanPendukungId);
-                
-                $komponenBahanPendukung[] = [
-                    'bahan_pendukung_id' => $bahanPendukungId,
-                    'nama' => $bahan->nama_bahan ?? 'Unknown',
-                    'satuan' => $item['satuan'],
-                    'harga_satuan' => round($hargaSatuan, 2),
-                    'qty_penggunaan_bulan' => round($qtyPenggunaan, 2),
-                    'total_nominal_bulan' => round($totalNominalBulan, 2),
-                    'rp_per_produk' => round($rpPerProduk, 2),
-                ];
-                
-                \Log::info('BOP V2 - Bahan Pendukung processed', [
-                    'id' => $bahanPendukungId,
-                    'nama' => $bahan->nama_bahan ?? 'Unknown',
-                    'harga_satuan' => $hargaSatuan,
-                    'qty_penggunaan' => $qtyPenggunaan,
-                    'total_nominal' => $totalNominalBulan,
+            }
+
+            // Prepare komponen lainnya array with calculations
+            $komponenLainnya = [];
+            
+            if (!empty($validated['bop_lainnya'])) {
+                foreach ($validated['bop_lainnya'] as $index => $item) {
+                    $namaKomponen = trim($item['nama_komponen']);
+                    $nominalPerBulan = (float) $item['nominal_per_bulan'];
+                    $keterangan = $item['keterangan'] ?? '';
+                    
+                    // Skip if nominal is 0
+                    if ($nominalPerBulan <= 0) {
+                        continue;
+                    }
+                    
+                    // Calculate: Rp/Produk = Nominal Per Bulan ÷ Jumlah Produksi (ROUNDED)
+                    $rpPerProdukRaw = $jumlahProduksi > 0 ? $nominalPerBulan / $jumlahProduksi : 0;
+                    $rpPerProduk = round($rpPerProdukRaw); // Round to nearest integer
+                    
+                    $komponenLainnya[] = [
+                        'nama_komponen' => $namaKomponen,
+                        'nominal_per_bulan' => round($nominalPerBulan, 2),
+                        'rp_per_produk' => $rpPerProduk, // Already rounded to integer
+                        'keterangan' => $keterangan,
+                    ];
+                    
+                    \Log::info('BOP V2 - Komponen Lainnya processed', [
+                        'nama' => $namaKomponen,
+                        'nominal_per_bulan' => $nominalPerBulan,
+                        'rp_per_produk' => $rpPerProduk,
+                    ]);
+                }
+            }
+
+            // Validate at least one component (bahan pendukung OR lainnya)
+            if (empty($komponenBahanPendukung) && empty($komponenLainnya)) {
+                throw new \Exception('Harap isi minimal satu komponen (Bahan Pendukung atau BOP Lainnya) dengan nominal lebih dari 0.');
+            }
+
+            // Calculate total BOP per produk (sum of ROUNDED values)
+            $totalBopBahanPendukung = array_sum(array_column($komponenBahanPendukung, 'rp_per_produk'));
+            $totalBopLainnya = array_sum(array_column($komponenLainnya, 'rp_per_produk'));
+            $totalBopPerProduk = $totalBopBahanPendukung + $totalBopLainnya;
+
+            // Prepare data for insert
+            $insertData = [
+                'user_id' => auth()->id(),
+                'nama_bop_proses' => $validated['nama_bop_proses'],
+                'komponen_bahan_pendukung' => !empty($komponenBahanPendukung) ? $komponenBahanPendukung : null,
+                'komponen_lainnya' => !empty($komponenLainnya) ? $komponenLainnya : null,
+                'jumlah_produksi_perbulan' => $jumlahProduksi,
+                'total_bop_per_produk' => $totalBopPerProduk,
+                'keterangan' => "BOP Proses V2 - Auto-Calculation",
+                'is_active' => true,
+            ];
+
+            // Create BOP Proses
+            $bopProses = BopProses::create($insertData);
+
+            \Log::info('BOP V2 Store - Success', [
+                'id' => $bopProses->id,
+                'nama_bop_proses' => $bopProses->nama_bop_proses,
+                'jumlah_produksi_perbulan' => $jumlahProduksi,
+                'total_bop_bahan_pendukung' => $totalBopBahanPendukung,
+                'total_bop_lainnya' => $totalBopLainnya,
+                'total_bop_per_produk' => $totalBopPerProduk,
+                'bahan_pendukung_count' => count($komponenBahanPendukung),
+                'lainnya_count' => count($komponenLainnya),
+            ]);
+
+            DB::commit();
+
+            $message = 'BOP Proses V2 berhasil ditambahkan';
+            if (!empty($komponenBahanPendukung) && !empty($komponenLainnya)) {
+                $message .= ' dengan ' . count($komponenBahanPendukung) . ' bahan pendukung dan ' . count($komponenLainnya) . ' komponen lainnya.';
+            } elseif (!empty($komponenBahanPendukung)) {
+                $message .= ' dengan ' . count($komponenBahanPendukung) . ' bahan pendukung.';
+            } elseif (!empty($komponenLainnya)) {
+                $message .= ' dengan ' . count($komponenLainnya) . ' komponen lainnya.';
+            }
+
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('success', $message);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            \Log::error('BOP V2 Store - Validation Error', [
+                'errors' => $e->errors()
+            ]);
+            
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('error', 'Validasi gagal. Periksa input Anda.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('BOP V2 Store - Error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal menambah BOP Proses V2: ' . $e->getMessage());
+        }
+    }
                     'rp_per_produk' => $rpPerProduk,
                 ]);
             }
