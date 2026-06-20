@@ -185,14 +185,13 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <button type="button" 
+                                        <a href="{{ route('master-data.bop.edit-proses-v2', $bop->id) }}" 
                                                class="btn btn-sm btn-warning text-white rounded-pill px-3"
-                                               onclick="editBopProses({{ $bop->id }})"
                                                data-bs-toggle="tooltip" 
                                                title="Edit BOP">
                                             <i class="bi bi-pencil-square me-1"></i>
                                             <span class="d-none d-md-inline">Edit</span>
-                                        </button>
+                                        </a>
                                         <button type="button" 
                                                class="btn btn-sm btn-danger text-white rounded-pill px-3"
                                                data-bs-toggle="modal" 
