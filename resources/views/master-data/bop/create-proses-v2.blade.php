@@ -227,6 +227,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('bahanPendukungContainer');
     const addBtn = document.getElementById('addBahanBtn');
+    const lainnyaContainer = document.getElementById('bopLainnyaContainer');
+    const addLainnyaBtn = document.getElementById('addLainnyaBtn');
     const jumlahProduksiInput = document.getElementById('jumlah_produksi_perbulan');
     
     // Bahan Pendukung data from backend
@@ -234,12 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let rowCount = 0;
     let lainnyaRowCount = 0;
-    
-    // Add initial empty row for Bahan Pendukung
-    addBahanRow();
-    
-    // Add initial empty row for BOP Lainnya
-    addLainnyaRow();
     
     // Add bahan row function
     function addBahanRow(data = {}) {
@@ -450,9 +446,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // BOP LAINNYA SECTION
     // =========================================
     
-    const lainnyaContainer = document.getElementById('bopLainnyaContainer');
-    const addLainnyaBtn = document.getElementById('addLainnyaBtn');
-    
     // Add lainnya row function
     function addLainnyaRow(data = {}) {
         lainnyaRowCount++;
@@ -568,6 +561,12 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateLainnyaRow(row);
         });
     });
+    
+    // Add initial empty row for Bahan Pendukung
+    addBahanRow();
+    
+    // Add initial empty row for BOP Lainnya
+    addLainnyaRow();
     
     // Format number helper
     function formatNumber(num) {
