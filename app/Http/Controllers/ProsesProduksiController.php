@@ -47,7 +47,7 @@ class ProsesProduksiController extends Controller
     {
         $validated = $request->validate([
             'nama_proses' => 'required|string|max:100',
-            'jabatan_id' => 'required|exists:jabatans,id',
+            'jabatan_id' => 'required|exists:kualifikasis,id',
             'deskripsi' => 'nullable|string',
             'tarif_per_produk' => 'required|numeric|min:0',
             'jumlah_pegawai' => 'nullable|integer|min:0',
@@ -87,7 +87,7 @@ class ProsesProduksiController extends Controller
 
         $validated = $request->validate([
             'nama_proses' => 'required|string|max:100',
-            'jabatan_id' => 'required|exists:jabatans,id',
+            'jabatan_id' => 'required|exists:kualifikasis,id',
             'deskripsi' => 'nullable|string',
             'tarif_per_produk' => 'required|numeric|min:0',
             'jumlah_pegawai' => 'nullable|integer|min:0',
