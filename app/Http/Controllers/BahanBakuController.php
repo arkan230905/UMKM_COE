@@ -84,7 +84,7 @@ class BahanBakuController extends Controller
 
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,' . auth()->id(),
-'stok_minimum' => 'nullable|numeric|min:0',
+            'stok_minimum' => 'required|numeric|min:1',  // Changed: required and min:1
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
@@ -164,7 +164,7 @@ class BahanBakuController extends Controller
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
-            'stok_minimum' => 'nullable|numeric|min:0',
+            'stok_minimum' => 'required|numeric|min:1',  // Changed: required and min:1
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
