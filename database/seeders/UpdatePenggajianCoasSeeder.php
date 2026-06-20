@@ -13,7 +13,7 @@ class UpdatePenggajianCoasSeeder extends Seeder
      * LANGKAH 0: Revert akun 54 & 55 yang salah di-rename oleh seeder lama
      * LANGKAH 1: Update nama akun child 520, 521, 522 (yang sudah ada)
      * LANGKAH 1B: Update akun 516 → "Pembulatan Upah Gaji" (ganti dari "Potongan Gaji")
-     * LANGKAH 2: Create akun baru yang belum ada (53, 211, 212, 213, 513, 515)
+     * LANGKAH 2: Create akun baru yang belum ada (53, 212, 213, 214, 515, 516, 517)
      * NOTE: Akun 951 TIDAK digunakan. Pembulatan pakai akun 516.
      * 
      * CATATAN TEKNIS:
@@ -235,31 +235,31 @@ class UpdatePenggajianCoasSeeder extends Seeder
                         'keterangan' => 'Beban upah gaji untuk Tenaga Kerja Tidak Langsung (Indirect Labor) - Admin, Gudang, Quality Control, Supervisor, dll'
                     ],
                     [
-                        'kode_akun' => '211',
-                        'nama_akun' => 'Hutang Upah Gaji',
+                        'kode_akun' => '212',
+                        'nama_akun' => 'Hutang Gaji',
                         'tipe_akun' => 'Kewajiban',
                         'kategori_akun' => 'Kewajiban',
                         'saldo_normal' => 'kredit',
                         'keterangan' => 'Hutang upah/gaji kepada pegawai yang belum dibayar (accrual basis - PSAK No. 1)'
                     ],
                     [
-                        'kode_akun' => '212',
-                        'nama_akun' => 'Hutang Asuransi/BPJS',
+                        'kode_akun' => '213',
+                        'nama_akun' => 'Hutang Asuransi',
                         'tipe_akun' => 'Kewajiban',
                         'kategori_akun' => 'Kewajiban',
                         'saldo_normal' => 'kredit',
                         'keterangan' => 'Hutang asuransi/BPJS yang dipotong dari gaji pegawai'
                     ],
                     [
-                        'kode_akun' => '213',
-                        'nama_akun' => 'Hutang Potongan Gaji Lainnya',
+                        'kode_akun' => '214',
+                        'nama_akun' => 'PPN Keluaran',
                         'tipe_akun' => 'Kewajiban',
                         'kategori_akun' => 'Kewajiban',
                         'saldo_normal' => 'kredit',
-                        'keterangan' => 'Hutang potongan gaji lainnya (pajak, tabungan, koperasi, dll)'
+                        'keterangan' => 'PPN Keluaran'
                     ],
                     [
-                        'kode_akun' => '513',
+                        'kode_akun' => '515',
                         'nama_akun' => 'Beban Tunjangan',
                         'tipe_akun' => 'Beban',
                         'kategori_akun' => 'Beban',
@@ -267,7 +267,7 @@ class UpdatePenggajianCoasSeeder extends Seeder
                         'keterangan' => 'Beban tunjangan jabatan, transport, konsumsi untuk pegawai'
                     ],
                     [
-                        'kode_akun' => '514',
+                        'kode_akun' => '516',
                         'nama_akun' => 'Beban Asuransi',
                         'tipe_akun' => 'Beban',
                         'kategori_akun' => 'Beban',
@@ -275,7 +275,7 @@ class UpdatePenggajianCoasSeeder extends Seeder
                         'keterangan' => 'Beban asuransi kesehatan/ketenagakerjaan yang ditanggung perusahaan'
                     ],
                     [
-                        'kode_akun' => '515',
+                        'kode_akun' => '517',
                         'nama_akun' => 'Beban Bonus',
                         'tipe_akun' => 'Beban',
                         'kategori_akun' => 'Beban',
