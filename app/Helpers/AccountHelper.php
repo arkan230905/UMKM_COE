@@ -129,28 +129,38 @@ class AccountHelper
     
     /**
      * Check apakah kode akun adalah akun Kas/Bank
+     * Now supports pattern matching for sub-accounts
      * 
      * @param string $kodeAkun
      * @return bool
      */
     public static function isKasBankAccount($kodeAkun)
     {
-        return in_array($kodeAkun, ['111', '112', '113', '118']);
+        return str_starts_with($kodeAkun, '111') ||  // Bank accounts
+               str_starts_with($kodeAkun, '112') ||  // Kas accounts
+               str_starts_with($kodeAkun, '113') ||  // Kas Kecil accounts
+               str_starts_with($kodeAkun, '118');    // Piutang accounts
     }
     
     /**
      * Get nama kategori akun (Kas/Bank/Piutang/Lainnya)
+     * Now supports pattern matching for sub-accounts
      * 
      * @param string $kodeAkun
      * @return string
      */
     public static function getAccountCategory($kodeAkun)
     {
-        if (in_array($kodeAkun, ['112', '113'])) {
+        // Kas: 112x (Kas) dan 113x (Kas Kecil)
+        if (str_starts_with($kodeAkun, '112') || str_starts_with($kodeAkun, '113')) {
             return 'Kas';
-        } elseif ($kodeAkun === '111') {
+        } 
+        // Bank: 111x (all bank accounts)
+        elseif (str_starts_with($kodeAkun, '111')) {
             return 'Bank';
-        } elseif ($kodeAkun === '118') {
+        } 
+        // Piutang: 118x
+        elseif (str_starts_with($kodeAkun, '118')) {
             return 'Piutang';
         }
         return 'Lainnya';
