@@ -803,7 +803,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         
         // Debit: COA Pelunasan yang dipilih user (mengurangi utang)
         $coaPelunasan = $pelunasanUtang->coaPelunasan;
-        $kodeCoaPelunasan = $coaPelunasan ? $coaPelunasan->kode_akun : '210'; // Default ke Hutang Usaha jika tidak ada
+        $kodeCoaPelunasan = $coaPelunasan ? $coaPelunasan->kode_akun : '211'; // Default ke Hutang Usaha jika tidak ada
         
         $lines[] = [
             'code' => $kodeCoaPelunasan,

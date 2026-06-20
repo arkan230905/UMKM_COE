@@ -159,7 +159,7 @@ class PurchaseJournalService
             
         } else {
             // Credit purchase (Accounts Payable)
-            $apAccount = Coa::where('kode_akun', '210')->first(); // Hutang Usaha
+            $apAccount = Coa::where('kode_akun', '211')->first(); // Hutang Usaha
             
             if ($apAccount) {
                 JournalLine::create([
