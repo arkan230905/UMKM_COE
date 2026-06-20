@@ -1104,7 +1104,7 @@ return response()->json([
             ['keywords' => ['kemasan', 'packaging', 'packing', 'bungkus', 'plastik', 'kardus', 'box', 'cup', 'gelas'], 'kode' => '532', 'nama' => 'BOP - Kemasan'],
 
             // Penyusutan Mesin
-            ['keywords' => ['penyusutan', 'depresiasi', 'depreciation', 'mesin', 'machine', 'equipment'], 'kode' => '533', 'nama' => 'Biaya Penyusutan Mesin'],
+            ['keywords' => ['penyusutan', 'depresiasi', 'depreciation', 'mesin', 'machine', 'equipment'], 'kode' => '533', 'nama' => 'Penyusutan Mesin'],
 
             // Maintenance/Pemeliharaan
             ['keywords' => ['maintenance', 'pemeliharaan', 'perawatan', 'repair', 'service'], 'kode' => '534', 'nama' => 'Biaya Maintenance'],

@@ -54,7 +54,7 @@ class CoaTemplateSeeder extends Seeder
             ['code' => '5120', 'name' => 'Biaya Tenaga Kerja Langsung', 'type' => 'EXPENSE'],
             ['code' => '5130', 'name' => 'Biaya Overhead Pabrik', 'type' => 'EXPENSE'],
             ['code' => '5140', 'name' => 'Biaya Listrik Pabrik', 'type' => 'EXPENSE'],
-            ['code' => '5150', 'name' => 'Biaya Penyusutan Mesin', 'type' => 'EXPENSE'],
+            ['code' => '5150', 'name' => 'BOP - Penyusutan Mesin', 'type' => 'EXPENSE'],
             ['code' => '5160', 'name' => 'Biaya Administrasi', 'type' => 'EXPENSE'],
             ['code' => '5170', 'name' => 'Biaya Pemasaran', 'type' => 'EXPENSE'],
         ];

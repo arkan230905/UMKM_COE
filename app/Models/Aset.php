@@ -672,10 +672,10 @@ class Aset extends Model
 
         // Mapping nama kategori ke nama akun COA Beban Penyusutan
         $coaMapping = [
-            'mesin' => 'BOP - Beban Penyusutan Mesin',
-            'kendaraan' => 'BOP - Beban Penyusutan Kendaraan',
-            'peralatan' => 'BOP - Beban Penyusutan Peralatan',
-            'gedung' => 'BOP - Beban Penyusutan Gedung',
+            'mesin' => 'BOP - Penyusutan Mesin',
+            'kendaraan' => 'BOP - Penyusutan Kendaraan',
+            'peralatan' => 'BOP - Penyusutan Peralatan',
+            'gedung' => 'BOP - Penyusutan Gedung',
         ];
 
         foreach ($coaMapping as $key => $coaName) {
