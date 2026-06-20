@@ -71,7 +71,7 @@
             <a href="{{ route('master-data.beban-operasional.index') }}" class="btn btn-outline-primary me-2">
                 <i class="fas fa-file-invoice-dollar me-2"></i>Beban Operasional
             </a>
-            <a href="{{ route('master-data.bop.create-proses-v2') }}" class="btn btn-primary">
+            <a href="{{ route('master-data.bop.create-bop-proses') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Tambah BOP Proses
             </a>
         </div>
@@ -212,7 +212,7 @@
                                         <i class="bi bi-inbox display-4 d-block mb-2"></i>
                                         <p>Belum ada data BOP</p>
                                         <div class="d-flex gap-2 justify-content-center">
-                                            <a href="{{ route('master-data.bop.create-proses-v2') }}" class="btn btn-primary">
+                                            <a href="{{ route('master-data.bop.create-bop-proses') }}" class="btn btn-primary">
                                                 <i class="bi bi-plus me-2"></i>Tambah BOP Pertama
                                             </a>
                                             <a href="/test-bop-direct" class="btn btn-success">

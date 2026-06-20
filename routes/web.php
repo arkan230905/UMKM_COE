@@ -2873,11 +2873,11 @@ Route::middleware('auth')->group(function () {
             Route::post('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple-post');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
-            // BOP Proses V2 Management (Bahan Pendukung dengan Auto-Calculation)
-            Route::get('/create-proses-v2', [\App\Http\Controllers\MasterData\BopController::class, 'createProsesV2'])->name('create-proses-v2');
-            Route::post('/store-proses-v2', [\App\Http\Controllers\MasterData\BopController::class, 'storeProsesV2'])->name('store-proses-v2');
-            Route::get('/edit-proses-v2/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProsesV2'])->name('edit-proses-v2');
-            Route::put('/update-proses-v2/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesV2'])->name('update-proses-v2');
+            // BOP Proses Management (Bahan Pendukung & Lainnya dengan Auto-Calculation)
+            Route::get('/create-bop-proses', [\App\Http\Controllers\MasterData\BopController::class, 'createProsesV2'])->name('create-bop-proses');
+            Route::post('/store-bop-proses', [\App\Http\Controllers\MasterData\BopController::class, 'storeProsesV2'])->name('store-bop-proses');
+            Route::get('/edit-bop-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProsesV2'])->name('edit-bop-proses');
+            Route::put('/update-bop-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesV2'])->name('update-bop-proses');
             
             // Beban Operasional Routes
             Route::prefix('beban-operasional')->name('beban-operasional.')->group(function () {

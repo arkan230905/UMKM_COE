@@ -79,7 +79,7 @@
                 }
             </style>
             
-            <form action="{{ route('master-data.bop.store-proses-v2') }}" method="POST" id="createBopForm">
+            <form action="{{ route('master-data.bop.store-bop-proses') }}" method="POST" id="createBopForm">
                 @csrf
                 
                 <!-- Nama BOP Proses -->
