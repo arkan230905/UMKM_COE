@@ -82,15 +82,18 @@ class AccountHelper
     }
     
     /**
-     * Get akun Kas saja (112, 113)
+     * Get akun Kas saja (112x, 113x - Kas dan Kas Kecil)
      * 
      * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getKasAccounts($userId = null)
     {
-        $query = Coa::whereIn('kode_akun', ['112', '113'])
-            ->where('tipe_akun', 'Asset');
+        $query = Coa::where(function($q) {
+                $q->where('kode_akun', 'like', '112%')
+                  ->orWhere('kode_akun', 'like', '113%');
+            })
+            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
         
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         if ($userId !== null) {
@@ -101,15 +104,15 @@ class AccountHelper
     }
     
     /**
-     * Get akun Bank saja (111)
+     * Get akun Bank saja (111x - semua akun bank)
      * 
      * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getBankAccounts($userId = null)
     {
-        $query = Coa::whereIn('kode_akun', ['111'])
-            ->where('tipe_akun', 'Asset');
+        $query = Coa::where('kode_akun', 'like', '111%')
+            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
         
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         if ($userId !== null) {
