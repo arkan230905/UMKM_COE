@@ -87,16 +87,16 @@
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Stok Minimum</label>
+                            <label class="form-label">Stok Minimum <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="text" name="stok_minimum" class="form-control number-input @error('stok_minimum') is-invalid @enderror" 
-                                       value="{{ old('stok_minimum') }}" placeholder="0">
+                                <input type="number" name="stok_minimum" id="stok_minimum_input" class="form-control @error('stok_minimum') is-invalid @enderror" 
+                                       value="{{ old('stok_minimum', 1) }}" placeholder="1" min="1" required>
                                 <span class="input-group-text" id="satuan_utama_display_min"></span>
                             </div>
                             @error('stok_minimum')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Batas minimum</small>
+                            <small class="text-muted">Minimal 1 unit (tidak boleh 0)</small>
                         </div>
                     </div>
                 </div>
@@ -293,6 +293,48 @@
 <!-- NO JAVASCRIPT AUTO-FILL - COMPLETELY MANUAL COA SELECTION -->
 @push('scripts')
 <script>
+// Validate stok minimum tidak boleh 0
+document.addEventListener('DOMContentLoaded', function() {
+    const stokMinInput = document.getElementById('stok_minimum_input');
+    const form = stokMinInput ? stokMinInput.closest('form') : null;
+    
+    if (stokMinInput && form) {
+        // Real-time validation saat input
+        stokMinInput.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (value === 0 || this.value === '0') {
+                this.classList.add('is-invalid');
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback-custom')) {
+                    const feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback invalid-feedback-custom d-block';
+                    feedback.textContent = 'Stok minimum tidak boleh 0! Minimal 1 unit.';
+                    this.parentElement.appendChild(feedback);
+                }
+            } else {
+                this.classList.remove('is-invalid');
+                const feedback = this.parentElement.querySelector('.invalid-feedback-custom');
+                if (feedback) {
+                    feedback.remove();
+                }
+            }
+        });
+        
+        // Validation sebelum submit
+        form.addEventListener('submit', function(e) {
+            const value = parseFloat(stokMinInput.value);
+            if (value === 0 || stokMinInput.value === '0' || value < 1) {
+                e.preventDefault();
+                stokMinInput.classList.add('is-invalid');
+                stokMinInput.focus();
+                
+                // Show alert
+                alert('⚠️ Stok minimum tidak boleh 0 atau kurang dari 1!\n\nSilakan isi minimal 1 unit.');
+                return false;
+            }
+        });
+    }
+});
+
 function clearSubSatuan(index) {
     // Reset the sub satuan fields to default values
     document.querySelector(`input[name="sub_satuan_${index}_konversi"]`).value = '1';

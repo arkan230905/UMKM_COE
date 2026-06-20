@@ -1313,14 +1313,14 @@ function updateJournalPreview() {
     const selectedOption = bankSelect ? bankSelect.options[bankSelect.selectedIndex] : null;
     
     // Determine payment method and COA based on selected bank_id
-    let paymentCoaKode = '210'; // Default: Hutang Usaha
+    let paymentCoaKode = '211'; // Default: Hutang Usaha
     let paymentCoaNama = 'Hutang Usaha';
     let paymentMethod = 'credit'; // default
     
     if (selectedValue === 'credit' || !selectedValue) {
         // Kredit (Hutang)
         paymentMethod = 'credit';
-        paymentCoaKode = '210';
+        paymentCoaKode = '211';
         paymentCoaNama = 'Hutang Usaha';
     } else if (selectedValue && selectedValue !== '' && selectedOption) {
         // Ambil COA dari option text yang format: "111 - Kas Bank (Saldo: Rp xxx)"

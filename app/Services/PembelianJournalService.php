@@ -352,7 +352,7 @@ class PembelianJournalService
         
         // PRIORITAS 2: Jika payment_method credit, gunakan Hutang Usaha
         if ($pembelian->payment_method === 'credit') {
-            $coa = $this->getCoaByCode('210'); // Hutang Usaha
+            $coa = $this->getCoaByCode('211'); // Hutang Usaha
             return [
                 'coa_id' => $coa->id,
                 'coa_code' => $coa->kode_akun,
@@ -370,6 +370,7 @@ class PembelianJournalService
             'memo' => $coa->nama_akun
         ];
     }
+
     
     /**
      * Dapatkan COA berdasarkan kode
