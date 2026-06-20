@@ -166,7 +166,7 @@ class ReplaceAllCoaSeeder extends Seeder
             ['kode_akun' => '554',  'nama_akun' => 'BOP - Penyusutan Gedung',                       'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
             ['kode_akun' => '555',  'nama_akun' => 'BOP - Penyusutan Peralatan',                    'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
             ['kode_akun' => '556',  'nama_akun' => 'BOP - Penyusutan Kendaraan',                    'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
-            ['kode_akun' => '557',  'nama_akun' => 'BOP - Biaya Penyusutan Mesin',                  'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
+            ['kode_akun' => '557',  'nama_akun' => 'BOP - Penyusutan Mesin',                            'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
             ['kode_akun' => '558',  'nama_akun' => 'Beban Transport Pembelian',                     'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
             ['kode_akun' => '559',  'nama_akun' => 'Diskon Pembelian',                              'tipe_akun' => 'Beban',     'saldo_normal' => 'debit'],
 
