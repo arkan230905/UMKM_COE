@@ -666,7 +666,7 @@ class PenggajianController extends Controller
                     \Log::error('Error marking as paid and posting to journal: ' . $e->getMessage());
                     
                     return redirect()->back()
-                        ->withErrors(['error' => 'Gagal memproses pembayaran: ' . $e->getMessage()]);
+                        ->with('error', 'Gagal memproses pembayaran: ' . $e->getMessage());
                 }
             }
 
@@ -676,7 +676,7 @@ class PenggajianController extends Controller
             \Log::error('Error marking penggajian as paid: ' . $e->getMessage());
 
             return redirect()->back()
-                ->withErrors(['error' => 'Gagal menandai penggajian sebagai dibayar: ' . $e->getMessage()]);
+                ->with('error', 'Gagal menandai penggajian sebagai dibayar: ' . $e->getMessage());
         }
     }
 
@@ -1218,8 +1218,51 @@ class PenggajianController extends Controller
     }
 
     /**
-     * Get COA account by code. Throws exception if not found.
+     * Get COA account by code, or create if it doesn't exist.
      */
+    private function getOrCreateCoa($kodeAkun, $namaAkun, $prefix = null)
+    {
+        $userId = auth()->id() ?? 1;
+
+        $coa = Coa::withoutGlobalScopes()
+            ->where('user_id', $userId)
+            ->where('kode_akun', $kodeAkun)
+            ->first();
+
+        if ($coa) {
+            return $coa;
+        }
+
+        $tipeAkun = 'Aset';
+        $kategoriAkun = 'Lancar';
+        $saldoNormal = 'debit';
+        
+        $firstChar = substr($kodeAkun, 0, 1);
+        if ($firstChar === '2') {
+            $tipeAkun = 'Kewajiban';
+            $saldoNormal = 'kredit';
+        } elseif ($firstChar === '3') {
+            $tipeAkun = 'Ekuitas';
+            $saldoNormal = 'kredit';
+        } elseif ($firstChar === '4') {
+            $tipeAkun = 'Pendapatan';
+            $saldoNormal = 'kredit';
+        } elseif ($firstChar === '5') {
+            $tipeAkun = 'Beban';
+            $saldoNormal = 'debit';
+        }
+
+        return Coa::create([
+            'kode_akun' => $kodeAkun,
+            'nama_akun' => $namaAkun,
+            'kategori_akun' => $kategoriAkun,
+            'tipe_akun' => $tipeAkun,
+            'saldo_normal' => $saldoNormal,
+            'user_id' => $userId,
+        ]);
+    }
+
+    /**
     private function getCoa($kodeAkun, $namaAkun)
     {
         $userId = auth()->id() ?? 1;
