@@ -125,7 +125,7 @@
                                     @endif
                                     <div>
                                         <div class="fw-semibold">{{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }}</div>
-                                        <small class="text-muted">{{ $presensi->pegawai->jabatan ?? 'Tidak ada jabatan' }}</small>
+                                        <small class="text-muted">{{ $presensi->pegawai->kualifikasiRelasi->nama_kualifikasi ?? $presensi->pegawai->kualifikasi ?? $presensi->pegawai->jabatan ?? 'Tidak ada kualifikasi' }}</small>
                                     </div>
                                 </div>
                             </td>

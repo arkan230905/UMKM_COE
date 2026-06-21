@@ -52,7 +52,7 @@
 
                                     {{ old('pegawai_id') == $pegawai->id ? 'selected' : '' }}
                                     >
-                                    {{ $pegawai->nama }} - {{ $pegawai->jabatan ?? 'Tidak ada jabatan' }}{{ $pegawai->kode_pegawai ? ' (' . $pegawai->kode_pegawai . ')' : '' }}
+                                    {{ $pegawai->nama }} - {{ $pegawai->kualifikasiRelasi->nama_kualifikasi ?? $pegawai->kualifikasi ?? $pegawai->jabatan ?? 'Tidak ada kualifikasi' }}{{ $pegawai->kode_pegawai ? ' (' . $pegawai->kode_pegawai . ')' : '' }}
 </option>
                             @endforeach
                         </select>
