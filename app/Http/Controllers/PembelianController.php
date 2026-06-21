@@ -219,9 +219,14 @@ class PembelianController extends Controller
         ])->where('user_id', auth()->id())->get();
         $satuans = \App\Models\Satuan::all();
         
-        // Ambil data COA kas/bank milik user yang login
-        $kasbank = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
-            ->whereIn('tipe_akun', ['Aset', 'Asset', 'ASET'])
+        // Ambil data COA kas/bank saja (exclude persediaan)
+        // Filter: Kas (111x, 112x, 113x) dan Bank saja
+        $kasbank = \App\Models\Coa::where(function($query) {
+                $query->where('kode_akun', 'LIKE', '111%')  // Kas Bank
+                      ->orWhere('kode_akun', 'LIKE', '112%')  // Bank BRI, BCA, dll
+                      ->orWhere('kode_akun', 'LIKE', '113%'); // Bank Mandiri, dll
+            })
+            ->where('tipe_akun', 'Aset')
             ->orderBy('kode_akun')
             ->get();
             
@@ -630,20 +635,24 @@ class PembelianController extends Controller
                     
                     $selectedBankId = $selectedAccount->id;
                     
-                    // Determine payment method based on account code
-                    switch ($selectedAccount->kode_akun) {
-                        case '111': // Kas Bank
+                    // Determine payment method based on account code pattern
+                    $accountCode = $selectedAccount->kode_akun;
+                    
+                    // Kas: 111, 112, 113 (termasuk 111x, 112x, 113x)
+                    // Bank: 1111, 1112, 1113, dst
+                    if (strlen($accountCode) >= 4 || in_array($accountCode, ['1111', '1112', '1113'])) {
+                        // Ini Bank (4 digit atau lebih, atau kode bank spesifik)
+                        $paymentMethod = 'transfer';
+                    } else if (in_array($accountCode, ['111', '112', '113'])) {
+                        // Ini Kas (3 digit)
+                        $paymentMethod = 'cash';
+                    } else {
+                        // Fallback: cek dari nama akun
+                        if (stripos($selectedAccount->nama_akun, 'Bank') !== false) {
                             $paymentMethod = 'transfer';
-                            break;
-                        case '112': // Kas
+                        } else {
                             $paymentMethod = 'cash';
-                            break;
-                        case '113': // Kas Kecil
-                            $paymentMethod = 'cash';
-                            break;
-                        default:
-                            $paymentMethod = 'transfer'; // fallback
-                            break;
+                        }
                     }
                     
                     \Log::info('Payment method determined:', [
@@ -1463,20 +1472,24 @@ class PembelianController extends Controller
                 
                 $selectedBankId = $selectedAccount->id;
                 
-                // Determine payment method based on account code
-                switch ($selectedAccount->kode_akun) {
-                    case '111': // Kas Bank
+                // Determine payment method based on account code pattern
+                $accountCode = $selectedAccount->kode_akun;
+                
+                // Kas: 111, 112, 113 (termasuk 111x, 112x, 113x)
+                // Bank: 1111, 1112, 1113, dst
+                if (strlen($accountCode) >= 4 || in_array($accountCode, ['1111', '1112', '1113'])) {
+                    // Ini Bank (4 digit atau lebih, atau kode bank spesifik)
+                    $paymentMethod = 'transfer';
+                } else if (in_array($accountCode, ['111', '112', '113'])) {
+                    // Ini Kas (3 digit)
+                    $paymentMethod = 'cash';
+                } else {
+                    // Fallback: cek dari nama akun
+                    if (stripos($selectedAccount->nama_akun, 'Bank') !== false) {
                         $paymentMethod = 'transfer';
-                        break;
-                    case '112': // Kas
+                    } else {
                         $paymentMethod = 'cash';
-                        break;
-                    case '113': // Kas Kecil
-                        $paymentMethod = 'cash';
-                        break;
-                    default:
-                        $paymentMethod = 'transfer'; // fallback
-                        break;
+                    }
                 }
                 
                 // For cash/transfer payments, mark as paid

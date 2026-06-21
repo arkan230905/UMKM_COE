@@ -1,0 +1,599 @@
+@extends('layouts.app')
+
+@section('title', 'Edit BOP Proses')
+
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <h2 class="mb-4"><i class="fas fa-edit me-2"></i>Edit BOP Proses</h2>
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form action="{{ route('master-data.bop.update-bop-proses', $bopProses->id) }}" method="POST" id="editBopForm">
+                @csrf
+                @method('PUT')
+                
+                <!-- Nama BOP Proses -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <label for="nama_bop_proses" class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
+                        <input type="text" 
+                               name="nama_bop_proses" 
+                               id="nama_bop_proses" 
+                               class="form-control @error('nama_bop_proses') is-invalid @enderror" 
+                               value="{{ old('nama_bop_proses', $bopProses->nama_bop_proses) }}"
+                               placeholder="Contoh: Pengemasan Dan Pengtopingan"
+                               required>
+                        @error('nama_bop_proses')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Jumlah Produksi Per Bulan -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="jumlah_produksi_perbulan" class="form-label">Jumlah Produksi Per Bulan <span class="text-danger">*</span></label>
+                        <input type="number" 
+                               name="jumlah_produksi_perbulan" 
+                               id="jumlah_produksi_perbulan" 
+                               class="form-control @error('jumlah_produksi_perbulan') is-invalid @enderror" 
+                               value="{{ old('jumlah_produksi_perbulan', $bopProses->jumlah_produksi_perbulan) }}"
+                               min="1"
+                               placeholder="Contoh: 1000"
+                               required>
+                        @error('jumlah_produksi_perbulan')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="text-muted">Jumlah produk yang dihasilkan dalam sebulan</small>
+                    </div>
+                </div>
+
+                <!-- Bahan Pendukung -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">
+                            <i class="fas fa-boxes me-2"></i>Bahan Pendukung
+                        </h5>
+                        <small class="text-muted">Pilih bahan pendukung yang digunakan dalam proses produksi</small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="bahanPendukungTable">
+                                <thead>
+                                    <tr>
+                                        <th width="15%">Bahan Pendukung</th>
+                                        <th width="8%">Satuan</th>
+                                        <th width="12%">Harga Per Satuan</th>
+                                        <th width="10%">Qty Penggunaan/Bulan</th>
+                                        <th width="12%">Total Nominal/Bulan</th>
+                                        <th width="10%">Rp/Produk</th>
+                                        <th width="12%">COA Debit</th>
+                                        <th width="12%">COA Kredit</th>
+                                        <th width="8%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bahanPendukungContainer">
+                                    <!-- Dynamic rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" id="addBahanBtn" class="btn btn-success btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Tambah Bahan Pendukung
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BOP Proses Lainnya -->
+                <div class="row g-3 mt-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">
+                            <i class="fas fa-cogs me-2"></i>BOP Proses Lainnya
+                        </h5>
+                        <small class="text-muted">Komponen BOP lainnya seperti listrik, gas, penyusutan mesin, dll</small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="bopLainnyaTable">
+                                <thead>
+                                    <tr>
+                                        <th width="20%">Nama Komponen</th>
+                                        <th width="15%">Nominal Per Bulan</th>
+                                        <th width="15%">Rp/Produk</th>
+                                        <th width="15%">COA Debit</th>
+                                        <th width="15%">COA Kredit</th>
+                                        <th width="12%">Keterangan</th>
+                                        <th width="8%">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bopLainnyaContainer">
+                                    <!-- Dynamic rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" id="addLainnyaBtn" class="btn btn-success btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Tambah Komponen Lainnya
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Perhitungan -->
+                <div class="card bg-light mt-4">
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Total Bahan Pendukung:</strong><br>
+                                <span class="fs-5 text-primary">Rp <span id="totalBahanPendukung">0</span></span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Total BOP Lainnya:</strong><br>
+                                <span class="fs-5 text-info">Rp <span id="totalBopLainnya">0</span></span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Total BOP per Produk:</strong><br>
+                                <span class="fs-5 text-success">Rp <span id="totalBopPerProduk">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update BOP Proses
+                    </button>
+                    <a href="{{ route('master-data.bop.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('bahanPendukungContainer');
+    const addBtn = document.getElementById('addBahanBtn');
+    const lainnyaContainer = document.getElementById('bopLainnyaContainer');
+    const addLainnyaBtn = document.getElementById('addLainnyaBtn');
+    const jumlahProduksiInput = document.getElementById('jumlah_produksi_perbulan');
+    
+    // Bahan Pendukung data from backend
+    const bahanPendukungList = @json($bahanPendukungs);
+    
+    // Load existing data
+    const existingBahanPendukung = @json($bopProses->komponen_bahan_pendukung ?? []);
+    const existingLainnya = @json($bopProses->komponen_lainnya ?? []);
+    
+    let rowCount = 0;
+    let lainnyaRowCount = 0;
+    
+    // Add bahan row function
+    function addBahanRow(data = {}) {
+        rowCount++;
+        const rowId = `bahan_${rowCount}`;
+        
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.className = 'bahan-row';
+        row.innerHTML = `
+            <td>
+                <select name="bahan_pendukung[${rowCount}][bahan_pendukung_id]" 
+                        class="form-select form-select-sm bahan-select" 
+                        data-row-id="${rowId}"
+                        required>
+                    <option value="">-- Pilih Bahan --</option>
+                    ${bahanPendukungList.map(bahan => 
+                        `<option value="${bahan.id}" 
+                                 data-satuan="${bahan.satuan?.nama || 'Unit'}" 
+                                 data-harga="${bahan.harga_satuan || 0}"
+                                 ${data.bahan_pendukung_id == bahan.id ? 'selected' : ''}>
+                            ${bahan.nama_bahan}
+                        </option>`
+                    ).join('')}
+                </select>
+            </td>
+            <td>
+                <input type="text" 
+                       name="bahan_pendukung[${rowCount}][satuan]" 
+                       class="form-control form-control-sm satuan-input" 
+                       value="${data.satuan || ''}"
+                       readonly 
+                       placeholder="-">
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="number" 
+                           name="bahan_pendukung[${rowCount}][harga_satuan]" 
+                           class="form-control form-control-sm harga-satuan-input" 
+                           value="${data.harga_satuan || 0}"
+                           readonly 
+                           step="0.01"
+                           placeholder="0">
+                </div>
+            </td>
+            <td>
+                <input type="number" 
+                       name="bahan_pendukung[${rowCount}][qty_penggunaan_bulan]" 
+                       class="form-control form-control-sm qty-input" 
+                       data-row-id="${rowId}"
+                       value="${data.qty_penggunaan_bulan || ''}"
+                       min="0" 
+                       step="0.01" 
+                       placeholder="0"
+                       required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm total-nominal-input" 
+                           value="0"
+                           readonly>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm rp-produk-input" 
+                           value="0"
+                           readonly>
+                </div>
+            </td>
+            <td>
+                <select name="bahan_pendukung[${rowCount}][coa_debit]" 
+                        class="form-select form-select-sm coa-debit-input" 
+                        data-row-id="${rowId}">
+                    <option value="">-- Pilih --</option>
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </select>
+            </td>
+            <td>
+                <select name="bahan_pendukung[${rowCount}][coa_kredit]" 
+                        class="form-select form-select-sm coa-kredit-input" 
+                        data-row-id="${rowId}">
+                    <option value="">-- Pilih --</option>
+                    <optgroup label="BOP">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="Beban Sewa">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="BOP Lain">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="Harga Pokok Penjualan">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                </select>
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-danger btn-sm delete-row" data-row-id="${rowId}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        container.appendChild(row);
+        
+        // Add event listeners
+        attachRowEvents(row);
+        
+        // If data exists, calculate values
+        if (data.bahan_pendukung_id) {
+            calculateRow(row);
+        }
+        
+        return row;
+    }
+    
+    // Attach events to row
+    function attachRowEvents(row) {
+        const bahanSelect = row.querySelector('.bahan-select');
+        const qtyInput = row.querySelector('.qty-input');
+        const deleteBtn = row.querySelector('.delete-row');
+        
+        bahanSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const satuanInput = row.querySelector('.satuan-input');
+            const hargaInput = row.querySelector('.harga-satuan-input');
+            
+            satuanInput.value = selectedOption.dataset.satuan || '';
+            hargaInput.value = selectedOption.dataset.harga || 0;
+            
+            calculateRow(row);
+        });
+        
+        qtyInput.addEventListener('input', function() {
+            calculateRow(row);
+        });
+        
+        deleteBtn.addEventListener('click', function() {
+            if (container.children.length > 1) {
+                row.remove();
+                updateTotals();
+            } else {
+                alert('Minimal harus ada 1 bahan pendukung');
+            }
+        });
+    }
+    
+    // Calculate row values
+    function calculateRow(row) {
+        const hargaSatuan = parseFloat(row.querySelector('.harga-satuan-input').value) || 0;
+        const qtyPenggunaan = parseFloat(row.querySelector('.qty-input').value) || 0;
+        const jumlahProduksi = parseFloat(jumlahProduksiInput.value) || 1;
+        
+        // Total Nominal/Bulan = Harga Satuan × Qty Penggunaan
+        const totalNominalBulan = hargaSatuan * qtyPenggunaan;
+        
+        // Rp/Produk = Total Nominal ÷ Jumlah Produksi (ROUNDED)
+        const rpPerProdukRaw = jumlahProduksi > 0 ? totalNominalBulan / jumlahProduksi : 0;
+        const rpPerProduk = Math.round(rpPerProdukRaw);
+        
+        row.querySelector('.total-nominal-input').value = totalNominalBulan.toLocaleString('id-ID');
+        row.querySelector('.rp-produk-input').value = rpPerProduk.toLocaleString('id-ID');
+        
+        updateTotals();
+    }
+    
+    // Add button event
+    addBtn.addEventListener('click', function() {
+        addBahanRow();
+    });
+    
+    // =========================================
+    // BOP LAINNYA SECTION
+    // =========================================
+    
+    // Add lainnya row function
+    function addLainnyaRow(data = {}) {
+        lainnyaRowCount++;
+        const rowId = `lainnya_${lainnyaRowCount}`;
+        
+        const row = document.createElement('tr');
+        row.id = rowId;
+        row.className = 'lainnya-row';
+        row.innerHTML = `
+            <td>
+                <input type="text" 
+                       name="bop_lainnya[${lainnyaRowCount}][nama_komponen]" 
+                       class="form-control form-control-sm nama-komponen-input" 
+                       value="${data.nama_komponen || ''}"
+                       placeholder="Contoh: Listrik, Gas, Penyusutan Mesin"
+                       required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="number" 
+                           name="bop_lainnya[${lainnyaRowCount}][nominal_per_bulan]" 
+                           class="form-control form-control-sm nominal-bulan-input" 
+                           data-row-id="${rowId}"
+                           value="${data.nominal_per_bulan || ''}"
+                           min="0"
+                           step="0.01"
+                           placeholder="0"
+                           required>
+                </div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Rp</span>
+                    <input type="text" 
+                           class="form-control form-control-sm rp-produk-lainnya-input" 
+                           value="0"
+                           readonly>
+                </div>
+            </td>
+            <td>
+                <select name="bop_lainnya[${lainnyaRowCount}][coa_debit]" 
+                        class="form-select form-select-sm coa-debit-lainnya-input" 
+                        data-row-id="${rowId}">
+                    <option value="">-- Pilih --</option>
+                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                        <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                        </option>
+                    @endforeach
+                </select>
+            </td>
+            <td>
+                <select name="bop_lainnya[${lainnyaRowCount}][coa_kredit]" 
+                        class="form-select form-select-sm coa-kredit-lainnya-input" 
+                        data-row-id="${rowId}">
+                    <option value="">-- Pilih --</option>
+                    <optgroup label="BOP">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '53%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="Beban Sewa">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '54%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="BOP Lain">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '55%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                    <optgroup label="Harga Pokok Penjualan">
+                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '56%')->orderBy('kode_akun')->get() as $coa)
+                            <option value="{{ $coa->kode_akun }}">
+                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                </select>
+            </td>
+            <td>
+                <input type="text" 
+                       name="bop_lainnya[${lainnyaRowCount}][keterangan]" 
+                       class="form-control form-control-sm" 
+                       value="${data.keterangan || ''}"
+                       placeholder="Keterangan opsional">
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-danger btn-sm delete-lainnya-row" data-row-id="${rowId}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        lainnyaContainer.appendChild(row);
+        
+        // Add event listeners
+        attachLainnyaRowEvents(row);
+        
+        // If data exists, calculate values
+        if (data.nominal_per_bulan) {
+            calculateLainnyaRow(row);
+        }
+        
+        return row;
+    }
+    
+    // Attach events to lainnya row
+    function attachLainnyaRowEvents(row) {
+        const nominalInput = row.querySelector('.nominal-bulan-input');
+        const deleteBtn = row.querySelector('.delete-lainnya-row');
+        
+        nominalInput.addEventListener('input', function() {
+            calculateLainnyaRow(row);
+        });
+        
+        deleteBtn.addEventListener('click', function() {
+            if (lainnyaContainer.children.length > 1) {
+                row.remove();
+                updateTotals();
+            } else {
+                alert('Minimal harus ada 1 komponen BOP lainnya');
+            }
+        });
+    }
+    
+    // Calculate lainnya row values
+    function calculateLainnyaRow(row) {
+        const nominalPerBulan = parseFloat(row.querySelector('.nominal-bulan-input').value) || 0;
+        const jumlahProduksi = parseFloat(jumlahProduksiInput.value) || 1;
+        
+        // Rp/Produk = Nominal Per Bulan ÷ Jumlah Produksi (ROUNDED)
+        const rpPerProdukRaw = jumlahProduksi > 0 ? nominalPerBulan / jumlahProduksi : 0;
+        const rpPerProduk = Math.round(rpPerProdukRaw);
+        
+        row.querySelector('.rp-produk-lainnya-input').value = rpPerProduk.toLocaleString('id-ID');
+        
+        updateTotals();
+    }
+    
+    // Add button event for lainnya
+    addLainnyaBtn.addEventListener('click', function() {
+        addLainnyaRow();
+    });
+    
+    // Recalculate when jumlah produksi changes
+    jumlahProduksiInput.addEventListener('input', function() {
+        // Recalculate bahan pendukung rows
+        document.querySelectorAll('.bahan-row').forEach(row => {
+            calculateRow(row);
+        });
+        
+        // Recalculate BOP lainnya rows
+        document.querySelectorAll('.lainnya-row').forEach(row => {
+            calculateLainnyaRow(row);
+        });
+    });
+    
+    // Update totals
+    function updateTotals() {
+        let totalBahanPendukung = 0;
+        document.querySelectorAll('.bahan-row').forEach(row => {
+            const rpProduk = parseFloat(row.querySelector('.rp-produk-input').value.replace(/\./g, '').replace(/,/g, '')) || 0;
+            totalBahanPendukung += rpProduk;
+        });
+        
+        let totalBopLainnya = 0;
+        document.querySelectorAll('.lainnya-row').forEach(row => {
+            const rpProduk = parseFloat(row.querySelector('.rp-produk-lainnya-input').value.replace(/\./g, '').replace(/,/g, '')) || 0;
+            totalBopLainnya += rpProduk;
+        });
+        
+        const totalBopPerProduk = totalBahanPendukung + totalBopLainnya;
+        
+        document.getElementById('totalBahanPendukung').textContent = totalBahanPendukung.toLocaleString('id-ID');
+        document.getElementById('totalBopLainnya').textContent = totalBopLainnya.toLocaleString('id-ID');
+        document.getElementById('totalBopPerProduk').textContent = totalBopPerProduk.toLocaleString('id-ID');
+    }
+    
+    // Load existing data
+    if (existingBahanPendukung.length > 0) {
+        existingBahanPendukung.forEach(data => addBahanRow(data));
+    } else {
+        addBahanRow();
+    }
+    
+    if (existingLainnya.length > 0) {
+        existingLainnya.forEach(data => addLainnyaRow(data));
+    } else {
+        addLainnyaRow();
+    }
+});
+</script>
+@endsection

@@ -77,6 +77,42 @@
             </div>
         </div>
     </div>
+    {{-- Total Kas --}}
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Kas</div>
+                    <div class="kpi-value">Rp {{ number_format($totalKas, 0, ',', '.') }}</div>
+                    <div class="kpi-sub">Saldo kas fisik</div>
+                </div>
+                <div class="kpi-icon-wrap bg-green-soft text-green">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+            </div>
+            <div class="kpi-sparkline">
+                <canvas id="sparkKasOnly" height="40"></canvas>
+            </div>
+        </div>
+    </div>
+    {{-- Total Bank --}}
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Bank</div>
+                    <div class="kpi-value">Rp {{ number_format($totalBank, 0, ',', '.') }}</div>
+                    <div class="kpi-sub">Saldo rekening bank</div>
+                </div>
+                <div class="kpi-icon-wrap bg-blue-soft text-blue">
+                    <i class="fas fa-university"></i>
+                </div>
+            </div>
+            <div class="kpi-sparkline">
+                <canvas id="sparkBank" height="40"></canvas>
+            </div>
+        </div>
+    </div>
     {{-- Pendapatan Bulan Ini --}}
     <div class="col-lg-3 col-md-6">
         <div class="kpi-card">

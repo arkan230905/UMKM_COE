@@ -33,8 +33,8 @@
           <label class="form-label fw-semibold">Pilih Akun</label>
           <select name="account_code" class="form-select" onchange="this.form.submit()">
             <option value="">-- Pilih Akun --</option>
-            @foreach($coas as $coa)
-              <option value="{{ $coa->kode_akun }}" {{ ($accountCode==$coa->kode_akun)?'selected' : '' }}>{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+            @foreach($coas as $c)
+              <option value="{{ $c->kode_akun }}" {{ ($accountCode==$c->kode_akun)?'selected' : '' }}>{{ $c->kode_akun }} - {{ $c->nama_akun }}</option>
             @endforeach
           </select>
         </div>
@@ -127,8 +127,14 @@
             <div class="col-md-3">
               <h6 class="mb-1 text-muted">Perhitungan</h6>
               <small class="text-muted">
-                Saldo Awal + Debit - Kredit<br>
-                = {{ number_format($saldoAwal, 0, ',', '.') }} + {{ number_format($totalDebit, 0, ',', '.') }} - {{ number_format($totalKredit, 0, ',', '.') }}<br>
+                @php $saldoNormal = strtolower($coa->saldo_normal ?? 'debit'); @endphp
+                @if($saldoNormal === 'kredit')
+                  Saldo Awal + Kredit - Debit<br>
+                  = {{ number_format($saldoAwal, 0, ',', '.') }} + {{ number_format($totalKredit, 0, ',', '.') }} - {{ number_format($totalDebit, 0, ',', '.') }}<br>
+                @else
+                  Saldo Awal + Debit - Kredit<br>
+                  = {{ number_format($saldoAwal, 0, ',', '.') }} + {{ number_format($totalDebit, 0, ',', '.') }} - {{ number_format($totalKredit, 0, ',', '.') }}<br>
+                @endif
                 = {{ number_format($saldoAkhir, 0, ',', '.') }}
               </small>
             </div>
@@ -159,12 +165,17 @@
             @php 
               $saldo = (float)$saldoAwal;
               $selectedAccountCode = $accountCode; // Gunakan accountCode dari controller
+              $saldoNormal = strtolower($coa->saldo_normal ?? 'debit');
             @endphp
             @foreach($lines as $e)
               @php
                 $isAccountSelected = (($e->kode_akun ?? '') == $selectedAccountCode);
                 if ($isAccountSelected) {
-                  $saldo += ((float)($e->debit ?? 0) - (float)($e->kredit ?? 0));
+                  if ($saldoNormal === 'kredit') {
+                    $saldo += ((float)($e->kredit ?? 0) - (float)($e->debit ?? 0));
+                  } else {
+                    $saldo += ((float)($e->debit ?? 0) - (float)($e->kredit ?? 0));
+                  }
                 }
               @endphp
               <tr class="bg-light">

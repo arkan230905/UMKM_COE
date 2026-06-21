@@ -112,6 +112,8 @@ class DashboardController extends Controller
 
         // Financial Data
         $totalKasBank = $this->getTotalKasBank();
+        $totalKas = $this->getTotalKas();
+        $totalBank = $this->getTotalBank();
         $pendapatanBulanIni = $this->getPendapatanBulanIni();
         $totalPiutang = $this->getTotalPiutang();
         $totalUtang = $this->getTotalUtang();
@@ -207,6 +209,8 @@ class DashboardController extends Controller
                 'totalRetur',
                 'totalPenggajian',
                 'totalKasBank',
+                'totalKas',
+                'totalBank',
                 'pendapatanBulanIni',
                 'totalPiutang',
                 'totalUtang',
@@ -264,6 +268,52 @@ class DashboardController extends Controller
             return $total;
         } catch (\Exception $e) {
             \Log::error('Error getTotalKasBank: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function getTotalKas()
+    {
+        try {
+            if (!\Schema::hasTable('coas')) { return 0; }
+
+            $user = auth()->user();
+            
+            // 🔒 SECURITY: Filter COA by user_id for multi-tenant isolation
+            $akunKas = \App\Helpers\AccountHelper::getKasAccounts($user->id);
+            if ($akunKas->isEmpty()) { return 0; }
+
+            $total = 0;
+            
+            foreach ($akunKas as $akun) {
+                $total += $this->getSaldoAkhirAkun($akun, $user->id);
+            }
+            return $total;
+        } catch (\Exception $e) {
+            \Log::error('Error getTotalKas: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function getTotalBank()
+    {
+        try {
+            if (!\Schema::hasTable('coas')) { return 0; }
+
+            $user = auth()->user();
+            
+            // 🔒 SECURITY: Filter COA by user_id for multi-tenant isolation
+            $akunBank = \App\Helpers\AccountHelper::getBankAccounts($user->id);
+            if ($akunBank->isEmpty()) { return 0; }
+
+            $total = 0;
+            
+            foreach ($akunBank as $akun) {
+                $total += $this->getSaldoAkhirAkun($akun, $user->id);
+            }
+            return $total;
+        } catch (\Exception $e) {
+            \Log::error('Error getTotalBank: ' . $e->getMessage());
             return 0;
         }
     }

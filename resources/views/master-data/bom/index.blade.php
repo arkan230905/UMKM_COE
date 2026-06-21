@@ -67,15 +67,15 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 20%;">Nama Produk</th>
+                            <th style="width: 18%;">Nama Produk</th>
                             <th style="width: 10%;">Kode</th>
-                            <th style="width: 10%;">Satuan</th>
-                            <th style="width: 10%;">Stok</th>
-                            <th style="width: 15%;">Biaya Bahan Baku</th>
-                            <th style="width: 15%;">BTKL</th>
-                            <th style="width: 15%;">BOP</th>
-                            <th style="width: 15%;">Total HPP</th>
-                            <th style="width: 10%;">Aksi</th>
+                            <th style="width: 8%;">Satuan</th>
+                            <th style="width: 8%;">Stok</th>
+                            <th style="width: 12%;">Biaya Bahan Baku</th>
+                            <th style="width: 12%;">BTKL</th>
+                            <th style="width: 12%;">BOP</th>
+                            <th style="width: 14%;">Total HPP</th>
+                            <th style="width: 6%;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -102,25 +102,25 @@
                                         {{ number_format($hppRecord['stok'], 2, ',', '.') }}
                                     </span>
                                 </td>
-                                <td>
-                                    <div class="fw-bold text-success">
+                                <td style="white-space: nowrap;">
+                                    <span class="fw-bold text-success">
                                         Rp {{ number_format(getTotalBbb($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
-                                <td>
-                                    <div class="fw-bold text-warning">
+                                <td style="white-space: nowrap;">
+                                    <span class="fw-bold text-warning">
                                         Rp {{ number_format(getTotalBtkl($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
-                                <td>
-                                    <div class="fw-bold text-danger">
+                                <td style="white-space: nowrap;">
+                                    <span class="fw-bold text-danger">
                                         Rp {{ number_format(getTotalBop($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
-                                <td>
-                                    <div class="fw-bold text-primary">
+                                <td style="white-space: nowrap;">
+                                    <span class="fw-bold text-primary">
                                         Rp {{ number_format(getTotalHpp($hppRecord['id']), 0, ',', '.') }}
-                                    </div>
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">

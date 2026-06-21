@@ -136,7 +136,7 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
         $validated = $request->validate([
             'kode_proses'      => 'required|string|max:20|unique:btkls,kode_proses',
             'nama_btkl'        => 'required|string|max:255',
-            'jabatan_id'       => 'required|exists:jabatans,id',
+            'jabatan_id'       => 'required|exists:kualifikasis,id',
             'satuan'           => 'required|in:Jam,Unit,Batch',
             'deskripsi_proses' => 'nullable|string',
         ]);
@@ -226,7 +226,7 @@ return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satua
         $validated = $request->validate([
             'kode_proses'      => 'required|string|max:20|unique:btkls,kode_proses,' . $id,
             'nama_btkl'        => 'required|string|max:255',
-            'jabatan_id'       => 'required|exists:jabatans,id',
+            'jabatan_id'       => 'required|exists:kualifikasis,id',
             'satuan'           => 'required|in:Jam,Unit,Batch',
             'deskripsi_proses' => 'nullable|string',
         ]);

@@ -158,6 +158,7 @@ class AkuntansiController extends Controller
 
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
+            ->orderByDesc('ju.debit')
             ->orderBy('ju.id','asc');
 if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $query->whereDate('ju.tanggal','<=',$to); }
@@ -330,6 +331,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         $totalDebit = 0;
         $totalKredit = 0;
         $saldoAkhir = 0;
+        $coa = null;
 
         if ($accountCode) {
             // MULTI-TENANT: Filter COA by user_id
@@ -403,10 +405,15 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
 
             $totalDebit = $journalLines->sum('debit');
             $totalKredit = $journalLines->sum('kredit');
-            $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+            $saldoNormal = strtolower($coa->saldo_normal ?? 'debit');
+            if ($saldoNormal === 'kredit') {
+                $saldoAkhir = $saldoAwal + $totalKredit - $totalDebit;
+            } else {
+                $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+            }
         }
 
-        return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
+        return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir','coa'));
     }
 
     public function bukuBesarExportPdf(Request $request)
@@ -476,7 +483,12 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
 
         $totalDebit = $journalLines->sum('debit');
         $totalKredit = $journalLines->sum('kredit');
-        $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+        $saldoNormal = strtolower($coa->saldo_normal ?? 'debit');
+        if ($saldoNormal === 'kredit') {
+            $saldoAkhir = $saldoAwal + $totalKredit - $totalDebit;
+        } else {
+            $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+        }
 
         $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
 
@@ -1227,7 +1239,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'labaKotor', 'labaBersih',
             'hppAmount', 'totalDiskonPenjualan',
             'detailPenjualan', 'detailHpp',
-            'accountData'
+            'accountData', 'hppCoa'
         ) + [
             'totalHpp' => $hppAmount,
             'getSaldo' => function($coa) use ($accountData) {

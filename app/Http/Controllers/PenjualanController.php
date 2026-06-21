@@ -496,18 +496,9 @@ class PenjualanController extends Controller
 
     public function destroy($id, JournalService $journal)
     {
-        // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($id);
-        
-        // Hapus jurnal terkait penjualan
-        $journal->deleteByRef('sale', (int)$penjualan->id);
-        $journal->deleteByRef('sale_cogs', (int)$penjualan->id);
-        
-        // Hapus data penjualan
-        $penjualan->delete();
-
-        return redirect()->route('transaksi.penjualan.index')
-                         ->with('success', 'Data penjualan dan jurnal terkait berhasil dihapus.');
+        // DISABLED: Delete functionality has been disabled to prevent deletion of sales transactions
+        // Sales transactions must be kept for accounting and audit trail purposes
+        abort(403, 'Penghapusan data penjualan tidak diizinkan. Silakan hubungi administrator jika perlu menghapus data penjualan.');
     }
 
     /**

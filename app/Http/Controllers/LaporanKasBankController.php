@@ -40,6 +40,8 @@ class LaporanKasBankController extends Controller
         $totalSaldoAwal = 0;
         $totalTransaksiMasuk = 0;
         $totalTransaksiKeluar = 0;
+        $totalKas = 0;
+        $totalBank = 0;
         
         foreach ($akunKasBank as $akun) {
             $saldoAwal = $this->getSaldoAwal($akun, $startDate);
@@ -50,6 +52,9 @@ class LaporanKasBankController extends Controller
             // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
             $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
             
+            // Cek kategori akun (Kas atau Bank)
+            $kategori = AccountHelper::getAccountCategory($akun->kode_akun);
+            
             $dataKasBank[] = [
                 'id' => $akun->kode_akun, // Use kode_akun as ID for API calls
                 'kode_akun' => $akun->kode_akun,
@@ -57,13 +62,21 @@ class LaporanKasBankController extends Controller
                 'saldo_awal' => $saldoAwal,
                 'transaksi_masuk' => $transaksiMasuk,
                 'transaksi_keluar' => $transaksiKeluar,
-                'saldo_akhir' => $saldoAkhir
+                'saldo_akhir' => $saldoAkhir,
+                'kategori' => $kategori
             ];
             
             $totalKeseluruhan += $saldoAkhir;
             $totalSaldoAwal += $saldoAwal;
             $totalTransaksiMasuk += $transaksiMasuk;
             $totalTransaksiKeluar += $transaksiKeluar;
+            
+            // Pisahkan total kas dan bank
+            if ($kategori === 'Kas') {
+                $totalKas += $saldoAkhir;
+            } elseif ($kategori === 'Bank') {
+                $totalBank += $saldoAkhir;
+            }
         }
         
         return view('laporan.kas-bank.index', compact(
@@ -72,6 +85,8 @@ class LaporanKasBankController extends Controller
             'totalSaldoAwal',
             'totalTransaksiMasuk',
             'totalTransaksiKeluar',
+            'totalKas',
+            'totalBank',
             'startDate',
             'endDate'
         ));

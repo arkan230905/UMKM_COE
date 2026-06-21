@@ -17,13 +17,18 @@ class AccountHelper
     /**
      * Get semua akun Kas & Bank dengan format metode-akun COA
      * Format: Nama Akun = lowercase(nama) (kode_akun)
+     * Includes all sub-accounts: 111x (Bank), 112x (Kas), 113x (Kas Kecil)
      * 
      * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getKasBankAccounts($userId = null)
     {
-        $query = Coa::whereIn('kode_akun', ['111', '112', '113'])
+        $query = Coa::where(function($q) {
+                $q->where('kode_akun', 'like', '111%')  // Bank accounts
+                  ->orWhere('kode_akun', 'like', '112%') // Kas accounts
+                  ->orWhere('kode_akun', 'like', '113%'); // Kas Kecil accounts
+            })
             ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
         
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
@@ -82,15 +87,18 @@ class AccountHelper
     }
     
     /**
-     * Get akun Kas saja (112, 113)
+     * Get akun Kas saja (112x, 113x - Kas dan Kas Kecil)
      * 
      * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getKasAccounts($userId = null)
     {
-        $query = Coa::whereIn('kode_akun', ['112', '113'])
-            ->where('tipe_akun', 'Asset');
+        $query = Coa::where(function($q) {
+                $q->where('kode_akun', 'like', '112%')
+                  ->orWhere('kode_akun', 'like', '113%');
+            })
+            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
         
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         if ($userId !== null) {
@@ -101,15 +109,15 @@ class AccountHelper
     }
     
     /**
-     * Get akun Bank saja (111)
+     * Get akun Bank saja (111x - semua akun bank)
      * 
      * @param int|null $userId Optional user_id for multi-tenant filtering
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getBankAccounts($userId = null)
     {
-        $query = Coa::whereIn('kode_akun', ['111'])
-            ->where('tipe_akun', 'Asset');
+        $query = Coa::where('kode_akun', 'like', '111%')
+            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET']);
         
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         if ($userId !== null) {
@@ -121,28 +129,38 @@ class AccountHelper
     
     /**
      * Check apakah kode akun adalah akun Kas/Bank
+     * Now supports pattern matching for sub-accounts
      * 
      * @param string $kodeAkun
      * @return bool
      */
     public static function isKasBankAccount($kodeAkun)
     {
-        return in_array($kodeAkun, ['111', '112', '113', '118']);
+        return str_starts_with($kodeAkun, '111') ||  // Bank accounts
+               str_starts_with($kodeAkun, '112') ||  // Kas accounts
+               str_starts_with($kodeAkun, '113') ||  // Kas Kecil accounts
+               str_starts_with($kodeAkun, '118');    // Piutang accounts
     }
     
     /**
      * Get nama kategori akun (Kas/Bank/Piutang/Lainnya)
+     * Now supports pattern matching for sub-accounts
      * 
      * @param string $kodeAkun
      * @return string
      */
     public static function getAccountCategory($kodeAkun)
     {
-        if (in_array($kodeAkun, ['112', '113'])) {
+        // Kas: 112x (Kas) dan 113x (Kas Kecil)
+        if (str_starts_with($kodeAkun, '112') || str_starts_with($kodeAkun, '113')) {
             return 'Kas';
-        } elseif ($kodeAkun === '111') {
+        } 
+        // Bank: 111x (all bank accounts)
+        elseif (str_starts_with($kodeAkun, '111')) {
             return 'Bank';
-        } elseif ($kodeAkun === '118') {
+        } 
+        // Piutang: 118x
+        elseif (str_starts_with($kodeAkun, '118')) {
             return 'Piutang';
         }
         return 'Lainnya';

@@ -167,10 +167,15 @@
         <tbody>
             @php 
                 $saldo = (float)$saldoAwal;
+                $saldoNormal = strtolower($coa->saldo_normal ?? 'debit');
             @endphp
             @forelse($lines as $e)
                 @php
-                    $saldo += ((float)($e->debit ?? 0) - (float)($e->kredit ?? 0));
+                    if ($saldoNormal === 'kredit') {
+                        $saldo += ((float)($e->kredit ?? 0) - (float)($e->debit ?? 0));
+                    } else {
+                        $saldo += ((float)($e->debit ?? 0) - (float)($e->kredit ?? 0));
+                    }
                 @endphp
                 <tr>
                     <td class="text-center">{{ \Carbon\Carbon::parse($e->tanggal ?? date('Y-m-d'))->format('d/m/Y') }}</td>

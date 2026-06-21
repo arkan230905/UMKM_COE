@@ -71,9 +71,9 @@
             <a href="{{ route('master-data.beban-operasional.index') }}" class="btn btn-outline-primary me-2">
                 <i class="fas fa-file-invoice-dollar me-2"></i>Beban Operasional
             </a>
-            <button id="addButton" class="btn btn-primary" onclick="openAddModal()">
+            <a href="{{ route('master-data.bop.create-bop-proses') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Tambah BOP Proses
-            </button>
+            </a>
         </div>
     </div>
 
@@ -185,14 +185,13 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <button type="button" 
+                                        <a href="{{ route('master-data.bop.edit-bop-proses', $bop->id) }}" 
                                                class="btn btn-sm btn-warning text-white rounded-pill px-3"
-                                               onclick="editBopProses({{ $bop->id }})"
                                                data-bs-toggle="tooltip" 
                                                title="Edit BOP">
                                             <i class="bi bi-pencil-square me-1"></i>
                                             <span class="d-none d-md-inline">Edit</span>
-                                        </button>
+                                        </a>
                                         <button type="button" 
                                                class="btn btn-sm btn-danger text-white rounded-pill px-3"
                                                data-bs-toggle="modal" 
@@ -213,9 +212,9 @@
                                         <i class="bi bi-inbox display-4 d-block mb-2"></i>
                                         <p>Belum ada data BOP</p>
                                         <div class="d-flex gap-2 justify-content-center">
-                                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBopProsesModal">
+                                            <a href="{{ route('master-data.bop.create-bop-proses') }}" class="btn btn-primary">
                                                 <i class="bi bi-plus me-2"></i>Tambah BOP Pertama
-                                            </button>
+                                            </a>
                                             <a href="/test-bop-direct" class="btn btn-success">
                                                 <i class="bi bi-magic me-2"></i>Fix & Insert Sample
                                             </a>
