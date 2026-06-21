@@ -860,7 +860,7 @@ class PenggajianController extends Controller
 
             \Log::info('JURNAL ACCRUAL berhasil dibuat', [
                 'penggajian_id' => $penggajian->id,
-                'total_hutang_gaji' => $totalHutang,
+                'total_hutang_gaji' => $totalHutangGaji,
                 'selisih_pembulatan' => $selisihPembulatan,
             ]);
 
