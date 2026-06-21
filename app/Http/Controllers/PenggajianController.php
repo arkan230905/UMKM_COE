@@ -63,7 +63,7 @@ class PenggajianController extends Controller
         session()->forget('errors');
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $pegawais = Pegawai::with(['jabatanRelasi', 'kualifikasiRelasi'])
+        $pegawais = Pegawai::with('kualifikasiRelasi')
             ->select('pegawais.*')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
@@ -98,14 +98,14 @@ class PenggajianController extends Controller
         session()->forget('errors');
 
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $pegawais = Pegawai::with(['jabatanRelasi', 'kualifikasiRelasi'])
+        $pegawais = Pegawai::with('kualifikasiRelasi')
             ->select('pegawais.*')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
             ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
-        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+        $kategoris = \App\Models\Kualifikasi::where('user_id', auth()->id())
             ->select('nama', 'kategori')
             ->distinct()
             ->orderBy('nama')
@@ -146,7 +146,7 @@ class PenggajianController extends Controller
             $tanggalAkhir = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
             
             // Dapatkan kualifikasi pegawai untuk acuan filter
-            $jabatan = $this->resolvePegawaiJabatan($pegawai);
+            $jabatan = $this->resolvePegawaiKualifikasi($pegawai);
 
             // Query produksi berdasarkan bulan dan tahun (tanpa filter pegawai_id karena produksi untuk seluruh pabrik)
             $query = \App\Models\Produksi::where('user_id', auth()->id())
@@ -238,57 +238,54 @@ class PenggajianController extends Controller
     {
         try {
             // CRITICAL: Filter by user_id untuk multi-tenant isolation
-            $pegawai = Pegawai::with('jabatanRelasi')
+            $pegawai = Pegawai::with('kualifikasiRelasi')
                 ->where('user_id', auth()->id())
                 ->findOrFail($pegawaiId);
             
             \Log::info('getEmployeeData - Pegawai loaded', [
                 'pegawai_id' => $pegawaiId,
                 'nama' => $pegawai->nama,
-                'jabatan_string' => $pegawai->jabatan,
-                'jabatan_id' => $pegawai->jabatan_id,
-                'has_jabatan_relasi' => $pegawai->jabatanRelasi ? 'YES' : 'NO'
+                'kualifikasi_string' => $pegawai->kualifikasi,
+                'kualifikasi_id' => $pegawai->kualifikasi_id,
+                'has_kualifikasi_relasi' => $pegawai->kualifikasiRelasi ? 'YES' : 'NO'
             ]);
             
-            // Get current salary data from qualification (jabatan)
-            $jabatan = $this->resolvePegawaiJabatan($pegawai);
+            // Get current salary data from qualification
+            $kualifikasi = $this->resolvePegawaiKualifikasi($pegawai);
             
-            \Log::info('getEmployeeData - Jabatan resolved', [
-                'jabatan_found' => $jabatan ? 'YES' : 'NO',
-                'jabatan_nama' => $jabatan->nama ?? 'NULL',
-                'tarif_produk' => $jabatan->tarif_produk ?? 'NULL',
-                'asuransi' => $jabatan->asuransi ?? 'NULL'
+            \Log::info('getEmployeeData - Kualifikasi resolved', [
+                'kualifikasi_found' => $kualifikasi ? 'YES' : 'NO',
+                'kualifikasi_nama' => $kualifikasi->nama_kualifikasi ?? 'NULL',
+                'tarif_produk' => $kualifikasi->tarif_produk ?? 'NULL',
+                'asuransi' => $kualifikasi->asuransi ?? 'NULL'
             ]);
             
-            if ($jabatan) {
-                $tarif = (int) ($jabatan->tarif_produk ?? 0);
+            if ($kualifikasi) {
+                $tarif = (int) ($kualifikasi->tarif_produk ?? 0);
                 // Accessor otomatis fallback ke gaji jika gaji_pokok kosong
-                $gajiPokok = (int) ($jabatan->gaji_pokok ?? 0);
-                $tunjanganJabatan = (int) ($jabatan->tunjangan ?? 0);
-                $tunjanganTransport = (int) ($jabatan->tunjangan_transport ?? 0);
-                $tunjanganKonsumsi = (int) ($jabatan->tunjangan_konsumsi ?? 0);
-                // CRITICAL: Asuransi HARUS dari kualifikasi (jabatan), bukan pegawai table
-                // Kualifikasi adalah source of truth
-                $asuransi = (int) ($jabatan->asuransi ?? 0);
-                $jabatanNama = $jabatan->nama ?? 'Unknown';
+                $gajiPokok = (int) ($kualifikasi->gaji_pokok ?? 0);
+                $tunjanganJabatan = (int) ($kualifikasi->tunjangan ?? 0);
+                $tunjanganTransport = (int) ($kualifikasi->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (int) ($kualifikasi->tunjangan_konsumsi ?? 0);
+                // CRITICAL: Asuransi HARUS dari kualifikasi
+                $asuransi = (int) ($kualifikasi->asuransi ?? 0);
+                $kualifikasiNama = $kualifikasi->nama_kualifikasi ?? 'Unknown';
             } else {
-                // Fallback to pegawai stored values - tapi TETAP asuransi dari jabatan
+                // Fallback to pegawai stored values
                 $tarif = (int) ($pegawai->tarif_per_jam ?? $pegawai->tarif ?? 0);
                 $gajiPokok = (int) ($pegawai->gaji_pokok ?? 0);
                 $tunjanganJabatan = (int) ($pegawai->tunjangan_jabatan ?? $pegawai->tunjangan ?? 0);
                 $tunjanganTransport = (int) ($pegawai->tunjangan_transport ?? 0);
                 $tunjanganKonsumsi = (int) ($pegawai->tunjangan_konsumsi ?? 0);
-                // Even in fallback, asuransi should be 0 by default
-                // Do NOT use pegawai.asuransi column, that's legacy
                 $asuransi = 0;
-                $jabatanNama = $pegawai->jabatan ?? 'Staff';
+                $kualifikasiNama = $pegawai->kualifikasi ?? $pegawai->jabatan ?? 'Staff';
             }
             
             $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
             
             $kategoriInternal = 'BTKTL';
-            if ($jabatan) {
-                $kategoriInternal = strtolower($jabatan->kategori) === 'btkl' ? 'BTKL' : 'BTKTL';
+            if ($kualifikasi) {
+                $kategoriInternal = strtolower($kualifikasi->kategori) === 'btkl' ? 'BTKL' : 'BTKTL';
             } else {
                 $jenis = strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
                 $kategoriInternal = $jenis === 'btkl' ? 'BTKL' : 'BTKTL';
@@ -303,8 +300,8 @@ class PenggajianController extends Controller
                 'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'nama' => $pegawai->nama,
-                'jabatan_nama' => $jabatanNama,
-                'kualifikasi_nama' => $jabatanNama, // For backward compatibility with form JS
+                'jabatan_nama' => $kualifikasiNama,
+                'kualifikasi_nama' => $kualifikasiNama, // For backward compatibility with form JS
                 'kategori' => $kategoriInternal // Simplified to BTKL or BTKTI
             ];
             
@@ -333,7 +330,7 @@ class PenggajianController extends Controller
     public function getMasterKategori($nama)
     {
         try {
-            $jabatan = \App\Models\Jabatan::where('user_id', auth()->id())
+            $jabatan = \App\Models\Kualifikasi::where('user_id', auth()->id())
                 ->where('nama_kualifikasi', $nama)
                 ->first();
             
@@ -381,7 +378,7 @@ class PenggajianController extends Controller
                 'metode_pembayaran' => 'required|string|in:tunai,transfer_bank',
             ]);
 
-            $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($request->pegawai_id);
+            $pegawai = Pegawai::with('kualifikasiRelasi')->findOrFail($request->pegawai_id);
 
             // STEP 1: Determine if this is PRODUK-BASED or JAM-BASED
             $totalProdukInput = (int) ($request->total_produk_bulanan ?? $request->total_produk ?? 0);
@@ -403,7 +400,7 @@ class PenggajianController extends Controller
                 $totalProduk = $totalProdukInput > 0 ? $totalProdukInput : ($produkPerHari * $hariKerja);
 
                 // STEP 2: Get jabatan/kualifikasi
-                $jabatan = $this->resolvePegawaiJabatan($pegawai);
+                $jabatan = $this->resolvePegawaiKualifikasi($pegawai);
                 $tarifProduk = (float) ($jabatan ? ($jabatan->tarif_produk ?? 0) : ($pegawai->tarif_per_jam ?? 0));
 
                 // STEP 3: Gaji Pokok diambil LANGSUNG dari kualifikasis.gaji_pokok (nilai aktual)
@@ -528,7 +525,7 @@ class PenggajianController extends Controller
         DB::beginTransaction();
 
         try {
-            $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
+            $penggajian = Penggajian::with('pegawai.kualifikasiRelasi')->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
             if ($penggajian->status_posting === 'posted') {
@@ -537,7 +534,7 @@ class PenggajianController extends Controller
 
             $pegawai = $penggajian->pegawai;
 
-            $jabatan = $this->resolvePegawaiJabatan($pegawai);
+            $jabatan = $this->resolvePegawaiKualifikasi($pegawai);
 
             if (!$jabatan) {
                 throw new \Exception('Pegawai tidak memiliki kualifikasi jabatan. Harap set jabatan terlebih dahulu.');
@@ -944,7 +941,7 @@ class PenggajianController extends Controller
             $gajiPokok = $penggajian->gaji_pokok ?? 0;
 
             // Special handling untuk Bagian Gudang
-            if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
+            if (strpos(strtolower($pegawai->kualifikasiRelasi->nama_kualifikasi ?? ''), 'gudang') !== false) {
                 // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
                 $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
                 $gajiDasar = $gajiPokok > 0 ? $gajiPokok : (($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0));
@@ -1312,7 +1309,7 @@ class PenggajianController extends Controller
     public function edit($id)
     {
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+        $penggajian = Penggajian::with('pegawai.kualifikasiRelasi')
             ->where('user_id', auth()->id())
             ->findOrFail($id);
         
@@ -1322,7 +1319,7 @@ class PenggajianController extends Controller
         }
         
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $pegawais = Pegawai::with('jabatanRelasi')
+        $pegawais = Pegawai::with('kualifikasiRelasi')
             ->select('pegawais.*')
             ->where('user_id', auth()->id())
             ->orderBy('nama')
@@ -1341,7 +1338,7 @@ class PenggajianController extends Controller
 
         try {
             // CRITICAL: Filter by user_id untuk multi-tenant isolation
-            $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+            $penggajian = Penggajian::with('pegawai.kualifikasiRelasi')
                 ->where('user_id', auth()->id())
                 ->findOrFail($id);
             
@@ -1431,7 +1428,7 @@ class PenggajianController extends Controller
     public function show($id)
     {
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+        $penggajian = Penggajian::with('pegawai.kualifikasiRelasi')
             ->where('user_id', auth()->id())
             ->findOrFail($id);
 
@@ -1443,7 +1440,7 @@ class PenggajianController extends Controller
     private function resolveProdukPayrollDetail(Penggajian $penggajian): array
     {
         $pegawai = $penggajian->pegawai;
-        $kualifikasi = $this->resolvePegawaiJabatan($pegawai);
+        $kualifikasi = $this->resolvePegawaiKualifikasi($pegawai);
 
         $tarifProduk = $this->firstPositiveNumber([
             $penggajian->tarif_produk,
@@ -1503,31 +1500,36 @@ class PenggajianController extends Controller
      * Resolve pegawai's jabatan/kualifikasi data
      * UPDATED: Now uses KualifikasiTenagaKerja (new system) instead of Jabatan (old system)
      */
-    private function resolvePegawaiJabatan(?Pegawai $pegawai): ?\App\Models\Jabatan
+    private function resolvePegawaiKualifikasi(?Pegawai $pegawai): ?\App\Models\Kualifikasi
     {
         if (!$pegawai) {
             return null;
         }
 
-        // Try to get from jabatanRelasi (new system)
-        if ($pegawai->jabatanRelasi) {
-            return $pegawai->jabatanRelasi;
+        // Try to get from kualifikasiRelasi (new system)
+        if ($pegawai->kualifikasiRelasi) {
+            return $pegawai->kualifikasiRelasi;
         }
 
-        // Query jabatans table
-        $query = \App\Models\Jabatan::where('user_id', $pegawai->user_id ?? auth()->id());
+        // Query kualifikasi table
+        $query = \App\Models\Kualifikasi::where('user_id', $pegawai->user_id ?? auth()->id());
 
         // Try by kualifikasi_id (if it exists in pegawai)
         if ($pegawai->kualifikasi_id) {
-            $jabatan = (clone $query)->find($pegawai->kualifikasi_id);
-            if ($jabatan) {
-                return $jabatan;
+            $kualifikasi = (clone $query)->find($pegawai->kualifikasi_id);
+            if ($kualifikasi) {
+                return $kualifikasi;
             }
         }
 
-        // Try by nama (match pegawai.kualifikasi string with jabatan.nama_kualifikasi)
+        // Try by nama (match pegawai.kualifikasi string with kualifikasi.nama_kualifikasi)
         if (!empty($pegawai->kualifikasi)) {
             return (clone $query)->where('nama_kualifikasi', $pegawai->kualifikasi)->first();
+        }
+
+        // Fallback: Try match pegawai.jabatan string
+        if (!empty($pegawai->jabatan)) {
+            return (clone $query)->where('nama_kualifikasi', $pegawai->jabatan)->first();
         }
 
         return null;
@@ -1867,13 +1869,13 @@ class PenggajianController extends Controller
     public function testKualifikasiData($pegawaiId)
     {
         try {
-            $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
+            $pegawai = Pegawai::with('kualifikasiRelasi')->findOrFail($pegawaiId);
             
             // Get all jabatan/kualifikasi data
-            $jabatans = \App\Models\Jabatan::all();
+            $jabatans = \App\Models\Kualifikasi::all();
             
             // Add resolved kualifikasi
-            $resolvedJab = $this->resolvePegawaiJabatan($pegawai);
+            $resolvedJab = $this->resolvePegawaiKualifikasi($pegawai);
             
             return response()->json([
                 'pegawai' => [
