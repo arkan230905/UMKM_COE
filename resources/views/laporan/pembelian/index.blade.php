@@ -29,7 +29,8 @@
                 <i class="fas fa-shopping-cart me-2"></i>Laporan Pembelian
             </button>
         </li>
-        <li class="nav-item" role="presentation">
+        <!-- RETUR TAB - HIDDEN (feature disabled but code preserved) -->
+        <li class="nav-item" role="presentation" style="display: none;">
             <button class="nav-link {{ request('tab') == 'retur' ? 'active' : '' }}" 
                     id="retur-tab" 
                     data-bs-toggle="tab" 
@@ -53,11 +54,12 @@
             @include('laporan.pembelian.partials.pembelian-content')
         </div>
 
-        <!-- Retur Tab -->
+        <!-- Retur Tab - HIDDEN (feature disabled but code preserved) -->
         <div class="tab-pane fade {{ request('tab') == 'retur' ? 'show active' : '' }}" 
              id="retur" 
              role="tabpanel" 
-             aria-labelledby="retur-tab">
+             aria-labelledby="retur-tab"
+             style="display: none;">
             @include('laporan.pembelian.partials.retur-content')
         </div>
     </div>

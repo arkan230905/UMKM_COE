@@ -478,10 +478,65 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Form validation and submission
+    // ========================================
+    // UNIVERSAL REQUIRED FIELD VALIDATION
+    // Validasi semua field dengan * merah wajib diisi
+    // ========================================
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
+            let emptyFields = [];
+            let firstEmptyField = null;
+            
+            // Check all required inputs (text, select, textarea)
+            const requiredInputs = form.querySelectorAll('[required]');
+            
+            requiredInputs.forEach(input => {
+                let value = '';
+                
+                // Handle different input types
+                if (input.tagName === 'SELECT') {
+                    value = input.value;
+                } else if (input.tagName === 'TEXTAREA') {
+                    value = input.value.trim();
+                } else {
+                    value = input.value.trim();
+                }
+                
+                if (value === '' || value === null) {
+                    // Find label for this field
+                    const label = form.querySelector(`label[for="${input.name}"]`) || 
+                                 input.closest('.mb-3')?.querySelector('label') ||
+                                 input.parentElement.querySelector('label');
+                    const fieldName = label ? label.textContent.replace('*', '').trim() : input.name;
+                    
+                    emptyFields.push(fieldName);
+                    input.classList.add('is-invalid');
+                    
+                    if (!firstEmptyField) {
+                        firstEmptyField = input;
+                    }
+                }
+            });
+            
+            // Jika ada field kosong, prevent submit dan tampilkan alert
+            if (emptyFields.length > 0) {
+                e.preventDefault();
+                
+                if (firstEmptyField) {
+                    firstEmptyField.focus();
+                    // Scroll to first empty field
+                    firstEmptyField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                alert('⚠️ Form belum lengkap!\n\n' + 
+                      'Field yang wajib diisi (*):\n\n' + 
+                      '• ' + emptyFields.join('\n• ') + 
+                      '\n\nSilakan lengkapi semua field yang ditandai dengan bintang merah (*).');
+                
+                return false;
+            }
+            
             // Convert commas to dots before validation
             convertCommasToDots();
         });

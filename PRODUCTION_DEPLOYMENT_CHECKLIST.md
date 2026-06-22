@@ -1,6 +1,6 @@
 # 🚀 Production Deployment Checklist - Complete Guide
 
-**Tanggal**: 16 Juni 2026  
+**Tanggal**: 22 Juni 2026  
 **Status**: Ready to Deploy  
 **Estimasi Waktu**: 15-20 menit
 
@@ -16,6 +16,10 @@ Ada beberapa perubahan yang sudah berhasil di localhost tapi belum di production
 4. ✅ **Biaya Kirim COA** - Menggunakan COA 558 (Beban Transport Pembelian)
 5. ✅ **Number Formatting** - Hilangkan .00 untuk angka bulat
 6. ✅ **UI Improvements** - Removed duplicate columns and fields
+7. ✅ **Vendor Phone Validation** - Only numeric characters allowed
+8. ✅ **Universal Required Field Validation** - Alert for empty required fields (*)
+9. ✅ **Hide Status Retur Column** - Hidden from transaksi pembelian table
+10. ✅ **Hide Delete Action** - Hidden from transaksi pembelian table
 
 ---
 
@@ -80,8 +84,16 @@ app/Observers/BahanPendukungObserver.php
 ```
 resources/views/transaksi/pembelian/create.blade.php
 resources/views/transaksi/pembelian/show.blade.php
+resources/views/transaksi/pembelian/index.blade.php
+resources/views/transaksi/pembelian/partials/pembelian-content.blade.php
+resources/views/laporan/pembelian/index.blade.php
 resources/views/laporan/pembelian/export.blade.php
 resources/views/master-data/kategori-bahan-pendukung/index.blade.php
+resources/views/master-data/vendor/create.blade.php
+resources/views/master-data/vendor/edit.blade.php
+resources/views/master-data/bahan-baku/create.blade.php
+resources/views/master-data/bahan-pendukung/create.blade.php
+resources/views/akuntansi/laporan_posisi_keuangan.blade.php
 ```
 
 #### 6. Helper Files
@@ -89,9 +101,9 @@ resources/views/master-data/kategori-bahan-pendukung/index.blade.php
 app/Helpers/helpers.php
 ```
 
-#### 7. Seeder Files
+#### 7. Service Files
 ```
-database/seeders/DefaultCoaSeeder.php
+app/Services/NeracaService.php
 ```
 
 ---
@@ -294,6 +306,60 @@ exit
 4. Verify tampilan sudah update
 ```
 
+### 7. Test Vendor Phone Validation
+
+```
+1. Pergi ke Master Data > Vendor > Tambah
+2. Test No. Telepon field:
+   - ✅ Input "123abc" - auto remove "abc", alert muncul
+   - ✅ Paste "08123456789xyz" - only numbers extracted
+   - ✅ Submit dengan non-numeric - validation error
+```
+
+### 8. Test Required Field Validation
+
+```
+1. Pergi ke Master Data > Vendor > Tambah
+2. Klik Simpan tanpa isi form:
+   - ✅ Alert muncul dengan list field yang kosong
+   - ✅ Focus ke field pertama yang kosong
+   - ✅ Field kosong ditandai dengan red border
+3. Test di form lain (Bahan Baku, Bahan Pendukung):
+   - ✅ Validation sama untuk semua required fields
+```
+
+### 9. Test COA 310 Hidden in Laporan Posisi Keuangan
+
+```
+1. Pergi ke Laporan > Laporan Posisi Keuangan
+2. Check bagian Modal Usaha:
+   - ✅ COA 310 (Modal Usaha) tidak muncul
+   - ✅ COA 311 dan lainnya masih muncul normal
+```
+
+### 10. Test Retur Pembelian Hidden
+
+```
+1. Pergi ke Transaksi > Pembelian
+2. Check UI:
+   - ✅ Tab "Retur Pembelian" di index - HIDDEN
+   - ✅ Button "Retur" di kolom aksi table - HIDDEN
+   - ✅ Kolom "Status Retur" di table - HIDDEN
+   - ✅ Button "Retur" di detail page - HIDDEN
+3. Pergi ke Laporan > Laporan Pembelian:
+   - ✅ Tab "Laporan Retur Pembelian" - HIDDEN
+```
+
+### 11. Test Delete Action Hidden
+
+```
+1. Pergi ke Transaksi > Pembelian
+2. Check kolom aksi:
+   - ✅ Button "Hapus" tidak muncul
+   - ✅ Button lain (Detail, Edit, Jurnal, Cetak) masih tampil
+   - ✅ Layout grid tetap rapi
+```
+
 ---
 
 ## 🔍 Troubleshooting
@@ -375,10 +441,15 @@ rm -rf storage/framework/views/*
 - [ ] ✅ Vendor constraint verified in database
 - [ ] ✅ Test vendor creation (same name, different kategori) - WORKS
 - [ ] ✅ Test vendor creation (same name, same kategori) - FAILS correctly
+- [ ] ✅ Vendor phone validation works (only numeric)
+- [ ] ✅ Required field validation works (alert with list)
 - [ ] ✅ Pembelian form shows collapsed accordion
 - [ ] ✅ Number formatting correct (no .00 for whole numbers)
 - [ ] ✅ PDF export shows new design
 - [ ] ✅ Biaya kirim uses COA 558
+- [ ] ✅ COA 310 hidden in Laporan Posisi Keuangan
+- [ ] ✅ Retur Pembelian features hidden from UI (tabs, buttons, status column)
+- [ ] ✅ Delete action hidden from transaksi pembelian
 - [ ] ✅ No errors in logs
 - [ ] ✅ Site is live and working
 
@@ -422,12 +493,17 @@ ALTER TABLE vendors ADD UNIQUE KEY vendors_user_id_nama_vendor_unique (user_id, 
 
 Deployment sukses jika:
 1. ✅ Vendor dengan nama sama tapi kategori beda bisa dibuat
-2. ✅ Konversi sub satuan tampil sebagai accordion (collapsed default)
-3. ✅ PDF laporan pembelian menampilkan design baru
-4. ✅ Biaya kirim menggunakan COA 558
-5. ✅ Tidak ada error di logs
-6. ✅ Angka bulat tidak ada .00
-7. ✅ Semua fitur berjalan normal
+2. ✅ Vendor phone validation: only numeric, auto-remove invalid characters
+3. ✅ Required field validation: comprehensive alert with list of empty fields
+4. ✅ Konversi sub satuan tampil sebagai accordion (collapsed default)
+5. ✅ PDF laporan pembelian menampilkan design baru
+6. ✅ Biaya kirim menggunakan COA 558
+7. ✅ COA 310 tidak muncul di Laporan Posisi Keuangan
+8. ✅ Retur Pembelian features hidden (tabs, buttons, status column)
+9. ✅ Delete action hidden from transaksi pembelian
+10. ✅ Tidak ada error di logs
+10. ✅ Angka bulat tidak ada .00
+11. ✅ Semua fitur berjalan normal
 
 ---
 
@@ -442,7 +518,8 @@ Jika ada masalah saat deployment:
 
 ---
 
-**Created**: 2026-06-16  
-**Version**: 1.0  
+**Created**: 2026-06-22  
+**Updated**: 2026-06-22  
+**Version**: 2.0  
 **Priority**: High  
 **Risk Level**: Medium (with backup: Low)
