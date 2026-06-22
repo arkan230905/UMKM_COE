@@ -393,14 +393,14 @@
             updateTotalProduk();
         } else if (kategori === 'BTKTL') {
             IS_PRODUKSI = false;
-            kategoriStatus.textContent = '✗ Kategori Gaji Tetap (BTKTL)';
-            kategoriStatus.className = 'form-text text-warning d-block mt-1';
+            kategoriStatus.textContent = '';
+            kategoriStatus.className = '';
             
             totalProdukField.readOnly = false;
             totalProdukField.style.backgroundColor = '#fff';
             totalProdukField.value = '';
-            totalProdukStatus.textContent = '⚠ Gaji tetap - Tidak ada produksi (isi 0 jika diperlukan)';
-            totalProdukStatus.className = 'form-text text-warning d-block mt-1';
+            totalProdukStatus.textContent = '';
+            totalProdukStatus.className = '';
             totalProdukField.placeholder = 'Kosong (gaji tetap)';
             
             hitungOtomatis();
