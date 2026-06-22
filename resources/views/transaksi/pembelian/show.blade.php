@@ -430,9 +430,11 @@
                         title="Lihat Jurnal Pembelian {{ $pembelian->nomor_pembelian }}">
                     <i class="fas fa-book me-2"></i>Lihat Jurnal
                 </button>
+                <!-- RETUR BUTTON - HIDDEN (feature disabled but code preserved) -->
                 <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" 
                    class="btn btn-secondary" 
-                   title="Retur Pembelian {{ $pembelian->nomor_pembelian }}">
+                   title="Retur Pembelian {{ $pembelian->nomor_pembelian }}"
+                   style="display: none;">
                     <i class="fas fa-undo me-2"></i>Retur
                 </a>
                 <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" 

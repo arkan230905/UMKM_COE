@@ -330,17 +330,17 @@ class NeracaService
     {
         $ekuitas = [];
         
-        // Modal - gunakan nilai modal dari neraca saldo aktual
-        $modalUsaha = $neracaSaldo->firstWhere('kode_akun', '310');
-        $modalAwal = $modalUsaha ? abs($modalUsaha['saldo']) : 0;
+        // HIDE COA 310 (Modal Usaha) - excluded from display but kept in code
+        // $modalUsaha = $neracaSaldo->firstWhere('kode_akun', '310');
+        // $modalAwal = $modalUsaha ? abs($modalUsaha['saldo']) : 0;
+        // 
+        // $ekuitas[] = [
+        //     'nama_akun' => 'Modal Usaha',
+        //     'kode_akun' => '310',
+        //     'saldo' => $modalAwal
+        // ];
         
-        $ekuitas[] = [
-            'nama_akun' => 'Modal Usaha',
-            'kode_akun' => '310',
-            'saldo' => $modalAwal // Gunakan modal dari data aktual
-        ];
-        
-        // Tambahkan akun ekuitas lain dari neraca saldo yang sudah ada
+        // Tambahkan akun ekuitas lain dari neraca saldo (exclude 310)
         $ekuitasAccounts = $neracaSaldo->filter(function($item) {
             return in_array($item['tipe_akun'], ['Equity', 'Modal']) && $item['kode_akun'] != '310';
         });

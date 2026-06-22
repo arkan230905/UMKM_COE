@@ -195,7 +195,8 @@
                                 </span>
                             </div>
                         </th>
-                        <th class="nowrap">Status Retur</th>
+                        <!-- STATUS RETUR COLUMN - HIDDEN (feature disabled but code preserved) -->
+                        <th class="nowrap" style="display: none;">Status Retur</th>
                         <th class="text-center" style="width: 180px">Aksi</th>
 </tr>
                 </thead>
@@ -295,7 +296,8 @@
                             <td class="text-center nowrap fw-semibold">
                                 Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}
                             </td>
-                            <td class="text-center nowrap">
+                            <!-- STATUS RETUR CELL - HIDDEN (feature disabled but code preserved) -->
+                            <td class="text-center nowrap" style="display: none;">
                                 @php
                                     // Cek apakah ada retur untuk pembelian ini
                                     $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $pembelian->id)->exists();
@@ -316,7 +318,7 @@
                                         Edit
                                     </a>
                                     
-                                    <!-- Row 2: Jurnal | Retur -->
+                                    <!-- Row 2: Jurnal | Retur (HIDDEN) -->
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-primary w-100" 
                                             title="Lihat Jurnal"
@@ -325,7 +327,8 @@
                                             data-bs-target="#journalModal">
                                         Jurnal
                                     </button>
-                                    <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-info w-100" title="Proses Retur">
+                                    <!-- RETUR BUTTON - HIDDEN (feature disabled but code preserved) -->
+                                    <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-info w-100" title="Proses Retur" style="display: none;">
                                         Retur
                                     </a>
                                     
@@ -334,8 +337,8 @@
                                         Cetak
                                     </a>
                                     
-                                    <!-- Row 4: Hapus -->
-                                    <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline w-100" onsubmit="return confirm('Yakin ingin hapus?')">
+                                    <!-- HAPUS BUTTON - HIDDEN (feature disabled but code preserved) -->
+                                    <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline w-100" onsubmit="return confirm('Yakin ingin hapus?')" style="display: none;">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="Hapus Transaksi">
