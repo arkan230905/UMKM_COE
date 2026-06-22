@@ -1263,6 +1263,8 @@ class PenggajianController extends Controller
     }
 
     /**
+     * Ambil atau buat COA berdasarkan kode dan nama akun
+     */
     private function getCoa($kodeAkun, $namaAkun)
     {
         $userId = auth()->id() ?? 1;
