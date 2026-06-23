@@ -95,14 +95,14 @@ class PembayaranBebanController extends Controller
                 'tanggal' => 'required|date',
                 'beban_operasional_id' => 'required|exists:beban_operasional,id',
                 'kode_akun_beban' => 'required|exists:coas,kode_akun',
-                'metode_pembayaran' => 'required|in:kas,transfer',
+                'kode_akun_kas' => 'required|exists:coas,kode_akun',
                 'nominal_pembayaran' => 'required|numeric|min:1',
                 'catatan' => 'nullable|string|max:255',
             ], [
                 'beban_operasional_id.exists' => 'Beban operasional tidak valid',
                 'kode_akun_beban.exists' => 'Akun beban tidak valid',
-                'metode_pembayaran.required' => 'Metode pembayaran harus dipilih',
-                'metode_pembayaran.in' => 'Metode pembayaran tidak valid',
+                'kode_akun_kas.required' => 'Metode pembayaran harus dipilih',
+                'kode_akun_kas.exists' => 'Akun kas/bank tidak valid',
                 'nominal_pembayaran.min' => 'Nominal pembayaran minimal adalah 1',
             ]);
             \Log::info('Validation passed successfully');
@@ -119,16 +119,10 @@ class PembayaranBebanController extends Controller
                 ->where('user_id', auth()->id())
                 ->first();
             
-            // Pilih akun kas berdasarkan metode pembayaran
-            if ($request->metode_pembayaran === 'kas') {
-                $kas = Coa::where('kode_akun', '112')
-                    ->where('user_id', auth()->id())
-                    ->first(); // Kas Tunai
-            } else {
-                $kas = Coa::where('kode_akun', '111')
-                    ->where('user_id', auth()->id())
-                    ->first(); // Kas Bank (Transfer)
-            }
+            // Pilih akun kas berdasarkan kode akun yang dipilih user
+            $kas = Coa::where('kode_akun', $request->kode_akun_kas)
+                ->where('user_id', auth()->id())
+                ->first();
             
             // Validasi COA
             if (!$beban) {
@@ -136,8 +130,7 @@ class PembayaranBebanController extends Controller
             }
             
             if (!$kas) {
-                $kodeKas = $request->metode_pembayaran === 'kas' ? '112 (Kas Tunai)' : '111 (Kas Bank)';
-                throw new \Exception("Akun kas {$kodeKas} tidak ditemukan. Pastikan akun kas sudah dibuat di master COA.");
+                throw new \Exception("Akun kas/bank dengan kode {$request->kode_akun_kas} tidak ditemukan. Pastikan akun kas sudah dibuat di master COA.");
             }
             
             // Simpan pembayaran beban
