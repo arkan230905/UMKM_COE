@@ -160,7 +160,7 @@
                         <th class="text-center">Item Dibeli</th>
                         <th class="text-center nowrap">Total</th>
                         <th class="text-center nowrap">Metode Pembayaran</th>
-                        <th class="text-center nowrap">Status</th>
+                        <!-- <th class="text-center nowrap">Status</th> HIDDEN -->
                         <th class="text-center nowrap" style="width:12%">Aksi</th>
                     </tr>
                 </thead>
@@ -340,13 +340,13 @@
                                 @endphp
                                 {{ $paymentMethodText }}
                             </td>
-                            <td class="text-center">
+                            <!-- <td class="text-center">
                                 @php
                                     $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $p->id)->exists();
                                     $statusText = $hasRetur ? 'Ada Retur' : 'Tidak Ada Retur';
                                 @endphp
                                 {{ $statusText }}
-                            </td>
+                            </td> HIDDEN -->
                             <td class="text-center">
                                 <div class="btn-group">
                                     <a href="{{ route('transaksi.pembelian.show', $p) }}" class="btn btn-sm btn-info" title="Lihat Detail">
@@ -361,7 +361,7 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center py-4">
+                            <td colspan="8" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-inbox fa-3x mb-3"></i>
                                     <p>Tidak ada data pembelian</p>

@@ -26,6 +26,9 @@ class Pembelian extends Model
         'ppn_persen',
         'ppn_nominal',
         'total_harga',
+        'dp',  // Down Payment untuk kredit
+        'dp_payment_method_id',  // Akun pembayaran untuk DP
+        'tanggal_jatuh_tempo',  // Tanggal jatuh tempo untuk kredit
         'terbayar',
         'sisa_pembayaran',
         'status',
@@ -34,17 +37,19 @@ class Pembelian extends Model
         'bank_id'
     ];
     
-    protected $dates = ['tanggal', 'deleted_at'];
+    protected $dates = ['tanggal', 'tanggal_jatuh_tempo', 'deleted_at'];
     
     protected $appends = ['sisa_utang', 'status_pembayaran', 'total_refund'];
 
     protected $casts = [
         'tanggal' => 'date',
+        'tanggal_jatuh_tempo' => 'date',
         'subtotal' => 'float',
         'biaya_kirim' => 'float',
         'ppn_persen' => 'float',
         'ppn_nominal' => 'float',
         'total_harga' => 'float',
+        'dp' => 'float',
         'terbayar' => 'float',
         'sisa_pembayaran' => 'float'
     ];
@@ -183,11 +188,19 @@ foreach ($pembelian->pembelianDetails as $detail) {
      */
     public function getTotalRefundAttribute()
     {
+        // Check if purchaseReturns is already loaded to avoid N+1
+        if ($this->relationLoaded('purchaseReturns')) {
+            return $this->purchaseReturns
+                ->where('jenis_retur', 'refund')
+                ->whereIn('status', ['disetujui', 'dikirim', 'selesai'])
+                ->sum('total_return_amount');
+        }
+        
+        // Fallback to query if relation not loaded
         return $this->purchaseReturns()
             ->where('jenis_retur', 'refund')
-            ->whereIn('status', ['disetujui', 'dikirim', 'selesai']) // Only approved returns
-            ->get()
-            ->sum('total_with_ppn'); // Use total with PPN
+            ->whereIn('status', ['disetujui', 'dikirim', 'selesai'])
+            ->sum('total_return_amount');
     }
     
     /**
@@ -203,21 +216,32 @@ foreach ($pembelian->pembelianDetails as $detail) {
      */
     public function getTotalDibayarAttribute()
     {
-        return $this->pelunasan()->sum('jumlah');
+        // Get DP value (down payment)
+        $dp = $this->dp ?? 0;
+        
+        // Get total from pelunasan
+        if ($this->relationLoaded('pelunasan')) {
+            $totalPelunasan = $this->pelunasan->sum('jumlah');
+        } else {
+            $totalPelunasan = $this->pelunasan()->sum('jumlah');
+        }
+        
+        // Total dibayar = DP + Total Pelunasan
+        return $dp + $totalPelunasan;
     }
     
     /**
      * Get the sisa utang attribute.
-     * Formula: Total Harga - Total Dibayar - Total Refund
+     * Formula: Total Harga - DP - Total Dibayar - Total Refund
      */
     public function getSisaUtangAttribute()
     {
-        // Calculate from total_harga - total payments - total refunds
+        // Calculate from total_harga - total payments (which includes DP) - total refunds
         $totalHarga = $this->total_harga ?? 0;
-        $totalDibayar = $this->total_dibayar;
+        $totalDibayar = $this->total_dibayar; // Already includes DP from getTotalDibayarAttribute
         $totalRefund = $this->total_refund; // Refund reduces the debt
         
-        // Sisa utang = Total - Dibayar - Refund
+        // Sisa utang = Total - Dibayar (includes DP) - Refund
         $sisaUtang = $totalHarga - $totalDibayar - $totalRefund;
         
         return max(0, $sisaUtang); // Cannot be negative

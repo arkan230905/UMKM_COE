@@ -20,6 +20,7 @@
                 <option value="">-- Pilih Kategori --</option>
                 <option value="Bahan Baku" {{ old('kategori') == 'Bahan Baku' ? 'selected' : '' }}>Bahan Baku</option>
                 <option value="Bahan Pendukung" {{ old('kategori') == 'Bahan Pendukung' ? 'selected' : '' }}>Bahan Pendukung</option>
+                <option value="Bahan Baku & Bahan Pendukung" {{ old('kategori') == 'Bahan Baku & Bahan Pendukung' ? 'selected' : '' }}>Bahan Baku & Bahan Pendukung</option>
             </select>
         </div>
 

@@ -125,31 +125,76 @@ class PembelianJournalService
             Log::info("Getting credit account info", [
                 'pembelian_id' => $pembelian->id,
                 'bank_id' => $pembelian->bank_id,
-                'payment_method' => $pembelian->payment_method
+                'payment_method' => $pembelian->payment_method,
+                'dp' => $pembelian->dp ?? 0
             ]);
             
-            $creditInfo = $this->getCreditAccountInfo($pembelian);
-            
-            Log::info("Credit account determined", [
-                'coa_id' => $creditInfo['coa_id'],
-                'coa_code' => $creditInfo['coa_code'],
-                'coa_name' => $creditInfo['coa_name']
-            ]);
-            
-            $lines[] = [
-                'coa_id' => $creditInfo['coa_id'],
-                'debit' => 0,
-                'credit' => $totalAmount,
-                'memo' => $creditInfo['memo']
-            ];
-            
-            Log::info("Jurnal Pembelian - Pembayaran", [
-                'method' => $pembelian->payment_method,
-                'bank_id' => $pembelian->bank_id,
-                'coa' => $creditInfo['coa_code'],
-                'coa_name' => $creditInfo['coa_name'],
-                'amount' => $totalAmount
-            ]);
+            // Jika pembelian kredit dan ada DP, buat 2 entry kredit
+            if ($pembelian->payment_method === 'credit' && ($pembelian->dp ?? 0) > 0) {
+                $dpAmount = (float) $pembelian->dp;
+                $sisaUtang = $totalAmount - $dpAmount;
+                
+                Log::info("Pembelian kredit dengan DP detected", [
+                    'total_amount' => $totalAmount,
+                    'dp' => $dpAmount,
+                    'sisa_utang' => $sisaUtang
+                ]);
+                
+                // CREDIT 1: Kas/Bank untuk DP
+                $kasInfo = $this->getKasAccountInfo($pembelian);
+                $lines[] = [
+                    'coa_id' => $kasInfo['coa_id'],
+                    'debit' => 0,
+                    'credit' => $dpAmount,
+                    'memo' => $kasInfo['memo'] . ' (DP)'
+                ];
+                
+                Log::info("Jurnal Pembelian - DP dari Kas/Bank", [
+                    'coa' => $kasInfo['coa_code'],
+                    'coa_name' => $kasInfo['coa_name'],
+                    'amount' => $dpAmount
+                ]);
+                
+                // CREDIT 2: Utang Usaha untuk sisa
+                $utangCoa = $this->getCoaByCode('211'); // Hutang Usaha
+                $lines[] = [
+                    'coa_id' => $utangCoa->id,
+                    'debit' => 0,
+                    'credit' => $sisaUtang,
+                    'memo' => 'Hutang Usaha (Sisa setelah DP)'
+                ];
+                
+                Log::info("Jurnal Pembelian - Sisa Utang", [
+                    'coa' => $utangCoa->kode_akun,
+                    'coa_name' => $utangCoa->nama_akun,
+                    'amount' => $sisaUtang
+                ]);
+                
+            } else {
+                // Logika normal tanpa DP (tidak berubah)
+                $creditInfo = $this->getCreditAccountInfo($pembelian);
+                
+                Log::info("Credit account determined", [
+                    'coa_id' => $creditInfo['coa_id'],
+                    'coa_code' => $creditInfo['coa_code'],
+                    'coa_name' => $creditInfo['coa_name']
+                ]);
+                
+                $lines[] = [
+                    'coa_id' => $creditInfo['coa_id'],
+                    'debit' => 0,
+                    'credit' => $totalAmount,
+                    'memo' => $creditInfo['memo']
+                ];
+                
+                Log::info("Jurnal Pembelian - Pembayaran", [
+                    'method' => $pembelian->payment_method,
+                    'bank_id' => $pembelian->bank_id,
+                    'coa' => $creditInfo['coa_code'],
+                    'coa_name' => $creditInfo['coa_name'],
+                    'amount' => $totalAmount
+                ]);
+            }
             
             // Validasi balance
             if (!$this->validateBalance($lines)) {
@@ -362,6 +407,53 @@ class PembelianJournalService
         }
         
         // FALLBACK: Kas Bank (seharusnya tidak sampai sini jika bank_id ada)
+        $coa = $this->getCoaByCode('111');
+        return [
+            'coa_id' => $coa->id,
+            'coa_code' => $coa->kode_akun,
+            'coa_name' => $coa->nama_akun,
+            'memo' => $coa->nama_akun
+        ];
+    }
+    
+    /**
+     * Dapatkan informasi akun kas/bank untuk pembayaran DP
+     */
+    private function getKasAccountInfo(Pembelian $pembelian): array
+    {
+        // Gunakan dp_payment_method_id jika ada
+        if ($pembelian->dp_payment_method_id) {
+            $coa = Coa::where('id', $pembelian->dp_payment_method_id)
+                ->where('user_id', auth()->id())
+                ->first();
+            
+            if ($coa) {
+                return [
+                    'coa_id' => $coa->id,
+                    'coa_code' => $coa->kode_akun,
+                    'coa_name' => $coa->nama_akun,
+                    'memo' => $coa->nama_akun
+                ];
+            }
+        }
+        
+        // FALLBACK: Gunakan bank_id yang dipilih user untuk DP
+        if ($pembelian->bank_id) {
+            $coa = Coa::where('id', $pembelian->bank_id)
+                ->where('user_id', auth()->id())
+                ->first();
+            
+            if ($coa) {
+                return [
+                    'coa_id' => $coa->id,
+                    'coa_code' => $coa->kode_akun,
+                    'coa_name' => $coa->nama_akun,
+                    'memo' => $coa->nama_akun
+                ];
+            }
+        }
+        
+        // FALLBACK: Kas Bank default
         $coa = $this->getCoaByCode('111');
         return [
             'coa_id' => $coa->id,

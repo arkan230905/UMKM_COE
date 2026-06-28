@@ -19,7 +19,10 @@ Ada beberapa perubahan yang sudah berhasil di localhost tapi belum di production
 7. ✅ **Vendor Phone Validation** - Only numeric characters allowed
 8. ✅ **Universal Required Field Validation** - Alert for empty required fields (*)
 9. ✅ **Hide Status Retur Column** - Hidden from transaksi pembelian table
-10. ✅ **Hide Delete Action** - Hidden from transaksi pembelian table
+10. ✅ **Remove Delete Action** - Removed from transaksi pembelian table
+11. ✅ **Vendor Kategori Kombinasi** - New category "Bahan Baku & Bahan Pendukung"
+12. ✅ **Remove Conversion Examples** - Removed from tambah pembelian form
+13. ✅ **Remove No Faktur & Bukti Faktur Columns** - Removed from pembelian index table
 
 ---
 
@@ -67,6 +70,7 @@ database/migrations/2026_06_15_000000_force_remove_old_vendor_constraint.php
 ```
 app/Http/Controllers/VendorController.php
 app/Http/Controllers/PembelianController.php
+app/Http/Controllers/BahanBakuController.php
 ```
 
 #### 3. Service Files
@@ -350,14 +354,54 @@ exit
    - ✅ Tab "Laporan Retur Pembelian" - HIDDEN
 ```
 
-### 11. Test Delete Action Hidden
+### 11. Test Delete Action Removed
 
 ```
 1. Pergi ke Transaksi > Pembelian
 2. Check kolom aksi:
-   - ✅ Button "Hapus" tidak muncul
+   - ✅ Button "Hapus" tidak ada sama sekali
    - ✅ Button lain (Detail, Edit, Jurnal, Cetak) masih tampil
-   - ✅ Layout grid tetap rapi
+   - ✅ Layout grid tetap rapi dengan 5 button tersisa
+```
+
+### 12. Test Vendor Kategori Kombinasi ⭐ NEW
+
+```
+1. Pergi ke Master Data > Vendor > Tambah
+2. Check kategori dropdown:
+   - ✅ Ada opsi "Bahan Baku & Bahan Pendukung"
+3. Buat vendor dengan kategori kombinasi
+4. Pergi ke Transaksi > Tambah Pembelian
+5. Pilih vendor kategori kombinasi:
+   - ✅ Dropdown item shows both Bahan Baku and Bahan Pendukung
+   - ✅ Format: "BB - Tepung Terigu", "BP - Gas LPG"
+6. Tambah 2 item Bahan Baku dan 1 item Bahan Pendukung
+7. Submit transaksi:
+   - ✅ Transaksi tersimpan dengan 3 detail
+   - ✅ tipe_item correct per item
+   - ✅ Jurnal generated correctly
+   - ✅ Stok updated correctly
+```
+
+### 13. Test Removed Conversion Examples
+
+```
+1. Pergi ke Transaksi > Tambah Pembelian
+2. Scroll down form:
+   - ✅ Section "Contoh Konversi Satuan Pembelian" TIDAK ADA
+   - ✅ Form langsung ke "Detail Bahan"
+   - ✅ UI lebih clean dan simple
+```
+
+### 14. Test Removed Faktur Columns
+
+```
+1. Pergi ke Transaksi > Pembelian (halaman index)
+2. Check table columns:
+   - ✅ Kolom "No. Faktur" TIDAK ADA
+   - ✅ Kolom "Bukti Faktur" TIDAK ADA
+   - ✅ Table shows: No | No. Transaksi | Tanggal | Vendor | Item | dst
+   - ✅ Layout lebih compact dan fokus
 ```
 
 ---
@@ -449,7 +493,10 @@ rm -rf storage/framework/views/*
 - [ ] ✅ Biaya kirim uses COA 558
 - [ ] ✅ COA 310 hidden in Laporan Posisi Keuangan
 - [ ] ✅ Retur Pembelian features hidden from UI (tabs, buttons, status column)
-- [ ] ✅ Delete action hidden from transaksi pembelian
+- [ ] ✅ Delete action removed from transaksi pembelian
+- [ ] ✅ Vendor kategori kombinasi works (both BB and BP in one transaction)
+- [ ] ✅ Conversion examples removed from form (cleaner UI)
+- [ ] ✅ No Faktur & Bukti Faktur columns removed from table
 - [ ] ✅ No errors in logs
 - [ ] ✅ Site is live and working
 
@@ -500,8 +547,11 @@ Deployment sukses jika:
 6. ✅ Biaya kirim menggunakan COA 558
 7. ✅ COA 310 tidak muncul di Laporan Posisi Keuangan
 8. ✅ Retur Pembelian features hidden (tabs, buttons, status column)
-9. ✅ Delete action hidden from transaksi pembelian
-10. ✅ Tidak ada error di logs
+9. ✅ Delete action removed from transaksi pembelian
+10. ✅ Vendor kategori kombinasi works (BB + BP in one transaction)
+11. ✅ Conversion examples removed (cleaner UI)
+12. ✅ No Faktur & Bukti Faktur columns removed (compact table)
+13. ✅ Tidak ada error di logs
 10. ✅ Angka bulat tidak ada .00
 11. ✅ Semua fitur berjalan normal
 

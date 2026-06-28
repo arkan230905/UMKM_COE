@@ -18,7 +18,7 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background-color: #8A6B48;">
                     <h4 class="mb-0">Pelunasan Utang</h4>
                     <div class="mt-2">No. {{ $pelunasanUtang->kode_transaksi }}</div>
                 </div>
@@ -91,21 +91,84 @@
                                     <td colspan="3" class="text-end"><strong>Total Pembelian</strong></td>
                                     <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->total_harga, 0, ',', '.') }}</strong></td>
                                 </tr>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Sudah Dibayar</strong></td>
-                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->terbayar, 0, ',', '.') }}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="text-end"><strong>Sisa Utang</strong></td>
-                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran + $pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
-                                </tr>
-                                <tr class="table-primary">
+                                
+                                @php
+                                    $dpPembelian = $pelunasanUtang->pembelian->dp ?? 0;
+                                    
+                                    // Get pelunasan sebelumnya (before current pelunasan)
+                                    $pelunasanSebelumnya = \DB::table('pelunasan_utangs')
+                                        ->where('pembelian_id', $pelunasanUtang->pembelian_id)
+                                        ->where('user_id', auth()->id())
+                                        ->where('id', '<', $pelunasanUtang->id)
+                                        ->orderBy('tanggal', 'asc')
+                                        ->orderBy('id', 'asc')
+                                        ->get();
+                                    
+                                    $totalPelunasanSebelumnya = $pelunasanSebelumnya->sum('jumlah');
+                                @endphp
+                                
+                                @if($dpPembelian > 0)
+                                    <tr style="background-color: #f5f0eb;">
+                                        <td colspan="3" class="text-end"><strong>DP</strong></td>
+                                        <td class="text-end"><strong>Rp {{ number_format($dpPembelian, 0, ',', '.') }}</strong></td>
+                                    </tr>
+                                @endif
+                                
+                                @if($pelunasanSebelumnya->count() > 0)
+                                    <tr>
+                                        <td colspan="4" class="pt-3 pb-2">
+                                            <div class="border-top pt-2">
+                                                <strong class="text-muted">Pelunasan Sebelumnya:</strong>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @foreach($pelunasanSebelumnya as $index => $prev)
+                                        <tr class="table-light">
+                                            <td class="text-center small">{{ $index + 1 }}</td>
+                                            <td colspan="2" class="small">
+                                                <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                                {{ \Carbon\Carbon::parse($prev->tanggal)->format('d/m/Y') }}
+                                                <span class="ms-2 text-muted">{{ $prev->kode_transaksi }}</span>
+                                            </td>
+                                            <td class="text-end small">
+                                                Rp {{ number_format($prev->jumlah, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    <tr class="table-secondary">
+                                        <td colspan="3" class="text-end"><strong>Total Pelunasan Sebelumnya</strong></td>
+                                        <td class="text-end"><strong>Rp {{ number_format($totalPelunasanSebelumnya, 0, ',', '.') }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" class="py-1"></td>
+                                    </tr>
+                                @endif
+                                
+                                <tr style="background-color: #f5f0eb;">
                                     <td colspan="3" class="text-end"><strong>Jumlah Pelunasan Ini</strong></td>
                                     <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
                                 </tr>
+                                @php
+                                    // Calculate sisa utang SETELAH pelunasan ini
+                                    // Total semua pelunasan untuk pembelian ini
+                                    $totalAllPayments = \DB::table('pelunasan_utangs')
+                                        ->where('pembelian_id', $pelunasanUtang->pembelian_id)
+                                        ->where('user_id', auth()->id())
+                                        ->sum('jumlah');
+                                    
+                                    // Get total refund
+                                    $totalRefund = \DB::table('purchase_returns')
+                                        ->where('pembelian_id', $pelunasanUtang->pembelian_id)
+                                        ->where('user_id', auth()->id())
+                                        ->where('jenis_retur', 'refund')
+                                        ->whereIn('status', ['disetujui', 'dikirim', 'selesai'])
+                                        ->sum('total_return_amount');
+                                    
+                                    $sisaUtangSetelah = $pelunasanUtang->pembelian->total_harga - $dpPembelian - $totalAllPayments - $totalRefund;
+                                @endphp
                                 <tr class="table-success">
-                                    <td colspan="3" class="text-end"><strong>Sisa Utang Setelah Pelunasan</strong></td>
-                                    <td class="text-end"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran, 0, ',', '.') }}</strong></td>
+                                    <td colspan="3" class="text-end"><strong>Sisa Utang</strong></td>
+                                    <td class="text-end"><strong>Rp {{ number_format(max(0, $sisaUtangSetelah), 0, ',', '.') }}</strong></td>
                                 </tr>
                             </tfoot>
                         </table>

@@ -407,9 +407,51 @@ class LaporanPembelianController extends Controller
     
     public function invoice(Pembelian $pembelian)
     {
-        $pembelian->load(['vendor', 'pembelianDetails.bahanBaku']);
-        
-        $pdf = PDF::loadView('laporan.pembelian.invoice', compact('pembelian'));
-        return $pdf->stream('invoice-pembelian-' . $pembelian->no_pembelian . '.pdf');
+        try {
+            // Get purchase data with all related information
+            $pembelian = Pembelian::with([
+                'vendor',
+                'details.bahanBaku',
+                'details.bahanPendukung',
+                'kasBank'
+            ])->findOrFail($pembelian->id);
+
+            // Calculate totals
+            $subtotal = $pembelian->subtotal ?? 0;
+            $ppnNominal = $pembelian->ppn_nominal ?? 0;
+            $biayaKirim = $pembelian->biaya_kirim ?? 0;
+            $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
+
+            // Get company information from database (multi-tenant safe)
+            $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
+            
+            // Prepare company data with fallback values
+            $company = [
+                'name' => $perusahaan->nama ?? 'Nama Perusahaan',
+                'address' => $perusahaan->alamat ?? '',
+                'phone' => $perusahaan->telepon ?? '',
+                'email' => $perusahaan->email ?? '',
+                'logo' => $perusahaan->foto ?? null,
+            ];
+
+            // Use the same view as transaksi.pembelian.preview-faktur
+            return view('transaksi.pembelian.preview-faktur', compact(
+                'pembelian',
+                'subtotal',
+                'ppnNominal',
+                'biayaKirim',
+                'grandTotal',
+                'company'
+            ));
+
+        } catch (\Exception $e) {
+            \Log::error('Error previewing purchase invoice from laporan', [
+                'id' => $pembelian->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Gagal menampilkan invoice pembelian: ' . $e->getMessage());
+        }
     }
 }

@@ -270,7 +270,10 @@ class PembelianController extends Controller
             $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->first() : null;
             
             $subSatuanData['bahan_baku'][$bb->id] = [
-                'satuan_utama' => $bb->satuan->nama ?? 'Unit',
+                'satuan_utama' => [
+                    'id' => $bb->satuan_id,
+                    'nama' => $bb->satuan->nama ?? 'Unit'
+                ],
                 'sub_satuan_1' => $subSatuan1 ? [
                     'id' => $subSatuan1->id,
                     'nama' => $subSatuan1->nama,
@@ -314,7 +317,10 @@ class PembelianController extends Controller
             $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->first() : null;
             
             $subSatuanData['bahan_pendukung'][$bp->id] = [
-                'satuan_utama' => $bp->satuanRelation->nama ?? 'Unit',
+                'satuan_utama' => [
+                    'id' => $bp->satuan_id,
+                    'nama' => $bp->satuanRelation->nama ?? 'Unit'
+                ],
                 'sub_satuan_1' => $subSatuan1 ? [
                     'id' => $subSatuan1->id,
                     'nama' => $subSatuan1->nama,
@@ -514,15 +520,26 @@ class PembelianController extends Controller
         ]);
         
         // Validasi dasar
-        $request->validate([
+        $validationRules = [
             'vendor_id' => 'required|exists:vendors,id',
             'nomor_faktur' => 'required|string|max:255',
             'tanggal' => 'required|date',
             'bank_id' => 'required',
             'jumlah_satuan_utama' => 'nullable|array',
-        ], [
+        ];
+        
+        $validationMessages = [
             'nomor_faktur.required' => 'Nomor faktur pembelian wajib diisi',
-        ]);
+        ];
+        
+        // Tambahan validasi untuk kredit
+        if ($request->bank_id === 'credit') {
+            $validationRules['tanggal_jatuh_tempo'] = 'required|date';
+            $validationRules['dp'] = 'nullable|numeric|min:0';
+            $validationMessages['tanggal_jatuh_tempo.required'] = 'Tanggal jatuh tempo wajib diisi untuk pembelian kredit';
+        }
+        
+        $request->validate($validationRules, $validationMessages);
         
         // Cek manual apakah ada item yang dipilih
         $hasValidItems = false;
@@ -581,6 +598,17 @@ class PembelianController extends Controller
                 'ppn_nominal' => $ppnNominal,
                 'computed_total' => $computedTotal,
             ]);
+            
+            // Validasi DP tidak boleh lebih besar dari total pembelian untuk kredit
+            $dpAmount = 0;
+            if ($request->bank_id === 'credit') {
+                $dpAmount = (float) ($request->dp ?? 0);
+                if ($dpAmount > $computedTotal) {
+                    return back()->withErrors([
+                        'dp' => 'DP tidak boleh lebih besar dari Total Pembelian. Total Pembelian: Rp '.number_format($computedTotal, 0, ',', '.').'; DP: Rp '.number_format($dpAmount, 0, ',', '.'),
+                    ])->withInput();
+                }
+            }
 
             // Cek saldo kas jika pembayaran tunai atau transfer
             if ($request->bank_id !== 'credit') {
@@ -678,6 +706,10 @@ class PembelianController extends Controller
                     // Tidak perlu handle upload di sini
                     
                     // 1. Buat header pembelian
+                    $dpAmount = ($paymentMethod === 'credit') ? (float)($request->dp ?? 0) : 0;
+                    $dpPaymentMethodId = ($paymentMethod === 'credit' && $dpAmount > 0) ? $request->dp_payment_method : null;
+                    $sisaUtang = $computedTotal - $dpAmount;
+                    
                     $pembelian = new Pembelian([
                         'vendor_id' => $request->vendor_id,
                         'nomor_faktur' => $request->nomor_faktur,
@@ -688,9 +720,12 @@ class PembelianController extends Controller
                         'ppn_persen' => $ppnPersen,
                         'ppn_nominal' => $ppnNominal,
                         'total_harga' => $computedTotal,
-                        'terbayar' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? $computedTotal : 0,
-                        'sisa_pembayaran' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 0 : $computedTotal,
-                        'status' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 'lunas' : 'belum_lunas',
+                        'dp' => $dpAmount,
+                        'dp_payment_method_id' => $dpPaymentMethodId,
+                        'tanggal_jatuh_tempo' => ($paymentMethod === 'credit') ? $request->tanggal_jatuh_tempo : null,
+                        'terbayar' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? $computedTotal : $dpAmount,
+                        'sisa_pembayaran' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 0 : $sisaUtang,
+                        'status' => (($paymentMethod === 'cash' || $paymentMethod === 'transfer') || $dpAmount >= $computedTotal) ? 'lunas' : 'belum_lunas',
                         'payment_method' => $paymentMethod,
                         'bank_id' => $selectedBankId, // Use the selected account ID
                         'keterangan' => $request->keterangan,
@@ -1440,82 +1475,13 @@ class PembelianController extends Controller
         // CRITICAL: Filter by user_id for multi-tenant
         $pembelian = Pembelian::where('user_id', auth()->id())->findOrFail($id);
         
-        // Validasi input
+        // Validasi hanya untuk bukti faktur
         $request->validate([
-            'vendor_id' => 'required|exists:vendors,id',
-            'tanggal' => 'required|date',
-            'nomor_faktur' => 'nullable|string|max:255',
-            'keterangan' => 'nullable|string',
-            'bank_id' => 'required', // Add validation for payment method
             'bukti_faktur' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:5120', // Max 5MB
         ]);
         
         try {
-            // Store original values to check if payment method changed
-            $originalPaymentMethod = $pembelian->payment_method;
-            $originalBankId = $pembelian->bank_id;
-            
-            // Determine payment method and status based on bank_id selection
-            $paymentMethod = 'credit'; // default
-            $selectedBankId = null;
-            $status = 'belum_lunas'; // default for credit
-            $terbayar = 0; // default for credit
-            $sisaPembayaran = $pembelian->total_harga; // default for credit
-            
-            if ($request->bank_id !== 'credit') {
-                // User selected a specific cash/bank account
-                $selectedAccount = \App\Models\Coa::find($request->bank_id);
-                
-                if (!$selectedAccount) {
-                    throw new \Exception('Akun pembayaran yang dipilih tidak ditemukan.');
-                }
-                
-                $selectedBankId = $selectedAccount->id;
-                
-                // Determine payment method based on account code pattern
-                $accountCode = $selectedAccount->kode_akun;
-                
-                // Kas: 111, 112, 113 (termasuk 111x, 112x, 113x)
-                // Bank: 1111, 1112, 1113, dst
-                if (strlen($accountCode) >= 4 || in_array($accountCode, ['1111', '1112', '1113'])) {
-                    // Ini Bank (4 digit atau lebih, atau kode bank spesifik)
-                    $paymentMethod = 'transfer';
-                } else if (in_array($accountCode, ['111', '112', '113'])) {
-                    // Ini Kas (3 digit)
-                    $paymentMethod = 'cash';
-                } else {
-                    // Fallback: cek dari nama akun
-                    if (stripos($selectedAccount->nama_akun, 'Bank') !== false) {
-                        $paymentMethod = 'transfer';
-                    } else {
-                        $paymentMethod = 'cash';
-                    }
-                }
-                
-                // For cash/transfer payments, mark as paid
-                $status = 'lunas';
-                $terbayar = $pembelian->total_harga;
-                $sisaPembayaran = 0;
-                
-                \Log::info('Payment method updated:', [
-                    'pembelian_id' => $pembelian->id,
-                    'selected_account' => $selectedAccount->nama_akun,
-                    'account_code' => $selectedAccount->kode_akun,
-                    'payment_method' => $paymentMethod,
-                    'bank_id' => $selectedBankId
-                ]);
-            } else {
-                // Credit payment (hutang)
-                $paymentMethod = 'credit';
-                $selectedBankId = null;
-                
-                \Log::info('Payment method updated to credit:', [
-                    'pembelian_id' => $pembelian->id
-                ]);
-            }
-            
             // Handle bukti faktur upload
-            $buktiFakturPath = $pembelian->bukti_faktur; // Keep existing path
             if ($request->hasFile('bukti_faktur')) {
                 // Delete old file if exists
                 if ($pembelian->bukti_faktur && file_exists(public_path($pembelian->bukti_faktur))) {
@@ -1525,61 +1491,26 @@ class PembelianController extends Controller
                 $file = $request->file('bukti_faktur');
                 $fileName = 'bukti_faktur_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $file->move(public_path('uploads/bukti_faktur'), $fileName);
-                $buktiFakturPath = 'uploads/bukti_faktur/' . $fileName;
-            }
-
-            // Check if payment method actually changed
-            $paymentMethodChanged = ($originalPaymentMethod !== $paymentMethod) || ($originalBankId != $selectedBankId);
-            
-            // Update data pembelian including payment method
-            $pembelian->update([
-                'vendor_id' => $request->vendor_id,
-                'nomor_faktur' => $request->nomor_faktur,
-                'bukti_faktur' => $buktiFakturPath,
-                'tanggal' => $request->tanggal,
-                'keterangan' => $request->keterangan,
-                'payment_method' => $paymentMethod,
-                'bank_id' => $selectedBankId,
-                'status' => $status,
-                'terbayar' => $terbayar,
-                'sisa_pembayaran' => $sisaPembayaran,
-            ]);
-            
-            // Only regenerate journal entries if payment method changed
-            if ($paymentMethodChanged) {
-                try {
-                    $pembelianJournalService = new \App\Services\PembelianJournalService();
-                    $pembelianJournalService->createJournalFromPembelian($pembelian);
-                    \Log::info('Journal entries updated for pembelian due to payment method change', [
-                        'pembelian_id' => $pembelian->id,
-                        'old_method' => $originalPaymentMethod,
-                        'new_method' => $paymentMethod
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to update journal entries for pembelian', [
-                        'pembelian_id' => $pembelian->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                    // Don't fail the update, just log the error and show warning
-                    return redirect()->route('transaksi.pembelian.show', $pembelian->id)
-                        ->with('warning', 'Data pembelian berhasil diperbarui, tetapi gagal memperbarui jurnal: ' . $e->getMessage());
-                }
-            } else {
-                \Log::info('Payment method unchanged, skipping journal regeneration', [
-                    'pembelian_id' => $pembelian->id
+                
+                // Update only bukti faktur
+                $pembelian->update([
+                    'bukti_faktur' => 'uploads/bukti_faktur/' . $fileName
                 ]);
+                
+                return redirect()->route('transaksi.pembelian.show', $pembelian->id)
+                    ->with('success', 'Bukti faktur berhasil diperbarui!');
+            } else {
+                return redirect()->route('transaksi.pembelian.show', $pembelian->id)
+                    ->with('info', 'Tidak ada perubahan pada bukti faktur.');
             }
-            
-            return redirect()->route('transaksi.pembelian.show', $pembelian->id)
-                ->with('success', 'Data pembelian berhasil diperbarui!');
                 
         } catch (\Exception $e) {
-            \Log::error('Failed to update pembelian', [
+            \Log::error('Failed to update bukti faktur', [
                 'pembelian_id' => $id,
                 'error' => $e->getMessage(),
             ]);
             
-            return back()->withErrors(['error' => 'Gagal memperbarui data pembelian: ' . $e->getMessage()])
+            return back()->withErrors(['error' => 'Gagal memperbarui bukti faktur: ' . $e->getMessage()])
                 ->withInput();
         }
     }
@@ -1901,12 +1832,16 @@ class PembelianController extends Controller
             $biayaKirim = $pembelian->biaya_kirim ?? 0;
             $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
 
-            // Company information
+            // Get company information from database (multi-tenant safe)
+            $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
+            
+            // Prepare company data with fallback values
             $company = [
-                'name' => 'UMKM COE',
-                'address' => 'Jl. Contoh Alamat No. 123, Kota, Provinsi',
-                'phone' => '(021) 1234-5678',
-                'email' => 'info@umkmcoe.com'
+                'name' => $perusahaan->nama ?? 'Nama Perusahaan',
+                'address' => $perusahaan->alamat ?? '',
+                'phone' => $perusahaan->telepon ?? '',
+                'email' => $perusahaan->email ?? '',
+                'logo' => $perusahaan->foto ?? null,
             ];
 
             // Generate PDF
@@ -1964,12 +1899,16 @@ class PembelianController extends Controller
             $biayaKirim = $pembelian->biaya_kirim ?? 0;
             $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
 
-            // Company information
+            // Get company information from database (multi-tenant safe)
+            $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
+            
+            // Prepare company data with fallback values
             $company = [
-                'name' => 'UMKM COE',
-                'address' => 'Jl. Contoh Alamat No. 123, Kota, Provinsi',
-                'phone' => '(021) 1234-5678',
-                'email' => 'info@umkmcoe.com'
+                'name' => $perusahaan->nama ?? 'Nama Perusahaan',
+                'address' => $perusahaan->alamat ?? '',
+                'phone' => $perusahaan->telepon ?? '',
+                'email' => $perusahaan->email ?? '',
+                'logo' => $perusahaan->foto ?? null,
             ];
 
             return view('transaksi.pembelian.preview-faktur', compact(
