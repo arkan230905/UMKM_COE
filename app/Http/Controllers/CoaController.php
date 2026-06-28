@@ -248,6 +248,18 @@ if ($parentCoa) {
             $coaData['tanggal_saldo_awal'] = $request->tanggal_saldo_awal;
         }
 
+        // Cek duplikat nama_akun (case-insensitive) untuk user yang sama
+        $namaDuplikat = Coa::withoutGlobalScopes()
+            ->where('user_id', auth()->id())
+            ->whereRaw('LOWER(nama_akun) = ?', [strtolower($validated['nama_akun'])])
+            ->exists();
+
+        if ($namaDuplikat) {
+            return redirect()->back()
+                ->withErrors(['nama_akun' => 'Nama akun sudah terdaftar. Silakan gunakan nama akun yang berbeda.'])
+                ->withInput();
+        }
+
         $coa = Coa::create($coaData);
 
         // Auto-create BOP record for Beban type (if bops table exists)

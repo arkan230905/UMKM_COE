@@ -78,7 +78,10 @@
             {{-- Nama Akun --}}
             <div class="col-md-12">
                 <label class="form-label">Nama Akun</label>
-                <input type="text" name="nama_akun" class="form-control" value="{{ old('nama_akun') }}" required>
+                <input type="text" name="nama_akun" class="form-control {{ $errors->has('nama_akun') ? 'is-invalid' : '' }}" value="{{ old('nama_akun') }}" required>
+                @error('nama_akun')
+                    <span class="text-danger small">{{ $message }}</span>
+                @enderror
             </div>
 
             {{-- Saldo Awal --}}
@@ -89,19 +92,12 @@
             </div>
 
             {{-- Tanggal Saldo Awal --}}
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <label class="form-label">Tanggal Saldo Awal</label>
                 <input type="date" name="tanggal_saldo_awal" class="form-control" value="{{ old('tanggal_saldo_awal') }}">
             </div>
 
-            {{-- Posted Saldo Awal --}}
-            <div class="col-md-3">
-                <label class="form-label">Posted Saldo Awal?</label>
-                <select name="posted_saldo_awal" class="form-select">
-                    <option value="0">Belum</option>
-                    <option value="1">Posted</option>
-                </select>
-            </div>
+
 
             {{-- Keterangan --}}
             <div class="col-md-12">
