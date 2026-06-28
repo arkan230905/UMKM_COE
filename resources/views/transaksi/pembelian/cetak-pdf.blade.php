@@ -12,144 +12,119 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
             color: #333;
             background: white;
-            margin: 0;
             padding: 20px;
         }
 
+        /* Invoice Container */
         .invoice-container {
-            max-width: 210mm;
-            width: 100%;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
-            padding: 0;
+            padding: 40px;
         }
 
-        /* Print Settings */
-        @media print {
-            body {
-                margin: 0;
-                padding: 0;
-            }
-            .invoice-container {
-                width: 100%;
-                max-width: 100%;
-                padding: 0;
-            }
-        }
-
-        /* Header with date and invoice number */
-        .top-header {
+        /* Header Section */
+        .invoice-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            font-size: 11px;
-            color: #666;
-        }
-
-        .print-date {
-            font-weight: normal;
-        }
-
-        .invoice-number {
-            font-weight: normal;
-        }
-
-        /* Company Header */
-        .company-header {
-            text-align: center;
+            align-items: flex-start;
             margin-bottom: 40px;
-        }
-
-        .company-name {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 8px;
-            letter-spacing: 2px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #333;
         }
 
         .company-info {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        .invoice-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #e74c3c;
-            margin-top: 15px;
-            letter-spacing: 1px;
-        }
-
-        /* Separator Line */
-        .separator {
-            height: 2px;
-            background: #333;
-            margin: 30px 0;
-        }
-
-        /* Info Section - Two Columns */
-        .info-section {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
-            gap: 100px;
-        }
-
-        .info-left, .info-right {
             flex: 1;
         }
 
-        .info-item {
-            margin-bottom: 20px;
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
         }
 
-        .info-label {
+        .company-details {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .invoice-title-section {
+            text-align: right;
+        }
+
+        .invoice-title {
+            font-size: 28px;
             font-weight: bold;
             color: #333;
             margin-bottom: 5px;
-            font-size: 12px;
+        }
+
+        .invoice-subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Transaction Info - Two Columns */
+        .transaction-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .info-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            font-size: 14px;
+        }
+
+        .info-label {
+            width: 120px;
+            color: #666;
+            font-weight: 500;
         }
 
         .info-value {
+            flex: 1;
             color: #333;
-            font-size: 12px;
-            margin-left: 10px;
+            font-weight: 600;
         }
 
-        .vendor-name {
-            font-weight: bold;
-            color: #333;
-        }
-
-        /* Table */
+        /* Items Table */
         .items-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
-            border: 1px solid #333;
+        }
+
+        .items-table thead {
+            background: #f8f9fa;
         }
 
         .items-table th {
-            background: #333;
-            color: white;
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: bold;
-            border: 1px solid #333;
-            font-size: 12px;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 13px;
+            text-transform: uppercase;
         }
 
-        .items-table th.text-left {
-            text-align: left;
+        .items-table th.text-center {
+            text-align: center;
         }
 
         .items-table th.text-right {
@@ -157,171 +132,135 @@
         }
 
         .items-table td {
-            padding: 12px 8px;
-            border: 1px solid #333;
-            vertical-align: top;
-            font-size: 11px;
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
         }
 
-        .text-center {
+        .items-table td.text-center {
             text-align: center;
         }
 
-        .text-right {
+        .items-table td.text-right {
             text-align: right;
         }
 
-        .text-left {
-            text-align: left;
-        }
-
         .item-name {
-            font-weight: bold;
+            font-weight: 500;
             color: #333;
-            margin-bottom: 2px;
         }
 
         .item-type {
-            font-size: 10px;
-            color: #666;
-            font-style: italic;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 2px;
         }
 
-        /* Totals Section - Right Aligned */
+        /* Totals Section */
         .totals-section {
-            width: 300px;
-            margin-left: auto;
-            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 40px;
+        }
+
+        .totals-box {
+            width: 350px;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            font-size: 12px;
+            font-size: 14px;
         }
 
         .total-row.subtotal {
-            border-bottom: none;
-        }
-
-        .total-row.ppn {
-            border-bottom: none;
+            border-top: 1px solid #e9ecef;
+            padding-top: 12px;
         }
 
         .total-row.grand-total {
             border-top: 2px solid #333;
-            border-bottom: 2px solid #333;
+            padding-top: 12px;
+            margin-top: 8px;
+            font-size: 16px;
             font-weight: bold;
-            font-size: 13px;
-            padding: 10px 0;
-            margin-top: 5px;
         }
 
         .total-label {
-            font-weight: bold;
+            color: #666;
         }
 
         .total-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .grand-total .total-label,
+        .grand-total .total-value {
+            color: #333;
             font-weight: bold;
         }
 
         /* Footer */
-        .footer {
-            margin-top: 60px;
+        .invoice-footer {
             text-align: center;
-            font-size: 10px;
-            color: #666;
-            line-height: 1.4;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            font-size: 12px;
+            color: #6c757d;
         }
 
-        /* Print adjustments */
-        @media print {
-            .info-section {
-                display: block;
-            }
-            
-            .info-left, .info-right {
-                width: 48%;
-                float: left;
-                margin-right: 4%;
-            }
-            
-            .info-right {
-                margin-right: 0;
-                float: right;
-            }
-            
-            .totals-section {
-                float: right;
-                clear: both;
-            }
-            
-            .footer {
-                clear: both;
-            }
+        .footer-line {
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
+    <!-- Invoice Container -->
     <div class="invoice-container">
-        <!-- Top Header with Date and Invoice Number -->
-        <div class="top-header">
-            <div class="print-date">{{ now()->format('j/n/y, g:i A') }}</div>
-            <div class="invoice-number">Faktur Pembelian - {{ $pembelian->nomor_pembelian }}</div>
-        </div>
-
-        <!-- Company Header -->
-        <div class="company-header">
-            <div class="company-name">{{ $company['name'] }}</div>
+        <!-- Header -->
+        <div class="invoice-header">
             <div class="company-info">
-                {{ $company['address'] }}<br>
-                Telp: {{ $company['phone'] }} | Email: {{ $company['email'] }}
+                <div class="company-name">{{ $company['name'] }}</div>
+                <div class="company-details">
+                    {{ $company['address'] }}<br>
+                    Telp: {{ $company['phone'] }}<br>
+                    Email: {{ $company['email'] }}
+                </div>
             </div>
-            <div class="invoice-title">FAKTUR PEMBELIAN</div>
+            <div class="invoice-title-section">
+                <div class="invoice-title">FAKTUR PEMBELIAN</div>
+                <div class="invoice-subtitle">Purchase Invoice</div>
+            </div>
         </div>
 
-        <!-- Separator -->
-        <div class="separator"></div>
-
-        <!-- Info Section -->
-        <div class="info-section">
-            <div class="info-left">
-                <div class="info-item">
-                    <div class="info-label">No. Transaksi:</div>
-                    <div class="info-value">{{ $pembelian->nomor_pembelian }}</div>
+        <!-- Transaction Info - Two Columns -->
+        <div class="transaction-info">
+            <div class="info-column">
+                <div class="info-row">
+                    <span class="info-label">No Transaksi</span>
+                    <span class="info-value">{{ $pembelian->nomor_pembelian }}</span>
                 </div>
-                
                 @if($pembelian->nomor_faktur)
-                <div class="info-item">
-                    <div class="info-label">No. Faktur:</div>
-                    <div class="info-value">{{ $pembelian->nomor_faktur }}</div>
+                <div class="info-row">
+                    <span class="info-label">No Faktur</span>
+                    <span class="info-value">{{ $pembelian->nomor_faktur }}</span>
                 </div>
                 @endif
-                
-                <div class="info-item">
-                    <div class="info-label">Tanggal:</div>
-                    <div class="info-value">{{ $pembelian->tanggal->format('d F Y') }}</div>
+                <div class="info-row">
+                    <span class="info-label">Tanggal</span>
+                    <span class="info-value">{{ $pembelian->tanggal->format('d/m/Y') }}</span>
                 </div>
             </div>
-            
-            <div class="info-right">
-                <div class="info-item">
-                    <div class="info-label">Vendor:</div>
-                    <div class="info-value">
-                        <div class="vendor-name">{{ $pembelian->vendor->nama_vendor ?? '-' }}</div>
-                        @if($pembelian->vendor->alamat)
-                            {{ $pembelian->vendor->alamat }}<br>
-                        @endif
-                        @if($pembelian->vendor->telepon)
-                            Telp: {{ $pembelian->vendor->telepon }}
-                        @endif
-                    </div>
+            <div class="info-column">
+                <div class="info-row">
+                    <span class="info-label">Vendor</span>
+                    <span class="info-value">{{ $pembelian->vendor->nama_vendor ?? '-' }}</span>
                 </div>
-                
-                <div class="info-item">
-                    <div class="info-label">Metode Pembayaran:</div>
-                    <div class="info-value">
+                <div class="info-row">
+                    <span class="info-label">Metode Bayar</span>
+                    <span class="info-value">
                         @php
                             $paymentMethod = $pembelian->payment_method ?? 'cash';
                             if ($paymentMethod === 'credit') {
@@ -332,7 +271,7 @@
                                 echo 'Tunai';
                             }
                         @endphp
-                    </div>
+                    </span>
                 </div>
             </div>
         </div>
@@ -341,12 +280,11 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 40px;">No</th>
-                    <th class="text-left">Nama Barang</th>
-                    <th class="text-center" style="width: 60px;">Qty</th>
-                    <th class="text-center" style="width: 80px;">Satuan</th>
-                    <th class="text-right" style="width: 100px;">Harga Satuan</th>
-                    <th class="text-right" style="width: 100px;">Subtotal</th>
+                    <th style="width: 5%">No</th>
+                    <th style="width: 45%">Nama Barang</th>
+                    <th class="text-center" style="width: 15%">Qty</th>
+                    <th class="text-right" style="width: 17.5%">Harga</th>
+                    <th class="text-right" style="width: 17.5%">Subtotal</th>
                 </tr>
             </thead>
             <tbody>
@@ -354,26 +292,36 @@
                     <tr>
                         <td class="text-center">{{ $index + 1 }}</td>
                         <td>
-                            @if($detail->bahan_baku_id && $detail->bahanBaku)
-                                <div class="item-name">{{ $detail->bahanBaku->nama_bahan }}</div>
-                                <div class="item-type">Bahan Baku</div>
-                            @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
-                                <div class="item-name">{{ $detail->bahanPendukung->nama_bahan }}</div>
-                                <div class="item-type">Bahan Pendukung</div>
-                            @else
-                                <span style="color: #999;">Item tidak diketahui</span>
-                            @endif
+                            <div class="item-name">
+                                @if($detail->bahan_baku_id && $detail->bahanBaku)
+                                    {{ $detail->bahanBaku->nama_bahan }}
+                                @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
+                                    {{ $detail->bahanPendukung->nama_bahan }}
+                                @else
+                                    Item tidak diketahui
+                                @endif
+                            </div>
+                            <div class="item-type">
+                                @if($detail->bahan_baku_id)
+                                    Bahan Baku
+                                @elseif($detail->bahan_pendukung_id)
+                                    Bahan Pendukung
+                                @endif
+                            </div>
                         </td>
-                        <td class="text-center">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
-                        <td class="text-center">{{ $detail->satuan_nama ?? '-' }}</td>
-                        <td class="text-right">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
-                        <td class="text-right">Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</td>
+                        <td class="text-center">
+                            {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'pcs' }}
+                        </td>
+                        <td class="text-right">
+                            Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
+                        </td>
+                        <td class="text-right">
+                            Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center" style="padding: 20px; color: #999; font-style: italic;">
-                            Tidak ada item pembelian
-                        </td>
+                        <td colspan="5" class="text-center">Tidak ada item pembelian</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -381,35 +329,37 @@
 
         <!-- Totals Section -->
         <div class="totals-section">
-            <div class="total-row subtotal">
-                <span class="total-label">Subtotal:</span>
-                <span class="total-value">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
-            </div>
-            
-            @if($ppnNominal > 0)
-            <div class="total-row ppn">
-                <span class="total-label">PPN ({{ $pembelian->ppn_persen ?? 0 }}%):</span>
-                <span class="total-value">Rp {{ number_format($ppnNominal, 0, ',', '.') }}</span>
-            </div>
-            @endif
-            
-            @if($biayaKirim > 0)
-            <div class="total-row">
-                <span class="total-label">Biaya Kirim:</span>
-                <span class="total-value">Rp {{ number_format($biayaKirim, 0, ',', '.') }}</span>
-            </div>
-            @endif
-            
-            <div class="total-row grand-total">
-                <span class="total-label">TOTAL:</span>
-                <span class="total-value">Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
+            <div class="totals-box">
+                <div class="total-row subtotal">
+                    <span class="total-label">Subtotal</span>
+                    <span class="total-value">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                </div>
+                
+                @if($ppnNominal > 0)
+                <div class="total-row">
+                    <span class="total-label">PPN {{ $pembelian->ppn_persen ?? 0 }}%</span>
+                    <span class="total-value">Rp {{ number_format($ppnNominal, 0, ',', '.') }}</span>
+                </div>
+                @endif
+                
+                @if($biayaKirim > 0)
+                <div class="total-row">
+                    <span class="total-label">Biaya Kirim</span>
+                    <span class="total-value">Rp {{ number_format($biayaKirim, 0, ',', '.') }}</span>
+                </div>
+                @endif
+                
+                <div class="total-row grand-total">
+                    <span class="total-label">TOTAL</span>
+                    <span class="total-value">Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
+                </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <div class="footer">
-            Faktur ini dicetak pada {{ now()->format('d F Y H:i:s') }}<br>
-            {{ $company['name'] }} - Sistem Manajemen UMKM
+        <div class="invoice-footer">
+            <div class="footer-line">Dicetak: {{ now()->format('d/m/Y H:i') }}</div>
+            <div class="footer-line">Terima kasih atas kerja sama Anda</div>
         </div>
     </div>
 </body>

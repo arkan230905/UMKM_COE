@@ -1637,7 +1637,43 @@ class LaporanController extends Controller
         $totalTagihan = $pelunasanUtang->sum('total_tagihan');
         $totalRefund = $pelunasanUtang->sum('total_refund');
         $totalDibayar = $pelunasanUtang->sum('dibayar_bersih');
-        $jumlahTransaksi = $pelunasanUtang->total();
+        
+        // Hitung jumlah transaksi PEMBELIAN yang kredit (unique pembelian_id)
+        // Bukan jumlah pelunasan, tapi jumlah pembelian yang punya pelunasan
+        $queryJumlah = \App\Models\PelunasanUtang::where('user_id', auth()->id());
+        
+        // Terapkan filter yang sama
+        if ($request->filled('bulan')) {
+            $bulan = \Carbon\Carbon::parse($request->bulan);
+            $queryJumlah->whereYear('tanggal', $bulan->year)
+                  ->whereMonth('tanggal', $bulan->month);
+        }
+        
+        if ($request->filled('vendor_id')) {
+            $queryJumlah->whereHas('pembelian', function($q) use ($request) {
+                $q->where('vendor_id', $request->vendor_id);
+            });
+        }
+        
+        if ($request->filled('status')) {
+            $queryJumlah->whereHas('pembelian', function($q) use ($request) {
+                if ($request->status === 'lunas') {
+                    $q->where('status', 'lunas');
+                } elseif ($request->status === 'belum_lunas') {
+                    $q->where('status', '!=', 'lunas')
+                      ->whereRaw('(total_harga - COALESCE(terbayar, 0)) > 0');
+                } elseif ($request->status === 'sebagian') {
+                    $q->where('status', '!=', 'lunas')
+                      ->whereRaw('COALESCE(terbayar, 0) > 0')
+                      ->whereRaw('(total_harga - COALESCE(terbayar, 0)) > 0');
+                }
+            });
+        }
+        
+        // Count unique pembelian_id yang payment_method = 'credit'
+        $jumlahTransaksi = $queryJumlah->whereHas('pembelian', function($q) {
+            $q->where('payment_method', 'credit');
+        })->distinct('pembelian_id')->count('pembelian_id');
         
         // Get vendors for filter
         $vendors = \App\Models\Vendor::where('user_id', auth()->id())

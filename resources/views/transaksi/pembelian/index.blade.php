@@ -194,6 +194,39 @@
         font-size: 0.8rem;
         font-weight: 400;
     }
+
+    /* Sortable column styles */
+    .sortable {
+        user-select: none;
+        position: relative;
+    }
+
+    .sortable:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    .sortable .sort-icon {
+        display: inline-block;
+        min-width: 15px;
+        text-align: center;
+    }
+
+    .sortable .sort-icon i {
+        font-size: 0.875rem;
+    }
+
+    .sortable .sort-icon .fa-sort {
+        opacity: 0.3;
+    }
+
+    .sortable:hover .sort-icon .fa-sort {
+        opacity: 0.6;
+    }
+
+    .sortable .sort-icon .fa-sort-up,
+    .sortable .sort-icon .fa-sort-down {
+        opacity: 1;
+    }
 </style>
 @endpush
 @push('scripts')
@@ -348,6 +381,41 @@ const journalModalVersion = '2026-04-30-v2';
                 
                 window.history.pushState({}, '', url);
                 updateTabActions(tabId);
+            });
+        });
+
+        // Handle sortable column clicks for pembelian table
+        const sortableHeaders = document.querySelectorAll('.sortable');
+        
+        sortableHeaders.forEach(header => {
+            header.addEventListener('click', function() {
+                const sortBy = this.dataset.sort;
+                const currentSortBy = '{{ request("sort_by") }}';
+                const currentSortOrder = '{{ request("sort_order", "asc") }}';
+                
+                // Determine new sort order
+                let newSortOrder = 'asc';
+                if (sortBy === currentSortBy) {
+                    // Toggle sort order if clicking the same column
+                    newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+                }
+                
+                // Build URL with all current filters
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort_by', sortBy);
+                url.searchParams.set('sort_order', newSortOrder);
+                
+                // Redirect to new URL
+                window.location.href = url.toString();
+            });
+            
+            // Add hover effect
+            header.style.transition = 'background-color 0.2s';
+            header.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            header.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
             });
         });
     });

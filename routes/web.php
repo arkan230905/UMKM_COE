@@ -2990,6 +2990,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [PelunasanUtangController::class, 'create'])->name('create');
             Route::post('/', [PelunasanUtangController::class, 'store'])->name('store');
             Route::get('/{id}', [PelunasanUtangController::class, 'show'])->name('show');
+            Route::get('/{id}/jurnal', [PelunasanUtangController::class, 'showJurnal'])->name('jurnal');
             Route::get('/print/{id}', [PelunasanUtangController::class, 'print'])->name('print');
             Route::delete('/{id}', [PelunasanUtangController::class, 'destroy'])->name('destroy');
             Route::get('/get-pembelian/{id}', [PelunasanUtangController::class, 'getPembelian'])->name('get-pembelian');

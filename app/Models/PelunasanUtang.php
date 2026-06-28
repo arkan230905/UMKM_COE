@@ -68,7 +68,7 @@ class PelunasanUtang extends Model
     public function getStatusBadgeAttribute()
     {
         $badges = [
-            'lunas' => '<span class="badge badge-success">Lunas</span>',
+            'lunas' => '<span class="badge badge-success" style="color: #000;">Lunas</span>',
             'pending' => '<span class="badge badge-warning">Pending</span>',
             'batal' => '<span class="badge badge-danger">Batal</span>',
         ];

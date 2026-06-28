@@ -163,7 +163,7 @@ button[aria-expanded="false"] .transition-icon {
 
     @if(!session('show_upload_section'))
     <!-- Form Pembelian (hidden after save) -->
-    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" enctype="multipart/form-data" onsubmit="debugFormData(this)">
+    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" enctype="multipart/form-data" onsubmit="return validateAndSubmitForm(this)">
         @csrf
         
         <!-- Header Information -->
@@ -175,7 +175,7 @@ button[aria-expanded="false"] .transition-icon {
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Vendor <span class="text-danger">*</span></label>
-                    <select name="vendor_id" class="form-select" required onchange="updateItemsBasedOnVendor(this)">
+                    <select name="vendor_id" id="vendor_select" class="form-select" required>
                         <option value="">-- Pilih Vendor --</option>
                         @foreach ($vendors as $vendor)
                             <option value="{{ $vendor->id }}" data-kategori="{{ $vendor->kategori }}">{{ $vendor->nama_vendor }} ({{ $vendor->kategori }})</option>
@@ -210,53 +210,6 @@ button[aria-expanded="false"] .transition-icon {
                         <option value="credit">Kredit (Hutang)</option>
                     </select>
                     <small class="text-muted" id="saldo_info"></small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Conversion Examples -->
-        <div class="form-section">
-            <div class="section-header">
-                <h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Contoh Konversi Satuan Pembelian</h6>
-            </div>
-            
-            <div class="conversion-examples">
-                <div class="row">
-                    <div class="col-md-4">
-                        <h6 class="text-primary mb-2">Satuan Bahan & Konversi</h6>
-                        <ul class="list-unstyled small mb-0">
-                            <li>• 1 Liter = 1 kg (cairan utama)</li>
-                            <li>• 1 Ton = 1000 kg (bahan utama)</li>
-                            <li>• 1 Kg = 2 Kg (bahan khusus)</li>
-                            <li>• 1 Kg = 1 Kg (bahan normal)</li>
-                            <li>• 500 Gram = 0.5 Kg</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4">
-                        <h6 class="text-success mb-2">Satuan Konversi</h6>
-                        <ul class="list-unstyled small mb-0">
-                            <li>• 1 Tabung = 12 kg (tabung 12 kg)</li>
-                            <li>• 1 Karung = 25 kg (karung 25 kg)</li>
-                            <li>• 1 Kaleng = 5.5 kg (kaleng 5.5 kg)</li>
-                            <li>• 1 Jerigen = 5 kg (jerigen 5 kg)</li>
-                            <li>• 1 Karton = 0.5 kg (karton 0.5 kg)</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-4">
-                        <h6 class="text-info mb-2">Estimasi Harga Satuan</h6>
-                        <ul class="list-unstyled small mb-0">
-                            <li>• 1 kg = Rp 5000 = Rp 5000 Gram</li>
-                            <li>• 1 Liter = Rp 6000 = Rp 6000 Liter</li>
-                            <li>• 1 Kaleng = Rp 27500 = Rp 5000 Kg</li>
-                            <li>• 1 Tabung = Rp 60000 = Rp 5000 Kg</li>
-                            <li>• 1 Ton = Rp 5000000 = Rp 5000 Kg</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="alert alert-info mt-3 mb-0">
-                    <small><i class="fas fa-lightbulb me-1"></i> 
-                    <strong>Tips:</strong> Sistem akan otomatis mengkonversi satuan pembelian ke satuan utama untuk perhitungan stok. Pastikan faktor konversi sudah benar.
-                    </small>
                 </div>
             </div>
         </div>
@@ -461,6 +414,46 @@ button[aria-expanded="false"] .transition-icon {
                                 <small class="text-muted">Nilai PPN dalam rupiah</small>
                             </div>
                         </div>
+                        
+                        <!-- DP & Tanggal Jatuh Tempo - Hanya muncul jika Kredit -->
+                        <div class="row g-3 mt-2" id="credit_info_fields" style="display: none;">
+                            <div class="col-md-12">
+                                <div class="alert alert-info mb-0 py-2">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Informasi Kredit</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">DP (Down Payment)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" name="dp_display" id="dp_display" class="form-control" placeholder="0" style="text-align: right;" oninput="formatDpInput(this)" onblur="formatDpInput(this)">
+                                    <input type="hidden" name="dp" id="dp_input" value="0">
+                                </div>
+                                <small class="text-muted">Kosongkan jika tidak ada DP</small>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Metode Pembayaran DP</label>
+                                <select name="dp_payment_method" id="dp_payment_method" class="form-select">
+                                    <option value="">Pilih Akun Pembayaran</option>
+                                    @foreach($kasbank as $bank)
+                                        <option value="{{ $bank->id }}" data-saldo="{{ $bank->saldo_realtime ?? 0 }}">
+                                            {{ $bank->kode_akun }} - {{ $bank->nama_akun }} 
+                                            @if(isset($bank->saldo_realtime))
+                                                (Saldo: Rp {{ number_format($bank->saldo_realtime, 0, ',', '.') }})
+                                            @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Akun untuk pembayaran DP</small>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Tanggal Jatuh Tempo <span class="text-danger">*</span></label>
+                                <input type="date" name="tanggal_jatuh_tempo" id="due_date_input" class="form-control">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -496,6 +489,31 @@ button[aria-expanded="false"] .transition-icon {
                             <div class="d-flex justify-content-between border-top pt-2">
                                 <span class="fw-bold">Total Keseluruhan:</span>
                                 <span class="fw-bold text-success" id="summary_total">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DP & Sisa Utang Info (Only for Kredit) -->
+                    <div id="dp_summary_section" style="display: none;">
+                        <hr class="my-3">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <div class="alert alert-info mb-2 py-2">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Informasi Kredit</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between">
+                                    <span>Down Payment (DP):</span>
+                                    <span class="fw-bold text-primary" id="summary_dp">Rp 0</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold text-danger">Sisa Utang:</span>
+                                    <span class="fw-bold text-danger" id="summary_sisa_utang">Rp 0</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -559,12 +577,14 @@ button[aria-expanded="false"] .transition-icon {
             <div class="total-section">
                 <div class="card border-success">
                     <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Total Harga Pembelian</h5>
+                        <h5 class="mb-0" id="total_header">
+                            <i class="fas fa-calculator me-2"></i>Total Harga Pembelian
+                        </h5>
                     </div>
                     <div class="card-body text-center py-4">
                         <h2 class="text-success mb-0 fw-bold" id="total_harga" style="font-size: 2.5rem;">Rp 0</h2>
                         <input type="hidden" name="total_harga" id="total_harga_input" value="0">
-                        <small class="text-muted">Total keseluruhan pembelian</small>
+                        <small class="text-muted" id="total_label">Total keseluruhan pembelian</small>
                     </div>
                 </div>
             </div>
@@ -651,17 +671,53 @@ button[aria-expanded="false"] .transition-icon {
 
 <script>
 // ============================================
-// SCRIPT VERSION: 2.1.0 - <?php echo date('Y-m-d H:i:s'); ?>
+// SCRIPT VERSION: 2.2.0 - <?php echo date('Y-m-d H:i:s'); ?>
 // ============================================
 console.clear();
-console.log('%c🚀 PEMBELIAN CREATE SCRIPT LOADED - v2.1.0', 'background: #4CAF50; color: white; padding: 5px 10px; font-size: 14px; font-weight: bold;');
+console.log('%c🚀 PEMBELIAN CREATE SCRIPT LOADED - v2.2.0', 'background: #4CAF50; color: white; padding: 5px 10px; font-size: 14px; font-weight: bold;');
 console.log('Timestamp:', '<?php echo date('Y-m-d H:i:s'); ?>');
 console.log('Hard refresh: Ctrl+Shift+R or Ctrl+F5');
 
 let rowCount = 0;
 
-// Sub satuan data from controller
-const subSatuanData = @json($subSatuanData);
+// Sub satuan data from controller - using PHP echo to avoid Blade parsing issues
+const subSatuanData = <?php echo json_encode($subSatuanData); ?>;
+
+// Items data from controller - prepare simple arrays
+const bahanBakuItems = [
+@foreach($bahanBakus as $bb)
+    @php
+        $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
+    @endphp
+    {
+        id: {{ $bb->id }},
+        nama: "{{ addslashes($bb->nama_bahan) }}",
+        satuan: "{{ $bb->satuan->nama ?? 'Unit' }}",
+        coa_kode: "{{ $coa ? $coa->kode_akun : '114' }}",
+        coa_nama: "{{ $coa ? addslashes($coa->nama_akun) : 'Persediaan Bahan Baku' }}"
+    }{{ $loop->last ? '' : ',' }}
+@endforeach
+];
+
+const bahanPendukungItems = [
+@foreach($bahanPendukungs as $bp)
+    @php
+        $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
+    @endphp
+    {
+        id: {{ $bp->id }},
+        nama: "{{ addslashes($bp->nama_bahan) }}",
+        satuan: "{{ $bp->satuanRelation->nama ?? 'Unit' }}",
+        coa_kode: "{{ $coa ? $coa->kode_akun : '115' }}",
+        coa_nama: "{{ $coa ? addslashes($coa->nama_akun) : 'Persediaan Bahan Pendukung' }}"
+    }{{ $loop->last ? '' : ',' }}
+@endforeach
+];
+
+console.log('📦 Bahan Baku Items:', bahanBakuItems.length);
+console.log('📦 Bahan Pendukung Items:', bahanPendukungItems.length);
+
+
 
 // Debug: Log the sub satuan data received from controller
 console.log('=== SUB SATUAN DATA FROM CONTROLLER ===');
@@ -671,31 +727,85 @@ if (subSatuanData.bahan_baku && subSatuanData.bahan_baku[5]) {
 }
 console.log('=== END DEBUG ===');
 
-// Payment Method Handler - Show saldo info
+// Payment Method Handler - Show saldo info and toggle DP/Due Date fields
 document.addEventListener('DOMContentLoaded', function() {
     const paymentSelect = document.getElementById('payment_method_select');
     const saldoInfo = document.getElementById('saldo_info');
+    const creditInfoFields = document.getElementById('credit_info_fields');
+    const dpInput = document.getElementById('dp_input');
+    const dueDateInput = document.getElementById('due_date_input');
+    const vendorSelect = document.getElementById('vendor_select');
+    
+    // Add vendor change event listener
+    if (vendorSelect) {
+        vendorSelect.addEventListener('change', function() {
+            updateItemsBasedOnVendor(this);
+        });
+    }
     
     if (paymentSelect && saldoInfo) {
         paymentSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const saldo = selectedOption.getAttribute('data-saldo');
             
-            if (saldo && this.value !== 'credit') {
-                const saldoNum = parseFloat(saldo);
-                const formatted = new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }).format(saldoNum);
+            // Toggle credit info fields based on payment method
+            if (this.value === 'credit') {
+                // Show credit info fields
+                creditInfoFields.style.display = 'block';
+                dueDateInput.setAttribute('required', 'required');
+                saldoInfo.textContent = '';
                 
-                saldoInfo.innerHTML = '<i class="fas fa-wallet me-1"></i>Saldo tersedia: ' + formatted;
-                saldoInfo.className = saldoNum > 0 ? 'text-success' : 'text-warning';
+                // Show DP summary section
+                updateDpSummary();
             } else {
-                saldoInfo.innerHTML = '';
+                // Hide credit info fields for cash/transfer
+                creditInfoFields.style.display = 'none';
+                dpInput.value = '0';
+                dueDateInput.value = '';
+                dueDateInput.removeAttribute('required');
+                
+                // Hide DP summary section
+                document.getElementById('dp_summary_section').style.display = 'none';
+                
+                if (saldo && this.value !== 'credit') {
+                    const saldoNum = parseFloat(saldo);
+                    const formatted = new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(saldoNum);
+                    
+                    saldoInfo.innerHTML = '<i class="fas fa-wallet me-1"></i>Saldo tersedia: ' + formatted;
+                    saldoInfo.className = saldoNum > 0 ? 'text-success' : 'text-warning';
+                } else {
+                    saldoInfo.innerHTML = '';
+                }
             }
+            
+            // Update summary and total display whenever payment method changes
+            updateDpSummary();
+            calculateTotal();
         });
+    }
+    
+    // Add event listener for DP input
+    if (dpInput) {
+        // Also add listener to display input
+        const dpDisplay = document.getElementById('dp_display');
+        if (dpDisplay) {
+            dpDisplay.addEventListener('input', function() {
+                formatDpInput(this);
+            });
+        }
+        
+        // Add listener to DP payment method
+        const dpPaymentMethod = document.getElementById('dp_payment_method');
+        if (dpPaymentMethod) {
+            dpPaymentMethod.addEventListener('change', function() {
+                updateJournalPreview();
+            });
+        }
     }
 });
 
@@ -728,6 +838,37 @@ function formatNumber(num) {
 function formatCurrency(num) {
     if (isNaN(num) || num === null || num === undefined) return 'Rp 0';
     return 'Rp ' + formatNumber(num);
+}
+
+// Update DP Summary in Ringkasan Perhitungan
+function updateDpSummary() {
+    const paymentMethod = document.getElementById('payment_method_select')?.value;
+    const dpSummarySection = document.getElementById('dp_summary_section');
+    
+    if (paymentMethod === 'credit') {
+        // Get values
+        const totalHarga = parseFloat(document.getElementById('total_harga_input')?.value) || 0;
+        const dp = parseFloat(document.getElementById('dp_input')?.value) || 0;
+        const sisaUtang = totalHarga - dp;
+        
+        // Validate DP
+        if (dp > totalHarga) {
+            document.getElementById('summary_dp').innerHTML = '<span class="text-danger">DP melebihi Total!</span>';
+            document.getElementById('summary_sisa_utang').innerHTML = '<span class="text-danger">Invalid</span>';
+            dpSummarySection.style.display = 'block';
+            return;
+        }
+        
+        // Update display
+        document.getElementById('summary_dp').textContent = formatCurrency(dp);
+        document.getElementById('summary_sisa_utang').textContent = formatCurrency(sisaUtang);
+        
+        // Show the section
+        dpSummarySection.style.display = 'block';
+    } else {
+        // Hide for non-credit payment methods
+        dpSummarySection.style.display = 'none';
+    }
 }
 
 // Format price input with thousand separator
@@ -820,6 +961,34 @@ function formatCurrencyInput(input) {
     if (value > 0) {
         input.value = value; // Keep as number for calculation
     }
+}
+
+// Format DP input with thousand separator
+function formatDpInput(input) {
+    // Remove all non-numeric characters except digits
+    let value = input.value.replace(/\D/g, '');
+    
+    // Convert to number
+    let numValue = parseInt(value) || 0;
+    
+    // Update hidden input with raw value
+    document.getElementById('dp_input').value = numValue;
+    
+    // Format display with thousand separator
+    if (numValue > 0) {
+        input.value = numValue.toLocaleString('id-ID');
+    } else {
+        input.value = '0';
+    }
+    
+    // Update DP summary if payment method is credit
+    updateDpSummary();
+    
+    // Update total display (will show sisa utang if credit with DP)
+    calculateTotal();
+    
+    // Update journal preview
+    updateJournalPreview();
 }
 
 // Update sub satuan information when item is selected
@@ -961,7 +1130,7 @@ function calculateSubSatuanInfo(subSatuanSelect) {
 // These functions are no longer needed as sub satuan is now info-only
 
 // Add new item row
-function addItemRow() {
+window.addItemRow = function() {
     rowCount++;
     const itemRows = document.getElementById('itemRows');
     const newRow = document.querySelector('.item-row').cloneNode(true);
@@ -1021,25 +1190,29 @@ function addItemRow() {
         if (kategori === 'Bahan Baku') {
             itemSelect.disabled = false;
             tipeItemInput.value = 'bahan_baku';
-            @foreach ($bahanBakus as $bb)
-                @php
-                    $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
-                    $coaKode = $coa ? $coa->kode_akun : '114';
-                    $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Baku';
-                @endphp
-                itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bb->nama_bahan }}</option>';
-            @endforeach
+            bahanBakuItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_baku" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">${item.nama}</option>`;
+            });
         } else if (kategori === 'Bahan Pendukung') {
             itemSelect.disabled = false;
             tipeItemInput.value = 'bahan_pendukung';
-            @foreach ($bahanPendukungs as $bp)
-                @php
-                    $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
-                    $coaKode = $coa ? $coa->kode_akun : '115';
-                    $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung';
-                @endphp
-                itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}" data-tipe="bahan_pendukung" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bp->nama_bahan }}</option>';
-            @endforeach
+            bahanPendukungItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_pendukung" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">${item.nama}</option>`;
+            });
+        } else if (kategori === 'Bahan Baku & Bahan Pendukung') {
+            // Handle combined category in new row
+            itemSelect.disabled = false;
+            tipeItemInput.value = '';
+            
+            // Add Bahan Baku items
+            bahanBakuItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_baku" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">BB - ${item.nama}</option>`;
+            });
+            
+            // Add Bahan Pendukung items
+            bahanPendukungItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_pendukung" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">BP - ${item.nama}</option>`;
+            });
         }
         
         // Set up onchange handler
@@ -1048,7 +1221,19 @@ function addItemRow() {
         itemSelect.onchange = function() {
             const selectedItemOption = this.options[this.selectedIndex];
             const satuan = selectedItemOption.getAttribute('data-satuan') || 'Unit';
+            const tipe = selectedItemOption.getAttribute('data-tipe') || '';
+            const itemId = selectedItemOption.value;
+            
             satuanUtamaInput.value = satuan;
+            
+            // Update tipe_item based on selected item (important for combined category)
+            if (tipe) {
+                tipeItemInput.value = tipe;
+            }
+            
+            // Update satuan pembelian dropdown based on selected item
+            updateSatuanPembelianOptions(row, itemId, tipe);
+            
             updateSubSatuanInfo(this);
             calculateRowTotal(this);
         };
@@ -1074,7 +1259,7 @@ function addItemRow() {
     updateDeleteButtons();
 }
 // Remove item row
-function removeItemRow(button) {
+window.removeItemRow = function(button) {
     button.closest('.item-row').remove();
     updateDeleteButtons();
     calculateTotal();
@@ -1090,9 +1275,13 @@ function updateDeleteButtons() {
 }
 
 // Update items based on selected vendor category
-function updateItemsBasedOnVendor(vendorSelect) {
+window.updateItemsBasedOnVendor = function(vendorSelect) {
     const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
     const kategori = selectedOption.getAttribute('data-kategori');
+    
+    console.log('🔍 updateItemsBasedOnVendor called');
+    console.log('   Selected vendor:', vendorSelect.value);
+    console.log('   Kategori:', kategori);
     
     // Update all item selects in all rows
     document.querySelectorAll('.item-select').forEach(itemSelect => {
@@ -1100,45 +1289,61 @@ function updateItemsBasedOnVendor(vendorSelect) {
         const satuanUtamaInput = row.querySelector('.satuan-utama-hidden');
         const tipeItemInput = row.querySelector('input[name="tipe_item[]"]');
         
+        console.log('   Processing item select in row:', row.dataset.row);
+        
         itemSelect.innerHTML = '<option value="">-- Pilih Item --</option>';
         
         if (kategori === 'Bahan Baku') {
             itemSelect.disabled = false;
             tipeItemInput.value = 'bahan_baku';
-            @foreach ($bahanBakus as $bb)
-                @php
-                    // CRITICAL: Filter COA by user_id for multi-tenant isolation
-                    // FIX: coa_persediaan_id stores kode_akun, not id
-                    $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
-                    $coaKode = $coa ? $coa->kode_akun : '114';
-                    $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Baku';
-                @endphp
-                console.log('🔧 Adding Bahan Baku: {{ $bb->nama_bahan }} → COA: {{ $coaKode }} / {{ $coaNama }}');
-                itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bb->nama_bahan }}</option>';
-            @endforeach
+            console.log('   ✅ Loading Bahan Baku items');
+            
+            bahanBakuItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_baku" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">${item.nama}</option>`;
+            });
         } else if (kategori === 'Bahan Pendukung') {
             itemSelect.disabled = false;
             tipeItemInput.value = 'bahan_pendukung';
-            @foreach ($bahanPendukungs as $bp)
-                @php
-                    // CRITICAL: Filter COA by user_id for multi-tenant isolation
-                    // FIX: coa_persediaan_id stores kode_akun, not id
-                    $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->where('user_id', auth()->id())->first() : null;
-                    $coaKode = $coa ? $coa->kode_akun : '115';
-                    $coaNama = $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung';
-                @endphp
-                itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}" data-tipe="bahan_pendukung" data-coa-kode="{{ $coaKode }}" data-coa-nama="{{ $coaNama }}">{{ $bp->nama_bahan }}</option>';
-            @endforeach
+            console.log('   ✅ Loading Bahan Pendukung items');
+            
+            bahanPendukungItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_pendukung" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">${item.nama}</option>`;
+            });
+        } else if (kategori === 'Bahan Baku & Bahan Pendukung') {
+            itemSelect.disabled = false;
+            tipeItemInput.value = '';
+            console.log('   ✅ Loading Bahan Baku & Bahan Pendukung items');
+            
+            bahanBakuItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_baku" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">BB - ${item.nama}</option>`;
+            });
+            
+            bahanPendukungItems.forEach(item => {
+                itemSelect.innerHTML += `<option value="${item.id}" data-satuan="${item.satuan}" data-tipe="bahan_pendukung" data-coa-kode="${item.coa_kode}" data-coa-nama="${item.coa_nama}">BP - ${item.nama}</option>`;
+            });
         } else {
             itemSelect.disabled = true;
             tipeItemInput.value = '';
+            console.log('   ❌ No kategori matched or vendor not selected');
         }
         
         // Set up onchange handler for item selection
         itemSelect.onchange = function() {
             const selectedItemOption = this.options[this.selectedIndex];
             const satuan = selectedItemOption.getAttribute('data-satuan') || 'Unit';
+            const tipe = selectedItemOption.getAttribute('data-tipe') || '';
+            const itemId = selectedItemOption.value;
+            
             satuanUtamaInput.value = satuan;
+            
+            // Update tipe_item based on selected item (important for combined category)
+            if (tipe) {
+                tipeItemInput.value = tipe;
+            }
+            
+            // Update satuan pembelian dropdown based on selected item
+            updateSatuanPembelianOptions(row, itemId, tipe);
+            
             updateSubSatuanInfo(this);
             calculateRowTotal(this);
         };
@@ -1149,6 +1354,62 @@ function updateItemsBasedOnVendor(vendorSelect) {
         subSatuanInfo.style.display = 'none';
         noSubSatuanInfo.style.display = 'block';
     });
+}
+
+// Update Satuan Pembelian dropdown based on selected item's satuan utama dan sub satuan
+function updateSatuanPembelianOptions(row, itemId, tipeItem) {
+    const satuanSelect = row.querySelector('.satuan-select');
+    
+    if (!itemId || !tipeItem) {
+        // Reset to all satuans if no item selected
+        satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+        @foreach($satuans as $satuan)
+            satuanSelect.innerHTML += '<option value="{{ $satuan->id }}" data-nama="{{ $satuan->nama }}">{{ $satuan->nama }}</option>';
+        @endforeach
+        return;
+    }
+    
+    // Get sub satuan data for the selected item
+    const itemData = subSatuanData[tipeItem] && subSatuanData[tipeItem][itemId];
+    
+    if (!itemData) {
+        console.warn('No sub satuan data found for item:', tipeItem, itemId);
+        // Fallback to all satuans
+        satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+        @foreach($satuans as $satuan)
+            satuanSelect.innerHTML += '<option value="{{ $satuan->id }}" data-nama="{{ $satuan->nama }}">{{ $satuan->nama }}</option>';
+        @endforeach
+        return;
+    }
+    
+    // Build options: satuan utama + sub satuans
+    satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+    
+    // Add satuan utama (main unit)
+    if (itemData.satuan_utama && itemData.satuan_utama.id) {
+        satuanSelect.innerHTML += `<option value="${itemData.satuan_utama.id}" data-nama="${itemData.satuan_utama.nama}">${itemData.satuan_utama.nama} (Satuan Utama)</option>`;
+        console.log('✅ Added satuan utama:', itemData.satuan_utama.nama);
+    }
+    
+    // Add sub_satuan_1
+    if (itemData.sub_satuan_1 && itemData.sub_satuan_1.id) {
+        satuanSelect.innerHTML += `<option value="${itemData.sub_satuan_1.id}" data-nama="${itemData.sub_satuan_1.nama}">${itemData.sub_satuan_1.nama}</option>`;
+        console.log('✅ Added sub_satuan_1:', itemData.sub_satuan_1.nama);
+    }
+    
+    // Add sub_satuan_2
+    if (itemData.sub_satuan_2 && itemData.sub_satuan_2.id) {
+        satuanSelect.innerHTML += `<option value="${itemData.sub_satuan_2.id}" data-nama="${itemData.sub_satuan_2.nama}">${itemData.sub_satuan_2.nama}</option>`;
+        console.log('✅ Added sub_satuan_2:', itemData.sub_satuan_2.nama);
+    }
+    
+    // Add sub_satuan_3
+    if (itemData.sub_satuan_3 && itemData.sub_satuan_3.id) {
+        satuanSelect.innerHTML += `<option value="${itemData.sub_satuan_3.id}" data-nama="${itemData.sub_satuan_3.nama}">${itemData.sub_satuan_3.nama}</option>`;
+        console.log('✅ Added sub_satuan_3:', itemData.sub_satuan_3.nama);
+    }
+    
+    console.log(`📦 Updated satuan options for ${tipeItem} ID ${itemId}`);
 }
 
 // Remove the old updateItemOptions function since we don't need it anymore
@@ -1216,7 +1477,27 @@ function calculateTotal() {
     document.getElementById('subtotal_display').value = formatNumber(subtotal);
     document.getElementById('ppn_nominal').value = ppnNominal;
     document.getElementById('ppn_nominal_display').value = formatNumber(ppnNominal);
-    document.getElementById('total_harga').textContent = formatCurrency(totalHarga);
+    
+    // Check if credit with DP
+    const paymentSelect = document.getElementById('payment_method_select');
+    const paymentMethod = paymentSelect ? paymentSelect.value : '';
+    const dpInput = document.getElementById('dp_input');
+    const dpValue = parseFloat(dpInput ? dpInput.value : 0) || 0;
+    
+    // Update total display based on payment method and DP
+    if (paymentMethod === 'credit' && dpValue > 0) {
+        const sisaUtang = totalHarga - dpValue;
+        // Show sisa utang instead of total
+        document.getElementById('total_harga').textContent = formatCurrency(sisaUtang);
+        document.getElementById('total_header').innerHTML = '<i class="fas fa-calculator me-2"></i>Sisa Utang (Setelah DP)';
+        document.getElementById('total_label').textContent = 'Total Pembelian: ' + formatCurrency(totalHarga) + ' - DP: ' + formatCurrency(dpValue);
+    } else {
+        // Show full total
+        document.getElementById('total_harga').textContent = formatCurrency(totalHarga);
+        document.getElementById('total_header').innerHTML = '<i class="fas fa-calculator me-2"></i>Total Harga Pembelian';
+        document.getElementById('total_label').textContent = 'Total keseluruhan pembelian';
+    }
+    
     document.getElementById('total_harga_input').value = totalHarga;
     
     // Update summary section
@@ -1224,6 +1505,9 @@ function calculateTotal() {
     document.getElementById('summary_biaya_kirim').textContent = formatCurrency(biayaKirim);
     document.getElementById('summary_ppn').textContent = formatCurrency(ppnNominal);
     document.getElementById('summary_total').textContent = formatCurrency(totalHarga);
+    
+    // Update DP summary if payment method is credit
+    updateDpSummary();
     
     // Update journal preview
     updateJournalPreview();
@@ -1416,13 +1700,75 @@ function updateJournalPreview() {
     
     // 4. Pembayaran (Kredit)
     let j4 = '';
+    
+    // Get DP value and payment method
+    const dpInput = document.getElementById('dp_input');
+    const dpValue = parseFloat(dpInput ? dpInput.value : 0) || 0;
+    const dpPaymentSelect = document.getElementById('dp_payment_method');
+    
     if (total > 0) {
-        j4 += rowK(paymentCoaNama, paymentCoaKode, paymentCoaNama, total);
+        // Jika kredit dan ada DP, tampilkan 2 baris
+        if (paymentMethod === 'credit' && dpValue > 0) {
+            const sisaUtang = total - dpValue;
+            
+            // Dapatkan info akun pembayaran DP
+            let dpCoaKode = '111';
+            let dpCoaNama = 'Kas Bank';
+            
+            if (dpPaymentSelect && dpPaymentSelect.value) {
+                const dpSelectedOption = dpPaymentSelect.options[dpPaymentSelect.selectedIndex];
+                const dpOptionText = dpSelectedOption.text;
+                const dpMatch = dpOptionText.match(/^(\d+)\s*-\s*([^(]+)/);
+                
+                if (dpMatch) {
+                    dpCoaKode = dpMatch[1].trim();
+                    dpCoaNama = dpMatch[2].trim();
+                }
+            }
+            
+            // Baris 1: DP dari Kas/Bank
+            j4 += rowK(dpCoaNama + ' (DP)', dpCoaKode, dpCoaNama, dpValue);
+            
+            // Baris 2: Sisa Utang
+            j4 += rowK('Hutang Usaha (Sisa)', '211', 'Hutang Usaha', sisaUtang);
+        } else {
+            // Normal tanpa DP
+            j4 += rowK(paymentCoaNama, paymentCoaKode, paymentCoaNama, total);
+        }
     }
     document.getElementById('jurnal-pembayaran-body').innerHTML = j4 || empty5;
 }
 
 // Debug form data before submission
+function validateAndSubmitForm(form) {
+    const paymentMethod = document.getElementById('payment_method_select').value;
+    const dpInput = document.getElementById('dp_input'); // Hidden input with raw value
+    const dueDateInput = document.getElementById('due_date_input');
+    const totalPembelian = parseFloat(document.getElementById('total_harga_input').value) || 0;
+    const dpValue = parseFloat(dpInput.value) || 0;
+    
+    // Validasi hanya untuk kredit
+    if (paymentMethod === 'credit') {
+        // Validasi DP tidak boleh lebih besar dari total pembelian
+        if (dpValue > 0 && dpValue > totalPembelian) {
+            alert('DP tidak boleh lebih besar dari Total Pembelian!\n\nTotal Pembelian: Rp ' + totalPembelian.toLocaleString('id-ID') + '\nDP: Rp ' + dpValue.toLocaleString('id-ID'));
+            dpInput.focus();
+            return false;
+        }
+        
+        // Validasi tanggal jatuh tempo wajib diisi untuk kredit
+        if (!dueDateInput.value) {
+            alert('Tanggal Jatuh Tempo wajib diisi untuk pembelian kredit!');
+            dueDateInput.focus();
+            return false;
+        }
+    }
+    
+    // Lanjutkan dengan debug dan submit
+    debugFormData(form);
+    return true;
+}
+
 function debugFormData(form) {
     // Convert formatted price inputs to raw values before submission
     const priceInputs = form.querySelectorAll('.price-input');

@@ -29,17 +29,6 @@
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Kode Bahan</label>
-                            <input type="text" name="kode_bahan" class="form-control @error('kode_bahan') is-invalid @enderror" 
-                                   value="{{ old('kode_bahan') }}" placeholder="Contoh: BB001">
-                            @error('kode_bahan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">Kosongkan untuk auto generate</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
                             <label class="form-label">Satuan <span class="text-danger">*</span></label>
                             <select name="satuan_id" class="form-select @error('satuan_id') is-invalid @enderror" required>
                                 <option value="">Pilih Satuan</option>

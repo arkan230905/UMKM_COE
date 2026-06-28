@@ -44,7 +44,7 @@ class VendorController extends Controller
                     }
                 },
             ],
-            'kategori' => 'required|string|in:Bahan Baku,Bahan Pendukung,Aset',
+            'kategori' => 'required|string|in:Bahan Baku,Bahan Pendukung,Bahan Baku & Bahan Pendukung,Aset',
             'alamat' => 'required|string',
             'no_telp' => 'required|string',
             'email' => 'required|email',
@@ -94,7 +94,7 @@ class VendorController extends Controller
                     }
                 },
             ],
-            'kategori' => 'required|string|in:Bahan Baku,Bahan Pendukung,Aset',
+            'kategori' => 'required|string|in:Bahan Baku,Bahan Pendukung,Bahan Baku & Bahan Pendukung,Aset',
             'alamat' => 'required|string',
             'no_telp' => 'required|string',
             'email' => 'required|email',

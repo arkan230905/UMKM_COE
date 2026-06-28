@@ -102,7 +102,7 @@
                 <div class="info-display">
                     @if($pembelian->bukti_faktur)
                         <div class="d-flex align-items-center gap-2">
-                            <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url('/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-file-image me-1"></i>Lihat Bukti
                             </a>
                             @if(str_contains($pembelian->bukti_faktur, '.pdf'))
@@ -140,90 +140,54 @@
                     @endif
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Conversion Examples -->
-    <div class="form-section">
-        <div class="section-header">
-            <h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Contoh Konversi Satuan Pembelian</h6>
-        </div>
-        
-        <div class="conversion-examples">
-            <div class="row">
-                <div class="col-md-4">
-                    <h6 class="text-primary mb-2">Satuan Bahan & Konversi</h6>
-                    <ul class="list-unstyled small mb-0">
-                        <li>• 1 Liter = 1 kg (cairan utama)</li>
-                        <li>• 1 Ton = 1000 kg (bahan utama)</li>
-                        <li>• 1 Kg = 2 Kg (bahan khusus)</li>
-                        <li>• 1 Kg = 1 Kg (bahan normal)</li>
-                        <li>• 500 Gram = 0.5 Kg</li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h6 class="text-success mb-2">Satuan Konversi</h6>
-                    <ul class="list-unstyled small mb-0">
-                        <li>• 1 Tabung = 12 kg (tabung 12 kg)</li>
-                        <li>• 1 Karung = 25 kg (karung 25 kg)</li>
-                        <li>• 1 Kaleng = 5.5 kg (kaleng 5.5 kg)</li>
-                        <li>• 1 Jerigen = 5 kg (jerigen 5 kg)</li>
-                        <li>• 1 Karton = 0.5 kg (karton 0.5 kg)</li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h6 class="text-info mb-2">Estimasi Harga Satuan</h6>
-                    <ul class="list-unstyled small mb-0">
-                        <li>• 1 kg = Rp 5000 = Rp 5000 Gram</li>
-                        <li>• 1 Liter = Rp 6000 = Rp 6000 Liter</li>
-                        <li>• 1 Kaleng = Rp 27500 = Rp 5000 Kg</li>
-                        <li>• 1 Tabung = Rp 60000 = Rp 5000 Kg</li>
-                        <li>• 1 Ton = Rp 5000000 = Rp 5000 Kg</li>
-                    </ul>
+            
+            @if($pembelian->payment_method === 'credit')
+            <!-- DP Information (Only for Credit) -->
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Down Payment (DP)</label>
+                <div class="info-display">
+                    <span class="text-primary fw-bold">Rp {{ number_format($pembelian->dp ?? 0, 0, ',', '.') }}</span>
                 </div>
             </div>
-            <div class="alert alert-info mt-3 mb-0">
-                <small><i class="fas fa-lightbulb me-1"></i> 
-                <strong>Tips:</strong> Sistem telah mengkonversi satuan pembelian ke satuan utama untuk perhitungan stok sesuai faktor konversi yang digunakan.
-                </small>
+            
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Tanggal Jatuh Tempo</label>
+                <div class="info-display">
+                    @if($pembelian->tanggal_jatuh_tempo)
+                        <span class="fw-bold">{{ \Carbon\Carbon::parse($pembelian->tanggal_jatuh_tempo)->format('d-m-Y') }}</span>
+                        @php
+                            $now = \Carbon\Carbon::now();
+                            $dueDate = \Carbon\Carbon::parse($pembelian->tanggal_jatuh_tempo);
+                            $isOverdue = $now->gt($dueDate) && $pembelian->status_pembelian !== 'lunas';
+                        @endphp
+                        @if($isOverdue)
+                            <span class="badge bg-danger ms-2">Jatuh Tempo!</span>
+                        @elseif($pembelian->status_pembelian === 'lunas')
+                            <span class="badge bg-success ms-2">Lunas</span>
+                        @endif
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
+                </div>
             </div>
+            
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Sisa Utang</label>
+                <div class="info-display">
+                    @php
+                        // Gunakan accessor sisa_utang yang sudah ada di model
+                        // sisa_utang = total_harga - total_dibayar - total_refund
+                        $sisaUtangAktual = $pembelian->sisa_utang;
+                    @endphp
+                    <span class="text-danger fw-bold">Rp {{ number_format(max(0, $sisaUtangAktual), 0, ',', '.') }}</span>
+                    @if($sisaUtangAktual <= 0)
+                        <span class="badge bg-success ms-2">Lunas</span>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
     </div>
-
-    <!-- Bukti Faktur Section -->
-    @if($pembelian->bukti_faktur)
-    <div class="form-section">
-        <div class="section-header">
-            <h6 class="mb-0"><i class="fas fa-file-image me-2"></i>Bukti Faktur Pembelian</h6>
-        </div>
-        
-        <div class="text-center">
-            <div class="mb-3">
-                @if(str_contains($pembelian->bukti_faktur, '.pdf'))
-                    <div class="alert alert-info">
-                        <i class="fas fa-file-pdf fa-2x mb-2"></i>
-                        <h5>Dokumen PDF</h5>
-                        <p class="mb-3">Bukti faktur dalam format PDF</p>
-                        <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
-                            <i class="fas fa-external-link-alt me-2"></i>Buka PDF di Tab Baru
-                        </a>
-                    </div>
-                @else
-                    <div class="border rounded p-3 d-inline-block">
-                        <img src="{{ url('/storage/' . $pembelian->bukti_faktur) }}" alt="Bukti Faktur" 
-                             style="max-width: 600px; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                        <div class="mt-3">
-                            <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
-                                <i class="fas fa-expand me-2"></i>Lihat Gambar Ukuran Penuh
-                            </a>
-                        </div>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-    @endif
-
     <!-- Purchase Details -->
     <div class="form-section">
         <div class="section-header">
@@ -286,67 +250,10 @@
                         </div>
                     </div>
                 </div>
+
                 
-                <!-- Satuan Utama Section -->
-                <div class="card border-info mb-3">
-                    <div class="card-header bg-light py-2">
-                        <h6 class="mb-0"><i class="fas fa-balance-scale me-2"></i>Satuan Utama Item</h6>
-                    </div>
-                    <div class="card-body py-2">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold">Satuan Utama Item</label>
-                                <div class="info-display">
-                                    {{ $detail->satuan_utama ?? '-' }}
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold">Jumlah dalam Satuan Utama</label>
-                                <div class="info-display bg-light">
-                                    <small class="text-muted">Input manual jumlah dalam satuan utama</small><br>
-                                    <strong>{{ format_number_smart($detail->jumlah_satuan_utama ?? 0) }} {{ $detail->satuan_utama ?? '' }}</strong>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold">Konversi yang Digunakan</label>
-                                <div class="info-display bg-light">
-                                    @php
-                                        // Get raw database values
-                                        $rawJumlahSatuanUtama = null;
-                                        try {
-                                            $rawJumlahSatuanUtama = $detail->getAttributes()['jumlah_satuan_utama'] ?? null;
-                                        } catch (\Exception $e) {
-                                            // Column might not exist yet
-                                        }
-                                        
-                                        $manualInput = $detail->jumlah_satuan_utama ?? 0;
-                                        $calculatedValue = $detail->jumlah * ($detail->faktor_konversi ?? 1);
-                                        $isManualInput = $rawJumlahSatuanUtama !== null && abs($manualInput - $calculatedValue) > 0.01;
-                                    @endphp
-                                    @if($isManualInput)
-                                        <span class="badge bg-warning text-dark">Manual Input</span><br>
-                                        {{ format_number_smart($detail->jumlah) }} {{ $detail->satuan_nama }} = {{ format_number_smart($manualInput) }} {{ $detail->satuan_utama }}
-                                    @else
-                                        <span class="badge bg-info">Otomatis</span><br>
-                                        {{ format_number_smart($detail->jumlah) }} {{ $detail->satuan_nama }} = {{ format_number_smart($calculatedValue) }} {{ $detail->satuan_utama }}
-                                    @endif
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold">Harga per Satuan Utama</label>
-                                <div class="info-display bg-warning">
-                                    @php
-                                        $hargaPerSatuanUtama = ($detail->jumlah_satuan_utama ?? 0) > 0 ? ($detail->subtotal ?? 0) / ($detail->jumlah_satuan_utama ?? 1) : 0;
-                                    @endphp
-                                    Rp {{ number_format($hargaPerSatuanUtama, 0, ',', '.') }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- SATUAN UTAMA ITEM SECTION - REMOVED -->
+                
             </div>
         </div>
         @endforeach
@@ -399,6 +306,39 @@
         <div class="total-section">
             <h4 class="mb-3">Total Harga Pembelian</h4>
             <h2 class="text-primary mb-0">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</h2>
+            
+            @if($pembelian->payment_method === 'credit')
+                <div class="mt-3 pt-3 border-top">
+                    <div class="row">
+                        @if(($pembelian->dp ?? 0) > 0)
+                        <div class="col-md-4">
+                            <small class="text-muted">DP (Down Payment)</small>
+                            <h5 class="text-info mb-0">Rp {{ number_format($pembelian->dp ?? 0, 0, ',', '.') }}</h5>
+                        </div>
+                        @endif
+                        @if($pembelian->tanggal_jatuh_tempo)
+                        <div class="col-md-4">
+                            <small class="text-muted">Tanggal Jatuh Tempo</small>
+                            @php
+                                $dueDate = \Carbon\Carbon::parse($pembelian->tanggal_jatuh_tempo);
+                                $today = \Carbon\Carbon::today();
+                                $isOverdue = $dueDate->lt($today);
+                            @endphp
+                            <h5 class="{{ $isOverdue ? 'text-danger' : 'text-warning' }} mb-0">
+                                {{ $dueDate->format('d F Y') }}
+                                @if($isOverdue)
+                                    <span class="badge bg-danger ms-2">Jatuh Tempo!</span>
+                                @endif
+                            </h5>
+                        </div>
+                        @endif
+                        <div class="col-md-4">
+                            <small class="text-muted">Sisa Utang</small>
+                            <h5 class="text-danger mb-0">Rp {{ number_format($pembelian->sisa_utang ?? 0, 0, ',', '.') }}</h5>
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -414,43 +354,6 @@
     </div>
     @endif
     
-    <!-- Action Buttons -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="d-flex gap-2 justify-content-center">
-                <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" 
-                   class="btn btn-primary" 
-                   title="Lihat Detail Pembelian {{ $pembelian->nomor_pembelian }}">
-                    <i class="fas fa-eye me-2"></i>Detail
-                </a>
-                <button type="button" 
-                        class="btn btn-info" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#journalModal"
-                        title="Lihat Jurnal Pembelian {{ $pembelian->nomor_pembelian }}">
-                    <i class="fas fa-book me-2"></i>Lihat Jurnal
-                </button>
-                <!-- RETUR BUTTON - HIDDEN (feature disabled but code preserved) -->
-                <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" 
-                   class="btn btn-secondary" 
-                   title="Retur Pembelian {{ $pembelian->nomor_pembelian }}"
-                   style="display: none;">
-                    <i class="fas fa-undo me-2"></i>Retur
-                </a>
-                <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" 
-                      method="POST" 
-                      class="d-inline">
-                    @csrf
-                    @method('DELETE')
-                    <button class="btn btn-danger" 
-                            title="Hapus Pembelian {{ $pembelian->nomor_pembelian }}">
-                        <i class="fas fa-trash me-2"></i>Hapus
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
 <!-- Journal Modal -->
 <div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
@@ -640,3 +543,4 @@ document.addEventListener('DOMContentLoaded', function() {
 @endpush
 
 @endsection
+

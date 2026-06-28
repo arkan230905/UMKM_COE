@@ -111,23 +111,7 @@
                                 </span>
                             </div>
                         </th>
-                        <th class="nowrap sortable" data-sort="nomor_faktur" style="cursor: pointer;">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span>No. Faktur</span>
-                                <span class="sort-icon ms-2">
-                                    @if(request('sort_by') == 'nomor_faktur')
-                                        @if(request('sort_order') == 'asc')
-                                            <i class="fas fa-sort-up text-primary"></i>
-                                        @else
-                                            <i class="fas fa-sort-down text-primary"></i>
-                                        @endif
-                                    @else
-                                        <i class="fas fa-sort text-muted"></i>
-                                    @endif
-                                </span>
-                            </div>
-                        </th>
-                        <th class="nowrap">Bukti Faktur</th>
+                        <!-- NO FAKTUR & BUKTI FAKTUR COLUMNS - REMOVED -->
                         <th class="nowrap sortable" data-sort="tanggal" style="cursor: pointer;">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span>Tanggal</span>
@@ -205,30 +189,7 @@
                         <tr>
                             <td class="text-center">{{ $key + 1 }}</td>
                             <td class="text-center nowrap" style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
-                            <td class="text-center nowrap">
-                                @if($pembelian->nomor_faktur)
-                                    {{ $pembelian->nomor_faktur }}
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-
-                            <td class="nowrap text-center">
-                                @if($pembelian->bukti_faktur)
-                                    @php
-                                        // Extract ID and filename from bukti_faktur path
-                                        // Format: bukti_faktur/{id}/{filename}
-                                        $parts = explode('/', $pembelian->bukti_faktur);
-                                        $userId = $parts[1] ?? '';
-                                        $filename = $parts[2] ?? '';
-                                    @endphp
-                                    <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Lihat Bukti Faktur">
-                                        <i class="bi bi-file-earmark-text"></i>
-                                    </a>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
+                            <!-- NO FAKTUR & BUKTI FAKTUR CELLS - REMOVED -->
                             <td class="nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
                             <td class="nowrap">
                                 <div class="d-flex align-items-center">
@@ -336,21 +297,12 @@
                                     <a href="{{ route('transaksi.pembelian.preview-faktur', $pembelian->id) }}" class="btn btn-sm btn-outline-info w-100" title="Cetak Faktur" target="_blank">
                                         Cetak
                                     </a>
-                                    
-                                    <!-- HAPUS BUTTON - HIDDEN (feature disabled but code preserved) -->
-                                    <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline w-100" onsubmit="return confirm('Yakin ingin hapus?')" style="display: none;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="Hapus Transaksi">
-                                            Hapus
-                                        </button>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="13" class="text-center py-4">
+                            <td colspan="11" class="text-center py-4">
                                 <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data pembelian</p>
                             </td>
@@ -363,79 +315,4 @@
 </div>
 
 
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle sortable column clicks
-    const sortableHeaders = document.querySelectorAll('.sortable');
-    
-    sortableHeaders.forEach(header => {
-        header.addEventListener('click', function() {
-            const sortBy = this.dataset.sort;
-            const currentSortBy = '{{ request("sort_by") }}';
-            const currentSortOrder = '{{ request("sort_order", "asc") }}';
-            
-            // Determine new sort order
-            let newSortOrder = 'asc';
-            if (sortBy === currentSortBy) {
-                // Toggle sort order if clicking the same column
-                newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
-            }
-            
-            // Build URL with all current filters
-            const url = new URL(window.location.href);
-            url.searchParams.set('sort_by', sortBy);
-            url.searchParams.set('sort_order', newSortOrder);
-            
-            // Redirect to new URL
-            window.location.href = url.toString();
-        });
-        
-        // Add hover effect
-        header.style.transition = 'background-color 0.2s';
-        header.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = '#f8f9fa';
-        });
-        header.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = '';
-        });
-    });
-});
-</script>
-@endpush
 
-@push('styles')
-<style>
-.sortable {
-    user-select: none;
-    position: relative;
-}
-
-.sortable:hover {
-    background-color: #f8f9fa !important;
-}
-
-.sortable .sort-icon {
-    display: inline-block;
-    min-width: 15px;
-    text-align: center;
-}
-
-.sortable .sort-icon i {
-    font-size: 0.875rem;
-}
-
-.sortable .sort-icon .fa-sort {
-    opacity: 0.3;
-}
-
-.sortable:hover .sort-icon .fa-sort {
-    opacity: 0.6;
-}
-
-.sortable .sort-icon .fa-sort-up,
-.sortable .sort-icon .fa-sort-down {
-    opacity: 1;
-}
-</style>
-@endpush
