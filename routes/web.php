@@ -2900,6 +2900,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');
         });
 
+        // API untuk Target Produksi (untuk BOP Proses)
+        Route::prefix('api')->name('api.')->group(function () {
+            Route::get('/target-produksi', [\App\Http\Controllers\MasterData\BopController::class, 'getTargetProduksiApi'])->name('target-produksi');
+        });
+
         // Harga Pokok Produksi Routes
         Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
             Route::get('/', [BomController::class, 'index'])->name('index');

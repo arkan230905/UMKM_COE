@@ -1402,7 +1402,12 @@ class BopController extends Controller
                 ->orderBy('nama_bahan')
                 ->get();
 
-            return view('master-data.bop.create-proses-v2', compact('bahanPendukungs'));
+            // Get products for selection
+            $produks = \App\Models\Produk::where('user_id', auth()->id())
+                ->orderBy('nama_produk')
+                ->get();
+
+            return view('master-data.bop.create-proses-v2', compact('bahanPendukungs', 'produks'));
             
         } catch (\Exception $e) {
             \Log::error('Error in BopController@createProsesV2: ' . $e->getMessage());
@@ -1611,6 +1616,72 @@ class BopController extends Controller
                 ->back()
                 ->withInput()
                 ->with('error', 'Gagal menambah BOP Proses V2: ' . $e->getMessage());
+        }
+    }
+}
+
+
+    /**
+     * API: Get target produksi for selected product and periode
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTargetProduksiApi(Request $request)
+    {
+        try {
+            $produkId = $request->get('produk_id');
+            $periode = $request->get('periode'); // Format: YYYY-MM
+            
+            if (!$produkId || !$periode) {
+                return response()->json([
+                    'error' => 'produk_id dan periode harus diisi',
+                    'jumlah_produksi' => 0,
+                    'jumlah_produksi_formatted' => '0'
+                ], 400);
+            }
+            
+            // Parse periode (YYYY-MM) to get year and month
+            [$tahun, $bulan] = explode('-', $periode);
+            $bulan = (int) $bulan;
+            
+            // Find target produksi for this product and year
+            $targetProduksi = \App\Models\TargetProduksi::where('user_id', auth()->id())
+                ->where('produk_id', $produkId)
+                ->where('tahun', $tahun)
+                ->first();
+            
+            if (!$targetProduksi) {
+                return response()->json([
+                    'jumlah_produksi' => 0,
+                    'jumlah_produksi_formatted' => '0',
+                    'message' => 'Tidak ada target produksi untuk tahun ini'
+                ]);
+            }
+            
+            // Find detail for specific month
+            $targetDetail = \App\Models\TargetProduksiDetail::where('target_produksi_id', $targetProduksi->id)
+                ->where('bulan', $bulan)
+                ->first();
+            
+            $jumlahProduksi = $targetDetail ? $targetDetail->qty_produksi : 0;
+            
+            return response()->json([
+                'jumlah_produksi' => $jumlahProduksi,
+                'jumlah_produksi_formatted' => number_format($jumlahProduksi, 0, ',', '.'),
+                'periode' => $periode,
+                'bulan' => $bulan,
+                'tahun' => $tahun
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error fetching target produksi: ' . $e->getMessage());
+            
+            return response()->json([
+                'error' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                'jumlah_produksi' => 0,
+                'jumlah_produksi_formatted' => '0'
+            ], 500);
         }
     }
 }

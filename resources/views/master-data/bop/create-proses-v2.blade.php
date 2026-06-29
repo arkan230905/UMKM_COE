@@ -99,6 +99,57 @@
                     </div>
                 </div>
 
+                <!-- Produk dan Periode -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="produk_id" class="form-label">Produk <span class="text-danger">*</span></label>
+                        <select name="produk_id" 
+                                id="produk_id" 
+                                class="form-select @error('produk_id') is-invalid @enderror" 
+                                required>
+                            <option value="">-- Pilih Produk --</option>
+                            @foreach($produks as $produk)
+                                <option value="{{ $produk->id }}" {{ old('produk_id') == $produk->id ? 'selected' : '' }}>
+                                    {{ $produk->nama_produk }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('produk_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="text-muted">Pilih produk yang akan menggunakan BOP ini</small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="periode" class="form-label">Periode (Bulan) <span class="text-danger">*</span></label>
+                        <input type="month" 
+                               name="periode" 
+                               id="periode" 
+                               class="form-control @error('periode') is-invalid @enderror" 
+                               value="{{ old('periode', now()->format('Y-m')) }}"
+                               required>
+                        @error('periode')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="text-muted">Pilih bulan untuk menghitung BOP</small>
+                    </div>
+                </div>
+
+                <!-- Target Produksi Info (Auto-filled) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info d-flex align-items-center" id="targetProduksiInfo" style="display: none !important;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div>
+                                <strong>Target Produksi:</strong> 
+                                <span id="targetProduksiValue">-</span> unit untuk bulan 
+                                <span id="targetProduksiBulan">-</span>
+                            </div>
+                        </div>
+                        <input type="hidden" name="jumlah_produksi" id="jumlah_produksi" value="0">
+                    </div>
+                </div>
+
                 <!-- Jumlah Produksi Per Bulan (Global) -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
@@ -229,11 +280,79 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ========================================
+    // AUTO-FILL TARGET PRODUKSI
+    // ========================================
+    const produkSelect = document.getElementById('produk_id');
+    const periodeInput = document.getElementById('periode');
+    const jumlahProduksiInput = document.getElementById('jumlah_produksi');
+    const targetProduksiInfo = document.getElementById('targetProduksiInfo');
+    const targetProduksiValue = document.getElementById('targetProduksiValue');
+    const targetProduksiBulan = document.getElementById('targetProduksiBulan');
+    
+    // Function to fetch target produksi from server
+    async function fetchTargetProduksi() {
+        const produkId = produkSelect.value;
+        const periode = periodeInput.value; // Format: YYYY-MM
+        
+        if (!produkId || !periode) {
+            targetProduksiInfo.style.display = 'none';
+            jumlahProduksiInput.value = '0';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/master-data/api/target-produksi?produk_id=${produkId}&periode=${periode}`);
+            const data = await response.json();
+            
+            if (data.jumlah_produksi > 0) {
+                jumlahProduksiInput.value = data.jumlah_produksi;
+                targetProduksiValue.textContent = data.jumlah_produksi_formatted;
+                
+                // Format bulan
+                const [tahun, bulan] = periode.split('-');
+                const namaBulan = new Date(tahun, parseInt(bulan) - 1).toLocaleDateString('id-ID', { 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
+                targetProduksiBulan.textContent = namaBulan;
+                
+                targetProduksiInfo.style.display = 'flex';
+                targetProduksiInfo.classList.remove('alert-warning');
+                targetProduksiInfo.classList.add('alert-info');
+            } else {
+                jumlahProduksiInput.value = '0';
+                targetProduksiValue.textContent = '0';
+                targetProduksiBulan.textContent = periode;
+                targetProduksiInfo.style.display = 'flex';
+                targetProduksiInfo.classList.remove('alert-info');
+                targetProduksiInfo.classList.add('alert-warning');
+                targetProduksiInfo.querySelector('div').innerHTML = '<strong>Peringatan:</strong> Tidak ada target produksi untuk produk ini di bulan tersebut. Silakan set target produksi terlebih dahulu.';
+            }
+        } catch (error) {
+            console.error('Error fetching target produksi:', error);
+            targetProduksiInfo.style.display = 'none';
+            jumlahProduksiInput.value = '0';
+        }
+    }
+    
+    // Event listeners for produk and periode changes
+    produkSelect.addEventListener('change', fetchTargetProduksi);
+    periodeInput.addEventListener('change', fetchTargetProduksi);
+    
+    // Fetch on page load if values exist
+    if (produkSelect.value && periodeInput.value) {
+        fetchTargetProduksi();
+    }
+    
+    // ========================================
+    // BAHAN PENDUKUNG & LAINNYA LOGIC
+    // ========================================
     const container = document.getElementById('bahanPendukungContainer');
     const addBtn = document.getElementById('addBahanBtn');
     const lainnyaContainer = document.getElementById('bopLainnyaContainer');
     const addLainnyaBtn = document.getElementById('addLainnyaBtn');
-    const jumlahProduksiInput = document.getElementById('jumlah_produksi_perbulan');
+    const jumlahProduksiPerBulanInput = document.getElementById('jumlah_produksi_perbulan');
     
     // Bahan Pendukung data from backend
     const bahanPendukungList = @json($bahanPendukungs);
