@@ -4,6 +4,10 @@ namespace App\Filament\Resources\TargetProduksis\Tables;
 
 use App\Models\TargetProduksi;
 use App\Services\TargetProduksiService;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -89,18 +93,18 @@ class TargetProduksisTable
                         'Selesai' => 'Selesai',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view')
+            ->recordActions([
+                ViewAction::make()
                     ->label('Detail')
                     ->icon('heroicon-o-eye')
                     ->url(fn (TargetProduksi $record): string => route('filament.admin.resources.target-produksis.view', ['record' => $record])),
                 
-                Tables\Actions\Action::make('edit')
+                EditAction::make()
                     ->label('Edit')
                     ->icon('heroicon-o-pencil')
                     ->url(fn (TargetProduksi $record): string => route('filament.admin.resources.target-produksis.edit', ['record' => $record])),
                 
-                Tables\Actions\Action::make('distribusi')
+                Action::make('distribusi')
                     ->label('Distribusi')
                     ->icon('heroicon-o-chart-bar')
                     ->color('info')
@@ -116,8 +120,8 @@ class TargetProduksisTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Tutup'),
                 
-                Tables\Actions\DeleteAction::make()
-                    ->before(function (TargetProduksi $record, Tables\Actions\DeleteAction $action) {
+                DeleteAction::make()
+                    ->before(function (TargetProduksi $record, DeleteAction $action) {
                         $service = app(TargetProduksiService::class);
                         $validation = $service->canDelete($record);
                         

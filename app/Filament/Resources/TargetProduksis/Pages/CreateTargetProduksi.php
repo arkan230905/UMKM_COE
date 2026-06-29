@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\TargetProduksis\Pages;
 
-use App\Filament\Resources\TargetProduksiResource;
+use App\Filament\Resources\TargetProduksis\TargetProduksiResource;
 use App\Services\TargetProduksiService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;

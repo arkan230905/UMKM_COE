@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\TargetProduksis\Pages;
 
-use App\Filament\Resources\TargetProduksiResource;
+use App\Filament\Resources\TargetProduksis\TargetProduksiResource;
 use App\Services\TargetProduksiService;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;

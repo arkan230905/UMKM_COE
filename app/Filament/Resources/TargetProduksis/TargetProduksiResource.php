@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\TargetProduksis;
 
 use App\Filament\Resources\TargetProduksis\Pages\CreateTargetProduksi;
 use App\Filament\Resources\TargetProduksis\Pages\EditTargetProduksi;

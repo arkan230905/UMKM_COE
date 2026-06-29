@@ -141,8 +141,8 @@ class TargetProduksi extends Model
     {
         return Produksi::where('user_id', $this->user_id)
             ->where('produk_id', $this->produk_id)
-            ->whereYear('tanggal_produksi', $this->tahun)
-            ->sum('jumlah_produksi') ?? 0;
+            ->whereYear('tanggal', $this->tahun)
+            ->sum('qty_produksi') ?? 0;
     }
 
     /**
@@ -172,7 +172,7 @@ class TargetProduksi extends Model
     {
         return Produksi::where('user_id', $this->user_id)
             ->where('produk_id', $this->produk_id)
-            ->whereYear('tanggal_produksi', $this->tahun)
+            ->whereYear('tanggal', $this->tahun)
             ->exists();
     }
 
