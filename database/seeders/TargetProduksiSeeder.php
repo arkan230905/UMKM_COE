@@ -50,6 +50,7 @@ class TargetProduksiSeeder extends Seeder
             
             foreach ($monthlyTargets as $month => $targetBulanan) {
                 TargetProduksiDetail::create([
+                    'user_id' => $user->id,
                     'target_produksi_id' => $target->id,
                     'bulan' => $month,
                     'target_bulanan' => $targetBulanan,
@@ -74,6 +75,7 @@ class TargetProduksiSeeder extends Seeder
             
             foreach ($monthlyTargetsNext as $month => $targetBulanan) {
                 TargetProduksiDetail::create([
+                    'user_id' => $user->id,
                     'target_produksi_id' => $targetNext->id,
                     'bulan' => $month,
                     'target_bulanan' => $targetBulanan,

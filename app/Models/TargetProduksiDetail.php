@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
 
 class TargetProduksiDetail extends Model
 {
@@ -13,6 +14,7 @@ class TargetProduksiDetail extends Model
     protected $table = 'target_produksi_detail';
 
     protected $fillable = [
+        'user_id',
         'target_produksi_id',
         'bulan',
         'target_bulanan',
@@ -22,6 +24,34 @@ class TargetProduksiDetail extends Model
         'bulan' => 'integer',
         'target_bulanan' => 'integer',
     ];
+
+    /**
+     * Boot the model.
+     */
+    protected static function booted(): void
+    {
+        // Global scope untuk multi-tenant isolation
+        static::addGlobalScope('user', function (Builder $builder) {
+            if (auth()->check()) {
+                $builder->where('target_produksi_detail.user_id', auth()->id());
+            }
+        });
+
+        // Auto-fill user_id saat creating
+        static::creating(function ($model) {
+            if (!$model->user_id && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
+
+    /**
+     * Relasi ke user
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Relasi ke target produksi

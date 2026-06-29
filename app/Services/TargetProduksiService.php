@@ -27,6 +27,7 @@ class TargetProduksiService
             if (isset($data['details']) && is_array($data['details'])) {
                 foreach ($data['details'] as $detail) {
                     $target->details()->create([
+                        'user_id' => auth()->id(),
                         'bulan' => $detail['bulan'],
                         'target_bulanan' => $detail['target_bulanan'],
                     ]);
