@@ -150,29 +150,9 @@
                     </div>
                 </div>
 
-                <!-- Jumlah Produksi Per Bulan (Global) -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label for="jumlah_produksi_perbulan" class="form-label">
-                            Jumlah Produksi Produk Per Bulan <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                            <input type="number" 
-                                   name="jumlah_produksi_perbulan" 
-                                   id="jumlah_produksi_perbulan" 
-                                   class="form-control @error('jumlah_produksi_perbulan') is-invalid @enderror" 
-                                   value="{{ old('jumlah_produksi_perbulan') }}"
-                                   min="1"
-                                   placeholder="0"
-                                   required>
-                            <span class="input-group-text">unit/bulan</span>
-                        </div>
-                        <small class="text-muted">Target produksi produk dalam satu bulan</small>
-                        @error('jumlah_produksi_perbulan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
+                <!-- Bahan Pendukung Section -->
+                <h5 class="mb-3 mt-4"><i class="fas fa-cube me-2"></i>Bahan Pendukung</h5>
+                <p class="text-muted mb-3">Pilih bahan pendukung yang digunakan dalam proses produksi</p>
 
                 <!-- Bahan Pendukung -->
                 <div class="row g-3">
@@ -352,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('addBahanBtn');
     const lainnyaContainer = document.getElementById('bopLainnyaContainer');
     const addLainnyaBtn = document.getElementById('addLainnyaBtn');
-    const jumlahProduksiPerBulanInput = document.getElementById('jumlah_produksi_perbulan');
+    const jumlahProduksiInput = document.getElementById('jumlah_produksi'); // From target produksi
     
     // Bahan Pendukung data from backend
     const bahanPendukungList = @json($bahanPendukungs);

@@ -458,7 +458,9 @@ class BopController extends Controller
         \Log::info('BOP V2 Update - Request received', [
             'id' => $id,
             'nama_bop_proses' => $request->input('nama_bop_proses'),
-            'jumlah_produksi_perbulan' => $request->input('jumlah_produksi_perbulan'),
+            'produk_id' => $request->input('produk_id'),
+            'periode' => $request->input('periode'),
+            'jumlah_produksi' => $request->input('jumlah_produksi'),
             'bahan_pendukung' => $request->input('bahan_pendukung'),
             'bop_lainnya' => $request->input('bop_lainnya'),
         ]);
@@ -466,7 +468,9 @@ class BopController extends Controller
         try {
             $validated = $request->validate([
                 'nama_bop_proses' => 'required|string|max:255',
-                'jumlah_produksi_perbulan' => 'required|integer|min:1',
+                'produk_id' => 'required|exists:produks,id',
+                'periode' => 'required|string|size:7', // YYYY-MM
+                'jumlah_produksi' => 'required|numeric|min:1',
                 'bahan_pendukung' => 'nullable|array',
                 'bahan_pendukung.*.bahan_pendukung_id' => 'required_with:bahan_pendukung|exists:bahan_pendukungs,id',
                 'bahan_pendukung.*.satuan' => 'required_with:bahan_pendukung|string',
@@ -482,8 +486,12 @@ class BopController extends Controller
                 'bop_lainnya.*.keterangan' => 'nullable|string',
             ], [
                 'nama_bop_proses.required' => 'Nama BOP Proses wajib diisi',
-                'jumlah_produksi_perbulan.required' => 'Jumlah Produksi Per Bulan wajib diisi',
-                'jumlah_produksi_perbulan.min' => 'Jumlah Produksi Per Bulan minimal 1',
+                'produk_id.required' => 'Produk wajib dipilih',
+                'produk_id.exists' => 'Produk tidak ditemukan',
+                'periode.required' => 'Periode wajib diisi',
+                'periode.size' => 'Format periode harus YYYY-MM',
+                'jumlah_produksi.required' => 'Target produksi tidak ditemukan. Pastikan sudah ada data di Master Data Target Produksi untuk produk dan periode ini.',
+                'jumlah_produksi.min' => 'Target produksi minimal 1',
                 'bahan_pendukung.*.bahan_pendukung_id.required_with' => 'Bahan pendukung harus dipilih',
                 'bahan_pendukung.*.bahan_pendukung_id.exists' => 'Bahan pendukung tidak ditemukan',
                 'bahan_pendukung.*.qty_penggunaan_bulan.required_with' => 'Qty Penggunaan Per Bulan wajib diisi',
@@ -498,7 +506,7 @@ class BopController extends Controller
 
             // Prepare komponen bahan pendukung array with calculations
             $komponenBahanPendukung = [];
-            $jumlahProduksi = (int) $validated['jumlah_produksi_perbulan'];
+            $jumlahProduksi = (float) $validated['jumlah_produksi'];
             
             if (!empty($validated['bahan_pendukung'])) {
                 foreach ($validated['bahan_pendukung'] as $index => $item) {
@@ -590,10 +598,13 @@ class BopController extends Controller
             $totalBopPerProduk = $totalBopBahanPendukung + $totalBopLainnya;
 
             // Update data
+            $bopProses->produk_id = $validated['produk_id'];
+            $bopProses->periode = $validated['periode'];
+            $bopProses->jumlah_produksi = $jumlahProduksi;
             $bopProses->nama_bop_proses = $validated['nama_bop_proses'];
             $bopProses->komponen_bahan_pendukung = !empty($komponenBahanPendukung) ? $komponenBahanPendukung : null;
             $bopProses->komponen_lainnya = !empty($komponenLainnya) ? $komponenLainnya : null;
-            $bopProses->jumlah_produksi_perbulan = $jumlahProduksi;
+            $bopProses->jumlah_produksi_perbulan = $jumlahProduksi; // Keep for backward compatibility
             $bopProses->total_bop_per_produk = $totalBopPerProduk;
             $bopProses->keterangan = "BOP Proses V2 - Auto-Calculation (Updated)";
             $bopProses->is_active = true;
@@ -1425,7 +1436,9 @@ class BopController extends Controller
     {
         \Log::info('BOP V2 Store - Request received', [
             'nama_bop_proses' => $request->input('nama_bop_proses'),
-            'jumlah_produksi_perbulan' => $request->input('jumlah_produksi_perbulan'),
+            'produk_id' => $request->input('produk_id'),
+            'periode' => $request->input('periode'),
+            'jumlah_produksi' => $request->input('jumlah_produksi'),
             'bahan_pendukung' => $request->input('bahan_pendukung'),
             'bop_lainnya' => $request->input('bop_lainnya'),
         ]);
@@ -1433,7 +1446,9 @@ class BopController extends Controller
         try {
             $validated = $request->validate([
                 'nama_bop_proses' => 'required|string|max:255',
-                'jumlah_produksi_perbulan' => 'required|integer|min:1',
+                'produk_id' => 'required|exists:produks,id',
+                'periode' => 'required|string|size:7', // YYYY-MM
+                'jumlah_produksi' => 'required|numeric|min:1',
                 'bahan_pendukung' => 'nullable|array',
                 'bahan_pendukung.*.bahan_pendukung_id' => 'required_with:bahan_pendukung|exists:bahan_pendukungs,id',
                 'bahan_pendukung.*.satuan' => 'required_with:bahan_pendukung|string',
@@ -1449,8 +1464,12 @@ class BopController extends Controller
                 'bop_lainnya.*.keterangan' => 'nullable|string',
             ], [
                 'nama_bop_proses.required' => 'Nama BOP Proses wajib diisi',
-                'jumlah_produksi_perbulan.required' => 'Jumlah Produksi Per Bulan wajib diisi',
-                'jumlah_produksi_perbulan.min' => 'Jumlah Produksi Per Bulan minimal 1',
+                'produk_id.required' => 'Produk wajib dipilih',
+                'produk_id.exists' => 'Produk tidak ditemukan',
+                'periode.required' => 'Periode wajib diisi',
+                'periode.size' => 'Format periode harus YYYY-MM',
+                'jumlah_produksi.required' => 'Target produksi tidak ditemukan. Pastikan sudah ada data di Master Data Target Produksi untuk produk dan periode ini.',
+                'jumlah_produksi.min' => 'Target produksi minimal 1',
                 'bahan_pendukung.*.bahan_pendukung_id.required_with' => 'Bahan pendukung harus dipilih',
                 'bahan_pendukung.*.bahan_pendukung_id.exists' => 'Bahan pendukung tidak ditemukan',
                 'bahan_pendukung.*.qty_penggunaan_bulan.required_with' => 'Qty Penggunaan Per Bulan wajib diisi',
@@ -1463,7 +1482,7 @@ class BopController extends Controller
 
             // Prepare komponen bahan pendukung array with calculations
             $komponenBahanPendukung = [];
-            $jumlahProduksi = (int) $validated['jumlah_produksi_perbulan'];
+            $jumlahProduksi = (float) $validated['jumlah_produksi'];
             
             if (!empty($validated['bahan_pendukung'])) {
                 foreach ($validated['bahan_pendukung'] as $index => $item) {
@@ -1557,10 +1576,13 @@ class BopController extends Controller
             // Prepare data for insert
             $insertData = [
                 'user_id' => auth()->id(),
+                'produk_id' => $validated['produk_id'],
+                'periode' => $validated['periode'],
+                'jumlah_produksi' => $jumlahProduksi,
                 'nama_bop_proses' => $validated['nama_bop_proses'],
                 'komponen_bahan_pendukung' => !empty($komponenBahanPendukung) ? $komponenBahanPendukung : null,
                 'komponen_lainnya' => !empty($komponenLainnya) ? $komponenLainnya : null,
-                'jumlah_produksi_perbulan' => $jumlahProduksi,
+                'jumlah_produksi_perbulan' => $jumlahProduksi, // Keep for backward compatibility
                 'total_bop_per_produk' => $totalBopPerProduk,
                 'keterangan' => "BOP Proses V2 - Auto-Calculation",
                 'is_active' => true,
