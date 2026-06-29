@@ -299,10 +299,14 @@ class BiayaBahanController extends Controller
         // Validate bahan baku data
         $request->validate([
             'bahan_baku' => 'required|array|min:1',
-            'bahan_baku.*.id' => 'required|exists:bahan_bakus,id',
-            'bahan_baku.*.jumlah' => 'required|numeric|min:0.0001',
-            'bahan_baku.*.satuan' => 'required|string|max:20',
+            'bahan_baku.*.id' => 'sometimes|required|exists:bahan_bakus,id',
+            'bahan_baku.*.jumlah' => 'sometimes|required|numeric|min:0.0001',
+            'bahan_baku.*.satuan' => 'sometimes|required|string|max:20',
+            'bahan_baku.*.harga_satuan' => 'sometimes|nullable|numeric|min:0',
+            'bahan_baku.*.coa_id' => 'sometimes|nullable|exists:coas,id',
         ], [
+            'bahan_baku.required' => 'Minimal harus ada 1 bahan baku',
+            'bahan_baku.min' => 'Minimal harus ada 1 bahan baku',
             'bahan_baku.*.id.required' => 'Kolom bahan baku id wajib diisi.',
             'bahan_baku.*.id.exists' => 'Bahan baku yang dipilih tidak valid.',
             'bahan_baku.*.jumlah.required' => 'Kolom jumlah wajib diisi.',
@@ -323,48 +327,27 @@ class BiayaBahanController extends Controller
             
             // Create new records
             foreach ($validBahanBakuData as $bahanData) {
-                // Get bahan baku with sub satuan relationships
-                $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
-                    ->where('id', $bahanData['id'])
-                    ->where('user_id', auth()->id())
-                    ->firstOrFail();
+                // IMPORTANT: Use harga_satuan from form submission (already converted in frontend)
+                // Don't recalculate here to avoid confusion
+                $hargaSatuan = isset($bahanData['harga_satuan']) && $bahanData['harga_satuan'] > 0 
+                    ? $bahanData['harga_satuan'] 
+                    : 0;
                 
-                // Get base price from bahan baku master data
-                $hargaUtama = $bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan;
-                $satuanUtama = $bahanBaku->satuan->nama ?? 'Unit';
-                $satuanDipilih = $bahanData['satuan'];
-                
-                // Calculate converted price based on unit
-                $hargaSatuan = $hargaUtama; // Default to base price
-                
-                // Apply conversion if different units
-                if ($satuanUtama !== $satuanDipilih) {
-                    // Check for sub satuan conversions
-                    $conversionFactor = 1;
-                    
-                    // Check sub_satuan_1
-                    if ($bahanBaku->subSatuan1 && $bahanBaku->subSatuan1->nama === $satuanDipilih) {
-                        $konversi = $bahanBaku->sub_satuan_1_konversi ?? 1;
-                        $nilai = $bahanBaku->sub_satuan_1_nilai ?? 1;
-                        $conversionFactor = $konversi / $nilai;
+                // If no harga_satuan provided, get from master data
+                if ($hargaSatuan == 0) {
+                    $bahanBaku = BahanBaku::find($bahanData['id']);
+                    if ($bahanBaku) {
+                        $hargaSatuan = $bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan ?? 0;
                     }
-                    // Check sub_satuan_2
-                    elseif ($bahanBaku->subSatuan2 && $bahanBaku->subSatuan2->nama === $satuanDipilih) {
-                        $konversi = $bahanBaku->sub_satuan_2_konversi ?? 1;
-                        $nilai = $bahanBaku->sub_satuan_2_nilai ?? 1;
-                        $conversionFactor = $konversi / $nilai;
-                    }
-                    // Check sub_satuan_3
-                    elseif ($bahanBaku->subSatuan3 && $bahanBaku->subSatuan3->nama === $satuanDipilih) {
-                        $konversi = $bahanBaku->sub_satuan_3_konversi ?? 1;
-                        $nilai = $bahanBaku->sub_satuan_3_nilai ?? 1;
-                        $conversionFactor = $konversi / $nilai;
-                    }
-                    
-                    $hargaSatuan = $hargaUtama * $conversionFactor;
-                    
-                    Log::info("Unit conversion applied: {$satuanUtama} -> {$satuanDipilih}, factor: {$conversionFactor}, price: {$hargaUtama} -> {$hargaSatuan}");
                 }
+                
+                Log::info("Creating BiayaBahan record", [
+                    'bahan_baku_id' => $bahanData['id'],
+                    'jumlah' => $bahanData['jumlah'],
+                    'satuan' => $bahanData['satuan'],
+                    'harga_satuan' => $hargaSatuan,
+                    'from_form' => isset($bahanData['harga_satuan'])
+                ]);
                 
                 BiayaBahanBaku::create([
                     'user_id' => auth()->id(),

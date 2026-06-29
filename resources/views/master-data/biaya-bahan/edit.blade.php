@@ -3,9 +3,11 @@
 @section('title', 'Edit Perhitungan Biaya Bahan Baku')
 
 @section('content')
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<!-- FORCE CACHE CLEAR v3.0 - 2026-06-30 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="version" content="3.0-{{ now()->timestamp }}">
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0 text-dark">
@@ -293,9 +295,10 @@
 </div>
 
 @push('scripts')
-<script>
-// BIAYA BAHAN FINAL FIXED VERSION - 2026-02-06 12:00:00
-console.log("🚀 BIAYA BAHAN LOADED - " + new Date().toISOString());
+<script data-version="3.0-{{ now()->timestamp }}">
+// BIAYA BAHAN FINAL FIXED VERSION 3.0 - 2026-06-30 03:20:00
+console.log("🚀 BIAYA BAHAN LOADED v3.0 - " + new Date().toISOString());
+console.log("🔥 CACHE VERSION: 3.0-{{ now()->timestamp }}");
 
 // Global flag
 window.biayaBahanReady = true;
