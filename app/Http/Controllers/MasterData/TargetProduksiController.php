@@ -65,7 +65,7 @@ class TargetProduksiController extends Controller
         ]);
 
         try {
-            $target = $this->service->createTarget($validated);
+            $target = $this->service->create($validated);
             
             return redirect()
                 ->route('master-data.target-produksi.index')
