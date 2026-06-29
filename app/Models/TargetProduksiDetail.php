@@ -143,9 +143,9 @@ class TargetProduksiDetail extends Model
 
         return Produksi::where('user_id', $this->targetProduksi->user_id)
             ->where('produk_id', $this->targetProduksi->produk_id)
-            ->whereYear('tanggal_produksi', $this->targetProduksi->tahun)
-            ->whereMonth('tanggal_produksi', $this->bulan)
-            ->sum('jumlah_produksi') ?? 0;
+            ->whereYear('tanggal', $this->targetProduksi->tahun)
+            ->whereMonth('tanggal', $this->bulan)
+            ->sum('qty_produksi') ?? 0;
     }
 
     /**

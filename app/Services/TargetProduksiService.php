@@ -199,8 +199,8 @@ class TargetProduksiService
     {
         $realisasi = Produksi::where('user_id', auth()->id())
             ->where('produk_id', $produkId)
-            ->whereYear('tanggal_produksi', $tahun)
-            ->selectRaw('MONTH(tanggal_produksi) as bulan, SUM(jumlah_produksi) as total')
+            ->whereYear('tanggal', $tahun)
+            ->selectRaw('MONTH(tanggal) as bulan, SUM(qty_produksi) as total')
             ->groupBy('bulan')
             ->pluck('total', 'bulan')
             ->toArray();
