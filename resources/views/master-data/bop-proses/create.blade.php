@@ -116,7 +116,6 @@
                                 <h6 class="mb-0 text-success">
                                     <i class="fas fa-box me-2"></i>BOP Proses - Bahan Pendukung
                                 </h6>
-                                <small class="text-light">Pilih bahan pendukung dari database</small>
                             </div>
                             <div class="card-body">
                                 <div id="komponenBahanContainer">
