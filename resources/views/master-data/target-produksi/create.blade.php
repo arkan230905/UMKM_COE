@@ -116,13 +116,13 @@
                                     <td class="text-center">{{ $i }}</td>
                                     <td><strong>{{ $bulanNames[$i] }}</strong></td>
                                     <td>
-                                        <input type="hidden" name="details[{{ $i-1 }}][bulan]" value="{{ $i }}">
+                                        <input type="hidden" name="details[{{ $i - 1 }}][bulan]" value="{{ $i }}">
                                         <input type="number" 
-                                               name="details[{{ $i-1 }}][target_bulanan]" 
+                                               name="details[{{ $i - 1 }}][target_bulanan]" 
                                                id="target_{{ $i }}"
                                                class="form-control target-input" 
                                                min="0" 
-                                               value="{{ old("details.{$i-1}.target_bulanan", 0) }}"
+                                               value="{{ old('details.' . ($i - 1) . '.target_bulanan', 0) }}"
                                                onchange="hitungTotal()"
                                                required>
                                     </td>
