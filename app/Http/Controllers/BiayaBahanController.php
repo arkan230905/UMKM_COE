@@ -503,4 +503,85 @@ class BiayaBahanController extends Controller
             return back()->withError('Error loading detail biaya bahan: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Sync harga biaya bahan baku dari master data untuk produk tertentu
+     */
+    public function syncHarga($produk_id)
+    {
+        try {
+            $produk = Produk::where('id', $produk_id)->where('user_id', auth()->id())->firstOrFail();
+            
+            $biayaBahans = BiayaBahanBaku::where('user_id', auth()->id())
+                ->where('produk_id', $produk_id)
+                ->with('bahanBaku')
+                ->get();
+            
+            if ($biayaBahans->isEmpty()) {
+                return back()->with('warning', 'Tidak ada biaya bahan baku untuk disinkronkan');
+            }
+            
+            $updated = 0;
+            $skipped = 0;
+            
+            foreach ($biayaBahans as $biayaBahan) {
+                if ($biayaBahan->isHargaOutdated()) {
+                    $biayaBahan->syncHargaFromMaster();
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+            }
+            
+            $message = "Sinkronisasi harga selesai. {$updated} item diperbarui";
+            if ($skipped > 0) {
+                $message .= ", {$skipped} item tidak berubah";
+            }
+            
+            return back()->with('success', $message);
+            
+        } catch (\Exception $e) {
+            Log::error("Error syncing harga: " . $e->getMessage());
+            return back()->with('error', 'Gagal sinkronisasi harga: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Sync harga semua biaya bahan baku untuk user
+     */
+    public function syncHargaAll()
+    {
+        try {
+            $biayaBahans = BiayaBahanBaku::where('user_id', auth()->id())
+                ->with('bahanBaku')
+                ->get();
+            
+            if ($biayaBahans->isEmpty()) {
+                return back()->with('warning', 'Tidak ada biaya bahan baku untuk disinkronkan');
+            }
+            
+            $updated = 0;
+            $skipped = 0;
+            
+            foreach ($biayaBahans as $biayaBahan) {
+                if ($biayaBahan->isHargaOutdated()) {
+                    $biayaBahan->syncHargaFromMaster();
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+            }
+            
+            $message = "Sinkronisasi harga selesai untuk semua produk. {$updated} item diperbarui";
+            if ($skipped > 0) {
+                $message .= ", {$skipped} item tidak berubah";
+            }
+            
+            return back()->with('success', $message);
+            
+        } catch (\Exception $e) {
+            Log::error("Error syncing harga all: " . $e->getMessage());
+            return back()->with('error', 'Gagal sinkronisasi harga: ' . $e->getMessage());
+        }
+    }
 }

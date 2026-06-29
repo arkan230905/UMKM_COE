@@ -2743,6 +2743,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/item/{id}/edit', [BiayaBahanController::class, 'editItem'])->name('edit-item');
             Route::put('/item/{id}', [BiayaBahanController::class, 'updateItem'])->name('update-item');
             Route::delete('/{id}', [BiayaBahanController::class, 'destroy'])->name('destroy');
+            
+            // Sync harga routes
+            Route::post('/{produk_id}/sync-harga', [BiayaBahanController::class, 'syncHarga'])->name('sync-harga');
+            Route::post('/sync-harga-all', [BiayaBahanController::class, 'syncHargaAll'])->name('sync-harga-all');
         });
         
         // Harga Management routes

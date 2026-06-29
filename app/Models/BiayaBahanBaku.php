@@ -87,6 +87,45 @@ class BiayaBahanBaku extends Model
     }
 
     /**
+     * Get harga realtime dari master data bahan baku
+     */
+    public function getHargaRealtimeAttribute()
+    {
+        return $this->bahanBaku->harga_beli ?? $this->harga_satuan;
+    }
+
+    /**
+     * Get subtotal realtime
+     */
+    public function getSubtotalRealtimeAttribute()
+    {
+        return $this->jumlah * $this->harga_realtime;
+    }
+
+    /**
+     * Check apakah harga sudah berubah dibanding master data
+     */
+    public function isHargaOutdated()
+    {
+        $hargaMaster = $this->bahanBaku->harga_beli ?? 0;
+        return abs($this->harga_satuan - $hargaMaster) > 0.01; // Toleransi 0.01
+    }
+
+    /**
+     * Sync harga dari master data bahan baku
+     */
+    public function syncHargaFromMaster()
+    {
+        if ($this->bahanBaku) {
+            $this->harga_satuan = $this->bahanBaku->harga_beli;
+            $this->subtotal = $this->jumlah * $this->harga_satuan;
+            $this->save();
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Boot method to auto-fill user_id and calculate subtotal
      */
     protected static function boot()
