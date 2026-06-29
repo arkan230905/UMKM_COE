@@ -280,30 +280,50 @@ class BiayaBahanController extends Controller
         // Get bahan baku data from request
         $bahanBakuData = $request->input('bahan_baku', []);
         
-        // Filter out empty entries
+        // DEBUG LOG
+        Log::info("=== EDIT BIAYA BAHAN DEBUG ===");
+        Log::info("Raw bahan_baku data:", $bahanBakuData);
+        
+        // Filter out empty entries AND 'new' template row
         $validBahanBakuData = [];
         foreach ($bahanBakuData as $key => $data) {
+            // Skip 'new' template row and empty entries
+            if ($key === 'new' || $key === 'template') {
+                Log::info("Skipping template row: {$key}");
+                continue;
+            }
+            
+            // Check if has required fields
             if (!empty($data['id']) && !empty($data['jumlah']) && !empty($data['satuan'])) {
                 $validBahanBakuData[$key] = $data;
+                Log::info("Valid row {$key}:", $data);
+            } else {
+                Log::warning("Skipping invalid row {$key}:", $data);
             }
         }
         
-        Log::info("Valid bahan baku data: " . json_encode($validBahanBakuData));
+        Log::info("Valid bahan baku count: " . count($validBahanBakuData));
         
         // Check if we have any valid data
         if (empty($validBahanBakuData)) {
+            Log::error("No valid bahan baku data found!");
             return back()->withError('Tidak ada data bahan baku yang valid. Pastikan semua field terisi dengan benar.')
                 ->withInput();
         }
         
-        // Validate bahan baku data
-        $request->validate([
+        // Prepare validation data (only valid rows)
+        $validationData = [
+            'bahan_baku' => $validBahanBakuData
+        ];
+        
+        // Validate ONLY the valid data
+        $validator = \Validator::make($validationData, [
             'bahan_baku' => 'required|array|min:1',
-            'bahan_baku.*.id' => 'sometimes|required|exists:bahan_bakus,id',
-            'bahan_baku.*.jumlah' => 'sometimes|required|numeric|min:0.0001',
-            'bahan_baku.*.satuan' => 'sometimes|required|string|max:20',
-            'bahan_baku.*.harga_satuan' => 'sometimes|nullable|numeric|min:0',
-            'bahan_baku.*.coa_id' => 'sometimes|nullable|exists:coas,id',
+            'bahan_baku.*.id' => 'required|exists:bahan_bakus,id',
+            'bahan_baku.*.jumlah' => 'required|numeric|min:0.0001',
+            'bahan_baku.*.satuan' => 'required|string|max:20',
+            'bahan_baku.*.harga_satuan' => 'nullable|numeric|min:0',
+            'bahan_baku.*.coa_id' => 'nullable|exists:coas,id',
         ], [
             'bahan_baku.required' => 'Minimal harus ada 1 bahan baku',
             'bahan_baku.min' => 'Minimal harus ada 1 bahan baku',
@@ -314,6 +334,11 @@ class BiayaBahanController extends Controller
             'bahan_baku.*.jumlah.min' => 'Jumlah minimal 0.0001.',
             'bahan_baku.*.satuan.required' => 'Kolom satuan wajib diisi.',
         ]);
+        
+        if ($validator->fails()) {
+            Log::error("Validation failed:", $validator->errors()->toArray());
+            return back()->withErrors($validator)->withInput();
+        }
 
         try {
             DB::beginTransaction();

@@ -87,9 +87,9 @@
                         <tbody>
                             {{-- Existing Bahan Baku Rows --}}
                             @foreach($biayaBahanList as $index => $detail)
-                                <tr>
+                                <tr data-row-type="existing">
                                     <td>
-                                        <select name="bahan_baku[{{ $index }}][id]" class="form-select form-select-sm bahan-baku-select">
+                                        <select name="bahan_baku[{{ $index }}][id]" class="form-select form-select-sm bahan-baku-select" required>
                                             <option value="">-- Pilih Bahan Baku --</option>
                                             @foreach($bahanBakus as $bahanBaku)
                                                 @php
@@ -147,10 +147,10 @@
                                         <input type="number" name="bahan_baku[{{ $index }}][jumlah]" 
                                                class="form-control form-control-sm qty-input text-center" 
                                                value="{{ $detail->jumlah }}" 
-                                               step="0.01" min="0">
+                                               step="0.01" min="0" required>
                                     </td>
                                     <td style="width: 120px;">
-                                        <select name="bahan_baku[{{ $index }}][satuan]" class="form-select form-select-sm satuan-select">
+                                        <select name="bahan_baku[{{ $index }}][satuan]" class="form-select form-select-sm satuan-select" required>
                                             <option value="">-- Satuan --</option>
                                             @foreach($satuans as $satuan)
                                                 <option value="{{ $satuan->nama }}" 
@@ -881,18 +881,38 @@ document.addEventListener("DOMContentLoaded", function() {
             
             console.log("🚀 Form submission triggered");
             
+            // REMOVE template row from form before submit
+            const templateRow = document.getElementById('newBahanBakuRow');
+            if (templateRow) {
+                // Disable all inputs in template row so they won't be submitted
+                templateRow.querySelectorAll('input, select').forEach(input => {
+                    input.disabled = true;
+                });
+                console.log("✅ Template row inputs disabled");
+            }
+            
             // Validate that we have at least one bahan baku selected
-            const bahanSelects = form.querySelectorAll('select[name*="bahan_baku"][name*="[id]"]');
+            const bahanSelects = form.querySelectorAll('select[name*="bahan_baku"][name*="[id]"]:not([disabled])');
             let hasValidData = false;
+            let validCount = 0;
             
             bahanSelects.forEach(select => {
                 if (select.value && select.value !== '') {
                     hasValidData = true;
+                    validCount++;
                 }
             });
             
+            console.log(`Found ${validCount} valid bahan baku entries`);
+            
             if (!hasValidData) {
                 alert('Pilih minimal satu bahan baku!');
+                // Re-enable template row inputs
+                if (templateRow) {
+                    templateRow.querySelectorAll('input, select').forEach(input => {
+                        input.disabled = false;
+                    });
+                }
                 return;
             }
             
