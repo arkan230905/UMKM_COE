@@ -91,7 +91,15 @@ class BiayaBahanBaku extends Model
      */
     public function getHargaRealtimeAttribute()
     {
-        return $this->bahanBaku->harga_beli ?? $this->harga_satuan;
+        if (!$this->bahanBaku) {
+            return $this->harga_satuan;
+        }
+        
+        // Priority: harga_beli > harga_rata_rata > harga_satuan > current harga
+        return $this->bahanBaku->harga_beli 
+            ?? $this->bahanBaku->harga_rata_rata 
+            ?? $this->bahanBaku->harga_satuan 
+            ?? $this->harga_satuan;
     }
 
     /**
@@ -107,7 +115,18 @@ class BiayaBahanBaku extends Model
      */
     public function isHargaOutdated()
     {
-        $hargaMaster = $this->bahanBaku->harga_beli ?? 0;
+        if (!$this->bahanBaku) {
+            return false;
+        }
+        
+        $hargaMaster = $this->bahanBaku->harga_beli 
+            ?? $this->bahanBaku->harga_rata_rata 
+            ?? $this->bahanBaku->harga_satuan;
+            
+        if (!$hargaMaster || $hargaMaster <= 0) {
+            return false; // Skip if no valid price in master
+        }
+        
         return abs($this->harga_satuan - $hargaMaster) > 0.01; // Toleransi 0.01
     }
 
@@ -116,13 +135,25 @@ class BiayaBahanBaku extends Model
      */
     public function syncHargaFromMaster()
     {
-        if ($this->bahanBaku) {
-            $this->harga_satuan = $this->bahanBaku->harga_beli;
-            $this->subtotal = $this->jumlah * $this->harga_satuan;
-            $this->save();
-            return true;
+        if (!$this->bahanBaku) {
+            return false;
         }
-        return false;
+        
+        // Priority: harga_beli > harga_rata_rata > harga_satuan
+        $hargaBaru = $this->bahanBaku->harga_beli 
+            ?? $this->bahanBaku->harga_rata_rata 
+            ?? $this->bahanBaku->harga_satuan;
+        
+        // Don't update if no valid price found
+        if (!$hargaBaru || $hargaBaru <= 0) {
+            return false;
+        }
+        
+        $this->harga_satuan = $hargaBaru;
+        $this->subtotal = $this->jumlah * $this->harga_satuan;
+        $this->save();
+        
+        return true;
     }
 
     /**
