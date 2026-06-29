@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\TargetProduksis\Pages;
 
-use App\Filament\Resources\TargetProduksis\TargetProduksiResource;
+use App\Filament\Resources\TargetProduksiResource;
 use App\Models\TargetProduksiDetail;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;

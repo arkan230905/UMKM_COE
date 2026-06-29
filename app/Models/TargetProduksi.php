@@ -200,7 +200,7 @@ class TargetProduksi extends Model
     {
         TargetProduksiLog::create([
             'target_produksi_id' => $this->id,
-            'user_id' => auth()->id(),
+            'user_id' => auth()->id() ?? $this->created_by ?? $this->user_id,
             'action' => $action,
             'old_data' => $oldData ? json_encode($oldData) : null,
             'new_data' => $newData ? json_encode($newData) : null,
@@ -213,7 +213,7 @@ class TargetProduksi extends Model
      */
     private function generateLogDescription(string $action): string
     {
-        $userName = auth()->user()->name ?? 'System';
+        $userName = auth()->user()->name ?? $this->creator->name ?? 'System';
         $productName = $this->produk->nama_produk ?? 'Unknown';
 
         return match($action) {
