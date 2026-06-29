@@ -90,11 +90,15 @@ class TargetProduksisTable
                     ]),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->label('Detail'),
+                Tables\Actions\Action::make('view')
+                    ->label('Detail')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn (TargetProduksi $record): string => route('filament.admin.resources.target-produksis.view', ['record' => $record])),
                 
-                Tables\Actions\EditAction::make()
-                    ->label('Edit'),
+                Tables\Actions\Action::make('edit')
+                    ->label('Edit')
+                    ->icon('heroicon-o-pencil')
+                    ->url(fn (TargetProduksi $record): string => route('filament.admin.resources.target-produksis.edit', ['record' => $record])),
                 
                 Tables\Actions\Action::make('distribusi')
                     ->label('Distribusi')
