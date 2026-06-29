@@ -3,15 +3,16 @@
 @section('title', 'Target Produksi')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="mb-1">Target Produksi</h2>
-        <p class="text-muted mb-0">Kelola target produksi tahunan dan bulanan</p>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-chart-bar me-2"></i>Target Produksi</h2>
+            <p class="text-muted mb-0">Kelola target produksi tahunan dan bulanan</p>
+        </div>
+        <a href="{{ route('master-data.target-produksi.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Buat Target Produksi
+        </a>
     </div>
-    <a href="{{ route('master-data.target-produksi.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Buat Target Produksi
-    </a>
-</div>
 
 @if(session('success'))
 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -125,5 +126,6 @@
         </div>
         @endif
     </div>
+</div>
 </div>
 @endsection
