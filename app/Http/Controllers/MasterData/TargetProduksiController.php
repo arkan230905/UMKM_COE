@@ -88,7 +88,17 @@ class TargetProduksiController extends Controller
         
         $comparison = $this->service->getComparison($target);
         
-        return view('master-data.target-produksi.show', compact('target', 'comparison'));
+        // Calculate summary
+        $totalRealisasi = collect($comparison)->sum('realisasi');
+        $summary = [
+            'total_realisasi' => $totalRealisasi,
+            'persentase' => $target->total_target_tahunan > 0 
+                ? round(($totalRealisasi / $target->total_target_tahunan) * 100, 2) 
+                : 0,
+            'selisih' => $totalRealisasi - $target->total_target_tahunan,
+        ];
+        
+        return view('master-data.target-produksi.show', compact('target', 'comparison', 'summary'));
     }
 
     /**
