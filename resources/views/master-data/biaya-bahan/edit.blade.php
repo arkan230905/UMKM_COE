@@ -475,6 +475,7 @@ function calculateRowSubtotal(row) {
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const subtotalDisplay = row.querySelector(".subtotal-display");
+    const hargaSatuanInput = row.querySelector(".harga-satuan-input");
     
     if (!bahanSelect || !qtyInput || !satuanSelect || !subtotalDisplay) {
         console.log("❌ Missing elements for calculation");
@@ -487,26 +488,15 @@ function calculateRowSubtotal(row) {
         return;
     }
     
-    const harga = parseFloat(option.dataset.harga) || 0;
+    // IMPORTANT: Use converted price from hidden input, not base price!
+    const hargaFinal = hargaSatuanInput ? parseFloat(hargaSatuanInput.value) || 0 : parseFloat(option.dataset.harga) || 0;
     const qty = parseFloat(qtyInput.value) || 0;
-    const satuanUtama = option.dataset.satuan || "unit";
     const satuanDipilih = satuanSelect.value;
     
-    // Parse sub satuan data
-    let subSatuanData = [];
-    try {
-        subSatuanData = JSON.parse(option.dataset.subSatuan || "[]");
-    } catch (e) {
-        console.error("❌ Error parsing sub satuan for calculation:", e);
-        subSatuanData = [];
-    }
-    
     console.log("💰 Calculation data:", {
-        harga: harga,
+        hargaFinal: hargaFinal,
         qty: qty,
-        satuanUtama: satuanUtama,
-        satuanDipilih: satuanDipilih,
-        subSatuanCount: subSatuanData.length
+        satuanDipilih: satuanDipilih
     });
     
     if (qty <= 0 || !satuanDipilih) {
@@ -514,14 +504,8 @@ function calculateRowSubtotal(row) {
         return;
     }
     
-    let subtotal = harga * qty;
-    
-    // Apply conversion if different units
-    if (satuanUtama !== satuanDipilih) {
-        const factor = getConversionFactor(satuanUtama, satuanDipilih, subSatuanData);
-        subtotal = (harga * factor) * qty;
-        console.log("🔄 Applied conversion factor:", factor, "New subtotal:", subtotal);
-    }
+    // Simple calculation: harga (already converted) × qty
+    const subtotal = hargaFinal * qty;
     
     subtotalDisplay.innerHTML = `<strong class="text-success">${formatRupiah(subtotal)}</strong>`;
     console.log("✅ Subtotal updated:", subtotal);
@@ -544,7 +528,7 @@ function calculateTotals() {
     
     const total = totalBB; // Only BBB now
     
-    console.log("📊 Totals calculated:", { bb: totalBB, bp: totalBP, total: total });
+    console.log("📊 Totals calculated:", { bb: totalBB, total: total });
     
     // Update displays
     const elements = {
@@ -949,10 +933,42 @@ document.addEventListener("DOMContentLoaded", function() {
             // Trigger initial calculations
             const bahanSelect = row.querySelector(".bahan-baku-select");
             const satuanSelect = row.querySelector(".satuan-select");
+            const hargaSatuanInput = row.querySelector(".harga-satuan-input");
             
             if (bahanSelect && bahanSelect.value) {
                 const option = bahanSelect.options[bahanSelect.selectedIndex];
                 if (option && option.dataset.harga) {
+                    // Calculate and set converted price if different unit
+                    const hargaUtama = parseFloat(option.dataset.harga) || 0;
+                    const satuanUtama = option.dataset.satuan || "unit";
+                    const satuanDipilih = satuanSelect ? satuanSelect.value : satuanUtama;
+                    
+                    let hargaFinal = hargaUtama;
+                    
+                    if (satuanUtama !== satuanDipilih) {
+                        let subSatuanData = [];
+                        try {
+                            subSatuanData = JSON.parse(option.dataset.subSatuan || "[]");
+                        } catch (e) {}
+                        
+                        const match = subSatuanData.find(sub => 
+                            sub.nama.toLowerCase().trim() === satuanDipilih.toLowerCase().trim()
+                        );
+                        
+                        if (match) {
+                            const konversi = parseFloat(match.konversi) || 1;
+                            const nilai = parseFloat(match.nilai) || 1;
+                            hargaFinal = (hargaUtama * konversi) / nilai;
+                            console.log(`✅ Row ${index + 1}: Converted price ${hargaUtama} → ${hargaFinal}`);
+                        }
+                    }
+                    
+                    // Update hidden input with converted price
+                    if (hargaSatuanInput) {
+                        hargaSatuanInput.value = hargaFinal;
+                        console.log(`✅ Row ${index + 1}: Set hidden input to ${hargaFinal}`);
+                    }
+                    
                     // Update conversion display
                     updateConversionDisplay(row, option);
                     
