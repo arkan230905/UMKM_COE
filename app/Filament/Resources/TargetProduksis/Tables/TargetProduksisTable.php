@@ -5,7 +5,6 @@ namespace App\Filament\Resources\TargetProduksis\Tables;
 use App\Models\TargetProduksi;
 use App\Services\TargetProduksiService;
 use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
@@ -96,45 +95,43 @@ class TargetProduksisTable
                     ]),
             ])
             ->actions([
-                ActionGroup::make([
-                    ViewAction::make()
-                        ->label('Detail'),
-                    
-                    EditAction::make()
-                        ->label('Edit'),
-                    
-                    Action::make('distribusi')
-                        ->label('Lihat Distribusi')
-                        ->icon('heroicon-o-chart-bar')
-                        ->color('info')
-                        ->modalHeading(fn(TargetProduksi $record) => 
-                            'Distribusi Bulanan - ' . $record->produk->nama_produk . ' (' . $record->tahun . ')'
-                        )
-                        ->modalContent(fn(TargetProduksi $record) => 
-                            view('filament.modals.target-distribusi', [
-                                'target' => $record,
-                                'comparison' => app(TargetProduksiService::class)->getComparison($record),
-                            ])
-                        )
-                        ->modalSubmitAction(false)
-                        ->modalCancelActionLabel('Tutup'),
-                    
-                    DeleteAction::make()
-                        ->before(function (TargetProduksi $record, DeleteAction $action) {
-                            $service = app(TargetProduksiService::class);
-                            $validation = $service->canDelete($record);
+                ViewAction::make()
+                    ->label('Detail'),
+                
+                EditAction::make()
+                    ->label('Edit'),
+                
+                Action::make('distribusi')
+                    ->label('Distribusi')
+                    ->icon('heroicon-o-chart-bar')
+                    ->color('info')
+                    ->modalHeading(fn(TargetProduksi $record) => 
+                        'Distribusi Bulanan - ' . $record->produk->nama_produk . ' (' . $record->tahun . ')'
+                    )
+                    ->modalContent(fn(TargetProduksi $record) => 
+                        view('filament.modals.target-distribusi', [
+                            'target' => $record,
+                            'comparison' => app(TargetProduksiService::class)->getComparison($record),
+                        ])
+                    )
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Tutup'),
+                
+                DeleteAction::make()
+                    ->before(function (TargetProduksi $record, DeleteAction $action) {
+                        $service = app(TargetProduksiService::class);
+                        $validation = $service->canDelete($record);
+                        
+                        if (!$validation['can_delete']) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Tidak Dapat Dihapus')
+                                ->body($validation['message'])
+                                ->danger()
+                                ->send();
                             
-                            if (!$validation['can_delete']) {
-                                \Filament\Notifications\Notification::make()
-                                    ->title('Tidak Dapat Dihapus')
-                                    ->body($validation['message'])
-                                    ->danger()
-                                    ->send();
-                                
-                                $action->cancel();
-                            }
-                        }),
-                ]),
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->bulkActions([
                 // Bulk actions disabled karena kompleksitas validasi
