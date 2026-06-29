@@ -632,6 +632,42 @@ function addRowEventListeners(row) {
             const bahanSelect = row.querySelector(".bahan-baku-select");
             if (bahanSelect && bahanSelect.value) {
                 const option = bahanSelect.options[bahanSelect.selectedIndex];
+                
+                // UPDATE HIDDEN INPUT WITH CONVERTED PRICE
+                const hargaUtama = parseFloat(option.dataset.harga) || 0;
+                const satuanUtama = option.dataset.satuan || "unit";
+                const satuanDipilih = this.value;
+                
+                let hargaFinal = hargaUtama;
+                
+                // Calculate converted price if different unit
+                if (satuanUtama !== satuanDipilih) {
+                    let subSatuanData = [];
+                    try {
+                        subSatuanData = JSON.parse(option.dataset.subSatuan || "[]");
+                    } catch (e) {
+                        console.error("Error parsing sub satuan:", e);
+                    }
+                    
+                    const match = subSatuanData.find(sub => 
+                        sub.nama.toLowerCase().trim() === satuanDipilih.toLowerCase().trim()
+                    );
+                    
+                    if (match) {
+                        const konversi = parseFloat(match.konversi) || 1;
+                        const nilai = parseFloat(match.nilai) || 1;
+                        hargaFinal = (hargaUtama * konversi) / nilai;
+                        console.log(`✅ Converted price: ${hargaUtama} → ${hargaFinal} (${konversi}/${nilai})`);
+                    }
+                }
+                
+                // UPDATE HIDDEN INPUT
+                const hargaSatuanInput = row.querySelector(".harga-satuan-input");
+                if (hargaSatuanInput) {
+                    hargaSatuanInput.value = hargaFinal;
+                    console.log("✅ Updated hidden harga_satuan to:", hargaFinal);
+                }
+                
                 updateConversionDisplay(row, option);
                 calculateRowSubtotal(row);
             }
