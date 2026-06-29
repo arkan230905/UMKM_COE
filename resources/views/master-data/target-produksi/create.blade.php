@@ -71,8 +71,9 @@
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label class="form-label">Total Target Tahunan <span class="text-danger">*</span></label>
-                            <input type="number" name="total_target_tahunan" id="total_target_tahunan" 
-                                   class="form-control" min="1" value="{{ old('total_target_tahunan') }}" required>
+                            <input type="text" name="total_target_tahunan_display" id="total_target_tahunan_display" 
+                                   class="form-control" placeholder="0" required>
+                            <input type="hidden" name="total_target_tahunan" id="total_target_tahunan" value="{{ old('total_target_tahunan') }}">
                             <small class="text-muted">Total target produksi untuk 1 tahun (dalam unit)</small>
                         </div>
                     </div>
@@ -117,14 +118,18 @@
                                     <td><strong>{{ $bulanNames[$i] }}</strong></td>
                                     <td>
                                         <input type="hidden" name="details[{{ $i - 1 }}][bulan]" value="{{ $i }}">
-                                        <input type="number" 
+                                        <input type="text" 
+                                               name="details_display[{{ $i - 1 }}][target_bulanan]" 
+                                               id="target_display_{{ $i }}"
+                                               class="form-control target-display" 
+                                               placeholder="0"
+                                               onkeyup="formatNumber(this, {{ $i }})"
+                                               required>
+                                        <input type="hidden" 
                                                name="details[{{ $i - 1 }}][target_bulanan]" 
                                                id="target_{{ $i }}"
-                                               class="form-control target-input" 
-                                               min="0" 
-                                               value="{{ old('details.' . ($i - 1) . '.target_bulanan', 0) }}"
-                                               onchange="hitungTotal()"
-                                               required>
+                                               class="target-input" 
+                                               value="{{ old('details.' . ($i - 1) . '.target_bulanan', 0) }}">
                                     </td>
                                     <td class="text-center">
                                         <span class="badge bg-success">Editable</span>
@@ -165,6 +170,52 @@
 
 @push('scripts')
 <script>
+// Format number with thousand separator (dot)
+function formatNumberWithDot(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Remove dot separator and convert to number
+function parseNumberFromFormat(str) {
+    return parseInt(str.replace(/\./g, '')) || 0;
+}
+
+// Format input field
+function formatNumber(input, monthIndex) {
+    let value = input.value.replace(/\./g, ''); // Remove existing dots
+    
+    // Only allow numbers
+    if (!/^\d*$/.test(value)) {
+        value = value.replace(/\D/g, '');
+    }
+    
+    // Update display input with formatted number
+    input.value = value ? formatNumberWithDot(value) : '';
+    
+    // Update hidden input with raw number
+    document.getElementById('target_' + monthIndex).value = value || 0;
+    
+    hitungTotal();
+}
+
+// Format total target tahunan
+document.getElementById('total_target_tahunan_display').addEventListener('input', function() {
+    let value = this.value.replace(/\./g, ''); // Remove existing dots
+    
+    // Only allow numbers
+    if (!/^\d*$/.test(value)) {
+        value = value.replace(/\D/g, '');
+    }
+    
+    // Update display with formatted number
+    this.value = value ? formatNumberWithDot(value) : '';
+    
+    // Update hidden input with raw number
+    document.getElementById('total_target_tahunan').value = value || 0;
+    
+    hitungTotal();
+});
+
 function hitungTotal() {
     let total = 0;
     const inputs = document.querySelectorAll('.target-input');
@@ -173,7 +224,7 @@ function hitungTotal() {
         total += parseInt(input.value) || 0;
     });
     
-    document.getElementById('totalBulanan').textContent = total.toLocaleString('id-ID');
+    document.getElementById('totalBulanan').textContent = formatNumberWithDot(total);
     
     const targetTahunan = parseInt(document.getElementById('total_target_tahunan').value) || 0;
     const statusValidasi = document.getElementById('statusValidasi');
@@ -188,7 +239,7 @@ function hitungTotal() {
         statusValidasi.className = 'badge bg-secondary';
         btnSubmit.disabled = true;
     } else {
-        statusValidasi.textContent = '✗ Tidak Sesuai';
+        statusValidasi.textContent = '✗ Tidak Sesuai (Total: ' + formatNumberWithDot(total) + ')';
         statusValidasi.className = 'badge bg-danger';
         btnSubmit.disabled = true;
     }
@@ -206,8 +257,13 @@ function generateRata() {
     const sisa = targetTahunan % 12;
     
     for (let i = 1; i <= 12; i++) {
-        const input = document.getElementById('target_' + i);
-        input.value = perBulan + (i <= sisa ? 1 : 0);
+        const value = perBulan + (i <= sisa ? 1 : 0);
+        
+        // Update hidden input
+        document.getElementById('target_' + i).value = value;
+        
+        // Update display input with formatted number
+        document.getElementById('target_display_' + i).value = formatNumberWithDot(value);
     }
     
     hitungTotal();
@@ -218,16 +274,28 @@ function clearAll() {
     
     for (let i = 1; i <= 12; i++) {
         document.getElementById('target_' + i).value = 0;
+        document.getElementById('target_display_' + i).value = '';
     }
     
     hitungTotal();
 }
 
-// Event listeners
-document.getElementById('total_target_tahunan').addEventListener('input', hitungTotal);
-
-// Initial calculation
+// Initial calculation and formatting
 document.addEventListener('DOMContentLoaded', function() {
+    // Format total target tahunan if has old value
+    const oldTargetTahunan = document.getElementById('total_target_tahunan').value;
+    if (oldTargetTahunan && oldTargetTahunan > 0) {
+        document.getElementById('total_target_tahunan_display').value = formatNumberWithDot(oldTargetTahunan);
+    }
+    
+    // Format all monthly targets if has old values
+    for (let i = 1; i <= 12; i++) {
+        const oldValue = document.getElementById('target_' + i).value;
+        if (oldValue && oldValue > 0) {
+            document.getElementById('target_display_' + i).value = formatNumberWithDot(oldValue);
+        }
+    }
+    
     hitungTotal();
 });
 </script>
