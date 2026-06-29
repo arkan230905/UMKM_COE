@@ -17,6 +17,9 @@ class Bop extends Model
 
     protected $fillable = [
         'user_id',
+        'produk_id',
+        'periode',
+        'jumlah_produksi',
         'coa_id',
         'kode_akun',
         'nama_akun',
@@ -43,8 +46,17 @@ class Bop extends Model
     protected $casts = [
         'budget' => 'decimal:2',
         'aktual' => 'decimal:2',
+        'jumlah_produksi' => 'decimal:2',
         'is_active' => 'boolean'
     ];
+
+    /**
+     * Relasi ke model Produk
+     */
+    public function produk()
+    {
+        return $this->belongsTo(Produk::class, 'produk_id');
+    }
 
     /**
      * Relasi ke model Coa
@@ -54,7 +66,7 @@ class Bop extends Model
         return $this->belongsTo(Coa::class, 'coa_id', 'id');
     }
 
-    protected $appends = ['sisa_budget', 'sisa_budget_formatted'];
+    protected $appends = ['sisa_budget', 'sisa_budget_formatted', 'bop_per_unit'];
 
     /**
      * Scope untuk filter akun beban aktif
@@ -62,6 +74,35 @@ class Bop extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope untuk filter berdasarkan periode
+     */
+    public function scopePeriode($query, $periode)
+    {
+        return $query->where('periode', $periode);
+    }
+
+    /**
+     * Scope untuk filter berdasarkan produk
+     */
+    public function scopeByProduk($query, $produkId)
+    {
+        return $query->where('produk_id', $produkId);
+    }
+
+    /**
+     * Hitung BOP per unit produksi
+     * 
+     * @return float
+     */
+    public function getBopPerUnitAttribute()
+    {
+        if ($this->jumlah_produksi > 0) {
+            return $this->budget / $this->jumlah_produksi;
+        }
+        return 0;
     }
 
     /**
