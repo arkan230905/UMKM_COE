@@ -3,11 +3,28 @@
 @section('title', 'Edit Perhitungan Biaya Bahan Baku')
 
 @section('content')
-<!-- FORCE CACHE CLEAR v3.0 - 2026-06-30 -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<!-- FORCE CACHE CLEAR v5.0 - FINAL FIX -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, post-check=0, pre-check=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="3.0-{{ now()->timestamp }}">
+<meta name="version" content="5.0-{{ now()->format('YmdHis') }}">
+<script>
+// EMERGENCY CACHE KILLER v5.0
+if ('caches' in window) {
+    caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+    });
+}
+try { sessionStorage.clear(); } catch(e) {}
+try { 
+    Object.keys(localStorage).forEach(key => {
+        if (key.includes('biaya') || key.includes('bahan')) {
+            localStorage.removeItem(key);
+        }
+    });
+} catch(e) {}
+console.log("🔥🔥🔥 v5.0 - {{ now()->format('Y-m-d H:i:s') }}");
+</script>
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0 text-dark">
@@ -295,10 +312,33 @@
 </div>
 
 @push('scripts')
-<script data-version="3.0-{{ now()->timestamp }}">
-// BIAYA BAHAN FINAL FIXED VERSION 3.0 - 2026-06-30 03:20:00
-console.log("🚀 BIAYA BAHAN LOADED v3.0 - " + new Date().toISOString());
-console.log("🔥 CACHE VERSION: 3.0-{{ now()->timestamp }}");
+<script data-version="5.0-{{ now()->format('YmdHis') }}">
+// ============================================
+// BIAYA BAHAN BAKU - FINAL FIX v5.0
+// Date: 2026-06-30 05:00:00
+// Critical Fix: Remove template row before submit
+// ============================================
+
+const VERSION = "5.0-{{ now()->format('YmdHis') }}";
+console.log("%c🚀 BIAYA BAHAN v5.0 LOADED", "color: #00ff00; font-size: 20px; font-weight: bold");
+console.log("%c📅 Timestamp: " + new Date().toISOString(), "color: #00aaff; font-size: 14px");
+console.log("%c🔥 Cache Version: " + VERSION, "color: #ff6600; font-size: 14px");
+
+// Show visual indicator on page
+setTimeout(() => {
+    const indicator = document.createElement('div');
+    indicator.id = 'versionIndicator';
+    indicator.style.cssText = 'position: fixed; top: 10px; right: 10px; background: linear-gradient(135deg, #00ff00, #00aa00); color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: bold; z-index: 9999; box-shadow: 0 4px 15px rgba(0,255,0,0.4); font-size: 16px;';
+    indicator.innerHTML = '✅ v5.0 ACTIVE';
+    document.body.appendChild(indicator);
+    
+    setTimeout(() => {
+        indicator.style.transition = 'all 1s';
+        indicator.style.opacity = '0';
+        indicator.style.transform = 'translateY(-20px)';
+        setTimeout(() => indicator.remove(), 1000);
+    }, 4000);
+}, 500);
 
 // Global flag
 window.biayaBahanReady = true;
@@ -879,53 +919,70 @@ document.addEventListener("DOMContentLoaded", function() {
         submitBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
-            console.log("🚀 Form submission triggered");
+            console.log("🚀 Form submission triggered v5.0");
             
-            // REMOVE template row from form before submit
+            // CRITICAL FIX: COMPLETELY REMOVE template row before submit
             const templateRow = document.getElementById('newBahanBakuRow');
             if (templateRow) {
-                // Disable all inputs in template row so they won't be submitted
-                templateRow.querySelectorAll('input, select').forEach(input => {
-                    input.disabled = true;
-                });
-                console.log("✅ Template row inputs disabled");
+                console.log("⚠️ Removing template row from DOM");
+                templateRow.remove(); // HAPUS SEPENUHNYA dari DOM
             }
             
-            // Validate that we have at least one bahan baku selected
-            const bahanSelects = form.querySelectorAll('select[name*="bahan_baku"][name*="[id]"]:not([disabled])');
-            let hasValidData = false;
-            let validCount = 0;
-            
-            bahanSelects.forEach(select => {
-                if (select.value && select.value !== '') {
-                    hasValidData = true;
-                    validCount++;
+            // Also remove any rows with name containing 'new' or empty values
+            const allRows = form.querySelectorAll('#bahanBakuTable tbody tr');
+            allRows.forEach(row => {
+                const bahanSelect = row.querySelector('select[name*="bahan_baku"][name*="[id]"]');
+                if (bahanSelect) {
+                    const nameAttr = bahanSelect.getAttribute('name');
+                    // Remove if contains [new] or if value is empty
+                    if (nameAttr && (nameAttr.includes('[new]') || !bahanSelect.value)) {
+                        console.log("⚠️ Removing invalid row:", nameAttr);
+                        row.remove();
+                    }
                 }
             });
             
-            console.log(`Found ${validCount} valid bahan baku entries`);
+            // Count valid rows
+            const remainingRows = form.querySelectorAll('#bahanBakuTable tbody tr');
+            const validRows = Array.from(remainingRows).filter(row => {
+                const bahanSelect = row.querySelector('select[name*="bahan_baku"][name*="[id]"]');
+                return bahanSelect && bahanSelect.value;
+            });
             
-            if (!hasValidData) {
+            console.log(`✅ Valid rows remaining: ${validRows.length}`);
+            
+            if (validRows.length === 0) {
                 alert('Pilih minimal satu bahan baku!');
-                // Re-enable template row inputs
-                if (templateRow) {
-                    templateRow.querySelectorAll('input, select').forEach(input => {
-                        input.disabled = false;
-                    });
-                }
+                location.reload(); // Reload page to restore template
                 return;
             }
             
-            // Disable submit button to prevent double submission
+            // Log what will be submitted
+            validRows.forEach((row, idx) => {
+                const bahanSelect = row.querySelector('select[name*="[id]"]');
+                const jumlahInput = row.querySelector('input[name*="[jumlah]"]');
+                const satuanSelect = row.querySelector('select[name*="[satuan]"]');
+                const hargaInput = row.querySelector('input[name*="[harga_satuan]"]');
+                
+                console.log(`Row ${idx}:`, {
+                    name: bahanSelect?.name,
+                    bahan_id: bahanSelect?.value,
+                    jumlah: jumlahInput?.value,
+                    satuan: satuanSelect?.value,
+                    harga: hargaInput?.value
+                });
+            });
+            
+            // Disable submit button
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
             
-            // Submit the form
-            console.log("✅ Submitting form...");
+            // Submit
+            console.log("✅ Submitting form with", validRows.length, "rows");
             form.submit();
         });
         
-        console.log("✅ Form submission handler attached");
+        console.log("✅ Form submission handler v5.0 attached");
     }
     
     // Attach button listeners
