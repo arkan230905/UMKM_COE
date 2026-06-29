@@ -1618,8 +1618,6 @@ class BopController extends Controller
                 ->with('error', 'Gagal menambah BOP Proses V2: ' . $e->getMessage());
         }
     }
-}
-
 
     /**
      * API: Get target produksi for selected product and periode
