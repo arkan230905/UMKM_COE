@@ -57,6 +57,7 @@
             <a href="{{ route('master-data.coa.index') }}"                          class="sb-sub {{ request()->is('master-data/coa*') ? 'active' : '' }}">COA</a>
             <a href="{{ route('master-data.aset.index') }}"                         class="sb-sub {{ request()->is('master-data/aset*') ? 'active' : '' }}">Aset</a>
             <a href="{{ route('master-data.satuan.dashboard') }}"                   class="sb-sub {{ request()->is('master-data/satuan*') ? 'active' : '' }}">Satuan</a>
+            <a href="{{ route('master-data.target-produksi.index') }}"              class="sb-sub {{ request()->is('master-data/target-produksi*') ? 'active' : '' }}">Target Produksi</a>
             <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}"     class="sb-sub {{ request()->is('master-data/kualifikasi*') ? 'active' : '' }}">Kualifikasi TK</a>
             <a href="{{ route('master-data.pegawai.index') }}"                      class="sb-sub {{ request()->is('master-data/pegawai*') ? 'active' : '' }}">Pegawai</a>
             <a href="{{ route('master-data.vendor.index') }}"                       class="sb-sub {{ request()->is('master-data/vendor*') ? 'active' : '' }}">Vendor</a>

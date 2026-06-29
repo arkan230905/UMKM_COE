@@ -26,6 +26,18 @@ class FilamentServiceProvider extends ServiceProvider
                     ->label('Master Data')
                     ->collapsible() // membuat menu bisa di-expand/collapse
                     ->items([
+                        NavigationItem::make('COA')
+                            ->url($this->safeRoute('filament.admin.resources.coas.index', '/dashboard'))
+                            ->icon('heroicon-o-rectangle-stack'),
+
+                        NavigationItem::make('Aset')
+                            ->url($this->safeRoute('filament.admin.resources.assets.index', '/dashboard'))
+                            ->icon('heroicon-o-archive-box'),
+
+                        NavigationItem::make('Target Produksi')
+                            ->url($this->safeRoute('filament.admin.resources.target-produksis.index', '/dashboard'))
+                            ->icon('heroicon-o-chart-bar'),
+
                         NavigationItem::make('Pegawai')
                             ->url($this->safeRoute('filament.resources.pegawais.index', '/dashboard'))
                             ->icon('heroicon-o-user'),
@@ -35,14 +47,6 @@ class FilamentServiceProvider extends ServiceProvider
                             ->icon('heroicon-o-calendar'),
 
                         // Jabatan dikelola via Blade, tidak perlu tampil di panel Filament
-
-                        NavigationItem::make('COA')
-                            ->url($this->safeRoute('filament.admin.resources.coas.index', '/dashboard'))
-                            ->icon('heroicon-o-rectangle-stack'),
-
-                        NavigationItem::make('Aset')
-                            ->url($this->safeRoute('filament.admin.resources.assets.index', '/dashboard'))
-                            ->icon('heroicon-o-archive-box'),
 
                         NavigationItem::make('Produk')
                             ->url($this->safeRoute('filament.resources.produks.index', '/dashboard'))

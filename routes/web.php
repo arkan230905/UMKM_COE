@@ -2197,6 +2197,9 @@ Route::middleware('auth')->group(function () {
         Route::post('aset/{aset}/post-to-journal', [AsetController::class, 'postAssetToJournal'])->name('aset.post-to-journal');
         Route::post('aset/{aset}/unpost-from-journal', [AsetController::class, 'unpostAssetFromJournal'])->name('aset.unpost-from-journal');
         
+        // Target Produksi - Redirect to Filament Admin Panel
+        Route::get('target-produksi', [\App\Http\Controllers\MasterData\TargetProduksiController::class, 'index'])->name('target-produksi.index');
+        
         // Debug route to check asset setup
         Route::get('aset/debug-setup', function() {
             $asets = \App\Models\Aset::with(['expenseCoa', 'accumDepreciationCoa'])->take(5)->get();
