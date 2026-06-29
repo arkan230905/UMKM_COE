@@ -14,6 +14,9 @@ class BopProses extends Model
 
     protected $fillable = [
         'user_id',
+        'produk_id',
+        'periode',
+        'jumlah_produksi',
         'nama_bop_proses',
         'komponen_bahan_pendukung', // JSON: Bahan pendukung yang akan berkurang stoknya saat produksi
         'komponen_lainnya', // JSON: Komponen lainnya (listrik, gas, penyusutan, dll)
@@ -29,8 +32,17 @@ class BopProses extends Model
         'komponen_lainnya' => 'array',
         'total_bop_per_produk' => 'decimal:2',
         'total_biaya_per_produk' => 'decimal:2',
+        'jumlah_produksi' => 'decimal:2',
         'is_active' => 'boolean'
     ];
+
+    /**
+     * Relationship to Produk
+     */
+    public function produk()
+    {
+        return $this->belongsTo(Produk::class, 'produk_id');
+    }
 
     /**
      * Boot method untuk auto-set user_id
@@ -72,6 +84,30 @@ class BopProses extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope untuk filter berdasarkan periode
+     */
+    public function scopePeriode($query, $periode)
+    {
+        return $query->where('periode', $periode);
+    }
+
+    /**
+     * Scope untuk filter berdasarkan produk
+     */
+    public function scopeByProduk($query, $produkId)
+    {
+        return $query->where('produk_id', $produkId);
+    }
+
+    /**
+     * Get BOP per unit accessor
+     */
+    public function getBopPerUnitAttribute()
+    {
+        return $this->total_bop_per_produk; // Already per unit
     }
 
     /**

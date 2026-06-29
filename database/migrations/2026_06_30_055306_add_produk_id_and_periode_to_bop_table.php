@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('bop', function (Blueprint $table) {
+        Schema::table('bop_proses', function (Blueprint $table) {
             // Add produk_id to link BOP with specific product
             $table->unsignedBigInteger('produk_id')->nullable()->after('user_id');
             $table->foreign('produk_id')->references('id')->on('produks')->onDelete('cascade');
@@ -32,7 +32,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('bop', function (Blueprint $table) {
+        Schema::table('bop_proses', function (Blueprint $table) {
             $table->dropForeign(['produk_id']);
             $table->dropIndex(['user_id', 'produk_id', 'periode']);
             $table->dropColumn(['produk_id', 'periode', 'jumlah_produksi']);
