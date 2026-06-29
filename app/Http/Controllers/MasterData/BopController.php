@@ -1631,6 +1631,12 @@ class BopController extends Controller
             $produkId = $request->get('produk_id');
             $periode = $request->get('periode'); // Format: YYYY-MM
             
+            \Log::info('API Target Produksi - Request', [
+                'produk_id' => $produkId,
+                'periode' => $periode,
+                'user_id' => auth()->id()
+            ]);
+            
             if (!$produkId || !$periode) {
                 return response()->json([
                     'error' => 'produk_id dan periode harus diisi',
@@ -1643,17 +1649,26 @@ class BopController extends Controller
             [$tahun, $bulan] = explode('-', $periode);
             $bulan = (int) $bulan;
             
+            \Log::info('API Target Produksi - Parsed', [
+                'tahun' => $tahun,
+                'bulan' => $bulan
+            ]);
+            
             // Find target produksi for this product and year
             $targetProduksi = \App\Models\TargetProduksi::where('user_id', auth()->id())
                 ->where('produk_id', $produkId)
                 ->where('tahun', $tahun)
                 ->first();
             
+            \Log::info('API Target Produksi - Target found', [
+                'target_id' => $targetProduksi ? $targetProduksi->id : null
+            ]);
+            
             if (!$targetProduksi) {
                 return response()->json([
                     'jumlah_produksi' => 0,
                     'jumlah_produksi_formatted' => '0',
-                    'message' => 'Tidak ada target produksi untuk tahun ini'
+                    'message' => 'Tidak ada target produksi untuk produk ini di tahun ' . $tahun
                 ]);
             }
             
@@ -1662,18 +1677,40 @@ class BopController extends Controller
                 ->where('bulan', $bulan)
                 ->first();
             
-            $jumlahProduksi = $targetDetail ? $targetDetail->qty_produksi : 0;
+            \Log::info('API Target Produksi - Detail found', [
+                'detail_id' => $targetDetail ? $targetDetail->id : null,
+                'target_detail' => $targetDetail ? $targetDetail->toArray() : null
+            ]);
+            
+            // Support both column names: qty_produksi (production) or target_bulanan (dev)
+            $jumlahProduksi = 0;
+            if ($targetDetail) {
+                if (isset($targetDetail->qty_produksi)) {
+                    $jumlahProduksi = $targetDetail->qty_produksi;
+                } elseif (isset($targetDetail->target_bulanan)) {
+                    $jumlahProduksi = $targetDetail->target_bulanan;
+                }
+            }
+            
+            \Log::info('API Target Produksi - Result', [
+                'jumlah_produksi' => $jumlahProduksi
+            ]);
             
             return response()->json([
                 'jumlah_produksi' => $jumlahProduksi,
                 'jumlah_produksi_formatted' => number_format($jumlahProduksi, 0, ',', '.'),
                 'periode' => $periode,
                 'bulan' => $bulan,
-                'tahun' => $tahun
+                'tahun' => $tahun,
+                'debug' => [
+                    'target_produksi_id' => $targetProduksi->id,
+                    'detail_id' => $targetDetail ? $targetDetail->id : null
+                ]
             ]);
             
         } catch (\Exception $e) {
             \Log::error('Error fetching target produksi: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             
             return response()->json([
                 'error' => 'Terjadi kesalahan: ' . $e->getMessage(),
