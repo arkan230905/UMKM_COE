@@ -4,12 +4,7 @@ namespace App\Filament\Resources\TargetProduksis\Tables;
 
 use App\Models\TargetProduksi;
 use App\Services\TargetProduksiService;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables;
 use Filament\Tables\Table;
 
 class TargetProduksisTable
@@ -18,14 +13,14 @@ class TargetProduksisTable
     {
         return $table
             ->columns([
-                TextColumn::make('tahun')
+                Tables\Columns\TextColumn::make('tahun')
                     ->label('Tahun')
                     ->sortable()
                     ->searchable()
                     ->badge()
                     ->color('info'),
 
-                TextColumn::make('produk.nama_produk')
+                Tables\Columns\TextColumn::make('produk.nama_produk')
                     ->label('Produk')
                     ->searchable()
                     ->sortable()
@@ -33,14 +28,14 @@ class TargetProduksisTable
                         'Kode: ' . $record->produk->kode_produk
                     ),
 
-                TextColumn::make('total_target_tahunan')
+                Tables\Columns\TextColumn::make('total_target_tahunan')
                     ->label('Total Target')
                     ->numeric(decimalPlaces: 0)
                     ->sortable()
                     ->suffix(' Unit')
                     ->alignEnd(),
 
-                TextColumn::make('total_realisasi')
+                Tables\Columns\TextColumn::make('total_realisasi')
                     ->label('Realisasi')
                     ->numeric(decimalPlaces: 0)
                     ->sortable()
@@ -52,7 +47,7 @@ class TargetProduksisTable
                             : 'warning'
                     ),
 
-                TextColumn::make('persentase_pencapaian')
+                Tables\Columns\TextColumn::make('persentase_pencapaian')
                     ->label('Pencapaian')
                     ->badge()
                     ->suffix('%')
@@ -64,29 +59,29 @@ class TargetProduksisTable
                     })
                     ->alignCenter(),
 
-                TextColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
                     ->color(fn(TargetProduksi $record) => $record->status_color)
                     ->alignCenter(),
 
-                TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('creator.name')
+                Tables\Columns\TextColumn::make('creator.name')
                     ->label('Dibuat Oleh')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('tahun')
+                Tables\Filters\SelectFilter::make('tahun')
                     ->label('Tahun')
                     ->options(self::getYearFilterOptions())
                     ->default(now()->year),
 
-                SelectFilter::make('status')
+                Tables\Filters\SelectFilter::make('status')
                     ->label('Status')
                     ->options([
                         'Belum Dimulai' => 'Belum Dimulai',
@@ -95,13 +90,13 @@ class TargetProduksisTable
                     ]),
             ])
             ->actions([
-                ViewAction::make()
+                Tables\Actions\ViewAction::make()
                     ->label('Detail'),
                 
-                EditAction::make()
+                Tables\Actions\EditAction::make()
                     ->label('Edit'),
                 
-                Action::make('distribusi')
+                Tables\Actions\Action::make('distribusi')
                     ->label('Distribusi')
                     ->icon('heroicon-o-chart-bar')
                     ->color('info')
@@ -117,8 +112,8 @@ class TargetProduksisTable
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Tutup'),
                 
-                DeleteAction::make()
-                    ->before(function (TargetProduksi $record, DeleteAction $action) {
+                Tables\Actions\DeleteAction::make()
+                    ->before(function (TargetProduksi $record, Tables\Actions\DeleteAction $action) {
                         $service = app(TargetProduksiService::class);
                         $validation = $service->canDelete($record);
                         
