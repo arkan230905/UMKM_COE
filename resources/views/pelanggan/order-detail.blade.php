@@ -204,9 +204,26 @@
 
         <!-- Action Buttons -->
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.5rem; justify-content: center;">
-            <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create?order_id=" . $order->id) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
-                🔄 Ajukan Retur
-            </a>
+            @php
+                $canReturn = true;
+                $paymentStatusLower = strtolower($order->payment_status);
+                if ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
+                    $canReturn = false;
+                } elseif (!$order->paid_at) {
+                    $canReturn = false;
+                } elseif (now()->greaterThan($order->paid_at->copy()->addHours(5))) {
+                    $canReturn = false;
+                }
+            @endphp
+            @if($canReturn)
+                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create?order_id=" . $order->id) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="Retur tersedia s/d {{ $order->paid_at->copy()->addHours(5)->format('d/m H:i') }}">
+                    🔄 Ajukan Retur
+                </a>
+            @else
+                <button type="button" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem; opacity: 0.5; cursor: not-allowed;" title="Batas waktu retur (5 jam dari pembayaran) telah habis">
+                    🔄 Ajukan Retur
+                </button>
+            @endif
             <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/orders") }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                 ← Kembali ke Pesanan
             </a>

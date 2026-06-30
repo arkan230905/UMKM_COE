@@ -912,296 +912,136 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
                    $returPenjualan->tanggal->format('Y-m-d') : 
                    $returPenjualan->tanggal;
 
-        // Get or create Retur Penjualan account (always required)
-        $returCoa = Coa::where('user_id', $userId)
-            ->where(function($q) {
-                $q->where('nama_akun', 'Retur Penjualan')
-                  ->orWhere('nama_akun', 'like', '%Retur%Penjualan%');
-            })->first();
-        
-        if (!$returCoa) {
-            // Create Retur Penjualan account if it doesn't exist
-            $returCoa = Coa::create([
-                'user_id' => $userId,
-                'kode_akun' => '411',
-                'nama_akun' => 'Retur Penjualan',
-                'tipe_akun' => 'Revenue',
-                'kategori_akun' => 'Revenue',
-                'saldo_normal' => 'kredit',
-                'saldo_awal' => 0,
-                'posted_saldo_awal' => false,
-            ]);
-            \Log::info("Created Retur Penjualan account for user {$userId}");
-        }
-
         $jenisRetur = $returPenjualan->jenis_retur ?? 'refund';
+        $totalPpn = (float)($returPenjualan->ppn ?? 0);
+        
+        // For refund and kredit, totalRetur from model includes PPN.
+        // For tukar_barang, model sets it to 0, so we calculate the actual value to balance the journal.
         $totalRetur = (float)($returPenjualan->total_retur ?? 0);
-        $nilaiRetur = $totalRetur - (float)($returPenjualan->ppn ?? 0);
+        $totalReturPenjualanDetails = 0;
 
-        if ($jenisRetur === 'refund') {
-            // REFUND: Debit Retur Penjualan, Credit Kas/Bank/Piutang
-            $lines[] = [
-                'code' => $returCoa->kode_akun,
-                'debit' => $nilaiRetur,
-                'credit' => 0,
-                'memo' => 'Retur Penjualan - Refund'
-            ];
-
-            // Get debit account from penjualan if available
-            $debitCoa = null;
-            if ($returPenjualan->penjualan && $returPenjualan->penjualan->coa_id) {
-                $debitCoa = Coa::find($returPenjualan->penjualan->coa_id);
-            }
-            
-            if (!$debitCoa) {
-                $debitCoa = Coa::where('user_id', $userId)
-                    ->where(function($q) {
-                        $q->where('nama_akun', 'Kas')
-                          ->orWhere('nama_akun', 'like', '%Kas Bank%')
-                          ->orWhere('kode_akun', '112');
-                    })
-                    ->first();
-            }
-
-            // Create Kas account if it doesn't exist
-            if (!$debitCoa) {
-                $debitCoa = Coa::create([
-                    'user_id' => $userId,
-                    'kode_akun' => '112',
-                    'nama_akun' => 'Kas',
-                    'tipe_akun' => 'Asset',
-                    'kategori_akun' => 'Asset',
-                    'saldo_normal' => 'debit',
-                    'saldo_awal' => 0,
-                    'posted_saldo_awal' => false,
-                ]);
-                \Log::info("Created Kas account for user {$userId}");
-            }
-
-            $lines[] = [
-                'code' => $debitCoa->kode_akun,
-                'debit' => 0,
-                'credit' => $totalRetur,
-                'memo' => 'Penerimaan Retur Penjualan'
-            ];
-
-            // Handle PPN if exists
-            if ((float)($returPenjualan->ppn ?? 0) > 0) {
-                $ppnCoa = Coa::where('user_id', $userId)
-                    ->where('nama_akun', 'PPN Keluaran')
-                    ->first();
-
-                if (!$ppnCoa) {
-                    // Create PPN Keluaran if it doesn't exist
-                    $ppnCoa = Coa::create([
-                        'user_id' => $userId,
-                        'kode_akun' => '211',
-                        'nama_akun' => 'PPN Keluaran',
-                        'tipe_akun' => 'Liability',
-                        'kategori_akun' => 'Liability',
-                        'saldo_normal' => 'kredit',
-                        'saldo_awal' => 0,
-                        'posted_saldo_awal' => false,
-                    ]);
-                    \Log::info("Created PPN Keluaran account for user {$userId}");
+        // Helper untuk Get or Create COA
+        $getOrCreateCoa = function($namaAkun, $tipe, $kategori, $baseKode, $saldoNormal) use ($userId) {
+            $coa = Coa::where('user_id', $userId)->where('nama_akun', $namaAkun)->first();
+            if (!$coa) {
+                // Cari kode unik
+                $kode = $baseKode;
+                $counter = 1;
+                while (Coa::where('user_id', $userId)->where('kode_akun', (string)$kode)->exists()) {
+                    $kode = $baseKode . str_pad($counter, 2, '0', STR_PAD_LEFT);
+                    $counter++;
                 }
 
-                $lines[] = [
-                    'code' => $ppnCoa->kode_akun,
-                    'debit' => (float)($returPenjualan->ppn ?? 0),
-                    'credit' => 0,
-                    'memo' => 'Pembalikan PPN'
-                ];
-            }
-
-        } elseif ($jenisRetur === 'kredit') {
-            // KREDIT: Debit Retur Penjualan, Credit Piutang
-            $lines[] = [
-                'code' => $returCoa->kode_akun,
-                'debit' => $nilaiRetur,
-                'credit' => 0,
-                'memo' => 'Retur Penjualan - Kredit'
-            ];
-
-            // Get or create piutang account
-            $piutangCoa = Coa::where('user_id', $userId)
-                ->where('nama_akun', 'Piutang Usaha')
-                ->first();
-
-            if (!$piutangCoa) {
-                // Create Piutang Usaha if it doesn't exist
-                $piutangCoa = Coa::create([
-                    'user_id' => $userId,
-                    'kode_akun' => '113',
-                    'nama_akun' => 'Piutang Usaha',
-                    'tipe_akun' => 'Asset',
-                    'kategori_akun' => 'Asset',
-                    'saldo_normal' => 'debit',
-                    'saldo_awal' => 0,
-                    'posted_saldo_awal' => false,
+                $coa = Coa::create([
+                    'user_id' => $userId, 
+                    'kode_akun' => (string)$kode, 
+                    'nama_akun' => $namaAkun, 
+                    'tipe_akun' => $tipe, 
+                    'kategori_akun' => $kategori, 
+                    'saldo_normal' => $saldoNormal, 
+                    'saldo_awal' => 0, 
+                    'posted_saldo_awal' => false
                 ]);
-                \Log::info("Created Piutang Usaha account for user {$userId}");
             }
+            return $coa;
+        };
 
+        if ($returPenjualan->detailReturPenjualans) {
+            foreach ($returPenjualan->detailReturPenjualans as $detail) {
+                $namaProduk = $detail->produk ? $detail->produk->nama_produk : 'Umum';
+                $nilaiReturDetail = (float)($detail->harga_barang ?? 0) * (float)($detail->qty_retur ?? 0);
+                $totalReturPenjualanDetails += $nilaiReturDetail;
+                
+                // 1. Debit: Retur Penjualan (per produk)
+                $returCoa = $getOrCreateCoa("Retur Penjualan - {$namaProduk}", 'Revenue', 'Revenue', '411', 'debit'); // Saldo normal Retur Penjualan adalah Debit (mengurangi Revenue)
+                $lines[] = [
+                    'code' => $returCoa->kode_akun,
+                    'debit' => $nilaiReturDetail,
+                    'credit' => 0,
+                    'memo' => "Retur Penjualan - {$namaProduk}"
+                ];
+                
+                // 2. Pembalikan HPP & Persediaan (jika barang kembali ke stok)
+                // User: "Jika barang retur masuk kembali ke persediaan, buat jurnal tambahan: Debit Pers. Barang Jadi, Kredit HPP"
+                // Catatan: Untuk refund, barang tidak kembali ke stok (lihat ReturPenjualan::processRefund)
+                if ($detail->produk && $jenisRetur !== 'refund') {
+                    $hppSatuan = $detail->produk->getHPPForSaleDate($tanggal);
+                    $hppTotal = $hppSatuan * (float)($detail->qty_retur ?? 0);
+                    
+                    if ($hppTotal > 0) {
+                        // Debit: Persediaan Barang Jadi
+                        $persediaanCoa = $getOrCreateCoa("Pers. Barang Jadi {$namaProduk}", 'Asset', 'Asset', '121', 'debit');
+                        $lines[] = [
+                            'code' => $persediaanCoa->kode_akun,
+                            'debit' => $hppTotal,
+                            'credit' => 0,
+                            'memo' => "Pengembalian Stok - {$namaProduk}"
+                        ];
+                        
+                        // Kredit: HPP
+                        $hppCoa = $getOrCreateCoa("HPP - {$namaProduk}", 'Expense', 'Expense', '501', 'debit');
+                        $lines[] = [
+                            'code' => $hppCoa->kode_akun,
+                            'debit' => 0,
+                            'credit' => $hppTotal,
+                            'memo' => "Pembalikan HPP - {$namaProduk}"
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 3. Debit: PPN Keluaran
+        if ($totalPpn > 0) {
+            // Gunakan kode 212 atau 215 untuk menghindari konflik dengan Hutang Gaji (211)
+            $ppnCoa = $getOrCreateCoa('PPN Keluaran', 'Liability', 'Liability', '215', 'kredit');
+            $lines[] = [
+                'code' => $ppnCoa->kode_akun,
+                'debit' => $totalPpn,
+                'credit' => 0,
+                'memo' => 'Pembalikan PPN Keluaran'
+            ];
+        }
+
+        // 4. Kredit: Sumber Dana / Penyelesaian
+        if ($jenisRetur === 'refund') {
+            $creditCoa = null;
+            if ($returPenjualan->bank_refund_id) {
+                $creditCoa = Coa::find($returPenjualan->bank_refund_id);
+            }
+            if (!$creditCoa) {
+                // Fallback default
+                $creditCoa = $getOrCreateCoa('Kas Tunai', 'Asset', 'Asset', '111', 'debit');
+            }
+            
+            $lines[] = [
+                'code' => $creditCoa->kode_akun,
+                'debit' => 0,
+                'credit' => $totalRetur > 0 ? $totalRetur : ($totalReturPenjualanDetails + $totalPpn),
+                'memo' => 'Pengeluaran Kas/Bank - Refund'
+            ];
+        } elseif ($jenisRetur === 'kredit') {
+            $piutangCoa = $getOrCreateCoa('Piutang Usaha', 'Asset', 'Asset', '113', 'debit');
             $lines[] = [
                 'code' => $piutangCoa->kode_akun,
                 'debit' => 0,
-                'credit' => $totalRetur,
-                'memo' => 'Pengurangan Piutang - Retur'
+                'credit' => $totalRetur > 0 ? $totalRetur : ($totalReturPenjualanDetails + $totalPpn),
+                'memo' => 'Pengurangan Piutang Usaha - Retur'
             ];
-
-            // Handle PPN if exists
-            if ((float)($returPenjualan->ppn ?? 0) > 0) {
-                $ppnCoa = Coa::where('user_id', $userId)->where('nama_akun', 'PPN Keluaran')->first();
-                if (!$ppnCoa) {
-                    $ppnCoa = Coa::create(['user_id' => $userId, 'kode_akun' => '211', 'nama_akun' => 'PPN Keluaran', 'tipe_akun' => 'Liability', 'kategori_akun' => 'Liability', 'saldo_normal' => 'kredit', 'saldo_awal' => 0, 'posted_saldo_awal' => false]);
-                }
-                $lines[] = ['code' => $ppnCoa->kode_akun, 'debit' => (float)($returPenjualan->ppn ?? 0), 'credit' => 0, 'memo' => 'Pembalikan PPN'];
-            }
-
-            // Add inventory reversal entries (with fallback)
-            $inventoryLines = $service->createInventoryReversalLines($returPenjualan, $userId);
-            $lines = array_merge($lines, $inventoryLines);
-
         } elseif ($jenisRetur === 'tukar_barang') {
-            // TUKAR BARANG: Similar to kredit + inventory handling
-            $lines[] = [
-                'code' => $returCoa->kode_akun,
-                'debit' => $nilaiRetur,
-                'credit' => 0,
-                'memo' => 'Retur Penjualan - Tukar Barang'
-            ];
-
-            // Get or create sales account
-            $penjualanCoa = Coa::where('user_id', $userId)
-                ->where('nama_akun', 'Penjualan')
-                ->first();
-
-            if (!$penjualanCoa) {
-                // Create Penjualan account if it doesn't exist
-                $penjualanCoa = Coa::create([
-                    'user_id' => $userId,
-                    'kode_akun' => '401',
-                    'nama_akun' => 'Penjualan',
-                    'tipe_akun' => 'Revenue',
-                    'kategori_akun' => 'Revenue',
-                    'saldo_normal' => 'kredit',
-                    'saldo_awal' => 0,
-                    'posted_saldo_awal' => false,
-                ]);
-                \Log::info("Created Penjualan account for user {$userId}");
-            }
-
+            $penjualanCoa = $getOrCreateCoa('Penjualan', 'Revenue', 'Revenue', '401', 'kredit');
             $lines[] = [
                 'code' => $penjualanCoa->kode_akun,
                 'debit' => 0,
-                'credit' => $totalRetur,
-                'memo' => 'Penjualan Tukar Barang'
+                'credit' => $totalReturPenjualanDetails + $totalPpn,
+                'memo' => 'Penjualan Pengganti - Tukar Barang'
             ];
-
-            // Handle PPN if exists
-            if ((float)($returPenjualan->ppn ?? 0) > 0) {
-                $ppnCoa = Coa::where('user_id', $userId)->where('nama_akun', 'PPN Keluaran')->first();
-                if (!$ppnCoa) {
-                    $ppnCoa = Coa::create(['user_id' => $userId, 'kode_akun' => '211', 'nama_akun' => 'PPN Keluaran', 'tipe_akun' => 'Liability', 'kategori_akun' => 'Liability', 'saldo_normal' => 'kredit', 'saldo_awal' => 0, 'posted_saldo_awal' => false]);
-                }
-                $lines[] = ['code' => $ppnCoa->kode_akun, 'debit' => (float)($returPenjualan->ppn ?? 0), 'credit' => 0, 'memo' => 'Pembalikan PPN'];
-            }
-
-            // Add inventory lines (with fallback)
-            $inventoryLines = $service->createInventoryReversalLines($returPenjualan, $userId);
-            $lines = array_merge($lines, $inventoryLines);
         }
 
-        // Post the journal - only if there are lines to post
+        // Post the journal
         if (!empty($lines)) {
             $memo = 'Retur Penjualan #' . $returPenjualan->nomor_retur . ' (' . ucfirst($jenisRetur) . ')';
             $service->postWithUser($tanggal, 'sales_return', $returPenjualan->id, $memo, $lines, $userId);
         }
-    }
-
-    /**
-     * Create inventory reversal lines for retur penjualan
-     * (when goods are returned to inventory)
-     * IMPORTANT: This method creates necessary accounts if they don't exist
-     */
-    private function createInventoryReversalLines($returPenjualan, $userId): array
-    {
-        $lines = [];
-
-        if (!$returPenjualan->detailReturPenjualans || $returPenjualan->detailReturPenjualans->isEmpty()) {
-            return $lines;
-        }
-
-        // Get or create persediaan account
-        $persediaanCoa = Coa::where('user_id', $userId)
-            ->where('nama_akun', 'like', '%Persediaan%Barang Jadi%')
-            ->first();
-
-        if (!$persediaanCoa) {
-            // Create Persediaan Barang Jadi if it doesn't exist
-            $persediaanCoa = Coa::create([
-                'user_id' => $userId,
-                'kode_akun' => '121',
-                'nama_akun' => 'Persediaan Barang Jadi',
-                'tipe_akun' => 'Asset',
-                'kategori_akun' => 'Asset',
-                'saldo_normal' => 'debit',
-                'saldo_awal' => 0,
-                'posted_saldo_awal' => false,
-            ]);
-            \Log::info("Created Persediaan Barang Jadi account for user {$userId}");
-        }
-
-        // Calculate total HPP
-        $totalHpp = 0;
-        foreach ($returPenjualan->detailReturPenjualans as $detail) {
-            if ($detail->produk && $detail->harga_satuan > 0) {
-                $hpp = (float)($detail->harga_satuan) * (int)($detail->qty_retur ?? 1);
-                $totalHpp += $hpp;
-            }
-        }
-
-        if ($totalHpp > 0) {
-            // Debit: Persediaan Barang Jadi
-            $lines[] = [
-                'code' => $persediaanCoa->kode_akun,
-                'debit' => $totalHpp,
-                'credit' => 0,
-                'memo' => 'Pengembalian Barang ke Persediaan'
-            ];
-
-            // Credit: HPP (Harga Pokok Penjualan)
-            $hppCoa = Coa::where('user_id', $userId)
-                ->where(function($q) {
-                    $q->where('nama_akun', 'HPP')
-                      ->orWhere('nama_akun', 'like', '%Harga Pokok%')
-                      ->orWhere('kode_akun', '501');
-                })->first();
-
-            if (!$hppCoa) {
-                // Create HPP account if it doesn't exist
-                $hppCoa = Coa::create([
-                    'user_id' => $userId,
-                    'kode_akun' => '501',
-                    'nama_akun' => 'Harga Pokok Penjualan',
-                    'tipe_akun' => 'Expense',
-                    'kategori_akun' => 'Expense',
-                    'saldo_normal' => 'debit',
-                    'saldo_awal' => 0,
-                    'posted_saldo_awal' => false,
-                ]);
-                \Log::info("Created HPP account for user {$userId}");
-            }
-
-            $lines[] = [
-                'code' => $hppCoa->kode_akun,
-                'debit' => 0,
-                'credit' => $totalHpp,
-                'memo' => 'Pembalikan HPP - Retur'
-            ];
-        }
-
-        return $lines;
     }
 }

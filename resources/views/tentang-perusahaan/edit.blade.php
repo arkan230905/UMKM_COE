@@ -78,11 +78,12 @@
                             </div>
                             
                             <div class="col-md-12">
-                                <label for="alamat" class="form-label fw-bold theme-brown">Alamat Lengkap</label>
+                                <label for="alamat" class="form-label fw-bold theme-brown">Alamat Lengkap (Beserta RT/RW dan Patokan)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-end-0 align-items-start pt-2"><i class="fas fa-map-marker-alt text-muted"></i></span>
-                                    <textarea class="form-control border-start-0 ps-0" id="alamat" name="alamat" rows="3" required placeholder="Masukkan alamat lengkap">{{ old('alamat', $dataPerusahaan->alamat) }}</textarea>
+                                    <textarea class="form-control border-start-0 ps-0" id="alamat" name="alamat" rows="3" required placeholder="Contoh: Gedung FIT Telkom University, RT 01/RW 02, dekat gerbang utama">{{ old('alamat', $dataPerusahaan->alamat) }}</textarea>
                                 </div>
+                                <div class="form-text mt-2"><a href="#map_search" onclick="document.getElementById('map_search').focus(); return false;" class="text-theme text-decoration-none"><i class="fas fa-search-location me-1"></i> Gunakan pencarian peta di bawah untuk mencari lokasi otomatis, lalu lengkapi dengan RT/RW/Patokan secara manual</a></div>
                             </div>
                             
                             <div class="col-md-6">
@@ -101,17 +102,24 @@
                                 </div>
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label fw-bold theme-brown">Titik Lokasi Perusahaan (Peta) <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold theme-brown">Lokasi Perusahaan untuk Perhitungan Ongkir <span class="text-danger">*</span></label>
                                 <div class="position-relative mb-2">
                                     <input type="text" id="map_search" class="form-control" placeholder="Cari lokasi perusahaan di peta..." style="border-radius: 8px; padding-right: 2.5rem;">
                                     <i class="fas fa-search position-absolute text-muted" style="right: 15px; top: 50%; transform: translateY(-50%);"></i>
-                                    <div id="map-suggestions" class="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
+                                    <div id="map-suggestions" class="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style="z-index: 9999; display: none; max-height: 200px; overflow-y: auto;"></div>
                                 </div>
                                 <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #dee2e6;" class="mb-2"></div>
-                                <div class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> Geser pin merah atau gunakan pencarian untuk mengatur lokasi akurat perusahaan Anda.</div>
+                                <div class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> Titik lokasi ini digunakan untuk menghitung ongkir ke pelanggan secara lebih akurat. Seret atau klik peta untuk menempatkan lokasi perusahaan.</div>
                                 
                                 <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude', $dataPerusahaan->latitude) }}">
                                 <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude', $dataPerusahaan->longitude) }}">
+                                
+                                <div class="form-check mt-3" style="background: #fdf5eb; border: 1px solid #f0e6d2; padding: 1rem 1rem 1rem 2.5rem; border-radius: 8px;">
+                                    <input class="form-check-input" type="checkbox" id="konfirmasi_map" style="cursor: pointer; width: 1.2rem; height: 1.2rem; margin-top: 0.1rem;">
+                                    <label class="form-check-label fw-bold" for="konfirmasi_map" style="font-size: 0.9rem; color: #8b5a2b; cursor: pointer;">
+                                        Saya sudah memastikan titik lokasi perusahaan di peta sudah benar. Titik ini akan digunakan untuk menghitung ongkir pelanggan.
+                                    </label>
+                                </div>
                                 @if(empty($dataPerusahaan->latitude) || empty($dataPerusahaan->longitude))
                                     <div class="alert alert-warning py-2 mb-0" style="font-size: 0.85rem;">
                                         <i class="fas fa-exclamation-triangle me-1"></i> Titik lokasi belum diatur. Mohon atur lokasi perusahaan agar perhitungan ongkir pelanggan dapat berfungsi.
@@ -154,7 +162,7 @@
                         </li>
                         <li class="mb-3 d-flex">
                             <i class="fas fa-check-circle text-success me-2 mt-1"></i>
-                            <span><strong>Titik Lokasi (Peta)</strong> sangat penting untuk menghitung jarak pengiriman (ongkir) pesanan pelanggan secara otomatis.</span>
+                            <span><strong>Lokasi Perusahaan</strong> sangat penting untuk menghitung jarak pengiriman (ongkir) pesanan pelanggan secara otomatis.</span>
                         </li>
                         <li class="mb-3 d-flex">
                             <i class="fas fa-check-circle text-success me-2 mt-1"></i>
@@ -177,8 +185,18 @@
     document.addEventListener('DOMContentLoaded', function() {
         const latInput = document.getElementById('latitude');
         const lonInput = document.getElementById('longitude');
+        const alamatInput = document.getElementById('alamat');
         const searchInput = document.getElementById('map_search');
         const suggestionsList = document.getElementById('map-suggestions');
+        const konfirmasiCheckbox = document.getElementById('konfirmasi_map');
+        
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!konfirmasiCheckbox.checked) {
+                e.preventDefault();
+                alert('Silakan pastikan titik lokasi perusahaan di peta sudah benar dan centang kotak konfirmasi sebelum menyimpan.');
+            }
+        });
+        
         let timeoutId;
         
         // Default to saved location, or Bandung if empty
@@ -192,23 +210,99 @@
 
         let marker = L.marker([defaultLat, defaultLon], {draggable: true}).addTo(map);
 
-        function updateLocation(lat, lng) {
+        function formatNominatimAddress(addr, placeName = null) {
+            if (!addr) return '';
+            let parts = [];
+            
+            // Nama Tempat (POI)
+            let tempat = placeName || addr.amenity || addr.building || addr.shop || addr.office || addr.tourism || '';
+            
+            // Nama Jalan & Nomor
+            let jalan = addr.road || addr.pedestrian || addr.street || addr.path || '';
+            let nomor = addr.house_number || '';
+            let jalanLengkap = jalan;
+            if (jalan && nomor) {
+                jalanLengkap = jalan + ' No. ' + nomor;
+            } else if (!jalan && addr.hamlet) {
+                // Seringkali jalan tidak ada tapi hamlet/dusun ada
+                jalanLengkap = addr.hamlet;
+            }
+            
+            if (tempat && tempat !== jalanLengkap) parts.push(tempat);
+            if (jalanLengkap && jalanLengkap !== tempat) parts.push(jalanLengkap);
+            
+            // Kelurahan / Desa
+            let kelurahan = addr.village || addr.suburb || addr.neighbourhood || addr.residential || '';
+            if (kelurahan && kelurahan !== jalanLengkap && kelurahan !== tempat) parts.push(kelurahan);
+            
+            // Kecamatan
+            let kecamatan = addr.city_district || addr.district || addr.subdistrict || '';
+            if (kecamatan && kecamatan !== kelurahan) parts.push(kecamatan);
+            
+            // Kota / Kabupaten
+            let kota = addr.city || addr.town || addr.municipality || addr.county || '';
+            if (kota && kota !== kecamatan) parts.push(kota);
+            
+            // Provinsi & Kode Pos
+            let provinsi = addr.state || addr.region || addr.province || '';
+            let kodepos = addr.postcode || '';
+            let provPos = provinsi;
+            if (provinsi && kodepos) {
+                provPos = provinsi + ' ' + kodepos;
+            } else if (kodepos) {
+                provPos = kodepos;
+            }
+            if (provPos) parts.push(provPos);
+            
+            // Negara
+            let negara = addr.country || 'Indonesia';
+            if (negara) parts.push(negara);
+            
+            // Gabungkan dengan koma
+            return parts.join(', ');
+        }
+
+        function reverseGeocode(lat, lon, predefinedAddress = null) {
+            if (predefinedAddress) {
+                alamatInput.value = predefinedAddress;
+                konfirmasiCheckbox.checked = false;
+                return;
+            }
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.address) {
+                        const formatted = formatNominatimAddress(data.address, data.name || null) || data.display_name;
+                        if (formatted) alamatInput.value = formatted;
+                        konfirmasiCheckbox.checked = false;
+                    }
+                })
+                .catch(err => console.error("Geocoding error:", err));
+        }
+
+        function updateLocation(lat, lng, fetchAddress = true, predefinedAddress = null) {
             const newLatLng = new L.LatLng(lat, lng);
             marker.setLatLng(newLatLng);
             map.panTo(newLatLng);
             latInput.value = lat;
             lonInput.value = lng;
+            
+            if (fetchAddress || predefinedAddress) {
+                reverseGeocode(lat, lng, predefinedAddress);
+            }
+            
+            konfirmasiCheckbox.checked = false;
         }
 
         // On Marker Drag
         marker.on('dragend', function(e) {
             const position = marker.getLatLng();
-            updateLocation(position.lat, position.lng);
+            updateLocation(position.lat, position.lng, true);
         });
 
         // On Map Click
         map.on('click', function(e) {
-            updateLocation(e.latlng.lat, e.latlng.lng);
+            updateLocation(e.latlng.lat, e.latlng.lng, true);
         });
 
         // Search Autocomplete
@@ -216,13 +310,13 @@
             clearTimeout(timeoutId);
             const query = this.value.trim();
 
-            if (query.length < 5) {
+            if (query.length < 3) {
                 suggestionsList.style.display = 'none';
                 return;
             }
 
             timeoutId = setTimeout(() => {
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=5`)
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=15&addressdetails=1&dedupe=0`)
                     .then(response => response.json())
                     .then(data => {
                         suggestionsList.innerHTML = '';
@@ -231,21 +325,31 @@
                                 const div = document.createElement('div');
                                 div.className = 'p-2 border-bottom';
                                 div.style.cssText = 'cursor: pointer; font-size: 0.85rem;';
-                                div.innerHTML = `<i class="fas fa-map-marker-alt text-muted me-2"></i> ${item.display_name}`;
+                                
+                                // Ambil nama tempat dari display_name
+                                let placeName = item.name || item.display_name.split(',')[0];
+                                const formatted = item.address ? formatNominatimAddress(item.address, placeName) : item.display_name;
+                                div.innerHTML = `<i class="fas fa-map-marker-alt text-muted me-2"></i> ${formatted}`;
                                 
                                 div.addEventListener('click', function() {
-                                    searchInput.value = item.display_name;
+                                    searchInput.value = '';
                                     suggestionsList.style.display = 'none';
-                                    updateLocation(item.lat, item.lon);
+                                    updateLocation(item.lat, item.lon, false, formatted);
                                 });
                                 suggestionsList.appendChild(div);
                             });
                             suggestionsList.style.display = 'block';
                         } else {
-                            suggestionsList.style.display = 'none';
+                            const div = document.createElement('div');
+                            div.className = 'p-2 text-muted text-center';
+                            div.style.cssText = 'font-size: 0.85rem;';
+                            div.innerText = 'Alamat tidak ditemukan. Coba gunakan kata kunci yang lebih lengkap.';
+                            suggestionsList.appendChild(div);
+                            suggestionsList.style.display = 'block';
                         }
-                    });
-            }, 500);
+                    })
+                    .catch(err => console.error("Search error:", err));
+            }, 400); // 400ms debounce
         });
 
         document.addEventListener('click', function(e) {
@@ -254,6 +358,19 @@
             }
         });
         
+        // Form Validation before submit
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!latInput.value || !lonInput.value) {
+                e.preventDefault();
+                alert('Silakan pilih lokasi perusahaan di peta terlebih dahulu.');
+            }
+            if (!alamatInput.value.trim()) {
+                e.preventDefault();
+                alert('Alamat lengkap wajib diisi.');
+                alamatInput.focus();
+            }
+        });
+
         // Wait a bit for layout to render then invalidate map size
         setTimeout(() => {
             map.invalidateSize();

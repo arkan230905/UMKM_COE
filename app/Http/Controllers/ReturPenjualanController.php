@@ -51,27 +51,20 @@ class ReturPenjualanController extends Controller
         $validator = new \App\Services\JournalValidationService();
         $validation = $validator->validateReturPenjualan($returPenjualan);
 
-        // Ambil jurnal yang sudah ada dari jurnal_umum
+        // Re-generate jurnal secara otomatis untuk memastikan akun menggunakan logic terbaru (misal: PPN bukan Hutang Gaji)
+        try {
+            \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+        } catch (\Exception $e) {
+            \Log::error('Failed to auto-create journal for retur penjualan ' . $returPenjualan->id . ': ' . $e->getMessage());
+        }
+
+        // Ambil jurnal yang sudah diperbarui dari jurnal_umum, urutkan Debit di atas
         $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
             ->where('referensi', (string)$returPenjualan->id)
             ->with('coa')
+            ->orderByRaw('debit > 0 DESC')
             ->orderBy('id')
             ->get();
-
-        // Jika jurnal belum ada, buat otomatis (tidak perlu check validation lagi, karena service sudah handle fallback)
-        if ($journalLines->isEmpty()) {
-            try {
-                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
-                // Ambil jurnal yang baru dibuat
-                $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
-                    ->where('referensi', (string)$returPenjualan->id)
-                    ->with('coa')
-                    ->orderBy('id')
-                    ->get();
-            } catch (\Exception $e) {
-                \Log::error('Failed to auto-create journal for retur penjualan ' . $returPenjualan->id . ': ' . $e->getMessage());
-            }
-        }
 
         // Transform jurnal lines untuk kompatibilitas dengan view
         $journalEntry = null;
@@ -103,27 +96,20 @@ class ReturPenjualanController extends Controller
         $validator = new \App\Services\JournalValidationService();
         $validation = $validator->validateReturPenjualan($returPenjualan);
 
-        // Ambil jurnal yang sudah ada dari jurnal_umum
+        // Re-generate jurnal secara otomatis untuk memastikan akun menggunakan logic terbaru (misal: PPN bukan Hutang Gaji)
+        try {
+            \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+        } catch (\Exception $e) {
+            \Log::warning('Failed to auto-create journal for retur: ' . $e->getMessage());
+        }
+
+        // Ambil jurnal yang sudah diperbarui dari jurnal_umum, urutkan Debit di atas
         $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
             ->where('referensi', (string)$returPenjualan->id)
             ->with('coa')
+            ->orderByRaw('debit > 0 DESC')
             ->orderBy('id')
             ->get();
-
-        // Jika jurnal belum ada dan semua akun tersedia, buat otomatis
-        if ($journalLines->isEmpty() && $validation['valid']) {
-            try {
-                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
-                // Ambil jurnal yang baru dibuat
-                $journalLines = \App\Models\JurnalUmum::where('tipe_referensi', 'sales_return')
-                    ->where('referensi', (string)$returPenjualan->id)
-                    ->with('coa')
-                    ->orderBy('id')
-                    ->get();
-            } catch (\Exception $e) {
-                \Log::warning('Failed to auto-create journal for retur: ' . $e->getMessage());
-            }
-        }
 
         // Transform jurnal lines untuk kompatibilitas dengan view
         $journalEntry = null;
@@ -159,10 +145,31 @@ class ReturPenjualanController extends Controller
             'metode_refund' => 'required_if:jenis_retur,refund|in:kas,transfer|nullable',
             'bank_refund_id' => 'required_if:metode_refund,transfer|exists:coas,id|nullable',
             'nama_penerima_refund' => 'required_if:metode_refund,transfer|string|nullable',
-            'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable'
+            'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable',
+            'no_rekening_refund' => 'required_if:metode_refund,transfer|string|nullable'
         ]);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
+
+        // 5-Hour Return Logic Restriction
+        if (strtolower($penjualan->payment_status) !== 'paid' && strtolower($penjualan->payment_status) !== 'lunas') {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Retur hanya dapat diajukan setelah pembayaran berhasil.');
+        }
+
+        if (!$penjualan->payment_confirmed_at) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Retur tidak dapat diajukan karena data waktu pembayaran tidak ditemukan.');
+        }
+
+        if (now()->greaterThan($penjualan->payment_confirmed_at->copy()->addHours(5))) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
+        }
+
         if ($request->jenis_retur === 'kredit' && $penjualan->payment_method !== 'credit') {
             return redirect()->back()
                 ->withInput()
@@ -180,6 +187,15 @@ class ReturPenjualanController extends Controller
             $returPenjualan->jenis_retur = $request->jenis_retur;
             $returPenjualan->keterangan = $request->keterangan;
             $returPenjualan->user_id = auth()->id(); // CRITICAL: Set user_id
+            
+            if ($request->jenis_retur === 'refund') {
+                $returPenjualan->metode_refund = $request->metode_refund;
+                $returPenjualan->bank_refund_id = $request->bank_refund_id;
+                $returPenjualan->bank_tujuan_refund = $request->bank_tujuan_refund;
+                $returPenjualan->no_rekening_refund = $request->no_rekening_refund;
+                $returPenjualan->nama_penerima_refund = $request->nama_penerima_refund;
+            }
+            
             $returPenjualan->save();
 
             foreach ($request->details as $detail) {
@@ -282,7 +298,8 @@ class ReturPenjualanController extends Controller
             'metode_refund' => 'required_if:jenis_retur,refund|in:kas,transfer|nullable',
             'bank_refund_id' => 'required_if:metode_refund,transfer|exists:coas,id|nullable',
             'nama_penerima_refund' => 'required_if:metode_refund,transfer|string|nullable',
-            'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable'
+            'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable',
+            'no_rekening_refund' => 'required_if:metode_refund,transfer|string|nullable'
         ]);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
@@ -300,6 +317,21 @@ class ReturPenjualanController extends Controller
             $returPenjualan->pelanggan_id = $request->pelanggan_id ?? null;
             $returPenjualan->jenis_retur = $request->jenis_retur;
             $returPenjualan->keterangan = $request->keterangan;
+            
+            if ($request->jenis_retur === 'refund') {
+                $returPenjualan->metode_refund = $request->metode_refund;
+                $returPenjualan->bank_refund_id = $request->bank_refund_id;
+                $returPenjualan->bank_tujuan_refund = $request->bank_tujuan_refund;
+                $returPenjualan->no_rekening_refund = $request->no_rekening_refund;
+                $returPenjualan->nama_penerima_refund = $request->nama_penerima_refund;
+            } else {
+                $returPenjualan->metode_refund = null;
+                $returPenjualan->bank_refund_id = null;
+                $returPenjualan->bank_tujuan_refund = null;
+                $returPenjualan->no_rekening_refund = null;
+                $returPenjualan->nama_penerima_refund = null;
+            }
+            
             $returPenjualan->save();
 
             $returPenjualan->detailReturPenjualans()->delete();

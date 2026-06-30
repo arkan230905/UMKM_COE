@@ -232,143 +232,195 @@
             <div class="tab-pane fade show active" id="detail-pane" role="tabpanel" aria-labelledby="detail-tab">
                 <div class="card-body">
                     <div class="row g-4">
-                        {{-- Left: Informasi Retur --}}
-                        <div class="col-md-6">
-                            <h6 class="mb-3 text-theme fw-bold"><i class="fas fa-info-circle me-2"></i>Informasi Retur</h6>
-                            
-                            <div class="row g-2 mb-4">
-                                <div class="col-12">
-                                    <div class="info-item">
-                                        <div class="info-item-icon">
-                                            <i class="fas fa-hashtag"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">No. Retur</div>
-                                            <div class="info-item-value">{{ $returPenjualan->nomor_retur }}</div>
-                                        </div>
-                                    </div>
+                        {{-- Left: Informasi Retur & Ringkasan Nilai --}}
+                        <div class="col-md-4">
+                            <!-- Card Informasi Retur -->
+                            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                    <h6 class="text-theme fw-bold mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Retur</h6>
                                 </div>
-                                
-                                <div class="col-12">
-                                    <div class="info-item">
-                                        <div class="info-item-icon">
-                                            <i class="far fa-calendar"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">Tanggal Retur</div>
-                                            <div class="info-item-value">{{ $returPenjualan->tanggal->format('d/m/Y') }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-12">
-                                    <div class="info-item">
-                                        <div class="info-item-icon">
-                                            <i class="fas fa-exchange-alt"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">Jenis Retur</div>
-                                            <div class="info-item-value">
-                                                @switch($returPenjualan->jenis_retur)
-                                                    @case('refund')<span class="badge bg-danger">Refund</span>@break
-                                                    @case('kredit')<span class="badge bg-info">Kredit</span>@break
-                                                    @case('tukar_barang')<span class="badge bg-warning">Tukar Barang</span>@break
-                                                    @default<span class="badge bg-secondary">-</span>
-                                                @endswitch
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-12">
-                                    <div class="info-item">
-                                        <div class="info-item-icon">
-                                            <i class="fas fa-check-circle"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">Status</div>
-                                            <div class="info-item-value">
-                                                @switch($returPenjualan->status)
-                                                    @case('belum_dibayar')<span class="badge bg-warning">Belum Dibayar</span>@break
-                                                    @case('lunas')<span class="badge bg-success">Lunas</span>@break
-                                                    @case('selesai')<span class="badge bg-success">Selesai</span>@break
-                                                    @default<span class="badge bg-secondary">-</span>
-                                                @endswitch
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless table-sm mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="width: 40%; vertical-align: middle;">No. Retur</td>
+                                                <td class="fw-bold text-end pe-0">{{ $returPenjualan->nomor_retur }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: middle;">Tanggal Retur</td>
+                                                <td class="fw-bold text-end pe-0">{{ $returPenjualan->tanggal->format('d/m/Y') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: middle;">No. Penjualan</td>
+                                                <td class="fw-bold text-end pe-0 text-theme">{{ $returPenjualan->penjualan->nomor_penjualan ?? '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: middle;">Tgl Penjualan</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->penjualan ? (\Carbon\Carbon::parse($returPenjualan->penjualan->tanggal)->format('d/m/Y')) : '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: middle;">Pelanggan</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->pelanggan->name ?? 'Umum' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: middle;">Jenis Retur</td>
+                                                <td class="text-end pe-0">
+                                                    @switch($returPenjualan->jenis_retur)
+                                                        @case('refund')<span class="badge bg-danger px-3 py-2 rounded-pill">Refund</span>@break
+                                                        @case('kredit')<span class="badge bg-info px-3 py-2 rounded-pill">Kredit</span>@break
+                                                        @case('tukar_barang')<span class="badge bg-warning text-dark px-3 py-2 rounded-pill">Tukar Barang</span>@break
+                                                        @default<span class="badge bg-secondary px-3 py-2 rounded-pill">-</span>
+                                                    @endswitch
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: middle;">Status Retur</td>
+                                                <td class="text-end pe-0">
+                                                    @switch($returPenjualan->status)
+                                                        @case('belum_dibayar')<span class="badge bg-warning text-dark px-3 py-2 rounded-pill">Belum Dibayar</span>@break
+                                                        @case('lunas')<span class="badge bg-success px-3 py-2 rounded-pill">Lunas</span>@break
+                                                        @case('selesai')<span class="badge bg-success px-3 py-2 rounded-pill">Selesai</span>@break
+                                                        @default<span class="badge bg-secondary px-3 py-2 rounded-pill">-</span>
+                                                    @endswitch
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: top; padding-top: 8px;">Keterangan</td>
+                                                <td class="text-end pe-0" style="vertical-align: top; padding-top: 8px;">{{ $returPenjualan->keterangan ?: '-' }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
 
-                            <h6 class="mb-3 text-theme fw-bold"><i class="fas fa-money-bill me-2"></i>Ringkasan Nilai</h6>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <div class="info-item">
-                                        <div class="info-item-icon">
-                                            <i class="fas fa-calculator"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">Nilai Retur</div>
-                                            <div class="info-item-value">Rp {{ number_format((float)($returPenjualan->total_retur - $returPenjualan->ppn), 0, ',', '.') }}</div>
-                                        </div>
-                                    </div>
+                            @if($returPenjualan->jenis_retur === 'refund')
+                            <!-- Card Informasi Pengembalian Dana -->
+                            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                    <h6 class="text-theme fw-bold mb-0"><i class="fas fa-hand-holding-usd me-2"></i>Informasi Pengembalian Dana</h6>
                                 </div>
-                                @if($returPenjualan->ppn > 0)
-                                <div class="col-12">
-                                    <div class="info-item">
-                                        <div class="info-item-icon">
-                                            <i class="fas fa-percent"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">PPN (11%)</div>
-                                            <div class="info-item-value">Rp {{ number_format((float)$returPenjualan->ppn, 0, ',', '.') }}</div>
-                                        </div>
-                                    </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless table-sm mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="width: 45%;">Metode Pengembalian</td>
+                                                <td class="fw-bold text-end pe-0">{{ ucfirst($returPenjualan->metode_refund ?? '-') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">Sumber Dana Perusahaan</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->bankRefund ? $returPenjualan->bankRefund->nama_akun : ($returPenjualan->metode_refund === 'tunai' ? 'Kas Tunai' : '-') }}</td>
+                                            </tr>
+                                            
+                                            @if($returPenjualan->metode_refund === 'transfer')
+                                            <tr>
+                                                <td class="text-muted ps-0">Bank Tujuan Pelanggan</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->bank_tujuan_refund ?? '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">Nomor Rekening</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->no_rekening_refund ?? '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">Nama Penerima</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->nama_penerima_refund ?? '-' }}</td>
+                                            </tr>
+                                            @endif
+                                            
+                                            <tr>
+                                                <td class="text-muted ps-0">Total Dana Dikembalikan</td>
+                                                <td class="fw-bold text-end pe-0 text-success">Rp {{ number_format((float)$returPenjualan->total_retur, 0, ',', '.') }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                @endif
-                                <div class="col-12">
-                                    <div class="info-item" style="background: linear-gradient(135deg, #fdfaf6, #f5efe6); border: 1px dashed #d4a574;">
-                                        <div class="info-item-icon" style="background: rgba(212, 165, 116, 0.15);">
-                                            <i class="fas fa-wallet"></i>
-                                        </div>
-                                        <div class="info-item-content">
-                                            <div class="info-item-label">Total Retur</div>
-                                            <div class="info-item-value" style="color: #5c3d2e;">Rp {{ number_format((float)$returPenjualan->total_retur, 0, ',', '.') }}</div>
-                                        </div>
+                            </div>
+                            @elseif($returPenjualan->jenis_retur === 'tukar_barang')
+                            <!-- Card Informasi Tukar Barang -->
+                            <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                    <h6 class="text-theme fw-bold mb-0"><i class="fas fa-exchange-alt me-2"></i>Informasi Tukar Barang</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless table-sm mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="width: 45%;">Jenis Retur</td>
+                                                <td class="fw-bold text-end pe-0">Tukar Barang</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0">Status</td>
+                                                <td class="text-end pe-0">Selesai</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Card Ringkasan Nilai -->
+                            <div class="card shadow-sm border-0" style="border-radius: 12px;">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                    <h6 class="text-theme fw-bold mb-0"><i class="fas fa-money-bill-wave me-2"></i>Ringkasan Nilai</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless table-sm mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="width: 40%;">Nilai Retur</td>
+                                                <td class="text-end fw-bold pe-0">Rp {{ number_format((float)($returPenjualan->total_retur - $returPenjualan->ppn), 0, ',', '.') }}</td>
+                                            </tr>
+                                            @if($returPenjualan->ppn > 0)
+                                            <tr>
+                                                <td class="text-muted ps-0">PPN (11%)</td>
+                                                <td class="text-end fw-bold pe-0">Rp {{ number_format((float)$returPenjualan->ppn, 0, ',', '.') }}</td>
+                                            </tr>
+                                            @endif
+                                        </tbody>
+                                    </table>
+                                    <hr class="my-3" style="border-color: #f1eae1;">
+                                    <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background: linear-gradient(135deg, #fdfaf6, #f5efe6); border: 1px dashed #d4a574;">
+                                        <span class="fw-bold" style="color: #7c7267;">Total Retur</span>
+                                        <span class="fw-bold fs-5" style="color: #5c3d2e;">Rp {{ number_format((float)$returPenjualan->total_retur, 0, ',', '.') }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {{-- Right: Detail Barang Diretur --}}
-                        <div class="col-md-6">
-                            <h6 class="mb-3 text-theme fw-bold"><i class="fas fa-box me-2"></i>Detail Barang Diretur</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-modern">
-                                    <thead>
-                                        <tr>
-                                            <th style="width:5%">#</th>
-                                            <th>Produk</th>
-                                            <th class="text-end" style="width:10%">Qty</th>
-                                            <th class="text-end" style="width:20%">Harga/Unit</th>
-                                            <th class="text-end" style="width:20%">Subtotal</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($returPenjualan->detailReturPenjualans as $no => $detail)
-                                            <tr>
-                                                <td>{{ $no + 1 }}</td>
-                                                <td>
-                                                    <strong>{{ $detail->produk->nama_produk ?? '-' }}</strong>
-                                                    <br><small class="text-muted">SKU: {{ $detail->produk->kode_produk ?? '-' }}</small>
-                                                </td>
-                                                <td class="text-end">{{ $detail->qty_retur }}</td>
-                                                <td class="text-end">Rp {{ number_format($detail->harga_barang, 0, ',', '.') }}</td>
-                                                <td class="text-end fw-bold">Rp {{ number_format($detail->qty_retur * $detail->harga_barang, 0, ',', '.') }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                        <div class="col-md-8">
+                            <div class="card shadow-sm border-0 h-100" style="border-radius: 12px;">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                                    <h6 class="text-theme fw-bold mb-0"><i class="fas fa-box me-2"></i>Detail Barang Diretur</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-modern mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:5%">No</th>
+                                                    <th>Produk</th>
+                                                    <th class="text-center" style="width:10%">Qty</th>
+                                                    <th class="text-end" style="width:22%">Harga/Unit</th>
+                                                    <th class="text-end" style="width:25%">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($returPenjualan->detailReturPenjualans as $no => $detail)
+                                                    <tr>
+                                                        <td class="text-muted">{{ $no + 1 }}</td>
+                                                        <td>
+                                                            <div class="fw-bold text-dark">{{ $detail->produk->nama_produk ?? '-' }}</div>
+                                                            <div class="text-muted" style="font-size: 0.75rem;">SKU: {{ $detail->produk->kode_produk ?? '-' }}</div>
+                                                        </td>
+                                                        <td class="text-center fw-bold">{{ (float)$detail->qty_retur }}</td>
+                                                        <td class="text-end text-muted">Rp {{ number_format($detail->harga_barang, 0, ',', '.') }}</td>
+                                                        <td class="text-end fw-bold" style="color: #5c3d2e;">Rp {{ number_format($detail->qty_retur * $detail->harga_barang, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

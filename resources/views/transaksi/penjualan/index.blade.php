@@ -511,7 +511,9 @@
                                     <th>No Transaksi</th>
                                     <th>Pelanggan</th>
                                     <th>Metode Pembayaran</th>
+                                    <th>Jenis Pengiriman</th>
                                     <th>Produk</th>
+                                    <th>Catatan</th>
                                     <th class="text-end">Total Nilai</th>
                                     <th>Status</th>
                                     <th class="text-center">Aksi</th>
@@ -520,10 +522,10 @@
                             <tbody>
                                 @forelse($pendingPenjualans as $key => $pending)
                                     <tr>
-                                        <td class="text-center">{{ $key + 1 }}</td>
+                                        <td class="text-center">{{ method_exists($pendingPenjualans, 'currentPage') ? ($pendingPenjualans->currentPage() - 1) * $pendingPenjualans->perPage() + $loop->iteration : $loop->iteration }}</td>
                                         <td>{{ optional($pending->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                         <td><strong>{{ $pending->nomor_penjualan ?? '-' }}</strong></td>
-                                        <td>{{ $pending->pelanggan?->nama_pelanggan ?? 'Umum' }}</td>
+                                        <td>{{ $pending->order ? ($pending->order->nama_penerima ?? $pending->pelanggan?->nama_pelanggan ?? 'Umum') : ($pending->pelanggan?->nama_pelanggan ?? 'Umum') }}</td>
                                         <td>
                                             @if($pending->coa)
                                                 <span class="badge bg-info">{{ $pending->coa->nama_akun }}</span>
@@ -532,20 +534,47 @@
                                                     @switch($pending->payment_method ?? '')
                                                         @case('cash') Tunai @break
                                                         @case('transfer') Transfer Bank @break
+                                                        @case('tunai') Tunai @break
                                                         @default {{ ucfirst($pending->payment_method ?? '') }}
                                                     @endswitch
                                                 </span>
                                             @endif
                                         </td>
+                                        @php
+                                            $jenisPengiriman = 'Delivery';
+                                            $catatanOrder = $pending->order ? $pending->order->catatan : ($pending->catatan ?? '');
+                                            $metodeLower = strtolower($pending->payment_method ?? '');
+                                            $catatanLower = strtolower($catatanOrder);
+                                            
+                                            // Handle Jenis Pengiriman logic properly based on payment gateway
+                                            $actualMethod = $pending->order ? strtolower($pending->order->payment_gateway ?? '') : '';
+                                            $paymentMethod = strtolower($pending->payment_method ?? '');
+                                            if ($actualMethod === 'tunai' || $paymentMethod === 'tunai' || strpos($catatanLower, 'ambil di toko') !== false || strpos($catatanLower, 'bayar di toko') !== false || strpos(strtolower($pending->catatan_pembayaran ?? ''), 'ambil di toko') !== false) {
+                                                if (strpos($catatanLower, 'cod') !== false || ($pending->order && strtolower($pending->order->payment_method ?? '') === 'cod')) {
+                                                    $jenisPengiriman = 'Delivery';
+                                                } else {
+                                                    $jenisPengiriman = 'Ambil di Toko';
+                                                }
+                                            }
+                                        @endphp
                                         <td>
-                                            @php $pendingDetailCount = $pending->details->count(); @endphp
-                                            @if($pendingDetailCount > 1)
-                                                {{ $pending->details[0]->produk->nama_produk ?? '-' }} <span class="text-muted small">(+{{ $pendingDetailCount - 1 }} lainnya)</span>
-                                            @elseif($pendingDetailCount === 1)
-                                                {{ $pending->details[0]->produk->nama_produk ?? '-' }}
-                                            @else
-                                                {{ $pending->produk?->nama_produk ?? '-' }}
-                                            @endif
+                                            <span class="badge {{ $jenisPengiriman == 'Ambil di Toko' ? 'bg-secondary' : 'bg-primary' }}">
+                                                {{ $jenisPengiriman }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @php 
+                                                $produkList = [];
+                                                foreach($pending->details as $det) {
+                                                    $produkList[] = ($det->produk->nama_produk ?? 'Unknown') . ' (' . intval($det->jumlah) . 'x)';
+                                                }
+                                                echo implode('<br>', $produkList);
+                                            @endphp
+                                        </td>
+                                        <td>
+                                            <span class="text-muted small">
+                                                {{ $catatanOrder ?: '-' }}
+                                            </span>
                                         </td>
                                         <td class="text-end fw-bold">Rp {{ number_format($pending->grand_total ?? $pending->total, 0, ',', '.') }}</td>
                                         <td><span class="badge bg-warning text-dark">Menunggu Approval</span></td>
@@ -658,7 +687,7 @@
                     <tbody>
                         @foreach($penjualans as $key => $penjualan)
                             <tr class="{{ $key % 2 === 0 ? 'table-light' : '' }}">
-                                <td class="text-center">{{ $key + 1 }}</td>
+                                <td class="text-center">{{ method_exists($penjualans, 'currentPage') ? ($penjualans->currentPage() - 1) * $penjualans->perPage() + $loop->iteration : $loop->iteration }}</td>
                                 <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                 <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                 <td>
@@ -675,7 +704,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    {{ $penjualan->pelanggan?->nama_pelanggan ?? 'Umum' }}
+                                    {{ $penjualan->order ? ($penjualan->order->nama_penerima ?? $penjualan->pelanggan?->nama_pelanggan ?? 'Umum') : ($penjualan->pelanggan?->nama_pelanggan ?? 'Umum') }}
                                 </td>
                                 @php $detailCount = $penjualan->details->count(); @endphp
                                 <td>
@@ -822,9 +851,26 @@
                                             <button type="button" class="btn-minimal btn-success" data-bs-toggle="modal" data-bs-target="#strukModal{{ $penjualan->id }}" title="Cetak Struk">
                                                 Cetak
                                             </button>
-                                            <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
-                                                Retur
-                                            </a>
+                                            @php
+                                                $canReturn = true;
+                                                $paymentStatusLower = strtolower($penjualan->payment_status);
+                                                if ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
+                                                    $canReturn = false;
+                                                } elseif (!$penjualan->payment_confirmed_at) {
+                                                    $canReturn = false;
+                                                } elseif (now()->greaterThan($penjualan->payment_confirmed_at->copy()->addHours(5))) {
+                                                    $canReturn = false;
+                                                }
+                                            @endphp
+                                            @if($canReturn)
+                                                <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Retur tersedia s/d {{ $penjualan->payment_confirmed_at->copy()->addHours(5)->format('d/m H:i') }}">
+                                                    Retur
+                                                </a>
+                                            @else
+                                                <button type="button" class="btn-minimal btn-info" style="opacity: 0.5; cursor: not-allowed;" data-bs-toggle="tooltip" title="Batas waktu retur (5 jam dari pembayaran) telah habis">
+                                                    Retur
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -859,7 +905,7 @@
                             <tbody>
                                 @forelse($customerReturns as $key => $retur)
                                     <tr>
-                                        <td class="text-center">{{ $key + 1 }}</td>
+                                        <td class="text-center">{{ method_exists($customerReturns, 'currentPage') ? ($customerReturns->currentPage() - 1) * $customerReturns->perPage() + $loop->iteration : $loop->iteration }}</td>
                                         <td>{{ optional($retur->created_at)->format('d-m-Y') ?? '-' }}</td>
                                         <td><strong>{{ $retur->memo ?? '-' }}</strong></td>
                                         <td>{{ $retur->penjualan?->nomor_penjualan ?? '-' }}</td>
@@ -965,7 +1011,7 @@
                             <tbody>
                                 @forelse($salesReturns as $key => $retur)
                                     <tr>
-                                        <td class="text-center">{{ $key + 1 }}</td>
+                                        <td class="text-center">{{ method_exists($salesReturns, 'currentPage') ? ($salesReturns->currentPage() - 1) * $salesReturns->perPage() + $loop->iteration : $loop->iteration }}</td>
                                         <td>{{ optional($retur->tanggal)->format('d-m-Y') ?? '-' }}</td>
                                         <td><strong>{{ $retur->penjualan?->nomor_penjualan ?? '-' }}</strong></td>
                                         <td>{{ $retur->keterangan ?? '-' }}</td>
@@ -1118,12 +1164,23 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Pelanggan:</strong> {{ $penjualan->pelanggan?->name ?? 'Umum' }}
+                        <strong>Pelanggan:</strong> {{ $penjualan->order ? ($penjualan->order->nama_penerima ?? $penjualan->pelanggan?->nama_pelanggan ?? 'Umum') : ($penjualan->pelanggan?->nama_pelanggan ?? 'Umum') }}
                     </div>
                     <div class="col-md-6">
-                        <strong>Status Transaksi:</strong> 
-                        <span class="badge {{ ($penjualan->status ?? 'lunas') === 'lunas' ? 'bg-success' : 'bg-warning' }}">
-                            {{ ucfirst($penjualan->status ?? 'lunas') }}
+                        <strong>Status Pembayaran:</strong> 
+                        <span class="badge {{ ($penjualan->payment_status ?? 'paid') === 'paid' ? 'bg-success' : 'bg-warning' }}">
+                            {{ ucfirst($penjualan->payment_status ?? 'paid') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>No Telepon:</strong> {{ $penjualan->order ? ($penjualan->order->telepon_penerima ?? $penjualan->pelanggan?->telepon ?? '-') : ($penjualan->pelanggan?->telepon ?? '-') }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status Approval:</strong> 
+                        <span class="badge {{ ($penjualan->approval_status ?? 'approved') === 'approved' ? 'bg-success' : 'bg-warning' }}">
+                            {{ ucfirst(str_replace('_', ' ', $penjualan->approval_status ?? 'approved')) }}
                         </span>
                     </div>
                 </div>
@@ -1133,13 +1190,39 @@
                         <span class="badge bg-success">
                             @switch($penjualan->payment_method ?? 'cash')
                                 @case('cash') Tunai @break
+                                @case('tunai') Tunai @break
                                 @case('transfer') Transfer Bank @break
                                 @default {{ ucfirst($penjualan->payment_method ?? '-') }}
                             @endswitch
                         </span>
                     </div>
+                    @php
+                        $jenisPengirimanMdl = 'Delivery';
+                        $catatanOrderMdl = $penjualan->order ? $penjualan->order->catatan : ($penjualan->catatan ?? '');
+                        $metodeLowerMdl = strtolower($penjualan->payment_method ?? '');
+                        $catatanLowerMdl = strtolower($catatanOrderMdl);
+                        
+                        // Handle Jenis Pengiriman logic properly based on payment gateway
+                        $actualMethodMdl = $penjualan->order ? strtolower($penjualan->order->payment_gateway ?? '') : '';
+                        $paymentMethodMdl = strtolower($penjualan->payment_method ?? '');
+                        if ($actualMethodMdl === 'tunai' || $paymentMethodMdl === 'tunai' || strpos($catatanLowerMdl, 'ambil di toko') !== false || strpos($catatanLowerMdl, 'bayar di toko') !== false || strpos(strtolower($penjualan->catatan_pembayaran ?? ''), 'ambil di toko') !== false) {
+                            if (strpos($catatanLowerMdl, 'cod') !== false || ($penjualan->order && strtolower($penjualan->order->payment_method ?? '') === 'cod')) {
+                                $jenisPengirimanMdl = 'Delivery';
+                            } else {
+                                $jenisPengirimanMdl = 'Ambil di Toko';
+                            }
+                        }
+                    @endphp
                     <div class="col-md-6">
-                        <strong>Catatan:</strong> {{ $penjualan->catatan ?? '-' }}
+                        <strong>Jenis Pengiriman:</strong> {{ $jenisPengirimanMdl }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Catatan:</strong> {{ $catatanOrderMdl ?: '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Alamat Pengiriman:</strong> {{ $penjualan->order ? ($penjualan->order->alamat_pengiriman ?? $penjualan->pelanggan?->alamat ?? '-') : ($penjualan->pelanggan?->alamat ?? '-') }}
                     </div>
                 </div>
                 <div class="row mb-3">

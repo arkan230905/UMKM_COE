@@ -115,20 +115,14 @@ class OrderToSalesService
         // Hitung PPN (11%)
         $biayaPPN = $subtotal * 0.11;
 
-        // Hitung ongkir dari catatan order jika ada
-        // Format catatan: "Metode: ... | Rincian: Subtotal Rp X, PPN Rp Y, Ongkir Rp Z"
+        // Hitung ongkir dari order
         // NOTE: Ongkir dibagi rata ke semua owner jika multi-owner
         $biayaOngkir = 0;
-        if ($order->catatan && strpos($order->catatan, 'Ongkir Rp') !== false) {
-            preg_match('/Ongkir Rp ([\d.]+)/', $order->catatan, $matches);
-            if (!empty($matches[1])) {
-                $totalOngkir = (int)str_replace('.', '', $matches[1]);
-                // Jika multi-owner, bagi ongkir rata-rata
-                $ownerCount = $order->items->groupBy(function ($item) {
-                    return $item->produk->user_id;
-                })->count();
-                $biayaOngkir = round($totalOngkir / $ownerCount);
-            }
+        if ($order->ongkir_amount > 0) {
+            $ownerCount = $order->items->groupBy(function ($item) {
+                return $item->produk->user_id;
+            })->count();
+            $biayaOngkir = round($order->ongkir_amount / $ownerCount);
         }
 
         $grandTotal = $subtotal + $biayaPPN + $biayaOngkir;
@@ -136,10 +130,36 @@ class OrderToSalesService
         // Tentukan payment method
         $paymentMethod = $this->mapPaymentMethod($order->payment_method);
 
+        // Cari atau buat data pelanggan untuk owner ini
+        $pelangganId = null;
+        if ($order->user) {
+            $customerUser = $order->user;
+            
+            // Cari data pelanggan yang sudah ada di master owner ini
+            $pelanggan = \App\Models\Pelanggan::where('user_id', $ownerId)
+                ->where(function($q) use ($customerUser) {
+                    $q->where('email', $customerUser->email)
+                      ->orWhere('telepon', $customerUser->phone ?? '');
+                })->first();
+
+            if (!$pelanggan) {
+                // Buat master pelanggan baru untuk owner ini
+                $pelanggan = \App\Models\Pelanggan::create([
+                    'user_id' => $ownerId,
+                    'nama_pelanggan' => $customerUser->name ?? $order->nama_penerima,
+                    'email' => $customerUser->email,
+                    'telepon' => $customerUser->phone ?? $order->telepon_penerima,
+                    'alamat' => $customerUser->address ?? $order->alamat_pengiriman,
+                ]);
+            }
+            $pelangganId = $pelanggan->id;
+        }
+
         // Buat Penjualan header
         $penjualan = Penjualan::create([
             'order_id' => $order->id,  // Link ke order
             'user_id' => $ownerId,  // Owner ID
+            'pelanggan_id' => $pelangganId,
             'tanggal' => now()->toDateString(),
             'payment_method' => $paymentMethod,
             'payment_status' => 'pending',  // Initially pending, will be updated when payment confirmed
