@@ -138,7 +138,7 @@
                 <!-- Target Produksi Info (Auto-filled) -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-12">
-                        <div class="alert alert-info d-flex align-items-center" id="targetProduksiInfo" style="display: none !important;">
+                        <div class="alert alert-info d-flex align-items-center" id="targetProduksiInfo" style="display: none;">
                             <i class="fas fa-info-circle me-2"></i>
                             <div>
                                 <strong>Target Produksi:</strong> 
@@ -152,6 +152,13 @@
 
                 <!-- Bahan Pendukung -->
                 <div class="row g-3 mt-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">
+                            <i class="fas fa-box me-2"></i>Bahan Pendukung
+                        </h5>
+                        <small class="text-muted">Pilih bahan pendukung yang digunakan dalam proses produksi</small>
+                    </div>
+                    
                     <div class="col-12">
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover" id="bahanPendukungTable">
@@ -321,10 +328,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('addBahanBtn');
     const lainnyaContainer = document.getElementById('bopLainnyaContainer');
     const addLainnyaBtn = document.getElementById('addLainnyaBtn');
-    const jumlahProduksiInput = document.getElementById('jumlah_produksi'); // From target produksi
     
     // Bahan Pendukung data from backend
-    const bahanPendukungList = @json($bahanPendukungs);
+    const bahanPendukungList = @json($bahanPendukungs ?? []);
     
     let rowCount = 0;
     let lainnyaRowCount = 0;
@@ -337,21 +343,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const row = document.createElement('tr');
         row.id = rowId;
         row.className = 'bahan-row';
+        
+        // Build bahan options safely
+        let bahanOptions = '<option value="">-- Pilih Bahan --</option>';
+        if (bahanPendukungList && bahanPendukungList.length > 0) {
+            bahanPendukungList.forEach(bahan => {
+                const selected = data.bahan_pendukung_id == bahan.id ? 'selected' : '';
+                bahanOptions += `<option value="${bahan.id}" 
+                                 data-satuan="${bahan.satuan?.nama || 'Unit'}" 
+                                 data-harga="${bahan.harga_satuan || 0}"
+                                 ${selected}>
+                            ${bahan.nama_bahan}
+                        </option>`;
+            });
+        } else {
+            bahanOptions += '<option value="" disabled>Tidak ada data bahan pendukung</option>';
+        }
+        
         row.innerHTML = `
             <td>
                 <select name="bahan_pendukung[${rowCount}][bahan_pendukung_id]" 
                         class="form-select form-select-sm bahan-select" 
                         data-row-id="${rowId}"
                         required>
-                    <option value="">-- Pilih Bahan --</option>
-                    ${bahanPendukungList.map(bahan => 
-                        `<option value="${bahan.id}" 
-                                 data-satuan="${bahan.satuan?.nama || 'Unit'}" 
-                                 data-harga="${bahan.harga_satuan || 0}"
-                                 ${data.bahan_pendukung_id == bahan.id ? 'selected' : ''}>
-                            ${bahan.nama_bahan}
-                        </option>`
-                    ).join('')}
+                    ${bahanOptions}
                 </select>
             </td>
             <td>
@@ -574,12 +589,19 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.bahan-row').forEach(row => {
             calculateRow(row);
         });
+        document.querySelectorAll('.lainnya-row').forEach(row => {
+            calculateLainnyaRow(row);
+        });
     });
     
     // Add button event
-    addBtn.addEventListener('click', function() {
-        addBahanRow();
-    });
+    if (addBtn) {
+        addBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            addBahanRow();
+        });
+    }
     
     // =========================================
     // BOP LAINNYA SECTION
@@ -730,23 +752,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add button event for lainnya
-    addLainnyaBtn.addEventListener('click', function() {
-        addLainnyaRow();
-    });
-    
-    // Recalculate lainnya rows when jumlah produksi changes
-    const originalJumlahProduksiListener = jumlahProduksiInput.onchange;
-    jumlahProduksiInput.addEventListener('input', function() {
-        // Recalculate bahan pendukung rows
-        document.querySelectorAll('.bahan-row').forEach(row => {
-            calculateRow(row);
+    if (addLainnyaBtn) {
+        addLainnyaBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            addLainnyaRow();
         });
-        
-        // Recalculate BOP lainnya rows
-        document.querySelectorAll('.lainnya-row').forEach(row => {
-            calculateLainnyaRow(row);
-        });
-    });
+    }
     
     // Add initial empty row for Bahan Pendukung
     addBahanRow();
