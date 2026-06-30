@@ -25,7 +25,7 @@ class SetPerusahaanFromUrl
         }
         
         // Build query untuk find perusahaan
-        $query = Perusahaan::where(function ($q) use ($perusahaanSlug) {
+        $query = Perusahaan::withoutGlobalScope('user')->where(function ($q) use ($perusahaanSlug) {
             $q->where('slug', strtolower($perusahaanSlug))
                 ->orWhere('kode', strtoupper($perusahaanSlug))
                 ->orWhere('nama', 'like', '%' . str_replace('-', ' ', $perusahaanSlug) . '%');

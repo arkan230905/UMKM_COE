@@ -441,21 +441,34 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Metode Pembayaran</label>
-                    <select name="payment_method" class="form-select form-select-sm">
+                    <select name="coa_id" class="form-select form-select-sm">
                         <option value="">Semua Metode</option>
-                        <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
+                        @foreach($kasbanks ?? [] as $kas)
+                            <option value="{{ $kas->id }}" {{ request('coa_id') == $kas->id ? 'selected' : '' }}>{{ $kas->nama_akun }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Status</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">Semua Status</option>
-                        <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-                        <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Menunggu Approval</option>
+                        <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui</option>
+                        <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
+                        <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Lunas</option>
+                        <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Belum Dibayar</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end gap-2">
+                <div class="col-md-2">
+                    <label class="form-label small">Produk</label>
+                    <select name="produk_id" class="form-select form-select-sm">
+                        <option value="">Semua Produk</option>
+                        @foreach($produks ?? [] as $p)
+                            <option value="{{ $p->id }}" {{ request('produk_id') == $p->id ? 'selected' : '' }}>{{ $p->nama_produk }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                     <button type="submit" class="btn btn-sm" style="background: #5a3a1a; color: white; border-radius: 6px;">
                         <i class="fas fa-search me-1"></i>Filter
                     </button>
@@ -473,6 +486,9 @@
             <div class="nav-tabs-custom mb-4">
                 <button class="tab-btn active" onclick="showTab('penjualan-list', this)">
                     Penjualan
+                    @if($pendingPenjualans->count() > 0)
+                        <span class="badge bg-danger rounded-pill ms-1">{{ $pendingPenjualans->count() }}</span>
+                    @endif
                 </button>
                 <button class="tab-btn" onclick="showTab('retur-list', this)">
                     Retur
@@ -481,7 +497,91 @@
             
             <div class="tab-content" id="penjualanTabContent">
                 <div class="tab-pane fade show active" id="penjualan-list" role="tabpanel">
-                    <!-- Konten Penjualan -->
+                    
+                    <!-- Section: Pengajuan Penjualan Pelanggan -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-clipboard-list me-2"></i>Pengajuan Penjualan Pelanggan
+                    </h5>
+                    <div class="table-responsive mb-5">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px">NO</th>
+                                    <th>Tanggal Pengajuan</th>
+                                    <th>No Transaksi</th>
+                                    <th>Pelanggan</th>
+                                    <th>Metode Pembayaran</th>
+                                    <th>Produk</th>
+                                    <th class="text-end">Total Nilai</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($pendingPenjualans as $key => $pending)
+                                    <tr>
+                                        <td class="text-center">{{ $key + 1 }}</td>
+                                        <td>{{ optional($pending->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
+                                        <td><strong>{{ $pending->nomor_penjualan ?? '-' }}</strong></td>
+                                        <td>{{ $pending->pelanggan?->nama_pelanggan ?? 'Umum' }}</td>
+                                        <td>
+                                            @if($pending->coa)
+                                                <span class="badge bg-info">{{ $pending->coa->nama_akun }}</span>
+                                            @else
+                                                <span class="badge bg-success">
+                                                    @switch($pending->payment_method ?? '')
+                                                        @case('cash') Tunai @break
+                                                        @case('transfer') Transfer Bank @break
+                                                        @default {{ ucfirst($pending->payment_method ?? '') }}
+                                                    @endswitch
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @php $pendingDetailCount = $pending->details->count(); @endphp
+                                            @if($pendingDetailCount > 1)
+                                                {{ $pending->details[0]->produk->nama_produk ?? '-' }} <span class="text-muted small">(+{{ $pendingDetailCount - 1 }} lainnya)</span>
+                                            @elseif($pendingDetailCount === 1)
+                                                {{ $pending->details[0]->produk->nama_produk ?? '-' }}
+                                            @else
+                                                {{ $pending->produk?->nama_produk ?? '-' }}
+                                            @endif
+                                        </td>
+                                        <td class="text-end fw-bold">Rp {{ number_format($pending->grand_total ?? $pending->total, 0, ',', '.') }}</td>
+                                        <td><span class="badge bg-warning text-dark">Menunggu Approval</span></td>
+                                        <td class="text-center">
+                                            <div class="action-row">
+                                                <button type="button" class="btn-minimal text-primary" data-bs-toggle="modal" data-bs-target="#detailModal{{ $pending->id }}">
+                                                    <i class="fas fa-eye"></i> Detail
+                                                </button>
+                                                <form action="{{ route('transaksi.penjualan.approve', $pending->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn-minimal text-success" onclick="return confirm('Setujui transaksi ini?')">
+                                                        <i class="fas fa-check"></i> Setuju
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('transaksi.penjualan.reject', $pending->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn-minimal text-danger" onclick="return confirm('Tolak transaksi ini? Stok akan dikembalikan.')">
+                                                        <i class="fas fa-times"></i> Tolak
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted py-4">
+                                            <i class="fas fa-inbox fs-4 mb-2 d-block"></i>
+                                            Belum ada pengajuan penjualan dari pelanggan
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Section: Riwayat Penjualan -->
                     <h5 class="mb-3">
                         <i class="fas fa-list me-2"></i>Riwayat Penjualan
                         @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'payment_method', 'status']))
@@ -562,13 +662,17 @@
                                 <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                 <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                 <td>
-                                    <span class="badge bg-success">
-                                        @switch($penjualan->payment_method ?? '')
-                                            @case('cash') Tunai @break
-                                            @case('transfer') Transfer Bank @break
-                                            @default {{ ucfirst($penjualan->payment_method ?? '') }}
-                                        @endswitch
-                                    </span>
+                                    @if($penjualan->coa)
+                                        <span class="badge bg-info">{{ $penjualan->coa->nama_akun }}</span>
+                                    @else
+                                        <span class="badge bg-success">
+                                            @switch($penjualan->payment_method ?? '')
+                                                @case('cash') Tunai @break
+                                                @case('transfer') Transfer Bank @break
+                                                @default {{ ucfirst($penjualan->payment_method ?? '') }}
+                                            @endswitch
+                                        </span>
+                                    @endif
                                 </td>
                                 <td>
                                     {{ $penjualan->pelanggan?->nama_pelanggan ?? 'Umum' }}
@@ -710,9 +814,6 @@
                                             <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#detailModal{{ $penjualan->id }}" title="Detail Transaksi">
                                                 Detail
                                             </button>
-                                            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
-                                                Edit
-                                            </a>
                                             <button type="button" class="btn-minimal btn-jurnal" data-bs-toggle="modal" data-bs-target="#jurnalModal{{ $penjualan->id }}" title="Lihat Jurnal">
                                                 Jurnal
                                             </button>
@@ -835,7 +936,7 @@
                                     </th>
                                     <th>
                                         <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'deskripsi', 'sort_retur_dir' => request('sort_retur_by') === 'deskripsi' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
-                                            Deskripsi @if(request('sort_retur_by') === 'deskripsi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                            Keterangan @if(request('sort_retur_by') === 'deskripsi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
                                         </a>
                                     </th>
                                     <th>
@@ -933,7 +1034,7 @@
 </div>
 
 <!-- Detail Modal -->
-@foreach($penjualans as $penjualan)
+@foreach($penjualans->merge($pendingPenjualans) as $penjualan)
 <div class="modal fade" id="detailModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1055;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1239,7 +1340,7 @@
                 
                 @php
                     // Ambil bukti pembayaran dari database
-                    $buktiPembayaranModal = $penjualan->buktiPembayaran ?? collect();
+                    $buktiPembayaranModal = $penjualan->all_bukti_pembayaran;
                 @endphp
                 
                 {{-- Upload Form --}}
@@ -1294,7 +1395,7 @@
                                             @endif
                                             
                                             <small class="text-muted d-block mb-1">{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}</small>
-                                            <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
+                                            <small class="text-muted d-block mb-2">{{ $bukti->created_at ? $bukti->created_at->format('d/m/Y H:i') : '' }}</small>
                                             
                                             <div class="bukti-actions">
                                                 <a href="{{ url('/storage/' . $bukti->file_path) }}" 
@@ -1309,12 +1410,14 @@
                                                    title="Download">
                                                     <i class="fas fa-download"></i>
                                                 </a>
+                                                @if($bukti->id !== 'legacy')
                                                 <button type="button" 
                                                         class="btn btn-sm btn-outline-danger"
                                                         onclick="deleteBuktiModal({{ $bukti->id }}, {{ $penjualan->id }})"
                                                         title="Hapus">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -1509,7 +1612,33 @@
                                         <td class="text-nowrap">{{ $journalLines->first()->created_at->format('d/m/Y') }}</td>
                                         <td class="text-nowrap">{{ $penjualan->nomor_penjualan ?? '-' }}</td>
                                         <td>
-                                            <div class="fw-bold">{{ $line->coa->nama_akun ?? 'Akun tidak ditemukan' }}</div>
+                                            @php
+                                                $namaAkun = $line->coa->nama_akun ?? 'Akun tidak ditemukan';
+                                                $keteranganLower = strtolower($line->keterangan ?? '');
+                                                
+                                                // 1. Akun penerimaan pembayaran (Kas / Bank)
+                                                if ($line->debit > 0 && (str_contains(strtolower($namaAkun), 'kas') || str_contains(strtolower($namaAkun), 'bank'))) {
+                                                    if (str_contains($keteranganLower, 'penerimaan transfer') || $penjualan->payment_method === 'transfer') {
+                                                        $namaAkun = 'Bank Perusahaan';
+                                                        $perusahaan = \App\Models\Perusahaan::where('user_id', $penjualan->user_id)->first();
+                                                        if ($perusahaan && !empty($perusahaan->nama_bank)) {
+                                                            $namaAkun = 'Bank ' . $perusahaan->nama_bank;
+                                                        }
+                                                    } elseif (str_contains($keteranganLower, 'penerimaan tunai') || $penjualan->payment_method === 'cash') {
+                                                        $namaAkun = 'Kas Tunai';
+                                                    }
+                                                }
+                                                
+                                                // 2. Akun HPP
+                                                if ($line->debit > 0 && str_contains(strtolower($namaAkun), 'harga pokok penjualan') && str_contains($keteranganLower, 'hpp untuk')) {
+                                                    if (preg_match('/HPP untuk (.*?) \(/', $line->keterangan, $matches)) {
+                                                        $namaAkun = 'HPP - ' . trim($matches[1]);
+                                                    } else {
+                                                        $namaAkun = str_replace('HPP untuk ', 'HPP - ', $line->keterangan);
+                                                    }
+                                                }
+                                            @endphp
+                                            <div class="fw-bold">{{ $namaAkun }}</div>
                                             <small class="text-muted">{{ $line->coa->kode_akun ?? '-' }}</small>
                                         </td>
                                         <td class="text-end fw-semibold text-primary">

@@ -35,7 +35,7 @@ class ReturPenjualanController extends Controller
             $jenisReturOptions['kredit'] = 'Kredit';
         }
 
-        $kasBankCoas = \App\Helpers\AccountHelper::getKasBankAccounts(auth()->id());
+        $kasBankCoas = \App\Helpers\AccountHelper::getBankAccountsWithBalance(auth()->id());
 
         return view('transaksi.retur-penjualan.detail-retur', compact('penjualan', 'pelanggans', 'jenisReturOptions', 'kasBankCoas'));
     }

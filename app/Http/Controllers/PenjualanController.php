@@ -42,12 +42,42 @@ class PenjualanController extends Controller
         if ($request->filled('tanggal_selesai')) {
             $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
         }
-        if ($request->filled('payment_method')) {
-            $query->where('payment_method', $request->payment_method);
+        // Filter by metode pembayaran (coa_id)
+        if ($request->filled('coa_id')) {
+            $query->where('coa_id', $request->coa_id);
         }
 
-        $penjualans = $query->get();
+        // Filter by produk
+        if ($request->filled('produk_id')) {
+            $produkId = $request->produk_id;
+            $query->where(function($q) use ($produkId) {
+                $q->where('produk_id', $produkId)
+                  ->orWhereHas('details', function($q2) use ($produkId) {
+                      $q2->where('produk_id', $produkId);
+                  });
+            });
+        }
+        // Filter by status
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if ($status === 'pending') {
+                $query->where('approval_status', 'pending');
+            } elseif ($status === 'approved') {
+                $query->where('approval_status', 'approved');
+            } elseif ($status === 'rejected') {
+                $query->where('approval_status', 'rejected');
+            } elseif ($status === 'paid') {
+                $query->where('payment_status', 'paid');
+            } elseif ($status === 'unpaid') {
+                $query->where('payment_status', '!=', 'paid');
+            }
+        }
+
+        $pendingQuery = clone $query;
+        $pendingPenjualans = $pendingQuery->where('approval_status', 'pending')->get();
         
+        $query->where('approval_status', '!=', 'pending');
+        $penjualans = $query->get();
         $sortBy = $request->get('sort_by', 'tanggal');
         $sortDir = $request->get('sort_dir', 'desc');
         $isDesc = $sortDir === 'desc';
@@ -244,8 +274,16 @@ class PenjualanController extends Controller
             $salesReturns = $salesReturns->sortBy(fn($r) => $r->tanggal ?? $r->created_at, SORT_REGULAR, true);
         }
 
+        $produks = \App\Models\Produk::where('user_id', auth()->id())->get();
+        $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
+        // Ambil akun kas/bank tanpa Piutang (Kredit)
+        $kasbanks = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
+            ->orderBy('kode_akun')
+            ->get();
+
         return view('transaksi.penjualan.index', compact(
             'penjualans',
+            'pendingPenjualans',
             'totalPenjualan',
             'jumlahTransaksiHariIni',
             'totalProdukTerjual',
@@ -259,7 +297,10 @@ class PenjualanController extends Controller
             'produkChange',
             'ongkirChange',
             'diskonChange',
-            'profitChange'
+            'profitChange',
+            'produks',
+            'perusahaan',
+            'kasbanks'
         ));
     }
 
@@ -720,12 +761,6 @@ class PenjualanController extends Controller
         // Get bank accounts for transfer payment (only banks with account numbers)
         $bankAccounts = \App\Helpers\AccountHelper::getBankAccountsForTransfer();
         
-        // Add label for sumber_dana
-        $paymentData['sumber_dana_label'] = \App\Helpers\AccountHelper::getKasBankAccounts()
-            ->where('kode_akun', $paymentData['sumber_dana'])
-            ->first()
-            ?->nama_akun ?? 'Tidak diketahui';
-        
         return view('transaksi.penjualan.payment', [
             'payment_data' => $paymentData,
             'bank_accounts' => $bankAccounts
@@ -761,8 +796,31 @@ class PenjualanController extends Controller
             ]);
         }
         
+        // Resolve sumber_dana (payment account)
+        $sumberDanaKode = $request->input('sumber_dana') ?? $paymentData['sumber_dana'] ?? null;
+        
+        // For cash payment, if sumber_dana not provided, use first available kas account
+        if ($request->input('payment_method') === 'cash' && !$sumberDanaKode) {
+            $kasAccount = \App\Helpers\AccountHelper::getKasAccounts(auth()->id())->first();
+            if ($kasAccount) {
+                $sumberDanaKode = $kasAccount->kode_akun;
+            }
+        }
+        
+        if (!$sumberDanaKode) {
+            return back()->with('error', 'Akun penerima pembayaran belum dipilih atau tidak tersedia');
+        }
+        
+        $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)
+            ->where('user_id', auth()->id())
+            ->first();
+            
+        if (!$coaRecord) {
+            return back()->with('error', 'Akun penerima pembayaran tidak ditemukan: ' . $sumberDanaKode);
+        }
+        
         // Create penjualan record
-        return DB::transaction(function() use ($request, $paymentData, $stock, $journal) {
+        return DB::transaction(function() use ($request, $paymentData, $stock, $journal, $coaRecord) {
             $tanggal = $paymentData['tanggal'] . ' ' . $paymentData['waktu'];
             $items = $paymentData['items'];
             
@@ -777,20 +835,14 @@ class PenjualanController extends Controller
                 }
             }
             
-            // Resolve coa_id dari sumber_dana (kode akun yang dipilih user)
-            $sumberDanaKode = $request->input('sumber_dana') ?? $paymentData['sumber_dana'] ?? null;
-            $coaId = null;
-            if ($sumberDanaKode) {
-                $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)->first();
-                $coaId = $coaRecord?->id;
-            }            // Create penjualan header
+            // Create penjualan header
             $penjualan = Penjualan::create([
                 'user_id' => auth()->id(), // CRITICAL: Set user_id
                 'tanggal' => $tanggal,
                 'payment_method' => $request->input('payment_method'),
                 'payment_status' => 'pending', // Set to pending initially to prevent journal creation before details exist
                 'payment_confirmed_at' => now(),
-                'coa_id'         => $coaId,
+                'coa_id'         => $coaRecord->id,
                 'jumlah'         => collect($items)->sum('jumlah'),
                 'harga_satuan'   => null,
                 'diskon_nominal' => 0,
@@ -945,6 +997,94 @@ class PenjualanController extends Controller
                 'success' => false,
                 'message' => 'Gagal menghapus bukti pembayaran: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function approveOnlineTransaction(Request $request, $id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($id);
+
+            if ($penjualan->approval_status !== 'pending') {
+                throw new \Exception('Hanya transaksi pending yang dapat disetujui.');
+            }
+
+            // Update status
+            $penjualan->update([
+                'approval_status' => 'approved',
+            ]);
+
+            // Buat Jurnal
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan, auth()->id());
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Transaksi berhasil disetujui dan jurnal telah dicatat.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to approve transaction: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menyetujui transaksi: ' . $e->getMessage());
+        }
+    }
+
+    public function rejectOnlineTransaction(Request $request, $id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $penjualan = Penjualan::with('details.produk')->where('user_id', auth()->id())->findOrFail($id);
+
+            if ($penjualan->approval_status !== 'pending') {
+                throw new \Exception('Hanya transaksi pending yang dapat ditolak.');
+            }
+
+            // Kembalikan Stok
+            foreach ($penjualan->details as $detail) {
+                if ($detail->produk) {
+                    \App\Models\Produk::withoutGlobalScopes()
+                        ->where('id', $detail->produk_id)
+                        ->increment('stok', $detail->kuantitas);
+                        
+                    // Audit trail for stock return
+                    \App\Models\StockMovement::create([
+                        'user_id' => $penjualan->user_id,
+                        'item_type' => 'product',
+                        'item_id' => $detail->produk_id,
+                        'tanggal' => now()->toDateString(),
+                        'direction' => 'in',
+                        'qty' => $detail->kuantitas,
+                        'satuan' => $detail->produk->satuan_id ? $detail->produk->satuan->nama : 'pcs',
+                        'unit_cost' => $detail->harga_satuan,
+                        'total_cost' => $detail->subtotal,
+                        'ref_type' => 'sale_rejected',
+                        'ref_id' => $penjualan->id,
+                        'keterangan' => "Penjualan Ditolak #{$penjualan->nomor_penjualan}",
+                    ]);
+                }
+            }
+
+            // Update status
+            $penjualan->update([
+                'approval_status' => 'rejected',
+                'status' => 'batal',
+            ]);
+            
+            // Also update order status if exists
+            if ($penjualan->order_id) {
+                \App\Models\Order::where('id', $penjualan->order_id)->update([
+                    'status' => 'cancelled',
+                ]);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Transaksi berhasil ditolak dan stok telah dikembalikan.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to reject transaction: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menolak transaksi: ' . $e->getMessage());
         }
     }
 }

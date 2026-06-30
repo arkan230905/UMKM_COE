@@ -46,11 +46,11 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Metode Pembayaran</label>
-                    <select name="payment_method" class="form-select">
+                    <select name="coa_id" class="form-select">
                         <option value="">Semua Metode</option>
-                        <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                        <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                        @foreach($kasbanks ?? [] as $kas)
+                            <option value="{{ $kas->id }}" {{ request('coa_id') == $kas->id ? 'selected' : '' }}>{{ $kas->nama_akun }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
@@ -148,12 +148,14 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($p->payment_method === 'cash')
-                                        <span class="badge bg-success">Tunai</span>
-                                    @elseif($p->payment_method === 'transfer')
-                                        <span class="badge bg-info">Transfer</span>
+                                    @if($p->coa)
+                                        <span class="badge bg-info">{{ $p->coa->nama_akun }}</span>
                                     @else
-                                        <span class="badge bg-warning">Kredit</span>
+                                        @if($p->payment_method === 'cash')
+                                            <span class="badge bg-success">Tunai</span>
+                                        @elseif($p->payment_method === 'transfer')
+                                            <span class="badge bg-info">Transfer</span>
+                                        @endif
                                     @endif
                                 </td>
                                 <td class="text-end">

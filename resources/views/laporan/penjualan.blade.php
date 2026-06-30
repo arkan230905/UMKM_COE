@@ -337,11 +337,11 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Metode Pembayaran</label>
-                                <select name="metode_pembayaran" class="form-select">
+                                <select name="coa_id" class="form-select">
                                     <option value="">Semua Metode</option>
-                                    <option value="cash" {{ request('metode_pembayaran') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                                    <option value="transfer" {{ request('metode_pembayaran') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                                    <option value="credit" {{ request('metode_pembayaran') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                                    @foreach($kasbanks ?? [] as $kas)
+                                        <option value="{{ $kas->id }}" {{ request('coa_id') == $kas->id ? 'selected' : '' }}>{{ $kas->nama_akun }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -569,14 +569,18 @@
                                     <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                     <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? optional($penjualan->tanggal)->format('d-m-Y') ?? '-' }}</td>
                                     <td>
-                                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                            @switch($penjualan->payment_method ?? '')
-                                                @case('cash') Tunai @break
-                                                @case('transfer') Transfer @break
-                                                @case('credit') Kredit @break
-                                                @default Tidak Diketahui
-                                            @endswitch
-                                        </span>
+                                        @if($penjualan->coa)
+                                            <span class="badge bg-info">{{ $penjualan->coa->nama_akun }}</span>
+                                        @else
+                                            <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                                                @switch($penjualan->payment_method ?? '')
+                                                    @case('cash') Tunai @break
+                                                    @case('transfer') Transfer @break
+                                                    @case('credit') Kredit @break
+                                                    @default Tidak Diketahui
+                                                @endswitch
+                                            </span>
+                                        @endif
                                     </td>
                                     @php $detailCount = $penjualan->details->count(); @endphp
                                     <td>

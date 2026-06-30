@@ -208,35 +208,50 @@
         <!-- Summary -->
         <div class="summary">
             @php
-                // Hitung subtotal dari detail produk (qty × harga satuan)
-                $subtotal = 0;
+                $subtotalProduk = 0;
+                $totalDiskon = 0;
+                
                 if ($penjualan->details->count() > 0) {
-                    foreach ($penjualan->details as $detail) {
-                        $subtotal += $detail->jumlah * $detail->harga_satuan;
+                    foreach ($penjualan->details as $d) {
+                        // Harga bruto baris ini
+                        $subtotalProduk += $d->jumlah * $d->harga_satuan;
+                        
+                        // Hitung diskon: pakai diskon_nominal jika ada, fallback dari diskon_persen
+                        $diskonBaris = (float)($d->diskon_nominal ?? 0);
+                        if ($diskonBaris == 0 && ($d->diskon_persen ?? 0) > 0) {
+                            $diskonBaris = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                        }
+                        $totalDiskon += $diskonBaris;
                     }
                 } elseif ($penjualan->produk) {
-                    $subtotal = ($penjualan->jumlah ?? 0) * ($penjualan->harga_satuan ?? 0);
+                    $hdrHarga = $penjualan->harga_satuan;
+                    if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                        $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                    }
+                    $subtotalProduk = ($penjualan->jumlah ?? 0) * $hdrHarga;
+                    $totalDiskon = $penjualan->diskon_nominal ?? 0;
                 }
 
                 $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
                 $ppnAmount   = $penjualan->biaya_ppn ?? 0;
 
                 // Grand total dari DB (sudah benar saat disimpan)
-                // Fallback: hitung manual jika grand_total belum ada
                 $grandTotal = ($penjualan->grand_total > 0)
                     ? $penjualan->grand_total
-                    : ($subtotal + $biayaOngkir + $ppnAmount - ($penjualan->diskon_nominal ?? 0));
+                    : ($subtotalProduk + $biayaOngkir + $ppnAmount - $totalDiskon);
 
-                $paymentLabel = match($penjualan->payment_method ?? 'cash') {
-                    'transfer' => 'Transfer Bank',
-                    default    => 'Tunai',
-                };
+                $paymentLabel = $penjualan->coa 
+                    ? $penjualan->coa->nama_akun 
+                    : match($penjualan->payment_method ?? 'cash') {
+                        'transfer' => 'Transfer Bank',
+                        default    => 'Tunai',
+                    };
             @endphp
 
             {{-- Subtotal Produk --}}
             <div class="summary-row">
                 <span>Subtotal Produk:</span>
-                <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                <span>Rp {{ number_format($subtotalProduk, 0, ',', '.') }}</span>
             </div>
 
             {{-- Ongkir --}}
@@ -256,7 +271,7 @@
             {{-- Diskon --}}
             <div class="summary-row">
                 <span>Total Diskon:</span>
-                <span>-Rp {{ number_format($penjualan->diskon_nominal ?? 0, 0, ',', '.') }}</span>
+                <span>-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</span>
             </div>
 
             {{-- Total --}}

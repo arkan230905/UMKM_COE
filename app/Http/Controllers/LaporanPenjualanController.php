@@ -17,7 +17,7 @@ class LaporanPenjualanController extends Controller
         $tanggalMulai = $request->get('tanggal_mulai', Carbon::now()->startOfMonth()->format('Y-m-d'));
         $tanggalSelesai = $request->get('tanggal_selesai', Carbon::now()->format('Y-m-d'));
         $periode = $request->get('periode', 'bulanan');
-        $metodePembayaran = $request->get('metode_pembayaran');
+        $coaId = $request->get('coa_id');
         $statusTransaksi = $request->get('status_transaksi');
         $produkId = $request->get('produk_id');
         $sortBy = $request->get('sort_by', 'tanggal');
@@ -26,12 +26,13 @@ class LaporanPenjualanController extends Controller
         $produks = \App\Models\Produk::where('user_id', auth()->id())->get();
 
         // Build query for penjualan - CRITICAL: Filter by logged-in user (owner)
-        $query = Penjualan::with(['produk', 'details.produk', 'returPenjualans.detailReturPenjualans'])
+        $query = Penjualan::with(['details.produk', 'produk', 'returs'])
             ->where('user_id', auth()->id()) // CRITICAL: Multi-tenant isolation
+            ->whereNotIn('approval_status', ['pending', 'rejected'])
             ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
 
-        if ($metodePembayaran) {
-            $query->where('payment_method', $metodePembayaran);
+        if ($coaId) {
+            $query->where('coa_id', $coaId);
         }
 
         if ($produkId) {
@@ -51,12 +52,17 @@ class LaporanPenjualanController extends Controller
         $penjualans = $query->orderBy($sortBy, $sortOrder)->paginate(5);
 
         // Calculate summary data
-        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran, $statusTransaksi, $produkId, $periode);
+        $summaryData = $this->calculateSummary($tanggalMulai, $tanggalSelesai, $coaId, $statusTransaksi, $produkId, $periode);
 
         // Get retur data
         $returSortBy = $request->get('sort_by_retur', 'tanggal');
         $returSortOrder = $request->get('sort_order_retur', 'desc');
         $returData = $this->getReturData($tanggalMulai, $tanggalSelesai, $produkId, $returSortBy, $returSortOrder);
+
+        $kasbanks = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
+            ->orderBy('kode_akun')
+            ->get();
+        $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
 
         return view('laporan.penjualan', compact(
             'penjualans',
@@ -65,20 +71,23 @@ class LaporanPenjualanController extends Controller
             'tanggalMulai',
             'tanggalSelesai',
             'periode',
-            'metodePembayaran',
+            'coaId',
             'statusTransaksi',
             'produks',
-            'produkId'
+            'produkId',
+            'perusahaan',
+            'kasbanks'
         ));
     }
-    private function calculateSummary($tanggalMulai, $tanggalSelesai, $metodePembayaran = null, $statusTransaksi = null, $produkId = null, $periode = 'bulanan')
+    private function calculateSummary($tanggalMulai, $tanggalSelesai, $coaId = null, $statusTransaksi = null, $produkId = null, $periode = 'bulanan')
     {
         $query = Penjualan::with(['details.produk', 'produk'])
             ->where('user_id', auth()->id()) // CRITICAL: Multi-tenant isolation
+            ->whereNotIn('approval_status', ['pending', 'rejected'])
             ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
 
-        if ($metodePembayaran) {
-            $query->where('payment_method', $metodePembayaran);
+        if ($coaId) {
+            $query->where('coa_id', $coaId);
         }
 
         if ($produkId) {

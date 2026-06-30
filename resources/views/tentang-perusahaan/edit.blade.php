@@ -100,6 +100,24 @@
                                     <input type="text" class="form-control border-start-0 ps-0" id="telepon" name="telepon" value="{{ old('telepon', $dataPerusahaan->telepon) }}" required placeholder="Contoh: 021-12345678">
                                 </div>
                             </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold theme-brown">Titik Lokasi Perusahaan (Peta) <span class="text-danger">*</span></label>
+                                <div class="position-relative mb-2">
+                                    <input type="text" id="map_search" class="form-control" placeholder="Cari lokasi perusahaan di peta..." style="border-radius: 8px; padding-right: 2.5rem;">
+                                    <i class="fas fa-search position-absolute text-muted" style="right: 15px; top: 50%; transform: translateY(-50%);"></i>
+                                    <div id="map-suggestions" class="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
+                                </div>
+                                <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #dee2e6;" class="mb-2"></div>
+                                <div class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> Geser pin merah atau gunakan pencarian untuk mengatur lokasi akurat perusahaan Anda.</div>
+                                
+                                <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude', $dataPerusahaan->latitude) }}">
+                                <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude', $dataPerusahaan->longitude) }}">
+                                @if(empty($dataPerusahaan->latitude) || empty($dataPerusahaan->longitude))
+                                    <div class="alert alert-warning py-2 mb-0" style="font-size: 0.85rem;">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Titik lokasi belum diatur. Mohon atur lokasi perusahaan agar perhitungan ongkir pelanggan dapat berfungsi.
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                         
                         <div class="mt-5 d-flex gap-2">
@@ -136,6 +154,10 @@
                         </li>
                         <li class="mb-3 d-flex">
                             <i class="fas fa-check-circle text-success me-2 mt-1"></i>
+                            <span><strong>Titik Lokasi (Peta)</strong> sangat penting untuk menghitung jarak pengiriman (ongkir) pesanan pelanggan secara otomatis.</span>
+                        </li>
+                        <li class="mb-3 d-flex">
+                            <i class="fas fa-check-circle text-success me-2 mt-1"></i>
                             <span><strong>Email</strong> dan <strong>Telepon</strong> adalah saluran utama yang bisa dihubungi oleh pihak luar.</span>
                         </li>
                     </ul>
@@ -144,4 +166,99 @@
         </div>
     </div>
 </div>
+
+@push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+@endpush
+
+@push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const latInput = document.getElementById('latitude');
+        const lonInput = document.getElementById('longitude');
+        const searchInput = document.getElementById('map_search');
+        const suggestionsList = document.getElementById('map-suggestions');
+        let timeoutId;
+        
+        // Default to saved location, or Bandung if empty
+        let defaultLat = latInput.value ? parseFloat(latInput.value) : -6.914744;
+        let defaultLon = lonInput.value ? parseFloat(lonInput.value) : 107.609810;
+        
+        const map = L.map('map').setView([defaultLat, defaultLon], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker = L.marker([defaultLat, defaultLon], {draggable: true}).addTo(map);
+
+        function updateLocation(lat, lng) {
+            const newLatLng = new L.LatLng(lat, lng);
+            marker.setLatLng(newLatLng);
+            map.panTo(newLatLng);
+            latInput.value = lat;
+            lonInput.value = lng;
+        }
+
+        // On Marker Drag
+        marker.on('dragend', function(e) {
+            const position = marker.getLatLng();
+            updateLocation(position.lat, position.lng);
+        });
+
+        // On Map Click
+        map.on('click', function(e) {
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Search Autocomplete
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            const query = this.value.trim();
+
+            if (query.length < 5) {
+                suggestionsList.style.display = 'none';
+                return;
+            }
+
+            timeoutId = setTimeout(() => {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=5`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsList.innerHTML = '';
+                        if (data.length > 0) {
+                            data.forEach(item => {
+                                const div = document.createElement('div');
+                                div.className = 'p-2 border-bottom';
+                                div.style.cssText = 'cursor: pointer; font-size: 0.85rem;';
+                                div.innerHTML = `<i class="fas fa-map-marker-alt text-muted me-2"></i> ${item.display_name}`;
+                                
+                                div.addEventListener('click', function() {
+                                    searchInput.value = item.display_name;
+                                    suggestionsList.style.display = 'none';
+                                    updateLocation(item.lat, item.lon);
+                                });
+                                suggestionsList.appendChild(div);
+                            });
+                            suggestionsList.style.display = 'block';
+                        } else {
+                            suggestionsList.style.display = 'none';
+                        }
+                    });
+            }, 500);
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== searchInput && !suggestionsList.contains(e.target)) {
+                suggestionsList.style.display = 'none';
+            }
+        });
+        
+        // Wait a bit for layout to render then invalidate map size
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 500);
+    });
+</script>
+@endpush
 @endsection

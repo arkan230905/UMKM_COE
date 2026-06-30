@@ -72,12 +72,42 @@
         border-radius: 12px;
         padding: 20px;
     }
-    .badge-theme {
-        background-color: var(--brown-light);
-        color: white;
-        font-weight: 500;
-        padding: 6px 12px;
-        border-radius: 6px;
+    .payment-method-card {
+        transition: all 0.2s ease-in-out;
+        border-radius: 12px;
+        background-color: #fdfbf7;
+    }
+    .payment-method-card:hover {
+        border-color: var(--brown-light) !important;
+    }
+    .payment-method-selector:checked + .payment-method-card {
+        border-color: var(--brown) !important;
+        background-color: rgba(138, 107, 72, 0.05) !important;
+        box-shadow: 0 4px 12px rgba(138, 107, 72, 0.15);
+    }
+    .payment-method-selector:checked + .payment-method-card .check-circle {
+        background-color: var(--brown);
+        border-color: var(--brown) !important;
+    }
+    .payment-method-selector:checked + .payment-method-card .check-circle i {
+        display: block !important;
+    }
+    .bank-card { 
+        transition: all 0.2s ease-in-out; 
+        border-radius: 12px;
+        background-color: #fdfbf7;
+    }
+    .bank-selector:checked + .bank-card {
+        border-color: var(--brown) !important;
+        background-color: rgba(138, 107, 72, 0.05) !important;
+        box-shadow: 0 4px 12px rgba(138, 107, 72, 0.15);
+    }
+    .bank-selector:checked + .bank-card .check-circle {
+        background-color: var(--brown);
+        border-color: var(--brown) !important;
+    }
+    .bank-selector:checked + .bank-card .check-circle i {
+        display: block !important;
     }
     .payment-icon-wrapper {
         width: 48px;
@@ -91,10 +121,58 @@
         font-size: 1.5rem;
         margin-right: 15px;
     }
+    .payment-method-content {
+        display: none;
+    }
+    .payment-method-content.active {
+        display: block;
+        animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 @endpush
 
 @section('content')
+@php
+    $subtotalGross = collect($payment_data['items'])->sum(function($item) {
+        return $item['harga_satuan'] * $item['jumlah'];
+    });
+    
+    $totalDiskonItems = collect($payment_data['items'])->sum(function($item) {
+        if (isset($item['diskon_nominal']) && $item['diskon_nominal'] > 0) {
+            return $item['diskon_nominal'];
+        }
+        if (isset($item['diskon_persen']) && $item['diskon_persen'] > 0) {
+            return round(($item['harga_satuan'] * $item['jumlah']) * $item['diskon_persen'] / 100);
+        }
+        return 0;
+    });
+    
+    $totalDiskonTampil = ($payment_data['total_diskon'] ?? 0) > 0
+        ? $payment_data['total_diskon']
+        : $totalDiskonItems;
+        
+    $subtotalNet = $subtotalGross - $totalDiskonTampil;
+    
+    $ppnPersen = $payment_data['ppn_persen'] ?? 0;
+    // PPN dihitung 11% dari subtotal setelah diskon
+    $totalPpn = ($payment_data['total_ppn'] > 0 && $ppnPersen > 0) 
+        ? round($subtotalNet * $ppnPersen / 100) 
+        : 0;
+        
+    $biayaOngkir = $payment_data['biaya_ongkir'] ?? 0;
+    
+    $totalPembayaran = $subtotalNet + $totalPpn + $biayaOngkir;
+
+    // Update data payment_data agar konsisten untuk form submit
+    $payment_data['subtotal_produk'] = $subtotalNet;
+    $payment_data['total_diskon'] = $totalDiskonTampil;
+    $payment_data['total_ppn'] = $totalPpn;
+    $payment_data['total'] = $totalPembayaran;
+@endphp
 <div class="container-fluid page-wrapper">
     <div class="row">
         <div class="col-md-8">
@@ -105,7 +183,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <!-- Ringkasan Pesanan -->
+
+                    
+                    <!-- RINGKASAN PESANAN -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-3">Ringkasan Pesanan</h6>
                         @php
@@ -131,7 +211,6 @@
                                     @php
                                         $diskonPersen  = $item['diskon_persen'] ?? 0;
                                         $diskonNominal = $item['diskon_nominal'] ?? 0;
-                                        // Hitung nominal jika belum ada
                                         if ($diskonNominal == 0 && $diskonPersen > 0) {
                                             $diskonNominal = round(($item['harga_satuan'] * $item['jumlah']) * $diskonPersen / 100);
                                         }
@@ -166,28 +245,9 @@
                     </div>
 
                     <hr>
-
                     <!-- Detail Pembayaran -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-3">Detail Pembayaran</h6>
-                        @php
-                            // Hitung total diskon dari items (fallback jika total_diskon belum ada di session lama)
-                            $totalDiskonItems = collect($payment_data['items'])->sum(function($item) {
-                                if (isset($item['diskon_nominal']) && $item['diskon_nominal'] > 0) {
-                                    return $item['diskon_nominal'];
-                                }
-                                // Hitung dari diskon_persen jika diskon_nominal belum ada
-                                if (isset($item['diskon_persen']) && $item['diskon_persen'] > 0) {
-                                    return round(($item['harga_satuan'] * $item['jumlah']) * $item['diskon_persen'] / 100);
-                                }
-                                return 0;
-                            });
-                            $totalDiskonTampil = ($payment_data['total_diskon'] ?? 0) > 0
-                                ? $payment_data['total_diskon']
-                                : $totalDiskonItems;
-                            // Subtotal gross = subtotal_produk + total_diskon (karena subtotal_produk sudah net)
-                            $subtotalGross = $payment_data['subtotal_produk'] + $totalDiskonTampil;
-                        @endphp
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-2">
@@ -201,21 +261,21 @@
                                 </div>
                                 <div class="mb-2">
                                     <small class="text-muted">Subtotal Setelah Diskon</small>
-                                    <div class="fw-bold text-success">Rp {{ number_format($payment_data['subtotal_produk'], 0, ',', '.') }}</div>
+                                    <div class="fw-bold text-success">Rp {{ number_format($subtotalNet, 0, ',', '.') }}</div>
                                 </div>
                                 @endif
-                                @if($payment_data['biaya_ongkir'] > 0)
+                                @if($biayaOngkir > 0)
                                 <div class="mb-2">
                                     <small class="text-muted">Biaya Ongkir</small>
-                                    <div class="fw-bold">Rp {{ number_format($payment_data['biaya_ongkir'], 0, ',', '.') }}</div>
+                                    <div class="fw-bold">Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</div>
                                 </div>
                                 @endif
                             </div>
                             <div class="col-md-6">
-                                @if($payment_data['total_ppn'] > 0)
+                                @if($totalPpn > 0)
                                 <div class="mb-2">
-                                    <small class="text-muted">PPN ({{ $payment_data['ppn_persen'] }}%)</small>
-                                    <div class="fw-bold">Rp {{ number_format($payment_data['total_ppn'], 0, ',', '.') }}</div>
+                                    <small class="text-muted">PPN ({{ $ppnPersen }}%)</small>
+                                    <div class="fw-bold">Rp {{ number_format($totalPpn, 0, ',', '.') }}</div>
                                 </div>
                                 @endif
                             </div>
@@ -238,32 +298,62 @@
                         </div>
                     </div>
 
-                    <!-- Metode Pembayaran -->
-                    <div class="d-flex align-items-center mb-4 p-3 rounded" style="background-color: rgba(138, 107, 72, 0.05); border: 1px dashed var(--brown-light);">
-                        <div class="payment-icon-wrapper">
-                            @if($payment_data['payment_method'] === 'cash')
-                                <i class="fas fa-wallet"></i>
-                            @else
-                                <i class="fas fa-university"></i>
-                            @endif
-                        </div>
-                        <div>
-                            <span class="text-muted d-block" style="font-size: 0.85rem;">Metode Pembayaran</span>
-                            <div class="fw-bold fs-6">
-                                @if($payment_data['payment_method'] === 'cash')
-                                    Tunai
-                                @elseif($payment_data['payment_method'] === 'transfer')
-                                    Transfer Bank
-                                @else
-                                    {{ ucfirst($payment_data['payment_method']) }}
-                                @endif
+                    <hr>
+
+                    <!-- PILIHAN METODE PEMBAYARAN -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Pilih Metode Pembayaran</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="w-100" style="cursor: pointer;">
+                                    <input type="radio" name="payment_method" value="cash" class="d-none payment-method-selector" id="method-cash" required>
+                                    <div class="card h-100 border payment-method-card" style="border-radius: 12px; background-color: #fdfbf7;">
+                                        <div class="card-body position-relative text-center">
+                                            <div class="position-absolute top-0 end-0 p-3">
+                                                <div class="check-circle" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="fas fa-check text-white" style="font-size: 12px; display: none;"></i>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <i class="fas fa-wallet" style="font-size: 2rem; color: var(--brown);"></i>
+                                            </div>
+                                            <div class="fw-bold fs-6 mb-1">Tunai</div>
+                                            <small class="text-muted">Bayar dengan uang tunai</small>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="w-100" style="cursor: pointer;">
+                                    <input type="radio" name="payment_method" value="transfer" class="d-none payment-method-selector" id="method-transfer" required>
+                                    <div class="card h-100 border payment-method-card" style="border-radius: 12px; background-color: #fdfbf7;">
+                                        <div class="card-body position-relative text-center">
+                                            <div class="position-absolute top-0 end-0 p-3">
+                                                <div class="check-circle" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="fas fa-check text-white" style="font-size: 12px; display: none;"></i>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <i class="fas fa-university" style="font-size: 2rem; color: var(--brown);"></i>
+                                            </div>
+                                            <div class="fw-bold fs-6 mb-1">Transfer Bank</div>
+                                            <small class="text-muted">Bayar via transfer ke rekening</small>
+                                        </div>
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Payment Method Specific Content -->
-                    @if($payment_data['payment_method'] === 'cash')
-                        <!-- CASH PAYMENT -->
+                    <hr>
+
+                    <!-- Payment Method Content Container -->
+                    <div id="payment-method-content">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Hidden Template untuk Cash Payment -->
+                    <template id="cash-payment-template">
                         <div class="card card-modern border mb-4">
                             <div class="card-header bg-light">
                                 <h6 class="mb-0 text-theme fw-bold"><i class="fas fa-money-bill-wave me-2"></i>Detail Pembayaran Tunai</h6>
@@ -271,12 +361,13 @@
                             <div class="card-body">
                                 <div class="alert" style="background-color: rgba(138, 107, 72, 0.1); border-left: 4px solid var(--brown); color: var(--text-primary);">
                                     <i class="fas fa-info-circle me-2 text-theme"></i>
-                                    Pembayaran akan diterima di: <strong>{{ $payment_data['sumber_dana_label'] }}</strong>
+                                    Pembayaran akan diterima sebagai: <strong>Kas / Tunai</strong>
                                 </div>
                                 <form id="form-cash-payment" method="POST" action="{{ route('transaksi.penjualan.confirm-payment') }}">
                                     @csrf
                                     <input type="hidden" name="payment_method" value="cash">
                                     <input type="hidden" name="payment_data" value="{{ json_encode($payment_data) }}">
+                                    <input type="hidden" name="sumber_dana" value="">
                                     
                                     <div class="mb-4">
                                         <label class="form-label fw-semibold">Jumlah Uang Diterima</label>
@@ -318,15 +409,15 @@
                                 </form>
                             </div>
                         </div>
+                    </template>
 
-                    @elseif($payment_data['payment_method'] === 'transfer')
-                        <!-- TRANSFER PAYMENT -->
+                    <!-- Hidden Template untuk Transfer Payment -->
+                    <template id="transfer-payment-template">
                         <div class="card card-modern border mb-4">
                             <div class="card-header bg-light">
                                 <h6 class="mb-0 text-theme fw-bold"><i class="fas fa-university me-2"></i>Detail Pembayaran Transfer</h6>
                             </div>
                             <div class="card-body p-4">
-                                <!-- Form Pembayaran Transfer -->
                                 <form id="form-transfer-payment" method="POST" action="{{ route('transaksi.penjualan.confirm-payment') }}" enctype="multipart/form-data">
                                     @csrf
                                     <input type="hidden" name="payment_method" value="transfer">
@@ -340,7 +431,7 @@
                                             <div class="col-md-6 mb-3">
                                                 <label class="w-100" style="cursor: pointer;">
                                                     <input type="radio" name="sumber_dana" value="{{ $bank->kode_akun }}" class="d-none bank-selector" required {{ $index === 0 ? 'checked' : '' }}>
-                                                    <div class="card h-100 border bank-card transition-all" style="border-radius: 12px; background-color: #fdfbf7;">
+                                                    <div class="card h-100 border bank-card">
                                                         <div class="card-body position-relative">
                                                             <div class="position-absolute top-0 end-0 p-3">
                                                                 <div class="check-circle" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center;">
@@ -374,27 +465,11 @@
                                         </div>
                                     </div>
 
-                                    <style>
-                                    .bank-card { transition: all 0.2s ease-in-out; }
-                                    .bank-selector:checked + .bank-card {
-                                        border-color: var(--brown) !important;
-                                        background-color: rgba(138, 107, 72, 0.05) !important;
-                                        box-shadow: 0 4px 12px rgba(138, 107, 72, 0.15);
-                                    }
-                                    .bank-selector:checked + .bank-card .check-circle {
-                                        background-color: var(--brown);
-                                        border-color: var(--brown) !important;
-                                    }
-                                    .bank-selector:checked + .bank-card .check-circle i {
-                                        display: block !important;
-                                    }
-                                    </style>
+                                    <hr>
 
-                                <hr>
-
-                                <!-- Upload Bukti Pembayaran -->
-                                <div class="mb-4">
-                                    <h6 class="fw-bold mb-3">Bukti Pembayaran</h6>
+                                    <!-- Upload Bukti Pembayaran -->
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold mb-3">Bukti Pembayaran</h6>
                                         <div class="mb-3">
                                             <label class="form-label">Upload Bukti Transfer</label>
                                             <input type="file" name="bukti_pembayaran" class="form-control" 
@@ -423,12 +498,12 @@
                                                 <i class="fas fa-check-circle me-2"></i>Konfirmasi Pembayaran
                                             </button>
                                         </div>
-                                    </form>
-                                </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
+                    </template>
 
-                    @endif
                 </div>
             </div>
         </div>
@@ -470,56 +545,103 @@
 </div>
 
 <script>
-// Format currency input for cash payment
-document.getElementById('jumlah_diterima')?.addEventListener('input', function() {
-    const value = this.value.replace(/[^\d]/g, '');
-    const numValue = parseInt(value) || 0;
+// Handle payment method selection
+document.addEventListener('DOMContentLoaded', function() {
+    const methodSelectors = document.querySelectorAll('.payment-method-selector');
+    const contentContainer = document.getElementById('payment-method-content');
+    const cashTemplate = document.getElementById('cash-payment-template');
+    const transferTemplate = document.getElementById('transfer-payment-template');
     
-    // Format display
-    this.value = 'Rp ' + numValue.toLocaleString('id-ID');
-    
-    // Store raw value
-    document.getElementById('jumlah_diterima_hidden').value = numValue;
-    
-    // Calculate kembalian
-    const total = {{ $payment_data['total'] }};
-    const kembalian = numValue - total;
-    
-    const kembalianInput = document.getElementById('kembalian');
-    const warningKembalian = document.getElementById('warning-kembalian');
-    const btnConfirm = document.getElementById('btn-confirm-cash');
-    
-    if (kembalian < 0) {
-        kembalianInput.value = 'Rp ' + Math.abs(kembalian).toLocaleString('id-ID') + ' (kurang)';
-        kembalianInput.classList.add('border-danger');
-        warningKembalian.style.display = 'block';
-        btnConfirm.disabled = true;
-    } else {
-        kembalianInput.value = 'Rp ' + kembalian.toLocaleString('id-ID');
-        kembalianInput.classList.remove('border-danger');
-        warningKembalian.style.display = 'none';
-        btnConfirm.disabled = false;
-    }
+    methodSelectors.forEach(selector => {
+        selector.addEventListener('change', function() {
+            contentContainer.innerHTML = '';
+            
+            if (this.value === 'cash') {
+                const clone = cashTemplate.content.cloneNode(true);
+                contentContainer.appendChild(clone);
+                
+                // Setup cash payment handlers
+                setTimeout(() => {
+                    setupCashPaymentHandlers();
+                }, 0);
+            } else if (this.value === 'transfer') {
+                const clone = transferTemplate.content.cloneNode(true);
+                contentContainer.appendChild(clone);
+                
+                // Setup file preview handlers
+                setTimeout(() => {
+                    setupTransferPaymentHandlers();
+                }, 0);
+            }
+        });
+    });
 });
 
-// Preview image for transfer payment
-document.querySelector('input[name="bukti_pembayaran"]')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const preview = document.getElementById('preview-bukti');
-            const previewImage = document.getElementById('preview-image');
+function setupCashPaymentHandlers() {
+    const jumlahInput = document.getElementById('jumlah_diterima');
+    const total = {{ $payment_data['total'] }};
+    
+    if (jumlahInput) {
+        jumlahInput.addEventListener('input', function() {
+            const value = this.value.replace(/[^\d]/g, '');
+            const numValue = parseInt(value) || 0;
             
-            if (file.type.startsWith('image/')) {
-                previewImage.src = event.target.result;
-                preview.style.display = 'block';
+            this.value = numValue > 0 ? 'Rp ' + numValue.toLocaleString('id-ID') : 'Rp 0';
+            document.getElementById('jumlah_diterima_hidden').value = numValue;
+            
+            const kembalian = numValue - total;
+            const kembalianInput = document.getElementById('kembalian');
+            const warningKembalian = document.getElementById('warning-kembalian');
+            const btnConfirm = document.getElementById('btn-confirm-cash');
+            
+            if (kembalian < 0) {
+                kembalianInput.value = 'Rp ' + Math.abs(kembalian).toLocaleString('id-ID') + ' (kurang)';
+                kembalianInput.classList.add('border-danger');
+                warningKembalian.style.display = 'block';
+                btnConfirm.disabled = true;
             } else {
-                preview.style.display = 'none';
+                kembalianInput.value = 'Rp ' + kembalian.toLocaleString('id-ID');
+                kembalianInput.classList.remove('border-danger');
+                warningKembalian.style.display = 'none';
+                btnConfirm.disabled = false;
             }
-        };
-        reader.readAsDataURL(file);
+        });
+    }
+}
+
+function setupTransferPaymentHandlers() {
+    const fileInput = document.querySelector('input[name="bukti_pembayaran"]');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('preview-bukti');
+                    const previewImage = document.getElementById('preview-image');
+                    
+                    if (file.type.startsWith('image/')) {
+                        previewImage.src = event.target.result;
+                        preview.style.display = 'block';
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+}
+
+// Set sumber_dana to Kas for cash payment if needed
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('payment-method-selector')) {
+        if (e.target.value === 'cash') {
+            // Sumber_dana for cash is already set in the change event handler above
+            // This is just a fallback handler
+        }
     }
 });
 </script>
+
 @endsection

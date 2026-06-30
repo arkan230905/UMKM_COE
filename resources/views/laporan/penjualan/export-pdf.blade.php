@@ -173,12 +173,16 @@
                         @endif
                     </td>
                     <td>
-                        @if($p->payment_method === 'cash')
-                            <span class="badge badge-success">Tunai</span>
-                        @elseif($p->payment_method === 'transfer')
-                            <span class="badge badge-info">Transfer</span>
+                        @if($p->coa)
+                            {{ $p->coa->nama_akun }}
                         @else
-                            <span class="badge badge-warning">Kredit</span>
+                            @if($p->payment_method === 'cash')
+                                <span class="badge badge-success">Tunai</span>
+                            @elseif($p->payment_method === 'transfer')
+                                <span class="badge badge-info">Transfer</span>
+                            @else
+                                <span class="badge badge-warning">Kredit</span>
+                            @endif
                         @endif
                     </td>
                     <td class="text-right">

@@ -56,13 +56,35 @@
                     @endif
                 </div>
 
-                @if($order->payment_status === 'pending' && $order->snap_token)
-                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
-                    ⚠️ Pesanan Anda menunggu pembayaran
-                </div>
-                <button id="pay-button" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem; margin-top: 0.8rem;">
-                    💳 Bayar Sekarang
-                </button>
+                @if($order->payment_status === 'pending')
+                    @if($order->payment_gateway === 'midtrans' && $order->snap_token)
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
+                        ⚠️ Pesanan Anda menunggu pembayaran
+                    </div>
+                    <button id="pay-button" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem; margin-top: 0.8rem;">
+                        💳 Bayar dengan Midtrans
+                    </button>
+                    @elseif($order->payment_gateway === 'manual_transfer')
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
+                        ⚠️ Pesanan Anda menunggu pembayaran via Transfer Bank Manual.
+                        @if(!$order->bukti_pembayaran)
+                        <form action="{{ route('orders.upload-bukti', $order->id) }}" method="POST" enctype="multipart/form-data" style="margin-top: 10px;">
+                            @csrf
+                            <input type="file" name="bukti_pembayaran" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required style="font-size: 0.7rem; margin-bottom: 5px; width: 100%; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                            @error('bukti_pembayaran')
+                                <small style="color: #dc3545; display: block; margin-bottom: 5px;">{{ $message }}</small>
+                            @enderror
+                            <button type="submit" style="width: 100%; background: #2196f3; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem;">
+                                📤 Upload Bukti Transfer
+                            </button>
+                        </form>
+                        @else
+                        <div style="margin-top: 10px; padding: 8px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; color: #2e7d32;">
+                            ✓ Bukti transfer telah diupload dan sedang diverifikasi admin.
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 @endif
 
                 @if($order->payment_status === 'paid')
@@ -108,8 +130,20 @@
                         @endforeach
                     </tbody>
                     <tfoot>
-                        <tr style="border-top: 2px solid #f0f0f0; background: #f9f9f9;">
-                            <th colspan="3" style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Total:</th>
+                        <tr style="border-top: 2px solid #f0f0f0;">
+                            <th colspan="3" style="text-align: right; padding: 0.4rem; font-weight: 600; color: #666;">Subtotal:</th>
+                            <th style="text-align: right; padding: 0.4rem; font-weight: 600; color: #2d3748;">Rp {{ number_format($order->subtotal_amount, 0, ',', '.') }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="3" style="text-align: right; padding: 0.4rem; font-weight: 600; color: #666;">Ongkos Kirim:</th>
+                            <th style="text-align: right; padding: 0.4rem; font-weight: 600; color: #2d3748;">Rp {{ number_format($order->ongkir_amount, 0, ',', '.') }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="3" style="text-align: right; padding: 0.4rem; font-weight: 600; color: #666;">PPN:</th>
+                            <th style="text-align: right; padding: 0.4rem; font-weight: 600; color: #2d3748;">Rp {{ number_format($order->ppn_amount, 0, ',', '.') }}</th>
+                        </tr>
+                        <tr style="background: #f9f9f9;">
+                            <th colspan="3" style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Total Pembayaran:</th>
                             <th style="text-align: right; padding: 0.4rem; font-weight: 800; color: #8b6f47;">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</th>
                         </tr>
                     </tfoot>

@@ -70,6 +70,8 @@ class PerusahaanController extends Controller
         $request->validate([
             'nama' => 'required|string|max:255',
             'alamat' => 'required|string',
+            'latitude' => 'nullable|string',
+            'longitude' => 'nullable|string',
             'email' => 'required|email|max:255',
             'telepon' => 'required|string|max:20',
             'nama_bank' => 'nullable|string|max:255',
@@ -84,6 +86,8 @@ class PerusahaanController extends Controller
             $perusahaan->update([
                 'nama' => $request->nama,
                 'alamat' => $request->alamat,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
                 'email' => $request->email,
                 'telepon' => $request->telepon,
                 'nama_bank' => $request->nama_bank,
@@ -96,6 +100,8 @@ class PerusahaanController extends Controller
                 'user_id' => auth()->id(),
                 'nama' => $request->nama,
                 'alamat' => $request->alamat,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
                 'email' => $request->email,
                 'telepon' => $request->telepon,
                 'nama_bank' => $request->nama_bank,
