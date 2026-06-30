@@ -150,12 +150,8 @@
                     </div>
                 </div>
 
-                <!-- Bahan Pendukung Section -->
-                <h5 class="mb-3 mt-4"><i class="fas fa-cube me-2"></i>Bahan Pendukung</h5>
-                <p class="text-muted mb-3">Pilih bahan pendukung yang digunakan dalam proses produksi</p>
-
                 <!-- Bahan Pendukung -->
-                <div class="row g-3">
+                <div class="row g-3 mt-4">
                     <div class="col-12">
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover" id="bahanPendukungTable">
