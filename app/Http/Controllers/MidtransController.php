@@ -66,6 +66,17 @@ class MidtransController extends Controller
             'paid_at' => $paymentStatus === 'paid' ? now() : null,
         ]);
 
+        if ($paymentStatus === 'paid') {
+            \App\Models\Penjualan::where('order_id', $order->id)->update([
+                'payment_status' => 'paid',
+                'payment_confirmed_at' => now(),
+            ]);
+        } elseif ($paymentStatus === 'failed') {
+            \App\Models\Penjualan::where('order_id', $order->id)->update([
+                'payment_status' => 'failed',
+            ]);
+        }
+
         // Create notification
         if ($paymentStatus === 'paid') {
             Notification::createNotification(

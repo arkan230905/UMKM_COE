@@ -220,4 +220,47 @@ class AccountHelper
         
         return $accounts;
     }
+
+    /**
+     * Get hanya akun Bank (exclude Kas, Kas Kecil) dengan saldo
+     * 
+     * @param int|null $userId Optional user_id for multi-tenant filtering
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getBankAccountsWithBalance($userId = null)
+    {
+        $bankKeywords = ['bank', 'bca', 'mandiri', 'bri', 'bni', 'bsi', 'cimb', 'danamon', 'permata', 'btn', 'bpd', 'maybank', 'mega', 'ocbc', 'panin', 'sinarmas', 'bukopin', 'jenius', 'jago', 'allo', 'uob', 'hana', 'muamalat', 'dki', 'bjb', 'jabar', 'jatim', 'jateng', 'seabank'];
+        
+        $query = Coa::whereIn('tipe_akun', ['Asset', 'Aset', 'ASET', 'Aktiva', 'asset'])
+            ->where(function($q) use ($bankKeywords) {
+                $q->where('kode_akun', 'like', '111%');
+                foreach ($bankKeywords as $keyword) {
+                    $q->orWhere('nama_akun', 'LIKE', '%' . $keyword . '%');
+                }
+            });
+
+        if ($userId !== null) {
+            $query->where('user_id', $userId);
+        }
+        
+        $accounts = $query->orderBy('kode_akun')->get();
+        
+        // Filter collection to exclude non-bank assets (Kas, Kas Bank, Kas Kecil)
+        $filteredAccounts = $accounts->filter(function($account) {
+            $nama = strtolower(trim($account->nama_akun));
+            
+            // Exclude Kas, Kas Bank, Kas Kecil, and strict exclusions
+            if ($nama === 'kas' || $nama === 'kas bank' || $nama === 'kas kecil' || strpos($nama, 'kredit') !== false || strpos($nama, 'hutang') !== false) {
+                return false;
+            }
+            
+            return true;
+        })->values(); // reset keys
+        
+        foreach ($filteredAccounts as $account) {
+            $account->saldo = self::getCurrentBalance($account->kode_akun, $userId);
+        }
+        
+        return $filteredAccounts;
+    }
 }

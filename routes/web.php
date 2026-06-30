@@ -1944,10 +1944,13 @@ Route::prefix('{perusahaan_slug}/pelanggan')->name('pelanggan.')->middleware('se
         Route::get('/checkout/districts', [CheckoutController::class, 'getDistricts'])->name('checkout.districts');
         Route::get('/checkout/sub-districts', [CheckoutController::class, 'getSubDistricts'])->name('checkout.sub-districts');
         Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
+        Route::get('/checkout/payment', [CheckoutController::class, 'payment'])->name('checkout.payment');
+        Route::post('/checkout/payment/process', [CheckoutController::class, 'processPayment'])->name('checkout.payment.process');
         
         // Orders
         Route::get('/orders', [PelangganOrderController::class, 'index'])->name('orders');
         Route::get('/orders/{order}', [PelangganOrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{order}/upload-bukti', [PelangganOrderController::class, 'uploadBukti'])->name('orders.upload-bukti');
 
         // Favorites
         Route::get('/favorites', [PelangganFavoriteController::class, 'index'])->name('favorites');
@@ -3091,6 +3094,8 @@ Route::middleware('auth')->group(function () {
         // ✅ PENJUALAN
         // ============================================================
         Route::resource('penjualan', PenjualanController::class);
+        Route::post('penjualan/{id}/approve', [PenjualanController::class, 'approveOnlineTransaction'])->name('penjualan.approve');
+        Route::post('penjualan/{id}/reject', [PenjualanController::class, 'rejectOnlineTransaction'])->name('penjualan.reject');
         Route::get('penjualan/barcode/{barcode}', [PenjualanController::class, 'findByBarcode'])->name('penjualan.barcode');
         Route::get('penjualan/{id}/struk', [PenjualanController::class, 'struk'])->name('penjualan.struk');
         Route::post('penjualan/prepare-payment', [PenjualanController::class, 'preparePayment'])->name('penjualan.prepare-payment');

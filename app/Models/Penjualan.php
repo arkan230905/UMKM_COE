@@ -21,7 +21,9 @@ class Penjualan extends Model
         'tanggal',
         'payment_method',
         'payment_status',  // Track payment confirmation
+        'approval_status', // Track online order approval
         'payment_confirmed_at',  // When payment was confirmed
+        'coa_id',
         'harga_satuan',
         'jumlah',
         'diskon_nominal',
@@ -44,6 +46,11 @@ class Penjualan extends Model
         return $this->belongsTo(Order::class);
     }
 
+    public function getIsOnlineAttribute()
+    {
+        return !is_null($this->order_id);
+    }
+
     public function getTanggalTransaksiAttribute()
     {
         if (!$this->tanggal) {
@@ -58,7 +65,12 @@ class Penjualan extends Model
 
     public function produk()
     {
-        return $this->belongsTo(Produk::class, 'produk_id');
+        return $this->belongsTo(Produk::class, 'produk_id')->withoutGlobalScopes();
+    }
+
+    public function coa()
+    {
+        return $this->belongsTo(Coa::class, 'coa_id');
     }
 
     public function pelanggan()
@@ -74,6 +86,49 @@ class Penjualan extends Model
     public function penjualanDetails()
     {
         return $this->hasMany(PenjualanDetail::class);
+    }
+
+    public function buktiPembayarans()
+    {
+        return $this->hasMany(BuktiPembayaran::class);
+    }
+
+    public function getAllBuktiPembayaranAttribute()
+    {
+        $allBukti = $this->buktiPembayarans ?? collect();
+        
+        if (!empty($this->bukti_pembayaran)) {
+            // Check if it already exists in the collection to prevent duplicates
+            $exists = $allBukti->contains('file_path', $this->bukti_pembayaran);
+            
+            if (!$exists) {
+                $legacyBukti = new BuktiPembayaran([
+                    'penjualan_id' => $this->id,
+                    'file_path' => $this->bukti_pembayaran,
+                    'keterangan' => $this->catatan_pembayaran ?? 'Bukti dari Pembayaran Utama',
+                ]);
+                $legacyBukti->id = 'legacy'; // flag for view
+                $legacyBukti->created_at = $this->payment_confirmed_at ?? $this->created_at;
+                
+                $allBukti->prepend($legacyBukti);
+            }
+        }
+
+        if ($this->order && !empty($this->order->bukti_pembayaran)) {
+            $exists = $allBukti->contains('file_path', $this->order->bukti_pembayaran);
+            if (!$exists) {
+                $orderBukti = new BuktiPembayaran([
+                    'penjualan_id' => $this->id,
+                    'file_path' => $this->order->bukti_pembayaran,
+                    'keterangan' => 'Bukti Pembayaran dari Pelanggan (Online)',
+                ]);
+                $orderBukti->id = 'order_bukti'; // flag for view
+                $orderBukti->created_at = $this->order->updated_at;
+                $allBukti->prepend($orderBukti);
+            }
+        }
+        
+        return $allBukti;
     }
 
     // Relasi ke retur (untuk mengecek status retur)

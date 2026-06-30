@@ -130,7 +130,7 @@
                                                 <option value="">-- Pilih Bank Perusahaan --</option>
                                                 @foreach($kasBankCoas as $coa)
                                                     <option value="{{ $coa->id }}" {{ old('bank_refund_id') == $coa->id ? 'selected' : '' }}>
-                                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }} (Saldo: Rp {{ number_format($coa->saldo ?? 0, 0, ',', '.') }})
                                                     </option>
                                                 @endforeach
                                             </select>

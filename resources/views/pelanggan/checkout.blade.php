@@ -69,17 +69,46 @@
                                 </div>
 
                                 <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Pilih Lokasi di Peta <span class="text-danger">*</span></label>
+                                    <div class="position-relative mb-2">
+                                        <input type="text" id="map_search" class="form-control" placeholder="Cari alamat di peta..." style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                        <i class="bi bi-search position-absolute" style="right: 15px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
+                                        <!-- Map Search Suggestions Dropdown -->
+                                        <div id="map-suggestions" class="position-absolute w-100" style="top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                        </div>
+                                    </div>
+                                    <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 1rem; z-index: 1;"></div>
+                                </div>
+
+                                <div class="mb-3">
                                     <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Alamat Lengkap <span class="text-danger">*</span></label>
                                     <div class="position-relative">
-                                        <input type="text" id="alamat_pengiriman" name="alamat_pengiriman" class="form-control" required placeholder="Ketik alamat lengkap (cth: Jl. Braga, Bandung)" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                        <input type="text" id="alamat_pengiriman" name="alamat_pengiriman" class="form-control" readonly required placeholder="Alamat terisi otomatis dari peta" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem; background: #f8f9fa;">
                                         <i class="bi bi-geo-alt position-absolute" style="right: 15px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
-                                        
-                                        <!-- Address Suggestions Dropdown -->
-                                        <div id="address-suggestions" class="position-absolute w-100" style="top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; max-height: 300px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                        </div>
                                     </div>
                                     @error('alamat_pengiriman') <small class="text-danger">{{ $message }}</small> @enderror
                                 </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kecamatan</label>
+                                        <input type="text" id="kecamatan" name="kecamatan" class="form-control" placeholder="Kecamatan" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kota/Kabupaten</label>
+                                        <input type="text" id="kota" name="kota" class="form-control" placeholder="Kota" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kode Pos</label>
+                                        <input type="text" id="kode_pos" name="kode_pos" class="form-control" placeholder="Kode Pos" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Detail Alamat (Patokan, dll)</label>
+                                    <textarea name="detail_alamat" class="form-control" rows="2" placeholder="Cth: Rumah pagar hitam, depan masjid..." style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;"></textarea>
+                                </div>
+
 
                                 <div class="mb-3">
                                     <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">No. Telepon <span class="text-danger">*</span></label>
@@ -92,62 +121,7 @@
                             </div>
                         </div>
 
-                        <hr style="border-color: #eee; margin: 1.5rem 0;">
 
-                        <!-- Metode Pembayaran -->
-                        <div class="d-flex gap-3 mb-4">
-                            <div style="color: #8b5a2b; font-size: 1.5rem;"><i class="bi bi-credit-card-2-front"></i></div>
-                            <div style="flex: 1;">
-                                <h6 style="font-weight: 700; color: #2d3748; margin-bottom: 0.2rem;">Metode Pembayaran</h6>
-                                <p style="font-size: 0.8rem; color: #888; margin-bottom: 1rem;">Pilih metode pembayaran yang tersedia</p>
-                                
-                                <div class="mb-3">
-                                    <select name="payment_method" class="form-select" required style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
-                                        <option value="">-- Pilih Metode Pembayaran --</option>
-                                        <option value="qris" {{ old('payment_method') == 'qris' ? 'selected' : '' }}>QRIS (Scan & Pay)</option>
-                                        <option value="va_bca" {{ old('payment_method') == 'va_bca' ? 'selected' : '' }}>BCA Virtual Account</option>
-                                        <option value="va_bni" {{ old('payment_method') == 'va_bni' ? 'selected' : '' }}>BNI Virtual Account</option>
-                                        <option value="va_bri" {{ old('payment_method') == 'va_bri' ? 'selected' : '' }}>BRI Virtual Account</option>
-                                        <option value="va_mandiri" {{ old('payment_method') == 'va_mandiri' ? 'selected' : '' }}>Mandiri Virtual Account</option>
-                                        <option value="transfer" {{ old('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer Bank Manual</option>
-                                        <option value="cod" {{ old('payment_method') == 'cod' ? 'selected' : '' }}>COD (Cash On Delivery)</option>
-                                        <option value="kasir" {{ old('payment_method') == 'kasir' ? 'selected' : '' }}>Bayar di Kasir</option>
-                                    </select>
-                                    <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.5rem;"><i class="bi bi-shield-check text-success"></i> Pembayaran aman melalui Midtrans</small>
-                                    
-                                    <!-- Info untuk COD -->
-                                    <div id="cod-info" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 0.8rem; margin-top: 0.8rem; display: none; font-size: 0.8rem; color: #856404;">
-                                        <i class="bi bi-info-circle" style="color: #ffc107;"></i>
-                                        <strong>COD (Cash On Delivery):</strong> Bayar saat barang tiba. Ongkir tetap dihitung berdasarkan jarak pengiriman.
-                                    </div>
-                                    
-                                    <!-- Info untuk Kasir -->
-                                    <div id="kasir-info" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 0.8rem; margin-top: 0.8rem; display: none; font-size: 0.8rem; color: #856404;">
-                                        <i class="bi bi-info-circle" style="color: #ffc107;"></i>
-                                        <strong>Bayar di Kasir:</strong> Ambil langsung di toko. Tidak ada ongkir. Alamat pengiriman bisa diisi dengan "-".
-                                    </div>
-                                    
-                                    <!-- Info untuk Transfer Bank Manual -->
-                                    @if($perusahaan && $perusahaan->nama_bank && $perusahaan->nomor_rekening)
-                                    <div id="transfer-info" style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 0.8rem; margin-top: 0.8rem; display: none; font-size: 0.8rem; color: #1565c0;">
-                                        <i class="bi bi-bank" style="color: #2196f3;"></i>
-                                        <strong>Info Rekening:</strong><br>
-                                        <span style="display: block; margin-top: 0.4rem;">
-                                            Bank: <strong>{{ $perusahaan->nama_bank }}</strong><br>
-                                            Nomor: <strong>{{ $perusahaan->nomor_rekening }}</strong><br>
-                                            @if($perusahaan->nama_pemilik_rekening)
-                                            Atas Nama: <strong>{{ $perusahaan->nama_pemilik_rekening }}</strong>
-                                            @endif
-                                        </span>
-                                    </div>
-                                    @endif
-                                    
-                                    @error('payment_method') <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr style="border-color: #eee; margin: 1.5rem 0;">
 
                         <!-- Catatan -->
                         <div class="d-flex gap-3 mb-4">
@@ -164,7 +138,7 @@
                         </div>
 
                         <button type="submit" class="btn w-100" style="background: #a66a38; color: white; border-radius: 8px; padding: 0.8rem; font-weight: 600; font-size: 1rem; box-shadow: 0 4px 10px rgba(139, 90, 43, 0.2);">
-                            <i class="bi bi-lock-fill me-2"></i> Proses Pembayaran
+                            <i class="bi bi-arrow-right-circle me-2"></i> Lanjut ke Pembayaran
                         </button>
                         
                         <!-- Hidden input to store ongkir -->
@@ -313,147 +287,278 @@
     </div>
 </div>
 
+<!-- Modal Konfirmasi Alamat -->
+<div class="modal fade" id="modalKonfirmasiAlamat" tabindex="-1" aria-labelledby="modalKonfirmasiAlamatLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background: #fdf5eb; border-bottom: 1px solid #f0f0f0; border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title" id="modalKonfirmasiAlamatLabel" style="color: #8b5a2b; font-weight: 700; font-size: 1.1rem;">
+                    <i class="bi bi-geo-alt-fill me-2"></i>Alamat Pin Point Pada Peta
+                </h5>
+                <button type="button" class="btn-close" id="btn-tutup-alamat" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3 text-center">
+                    <div id="modal-map-preview" style="height: 150px; width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 1rem;"></div>
+                    <strong style="font-size: 0.95rem; color: #2d3748; display: block; margin-bottom: 0.5rem;" id="modal-alamat-text">Sedang memuat alamat...</strong>
+                </div>
+                
+                <div style="background: #fff3cd; border: 1px solid #ffecb5; border-radius: 8px; padding: 0.8rem; font-size: 0.8rem; color: #856404;">
+                    <ul class="mb-0 ps-3 text-start">
+                        <li class="mb-1">Pastikan lokasi anda sesuai dengan peta diatas</li>
+                        <li class="mb-1">Jika terjadi kesalahan pemilihan pada peta di luar tanggung jawab kami</li>
+                        <li>Jika salah silahkan klik tombol tutup dan silahkan ubah lokasi pada peta utama</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #f0f0f0;">
+                <button type="button" class="btn btn-light" id="btn-batal-alamat" style="border-radius: 8px; font-weight: 600;">Tutup</button>
+                <button type="button" class="btn text-white" id="btn-simpan-alamat" style="background: #a66a38; border-radius: 8px; font-weight: 600;">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const addressInput = document.getElementById('alamat_pengiriman');
-        const suggestionsList = document.getElementById('address-suggestions');
-        const paymentMethodSelect = document.querySelector('select[name="payment_method"]');
-        const cashInfoBox = document.getElementById('cash-info');
+        const searchInput = document.getElementById('map_search');
+        const suggestionsList = document.getElementById('map-suggestions');
+        const latInput = document.getElementById('latitude_pengiriman');
+        const lonInput = document.getElementById('longitude_pengiriman');
         let timeoutId;
+        
+        const konfirmasiModal = new bootstrap.Modal(document.getElementById('modalKonfirmasiAlamat'));
+        let pendingLat = null, pendingLon = null, pendingAddress = '', pendingKecamatan = '', pendingKota = '', pendingKodePos = '';
+        let alamatDikonfirmasi = false;
+        let ongkirValid = false;
+        let miniMap = null;
+        let miniMarker = null;
 
-        // Show/hide payment method info and handle ongkir
-        if (paymentMethodSelect) {
-            paymentMethodSelect.addEventListener('change', function() {
-                const codInfoBox = document.getElementById('cod-info');
-                const kasirInfoBox = document.getElementById('kasir-info');
-                const transferInfoBox = document.getElementById('transfer-info');
-                
-                if (this.value === 'cod') {
-                    if (codInfoBox) codInfoBox.style.display = 'block';
-                    if (kasirInfoBox) kasirInfoBox.style.display = 'none';
-                    if (transferInfoBox) transferInfoBox.style.display = 'none';
-                    // For COD, ongkir is calculated normally
-                    addressInput.placeholder = 'Ketik alamat lengkap (cth: Jl. Braga, Bandung)';
-                } else if (this.value === 'kasir') {
-                    if (codInfoBox) codInfoBox.style.display = 'none';
-                    if (kasirInfoBox) kasirInfoBox.style.display = 'block';
-                    if (transferInfoBox) transferInfoBox.style.display = 'none';
-                    // For Kasir, set ongkir to 0 and clear address
-                    currentOngkir = 0;
-                    addressInput.value = '-';
-                    addressInput.placeholder = 'Ambil di toko (tidak perlu alamat)';
-                    document.getElementById('latitude_pengiriman').value = '';
-                    document.getElementById('longitude_pengiriman').value = '';
-                    document.getElementById('ongkir-display').innerHTML = 'Rp 0';
-                    document.getElementById('biaya_ongkir').value = 0;
-                    updateTotals();
-                } else if (this.value === 'transfer') {
-                    if (codInfoBox) codInfoBox.style.display = 'none';
-                    if (kasirInfoBox) kasirInfoBox.style.display = 'none';
-                    if (transferInfoBox) transferInfoBox.style.display = 'block';
-                    // For Transfer, ongkir is calculated normally
-                    addressInput.placeholder = 'Ketik alamat lengkap (cth: Jl. Braga, Bandung)';
-                } else {
-                    if (codInfoBox) codInfoBox.style.display = 'none';
-                    if (kasirInfoBox) kasirInfoBox.style.display = 'none';
-                    if (transferInfoBox) transferInfoBox.style.display = 'none';
-                    // For other methods, ongkir is calculated normally
-                    addressInput.placeholder = 'Ketik alamat lengkap (cth: Jl. Braga, Bandung)';
-                }
-            });
+        // Form Submission Validation
+        document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+            if (!alamatDikonfirmasi) {
+                e.preventDefault();
+                alert('Silakan konfirmasi titik alamat pengiriman di peta terlebih dahulu.');
+                return;
+            }
+            if (!ongkirValid) {
+                e.preventDefault();
+                alert('Gagal memproses ongkos kirim. Pastikan alamat valid dan lokasi toko penjual telah diatur oleh admin.');
+            }
+        });
+        
+        // Leaflet Map Initialization
+        // Default to Bandung if location not found
+        let defaultLat = -6.914744;
+        let defaultLon = 107.609810;
+        
+        const map = L.map('map').setView([defaultLat, defaultLon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker = L.marker([defaultLat, defaultLon], {draggable: true}).addTo(map);
+
+        function updateLocation(lat, lng, fetchAddress = true) {
+            alamatDikonfirmasi = false; // Reset status konfirmasi
+            const newLatLng = new L.LatLng(lat, lng);
+            marker.setLatLng(newLatLng);
+            map.panTo(newLatLng);
             
-            // Check initial state
-            if (paymentMethodSelect.value === 'cod') {
-                const codInfoBox = document.getElementById('cod-info');
-                if (codInfoBox) codInfoBox.style.display = 'block';
-            } else if (paymentMethodSelect.value === 'kasir') {
-                const kasirInfoBox = document.getElementById('kasir-info');
-                if (kasirInfoBox) kasirInfoBox.style.display = 'block';
-                // Set initial state for kasir
-                currentOngkir = 0;
-                addressInput.value = '-';
-                addressInput.placeholder = 'Ambil di toko (tidak perlu alamat)';
-                document.getElementById('ongkir-display').innerHTML = 'Rp 0';
-                document.getElementById('biaya_ongkir').value = 0;
-                updateTotals();
-            } else if (paymentMethodSelect.value === 'transfer') {
-                const transferInfoBox = document.getElementById('transfer-info');
-                if (transferInfoBox) transferInfoBox.style.display = 'block';
+            if (fetchAddress) {
+                pendingLat = lat;
+                pendingLon = lng;
+                reverseGeocodeAndConfirm(lat, lng);
             }
         }
 
-        addressInput.addEventListener('input', function() {
+        // On Marker Drag
+        marker.on('dragend', function(e) {
+            const position = marker.getLatLng();
+            updateLocation(position.lat, position.lng);
+        });
+
+        // On Map Click
+        map.on('click', function(e) {
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Try getting user's current location
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                // Initialize map with user's position but don't force confirmation yet
+                const newLatLng = new L.LatLng(position.coords.latitude, position.coords.longitude);
+                marker.setLatLng(newLatLng);
+                map.panTo(newLatLng);
+            }, function(error) {
+                console.log("Geolocation error:", error);
+            });
+        }
+
+        function formatNominatimAddress(addr) {
+            let parts = [];
+            
+            // Nama Jalan & Nomor
+            let jalan = addr.road || addr.pedestrian || addr.street || addr.path || '';
+            let nomor = addr.house_number || '';
+            let jalanLengkap = jalan;
+            if (jalan && nomor) {
+                jalanLengkap = jalan + ' No. ' + nomor;
+            } else if (!jalan && addr.hamlet) {
+                // Seringkali jalan tidak ada tapi hamlet/dusun ada
+                jalanLengkap = addr.hamlet;
+            }
+            if (jalanLengkap) parts.push(jalanLengkap);
+            
+            // Kelurahan / Desa
+            let kelurahan = addr.village || addr.suburb || addr.neighbourhood || addr.residential || '';
+            if (kelurahan && kelurahan !== jalanLengkap) parts.push(kelurahan);
+            
+            // Kecamatan
+            let kecamatan = addr.city_district || addr.district || addr.subdistrict || '';
+            if (kecamatan && kecamatan !== kelurahan) parts.push(kecamatan);
+            
+            // Kota / Kabupaten
+            let kota = addr.city || addr.town || addr.municipality || addr.county || '';
+            if (kota && kota !== kecamatan) parts.push(kota);
+            
+            // Provinsi & Kode Pos
+            let provinsi = addr.state || addr.region || addr.province || '';
+            let kodepos = addr.postcode || '';
+            let provPos = provinsi;
+            if (provinsi && kodepos) {
+                provPos = provinsi + ' ' + kodepos;
+            } else if (kodepos) {
+                provPos = kodepos;
+            }
+            if (provPos) parts.push(provPos);
+            
+            // Negara
+            let negara = addr.country || 'Indonesia';
+            if (negara) parts.push(negara);
+            
+            // Gabungkan dengan koma
+            return parts.join(', ');
+        }
+
+        function reverseGeocodeAndConfirm(lat, lon) {
+            document.getElementById('modal-alamat-text').innerText = 'Sedang memuat alamat...';
+            konfirmasiModal.show();
+            
+            // Initialize mini map if not yet
+            setTimeout(() => {
+                if (!miniMap) {
+                    miniMap = L.map('modal-map-preview').setView([lat, lon], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+                    miniMarker = L.marker([lat, lon]).addTo(miniMap);
+                } else {
+                    const newLatLng = new L.LatLng(lat, lon);
+                    miniMap.setView(newLatLng, 15);
+                    miniMarker.setLatLng(newLatLng);
+                    miniMap.invalidateSize();
+                }
+            }, 300);
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.address) {
+                        const addr = data.address;
+                        let formattedAddress = formatNominatimAddress(addr);
+                        
+                        if (!formattedAddress) {
+                            formattedAddress = data.display_name;
+                        }
+                        
+                        pendingAddress = formattedAddress;
+                        document.getElementById('modal-alamat-text').innerText = formattedAddress;
+                        
+                        pendingKecamatan = addr.city_district || addr.district || addr.subdistrict || '';
+                        pendingKota = addr.city || addr.town || addr.municipality || addr.county || '';
+                        pendingKodePos = addr.postcode || '';
+                    } else if (data && data.display_name) {
+                        pendingAddress = data.display_name;
+                        document.getElementById('modal-alamat-text').innerText = data.display_name;
+                        pendingKecamatan = '';
+                        pendingKota = '';
+                        pendingKodePos = '';
+                    } else {
+                        document.getElementById('modal-alamat-text').innerText = 'Alamat tidak ditemukan';
+                    }
+                })
+                .catch(err => {
+                    console.error('Reverse Geocode Error:', err);
+                    document.getElementById('modal-alamat-text').innerText = 'Gagal memuat alamat';
+                });
+        }
+
+        document.getElementById('btn-simpan-alamat').addEventListener('click', function() {
+            alamatDikonfirmasi = true;
+            latInput.value = pendingLat;
+            lonInput.value = pendingLon;
+            addressInput.value = pendingAddress;
+            document.getElementById('kecamatan').value = pendingKecamatan;
+            document.getElementById('kota').value = pendingKota;
+            document.getElementById('kode_pos').value = pendingKodePos;
+            
+            calculateOngkir(pendingAddress, pendingLat, pendingLon);
+            konfirmasiModal.hide();
+        });
+        
+        const closeModalHandler = function() {
+            konfirmasiModal.hide();
+        };
+        document.getElementById('btn-batal-alamat').addEventListener('click', closeModalHandler);
+        document.getElementById('btn-tutup-alamat').addEventListener('click', closeModalHandler);
+
+        // Search Autocomplete
+        searchInput.addEventListener('input', function() {
             clearTimeout(timeoutId);
             const query = this.value.trim();
 
-            // Don't show suggestions if address is "-" (kasir method)
-            if (query === '-' || query.length < 5) {
+            if (query.length < 5) {
                 suggestionsList.style.display = 'none';
                 return;
             }
 
-            // Debounce the API call
             timeoutId = setTimeout(() => {
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=15`)
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=5&addressdetails=1`)
                     .then(response => response.json())
                     .then(data => {
                         suggestionsList.innerHTML = '';
-                        
                         if (data.length > 0) {
-                            // Add a header item
-                            const headerLi = document.createElement('li');
-                            headerLi.className = 'list-group-item';
-                            headerLi.style.cssText = 'background: #f8f9fa; font-size: 0.75rem; color: #888; font-weight: 600; padding: 0.4rem 1rem; border-bottom: 1px solid #eee;';
-                            headerLi.innerText = 'Rekomendasi tempat berdasarkan alamatmu';
-                            suggestionsList.appendChild(headerLi);
-
                             data.forEach(item => {
+                                let alamatLengkap = item.address ? formatNominatimAddress(item.address) : item.display_name;
                                 const li = document.createElement('li');
-                                li.className = 'list-group-item list-group-item-action d-flex align-items-start gap-2';
+                                li.className = 'list-group-item list-group-item-action';
                                 li.style.cssText = 'cursor: pointer; padding: 0.6rem 1rem; font-size: 0.85rem;';
-                                
-                                li.innerHTML = `
-                                    <i class="bi bi-geo-alt-fill text-muted mt-1"></i>
-                                    <div>
-                                        <div style="font-weight: 600; color: #2d3748;">${item.display_name.split(',')[0]}</div>
-                                        <div style="color: #666; font-size: 0.8rem;">${item.display_name}</div>
-                                    </div>
-                                `;
+                                li.innerHTML = `<i class="bi bi-geo-alt-fill text-muted me-2"></i> ${alamatLengkap}`;
                                 
                                 li.addEventListener('click', function() {
-                                    addressInput.value = item.display_name;
-                                    document.getElementById('latitude_pengiriman').value = item.lat;
-                                    document.getElementById('longitude_pengiriman').value = item.lon;
+                                    searchInput.value = alamatLengkap;
                                     suggestionsList.style.display = 'none';
-                                    calculateOngkir(item.display_name, item.lat, item.lon);
+                                    updateLocation(item.lat, item.lon);
                                 });
-                                
                                 suggestionsList.appendChild(li);
                             });
                             suggestionsList.style.display = 'block';
                         } else {
                             suggestionsList.style.display = 'none';
                         }
-                    })
-                    .catch(err => {
-                        console.error('Error fetching address suggestions:', err);
-                        suggestionsList.style.display = 'none';
                     });
-            }, 500); // 500ms delay
+            }, 500);
         });
 
-        // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
-            if (e.target !== addressInput && e.target !== suggestionsList && !suggestionsList.contains(e.target)) {
+            if (e.target !== searchInput && !suggestionsList.contains(e.target)) {
                 suggestionsList.style.display = 'none';
             }
         });
 
         const baseTotal = parseInt({{ $total }}) || 0;
         let currentOngkir = 0;
-        
-        console.log('Base Total:', baseTotal, 'Type:', typeof baseTotal);
         
         function formatRupiah(amount) {
             return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -462,8 +567,6 @@
         function updateTotals() {
             const ppn = baseTotal * 0.11;
             const grandTotal = baseTotal + ppn + currentOngkir;
-            
-            console.log('Update Totals - Base:', baseTotal, 'PPN:', ppn, 'Ongkir:', currentOngkir, 'Grand:', grandTotal);
             
             document.getElementById('ppn-display').innerText = formatRupiah(Math.round(ppn));
             document.getElementById('grand-total-display').innerText = formatRupiah(Math.round(grandTotal));
@@ -475,6 +578,7 @@
             const ongkirInput = document.getElementById('biaya_ongkir');
 
             ongkirDisplay.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status"></span> Menghitung...';
+            ongkirValid = false;
             
             fetch('{{ route("pelanggan.checkout.ongkir", ["perusahaan_slug" => request()->route("perusahaan_slug")]) }}', {
                 method: 'POST',
@@ -487,36 +591,39 @@
             })
             .then(res => res.json())
             .then(data => {
-                console.log('Ongkir Response:', data);
-                
                 if (data.success) {
                     currentOngkir = parseInt(data.ongkir) || 0;
-                    console.log('Jarak:', data.jarak, 'km | Range:', data.range_km, '| Ongkir:', currentOngkir);
-                    
                     ongkirDisplay.innerHTML = formatRupiah(currentOngkir) + '<br><small style="color: #999; font-size: 0.7rem;">(' + data.range_km + ')</small>';
                     ongkirInput.value = currentOngkir;
+                    ongkirValid = true;
                     
-                    jarakText.style.display = 'none';
+                    if(jarakText) jarakText.style.display = 'none';
                     updateTotals();
                 } else {
                     ongkirDisplay.innerHTML = '<span class="text-danger" style="font-size:0.75rem;">' + (data.message || 'Gagal menghitung') + '</span>';
-                    jarakText.style.display = 'none';
+                    if(jarakText) jarakText.style.display = 'none';
                     currentOngkir = 0;
-                    ongkirInput.value = 0;
+                    ongkirInput.value = '';
+                    ongkirValid = false;
                     updateTotals();
                 }
             })
             .catch(err => {
-                console.error(err);
                 ongkirDisplay.innerHTML = '<span class="text-danger" style="font-size:0.75rem;">Error koneksi</span>';
                 currentOngkir = 0;
-                ongkirInput.value = 0;
+                ongkirInput.value = '';
+                ongkirValid = false;
                 updateTotals();
             });
         }
 
         // Initialize totals on page load
         updateTotals();
+        
+        // Wait a bit for modal/container to fully render before invalidating map size
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 500);
     });
 </script>
 @endpush

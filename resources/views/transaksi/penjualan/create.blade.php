@@ -7,22 +7,30 @@
 <script>
 // Simple, bulletproof calculation function
 function hitungTotal() {
-    // Get all subtotals from table rows
-    let subtotalProduk = 0;
+    let subtotalProduk = 0; // Gross
+    let totalDiskon = 0;
+    let subtotalNet = 0;
+
     document.querySelectorAll('#detailTableJual tbody tr').forEach(function(row) {
-        const subtotalEl = row.querySelector('.subtotal');
-        if (subtotalEl && subtotalEl.value) {
-            const rawValue = subtotalEl.getAttribute('data-raw');
-            if (rawValue) {
-                subtotalProduk += parseFloat(rawValue);
-            } else {
-                const numStr = subtotalEl.value.replace(/\./g, '').replace(',', '.');
-                subtotalProduk += parseFloat(numStr) || 0;
-            }
+        const hargaEl = row.querySelector('.harga');
+        const qtyEl = row.querySelector('.jumlah');
+        const diskonEl = row.querySelector('.diskon');
+
+        if (hargaEl && qtyEl) {
+            const harga = parseFloat(hargaEl.getAttribute('data-raw') || hargaEl.value.replace(/\./g,'').replace(',','.')) || 0;
+            const qty = parseFloat(qtyEl.value) || 0;
+            const diskonPersen = diskonEl ? (parseFloat(diskonEl.value) || 0) : 0;
+            
+            const rowGross = harga * qty;
+            const rowDiskon = rowGross * (diskonPersen / 100);
+            const rowNet = rowGross - rowDiskon;
+
+            subtotalProduk += rowGross;
+            totalDiskon += rowDiskon;
+            subtotalNet += rowNet;
         }
     });
 
-    // Get ongkir value
     const ongkirEl = document.getElementById('biaya_ongkir');
     let ongkir = 0;
     if (ongkirEl) {
@@ -33,19 +41,19 @@ function hitungTotal() {
         }
     }
 
-    // Get PPN percentage
     const ppnEl = document.getElementById('ppn_persen');
     const ppnPersen = ppnEl ? (parseFloat(ppnEl.value) || 0) : 0;
 
-    // Calculate: PPN = Subtotal Produk × PPN% (ongkir tidak dikenakan PPN)
-    const totalPPN   = Math.round(subtotalProduk * ppnPersen / 100);
-    const totalFinal = subtotalProduk + ongkir + totalPPN;
+    const totalPPN   = Math.round(subtotalNet * ppnPersen / 100);
+    const totalFinal = subtotalNet + ongkir + totalPPN;
 
     function fmtIDR(n) { return Math.round(n).toLocaleString('id-ID'); }
 
-    // Update hidden inputs (form submission)
     const hiddenSubtotal = document.getElementById('subtotal_produk_hidden');
     if (hiddenSubtotal) hiddenSubtotal.value = Math.round(subtotalProduk);
+
+    const hiddenTotalDiskon = document.getElementById('total_diskon_hidden');
+    if (hiddenTotalDiskon) hiddenTotalDiskon.value = Math.round(totalDiskon);
 
     const hiddenPPN = document.getElementById('total_ppn');
     if (hiddenPPN) hiddenPPN.value = Math.round(totalPPN);
@@ -53,7 +61,6 @@ function hitungTotal() {
     const hiddenTotal = document.getElementById('total_final');
     if (hiddenTotal) hiddenTotal.value = Math.round(totalFinal);
 
-    // Update display spans
     const ds = document.getElementById('display_subtotal_produk');
     if (ds) ds.textContent = fmtIDR(subtotalProduk);
 
@@ -62,6 +69,9 @@ function hitungTotal() {
 
     const dg = document.getElementById('display_biaya_ongkir');
     if (dg) dg.textContent = fmtIDR(ongkir);
+
+    const dd = document.getElementById('display_total_diskon');
+    if (dd) dd.textContent = fmtIDR(totalDiskon);
 
     const df = document.getElementById('display_total_final');
     if (df) df.textContent = fmtIDR(totalFinal);
@@ -120,43 +130,7 @@ function hapusBarisProduk(btn) {
     }
 }
 
-// Toggle opsi "Terima di" berdasarkan metode pembayaran
-function toggleSumberDana() {
-    const paymentMethod = document.getElementById('payment_method_jual').value;
-    const sumberDana    = document.getElementById('sumber_dana_jual');
-    if (!sumberDana) return;
 
-    const allOptions = sumberDana.querySelectorAll('option');
-    let firstVisible = null;
-
-    allOptions.forEach(opt => {
-        const tipe = opt.getAttribute('data-tipe'); // 'kas', 'bank', 'piutang'
-        let show = true;
-
-        if (paymentMethod === 'cash') {
-            show = (tipe === 'kas');
-        } else if (paymentMethod === 'transfer') {
-            show = (tipe === 'bank');
-        } else if (paymentMethod === 'credit') {
-            show = (tipe === 'piutang');
-        }
-
-        opt.style.display = show ? '' : 'none';
-        opt.disabled = !show;
-        if (show && !firstVisible) firstVisible = opt;
-    });
-
-    // Kalau pilihan saat ini tersembunyi, pilih yang pertama visible
-    const currentOpt = sumberDana.options[sumberDana.selectedIndex];
-    if (!currentOpt || currentOpt.disabled) {
-        if (firstVisible) sumberDana.value = firstVisible.value;
-    }
-}
-
-// Jalankan saat halaman pertama kali load
-document.addEventListener('DOMContentLoaded', function() {
-    toggleSumberDana();
-});
 
 // Handler barcode input — dipanggil langsung dari oninput di HTML
 function handleBarcodeOninput(value) {
@@ -251,40 +225,25 @@ mark.bg-warning {
         @csrf
 
         <div class="row g-3 mb-3">
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <label class="form-label">Tanggal</label>
                 <input type="date" name="tanggal" class="form-control" value="{{ now()->toDateString() }}" required>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <label class="form-label">Waktu</label>
-                <input type="time" name="waktu" class="form-control" value="{{ now()->format('H:i') }}" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Metode Pembayaran</label>
-                <select name="payment_method" id="payment_method_jual" class="form-select" required onchange="toggleSumberDana()">
-                    <option value="cash">Tunai</option>
-                    <option value="transfer">Transfer Bank</option>
-                </select>
-            </div>
-            <div class="col-md-3" id="sumber_dana_wrapper_jual">
-                <label class="form-label">Terima di</label>
-                <select name="sumber_dana" id="sumber_dana_jual" class="form-select">
-                    @foreach($kasbank as $kb)
-                        @php
-                            $kode = $kb->kode_akun;
-                            if ($kode === '118' || stripos($kb->nama_akun, 'piutang') !== false) {
-                                $tipe = 'piutang';
-                            } elseif ($kode === '111' || stripos($kb->nama_akun, 'bank') !== false) {
-                                $tipe = 'bank';
-                            } else {
-                                $tipe = 'kas'; // 112, 113, dll
-                            }
-                        @endphp
-                        <option value="{{ $kb->kode_akun }}" data-tipe="{{ $tipe }}">
-                            {{ $kb->nama_akun }} ({{ $kb->kode_akun }})
-                        </option>
-                    @endforeach
-                </select>
+                <input type="time" id="waktu_input" name="waktu" class="form-control" value="{{ now()->format('H:i') }}" required>
+                <script>
+                    setInterval(function() {
+                        const now = new Date();
+                        const h = String(now.getHours()).padStart(2, '0');
+                        const m = String(now.getMinutes()).padStart(2, '0');
+                        const waktuInput = document.getElementById('waktu_input');
+                        // Update if user is not actively editing the field
+                        if (document.activeElement !== waktuInput) {
+                            waktuInput.value = h + ':' + m;
+                        }
+                    }, 1000);
+                </script>
             </div>
         </div>
 
@@ -336,12 +295,12 @@ mark.bg-warning {
             <table class="table table-bordered align-middle" id="detailTableJual">
                 <thead class="table-light">
                     <tr>
-                        <th>Produk</th>
-                        <th class="text-end">Qty</th>
-                        <th class="text-end">Harga/Satuan</th>
-                        <th class="text-end">Diskon (%)</th>
-                        <th class="text-end">Subtotal</th>
-                        <th style="width:6%"><button class="btn btn-success btn-sm" type="button" id="addRowJual" onclick="tambahBarisProduk()">+</button></th>
+                        <th style="width:30%">Produk</th>
+                        <th class="text-end" style="width:10%">Qty</th>
+                        <th class="text-end" style="width:20%">Harga/Satuan</th>
+                        <th class="text-end" style="width:15%">Diskon (%)</th>
+                        <th class="text-end" style="width:15%">Subtotal</th>
+                        <th style="width:10%" class="text-center"><button class="btn btn-success btn-sm" type="button" id="addRowJual" onclick="tambahBarisProduk()">+</button></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -381,12 +340,6 @@ mark.bg-warning {
                                 
                                 // Simpan stok ke data-max-stok agar validasi qty bisa membacanya
                                 qtyInput.setAttribute('data-max-stok', stok);
-                                
-                                // Tampilkan info stok di bawah select
-                                if (stokInfo) {
-                                    stokInfo.textContent = 'Stok tersedia: ' + stok.toLocaleString('id-ID');
-                                    stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
-                                }
                                 
                                 hitungTotal();
                             ">
@@ -456,8 +409,10 @@ mark.bg-warning {
                             subtotalInput.setAttribute('data-raw', subtotal);
                             hitungTotal();
                         "></td>
-                        <td><input type="text" class="form-control subtotal" value="0" readonly></td>
-                        <td><button type="button" class="btn btn-danger btn-sm removeRow" onclick="hapusBarisProduk(this)">-</button></td>
+                        <td><input type="text" name="subtotal[]" class="form-control subtotal text-end" value="0" readonly style="background-color: #e9ecef; cursor: not-allowed;"></td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-danger btn-sm removeRow" onclick="hapusBarisProduk(this)">-</button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -465,6 +420,7 @@ mark.bg-warning {
 
         <!-- Hidden inputs for form submission -->
         <input type="hidden" name="subtotal_produk" id="subtotal_produk_hidden" value="0">
+        <input type="hidden" name="total_diskon" id="total_diskon_hidden" value="0">
         <input type="hidden" name="total_ppn" id="total_ppn" value="0">
         <input type="hidden" name="total" id="total_final" value="0">
 
@@ -476,6 +432,12 @@ mark.bg-warning {
                 <div class="d-flex justify-content-between align-items-center py-2">
                     <span class="text-muted">Subtotal Produk</span>
                     <span class="fw-semibold">Rp <span id="display_subtotal_produk">0</span></span>
+                </div>
+
+                <!-- Row: Diskon -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="text-muted">Diskon</span>
+                    <span class="fw-semibold">Rp <span id="display_total_diskon">0</span></span>
                 </div>
 
                 <!-- Row: Biaya Ongkir -->
@@ -583,10 +545,6 @@ mark.bg-warning {
             return;
         }
         
-        // Get payment method
-        const paymentMethod = document.getElementById('payment_method_jual').value;
-        console.log('Payment method:', paymentMethod);
-        
         // Get total
         const totalInput = document.getElementById('total_final');
 
@@ -627,14 +585,12 @@ if (total <= 0) {
         const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
         const subtotalProdukVal = document.getElementById('subtotal_produk_hidden').value;
         const totalPPNVal = document.getElementById('total_ppn').value;
-        const totalDiskon = tableData.reduce(function(sum, item) { return sum + (item.diskon_nominal || 0); }, 0);
+        const totalDiskonVal = document.getElementById('total_diskon_hidden').value;
         const paymentData = {
             tanggal: document.querySelector('input[name="tanggal"]').value,
             waktu: document.querySelector('input[name="waktu"]').value,
-            payment_method: paymentMethod,
-            sumber_dana: document.getElementById('sumber_dana_jual').value,
             subtotal_produk: parseFloat(subtotalProdukVal) || 0,
-            total_diskon: totalDiskon,
+            total_diskon: parseFloat(totalDiskonVal) || 0,
             biaya_ongkir: biayaOngkir,
             ppn_persen: parseFloat(document.getElementById('ppn_persen').value) || 0,
             total_ppn: parseFloat(totalPPNVal) || 0,
@@ -1838,17 +1794,6 @@ function navigateSearchResults(direction) {
     // Initial toggle
     toggleSumberDana();
     
-    // Listen to payment method changes
-    document.getElementById('payment_method_jual').addEventListener('change', toggleSumberDana);
-    
-    // Listen to sumber dana changes and save to localStorage
-    document.getElementById('sumber_dana_jual').addEventListener('change', function() {
-        const paymentMethod = document.getElementById('payment_method_jual').value;
-        if (paymentMethod === 'cash' || paymentMethod === 'transfer') {
-            localStorage.setItem('recent_sumber_dana_' + paymentMethod, this.value);
-        }
-    });
-
     // addBtn handled via onclick="tambahBarisProduk()" directly on the button
 
     table.addEventListener('change', (e) => {

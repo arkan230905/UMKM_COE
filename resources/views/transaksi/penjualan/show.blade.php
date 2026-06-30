@@ -376,13 +376,17 @@
                                 <div class="info-item-content">
                                     <div class="info-item-label">Metode Pembayaran</div>
                                     <div class="info-item-value">
-                                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'badge-theme-warning' : 'badge-theme-success' }}">
-                                            @switch($penjualan->payment_method ?? '')
-                                                @case('cash') Tunai @break
-                                                @case('transfer') Transfer @break
-                                                @default {{ ucfirst($penjualan->payment_method ?? '') }}
-                                            @endswitch
-                                        </span>
+                                        @if($penjualan->coa)
+                                            <span class="badge badge-theme-info">{{ $penjualan->coa->nama_akun }}</span>
+                                        @else
+                                            <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'badge-theme-warning' : 'badge-theme-success' }}">
+                                                @switch($penjualan->payment_method ?? '')
+                                                    @case('cash') Tunai @break
+                                                    @case('transfer') Transfer @break
+                                                    @default {{ ucfirst($penjualan->payment_method ?? '') }}
+                                                @endswitch
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -485,7 +489,7 @@
                         <small class="text-muted d-block mb-1 text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Total Penjualan</small>
                         <div class="fw-bold fs-4 text-theme">Rp {{ number_format($grandTotal, 0, ',', '.') }}</div>
                         <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
-                            *Termasuk PPN, Ongkir & Servis
+                            *Termasuk PPN dan Ongkir
                         </small>
                     </div>
                 </div>
@@ -610,18 +614,6 @@
                                 <div class="card-body">
                                     <div class="row g-2">
                                         <div class="col-4">
-                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn-action-modern btn-action-detail">
-                                                <i class="fas fa-eye text-success"></i>
-                                                <small class="mt-1">Detail</small>
-                                            </a>
-                                        </div>
-                                        <div class="col-4">
-                                            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-action-modern btn-action-edit">
-                                                <i class="fas fa-edit text-warning"></i>
-                                                <small class="mt-1">Edit</small>
-                                            </a>
-                                        </div>
-                                        <div class="col-4">
                                             <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-action-modern btn-action-jurnal">
                                                 <i class="fas fa-book text-primary"></i>
                                                 <small class="mt-1">Jurnal</small>
@@ -639,124 +631,33 @@
                                                 <small class="mt-1">Retur</small>
                                             </a>
                                         </div>
-                                        <div class="col-4">
-                                            <button type="button" onclick="confirmDeletePenjualan({{ $penjualan->id }})" class="btn-action-modern btn-action-delete w-100">
-                                                <i class="fas fa-trash text-danger"></i>
-                                                <small class="mt-1">Hapus</small>
-                                            </button>
+                                    </div>
+                                    @if(isset($penjualan->approval_status) && $penjualan->approval_status === 'pending')
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-6">
+                                            <form action="{{ route('transaksi.penjualan.approve', $penjualan->id) }}" method="POST" class="d-grid">
+                                                @csrf
+                                                <button type="submit" class="btn btn-success" onclick="return confirm('Setujui transaksi ini?')">
+                                                    <i class="fas fa-check me-1"></i> Setuju
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <div class="col-6">
+                                            <form action="{{ route('transaksi.penjualan.reject', $penjualan->id) }}" method="POST" class="d-grid">
+                                                @csrf
+                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Tolak transaksi ini? Stok akan dikembalikan.')">
+                                                    <i class="fas fa-times me-1"></i> Tolak
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
+                                    @endif
                                     
                                     <!-- Hidden form for delete -->
                                     <form id="deletePenjualanForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
                                         @csrf
                                         @method('DELETE')
                                     </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {{-- Bukti Pembayaran Section --}}
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card card-modern mb-4">
-                                <div class="card-header">
-                                    <h5 class="mb-0 text-theme fw-bold"><i class="fas fa-file-image me-2"></i>Bukti Pembayaran</h5>
-                                </div>
-                                <div class="card-body">
-                                    @php
-                                        // Ambil bukti pembayaran dari field penjualan
-                                        $buktiPembayaranPath = $penjualan->bukti_pembayaran;
-                                    @endphp
-                                    
-                                    {{-- Upload Form --}}
-                                    <div class="mb-4">
-                                        <h6 class="fw-bold mb-3">Upload Bukti Transfer</h6>
-                                        <form id="uploadBuktiFormInline" enctype="multipart/form-data">
-                                            @csrf
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <input type="file" class="form-control" id="bukti_file_inline" name="bukti_file" 
-                                                               accept="image/*,.pdf,.doc,.docx" required>
-                                                        <div class="form-text">Format: JPG, PNG, PDF (Max 5MB)</div>
-                                                        <div class="invalid-feedback" id="file-error-inline"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <input type="text" class="form-control" id="keterangan_inline" name="keterangan" 
-                                                               placeholder="Contoh: Transfer dari rekening pribadi, referensi: ...">
-                                                        <div class="form-text">Catatan (Opsional)</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button type="submit" class="btn btn-back-theme px-4" style="background-color: var(--brown); color: white;">
-                                                <i class="fas fa-upload me-2"></i>Upload Bukti
-                                            </button>
-                                        </form>
-                                    </div>
-                                    
-                                    <hr>
-                                    
-                                    {{-- Daftar Bukti Pembayaran --}}
-                                    <div class="mb-3">
-                                        <h6 class="fw-bold mb-3">Bukti Pembayaran</h6>
-                                        @if($penjualan->payment_method === 'transfer')
-                                            @if($buktiPembayaranPath)
-                                                <div class="row">
-                                                    <div class="col-md-4 mb-3">
-                                                        <div class="card bukti-card">
-                                                            <div class="card-body text-center p-3">
-                                                                @if(in_array(strtolower(pathinfo($buktiPembayaranPath, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
-                                                                    <img src="{{ url('/storage/' . $buktiPembayaranPath) }}" 
-                                                                         class="img-fluid rounded mb-2 bukti-image" 
-                                                                         onclick="showImageModal('{{ url('/storage/' . $buktiPembayaranPath) }}', 'Bukti Pembayaran')">
-                                                                @else
-                                                                    <div class="text-center py-4">
-                                                                        <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
-                                                                        <p class="mb-0 small">{{ basename($buktiPembayaranPath) }}</p>
-                                                                    </div>
-                                                                @endif
-                                                                
-                                                                <small class="text-muted d-block mb-1">Bukti Pembayaran</small>
-                                                                @if($penjualan->catatan_pembayaran)
-                                                                    <small class="text-muted d-block mb-2">{{ $penjualan->catatan_pembayaran }}</small>
-                                                                @endif
-                                                                
-                                                                <div class="bukti-actions">
-                                                                    <a href="{{ url('/storage/' . $buktiPembayaranPath) }}" 
-                                                                       target="_blank" 
-                                                                       class="btn btn-sm btn-outline-primary me-1"
-                                                                       title="Lihat">
-                                                                        <i class="fas fa-eye"></i>
-                                                                    </a>
-                                                                    <a href="{{ url('/storage/' . $buktiPembayaranPath) }}" 
-                                                                       download 
-                                                                       class="btn btn-sm btn-outline-success me-1"
-                                                                       title="Download">
-                                                                        <i class="fas fa-download"></i>
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <div class="empty-bukti">
-                                                    <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
-                                                    <h6 class="text-muted">Belum ada bukti pembayaran</h6>
-                                                    <p class="text-muted">Upload bukti pembayaran untuk melengkapi transaksi</p>
-                                                </div>
-                                            @endif
-                                        @else
-                                            <div class="alert alert-info">
-                                                <i class="fas fa-info-circle me-2"></i>
-                                                Pembayaran tunai tidak memerlukan bukti pembayaran.
-                                            </div>
-                                        @endif
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -902,11 +803,15 @@
                                             <div class="info-row">
                                                 <span>Pembayaran</span>
                                                 <span>: 
-                                                    @switch($penjualan->payment_method ?? 'cash')
-                                                        @case('cash') Tunai @break
-                                                        @case('transfer') Transfer Bank @break
-                                                        @default {{ ucfirst($penjualan->payment_method ?? '-') }}
-                                                    @endswitch
+                                                    @if($penjualan->coa)
+                                                        {{ $penjualan->coa->nama_akun }}
+                                                    @else
+                                                        @switch($penjualan->payment_method ?? 'cash')
+                                                            @case('cash') Tunai @break
+                                                            @case('transfer') Transfer Bank @break
+                                                            @default {{ ucfirst($penjualan->payment_method ?? '-') }}
+                                                        @endswitch
+                                                    @endif
                                                 </span>
                                             </div>
                                         </div>
@@ -937,8 +842,8 @@
                         </div>
                         <div class="card-body">
                             @php
-                                // Ambil bukti pembayaran dari database (asumsi ada relasi)
-                                $buktiPembayaran = $penjualan->buktiPembayaran ?? collect();
+                                // Ambil bukti pembayaran terpadu (legacy + tabel relasi)
+                                $buktiPembayaran = $penjualan->all_bukti_pembayaran;
                             @endphp
                             
                             @if($buktiPembayaran->count() > 0)
@@ -959,7 +864,7 @@
                                                     @endif
                                                     
                                                     <small class="text-muted d-block mb-1">{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}</small>
-                                                    <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
+                                                    <small class="text-muted d-block mb-2">{{ $bukti->created_at ? $bukti->created_at->format('d/m/Y H:i') : '' }}</small>
                                                     
                                                     <div class="bukti-actions">
                                                         <a href="{{ url('/storage/' . $bukti->file_path) }}" 
@@ -974,12 +879,14 @@
                                                            title="Download">
                                                             <i class="fas fa-download"></i>
                                                         </a>
+                                                        @if($bukti->id !== 'legacy' && $bukti->id !== 'order_bukti')
                                                         <button type="button" 
                                                                 class="btn btn-sm btn-outline-danger"
                                                                 onclick="deleteBukti({{ $bukti->id }})"
                                                                 title="Hapus">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             </div>

@@ -143,6 +143,7 @@ class OrderToSalesService
             'tanggal' => now()->toDateString(),
             'payment_method' => $paymentMethod,
             'payment_status' => 'pending',  // Initially pending, will be updated when payment confirmed
+            'approval_status' => 'pending', // Online order needs owner approval
             'harga_satuan' => null, // Akan diisi dari detail
             'jumlah' => $ownerItems->sum('qty'),
             'diskon_nominal' => $totalDiskon,
@@ -151,6 +152,8 @@ class OrderToSalesService
             'biaya_ppn' => $biayaPPN,
             'grand_total' => $grandTotal,
             'catatan_pembayaran' => "Order #{$order->nomor_order} - {$order->nama_penerima} ({$order->alamat_pengiriman})",
+            'catatan' => $order->catatan,
+            'bukti_pembayaran' => $order->bukti_pembayaran,
         ]);
 
         Log::info('OrderToSalesService: Penjualan header created', [
@@ -187,9 +190,10 @@ class OrderToSalesService
 
         // CRITICAL: Explicitly create journal after all details saved
         try {
-            $penjualan->load(['details.produk', 'produk']);
-            \App\Services\JournalService::createJournalFromPenjualan($penjualan, $ownerId);
-            Log::info('OrderToSalesService: Journal created successfully', [
+            // NOTE: Journal tidak lagi dibuat otomatis di sini karena harus menunggu approval owner
+            // $penjualan->load(['details.produk', 'produk']);
+            // \App\Services\JournalService::createJournalFromPenjualan($penjualan, $ownerId);
+            Log::info('OrderToSalesService: Journal creation skipped pending owner approval', [
                 'penjualan_id' => $penjualan->id,
                 'nomor_penjualan' => $penjualan->nomor_penjualan
             ]);

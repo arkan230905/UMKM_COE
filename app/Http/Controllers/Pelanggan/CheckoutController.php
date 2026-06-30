@@ -33,7 +33,7 @@ class CheckoutController extends Controller
         $this->rajaOngkirService = $rajaOngkirService;
     }
 
-    public function index()
+    public function index(Request $request, $perusahaan_slug = null)
     {
         $carts = Cart::with(['produk' => function ($query) {
             $query->withoutGlobalScopes();
@@ -48,14 +48,20 @@ class CheckoutController extends Controller
 
         $total = $carts->sum('subtotal');
         
-        // Get owner's company info for bank details
-        $firstCart = $carts->first();
-        $ownerId = $firstCart->produk->user_id;
-        $ownerUser = \App\Models\User::find($ownerId);
-        $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+        $perusahaan_slug = $perusahaan_slug ?? $request->route('perusahaan_slug');
+        
+        // Try to get from middleware attributes first
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            $perusahaan = \App\Models\Perusahaan::withoutGlobalScope('user')->where(function ($q) use ($perusahaan_slug) {
+                $q->where('slug', strtolower($perusahaan_slug))
+                  ->orWhere('kode', strtoupper($perusahaan_slug));
+            })->first();
+        }
 
-        // Get perusahaan_slug for URL generation
-        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : '';
+        // Keep fallback for slug if somehow null
+        $perusahaan_slug = $perusahaan ? ($perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode))) : $perusahaan_slug;
 
         return view('pelanggan.checkout', compact('carts', 'total', 'perusahaan', 'perusahaan_slug'));
     }
@@ -262,7 +268,7 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function getOngkir(Request $request)
+    public function getOngkir(Request $request, $perusahaan_slug = null)
     {
         $request->validate([
             'alamat' => 'required|string',
@@ -270,41 +276,23 @@ class CheckoutController extends Controller
 
         $alamat = $request->alamat;
         $user = auth()->user();
-
-        // Get the first cart item to find the owner/seller
-        $firstCart = Cart::where('user_id', auth()->id())
-            ->with(['produk' => function ($query) {
-                $query->withoutGlobalScopes();
-            }])
-            ->first();
-
-        if (!$firstCart || !$firstCart->produk) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Keranjang kosong',
-                'ongkir' => 0
-            ], 400);
+        
+        $perusahaan_slug = $perusahaan_slug ?? $request->route('perusahaan_slug');
+        
+        // Try to get from middleware attributes first
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            $perusahaan = \App\Models\Perusahaan::withoutGlobalScope('user')->where(function ($q) use ($perusahaan_slug) {
+                $q->where('slug', strtolower($perusahaan_slug))
+                  ->orWhere('kode', strtoupper($perusahaan_slug));
+            })->first();
         }
-
-        // Get the owner/seller of the product
-        $ownerId = $firstCart->produk->user_id;
-        $ownerUser = \App\Models\User::find($ownerId);
-
-        if (!$ownerUser) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Penjual tidak ditemukan',
-                'ongkir' => 0
-            ], 400);
-        }
-
-        // Get the company details from the owner
-        $perusahaan = $ownerUser->perusahaan;
 
         if (!$perusahaan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Toko penjual tidak ditemukan',
+                'message' => 'Data perusahaan tidak ditemukan. Periksa kode perusahaan pada URL.',
                 'ongkir' => 0
             ], 400);
         }
@@ -313,7 +301,7 @@ class CheckoutController extends Controller
         if (!$perusahaan->latitude || !$perusahaan->longitude) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lokasi toko penjual belum diatur',
+                'message' => 'Koordinat perusahaan belum diatur. Silakan atur titik lokasi perusahaan di menu Tentang Perusahaan.',
                 'ongkir' => 0
             ], 400);
         }
@@ -366,7 +354,9 @@ class CheckoutController extends Controller
         ]);
 
         // Find matching ongkir setting
-        $ongkir = OngkirSetting::where('status', true)
+        $ongkir = OngkirSetting::withoutGlobalScopes()
+            ->where('user_id', $perusahaan->user_id)
+            ->where('status', true)
             ->where('jarak_min', '<=', $jarak)
             ->where(function ($query) use ($jarak) {
                 $query->whereNull('jarak_max')
@@ -381,7 +371,7 @@ class CheckoutController extends Controller
             'ongkir_id' => $ongkir?->id,
             'ongkir_range' => $ongkir ? ($ongkir->jarak_min . '-' . ($ongkir->jarak_max ?? '∞')) : 'NOT FOUND',
             'ongkir_harga' => $ongkir?->harga_ongkir,
-            'all_settings' => OngkirSetting::where('status', true)->get(['id', 'jarak_min', 'jarak_max', 'harga_ongkir'])->toArray(),
+            'all_settings' => OngkirSetting::withoutGlobalScopes()->where('user_id', $perusahaan->user_id)->where('status', true)->get(['id', 'jarak_min', 'jarak_max', 'harga_ongkir'])->toArray(),
         ]);
 
         if (!$ongkir) {
@@ -410,20 +400,91 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function process(Request $request)
+    public function process(Request $request, $perusahaan_slug = null)
     {
-        \Log::info('CheckoutController::process() called', [
-            'payment_method' => $request->payment_method,
-            'user_id' => auth()->id(),
-        ]);
-        
         $request->validate([
             'nama_penerima' => 'required|string|max:255',
             'alamat_pengiriman' => 'required|string',
             'telepon_penerima' => 'required|string|max:20',
-            'payment_method' => 'required|in:qris,va_bca,va_bni,va_bri,va_mandiri,transfer,cod,kasir',
+            'latitude_pengiriman' => 'required|numeric',
+            'longitude_pengiriman' => 'required|numeric',
+            'kecamatan' => 'nullable|string',
+            'kota' => 'nullable|string',
+            'kode_pos' => 'nullable|string',
+            'detail_alamat' => 'nullable|string',
             'catatan' => 'nullable|string',
+            'biaya_ongkir' => 'required|numeric',
         ]);
+
+        $carts = Cart::with(['produk' => function ($query) {
+            $query->withoutGlobalScopes();
+        }])->where('user_id', auth()->id())->get();
+
+        if ($carts->isEmpty()) {
+            return back()->with('error', 'Keranjang kosong!');
+        }
+
+        session(['checkout_data' => $request->all()]);
+
+        return redirect()->route('pelanggan.checkout.payment', ['perusahaan_slug' => $perusahaan_slug ?? request()->route('perusahaan_slug')]);
+    }
+
+    public function payment(Request $request, $perusahaan_slug = null)
+    {
+        $perusahaan_slug = $perusahaan_slug ?? $request->route('perusahaan_slug');
+        
+        $perusahaan = $request->attributes->get('perusahaan');
+        
+        if (!$perusahaan) {
+            $perusahaan = \App\Models\Perusahaan::withoutGlobalScope('user')->where(function ($q) use ($perusahaan_slug) {
+                $q->where('slug', strtolower($perusahaan_slug))
+                  ->orWhere('kode', strtoupper($perusahaan_slug));
+            })->firstOrFail();
+        }
+        $checkoutData = session('checkout_data');
+        
+        if (!$checkoutData) {
+            return redirect()->route('pelanggan.checkout', ['perusahaan_slug' => $perusahaan_slug])->with('error', 'Silakan isi data pengiriman terlebih dahulu.');
+        }
+
+        $carts = Cart::with(['produk' => function ($query) {
+            $query->withoutGlobalScopes();
+        }])->where('user_id', auth()->id())->get();
+
+        if ($carts->isEmpty()) {
+            return redirect()->route('pelanggan.cart', ['perusahaan_slug' => $perusahaan_slug])->with('error', 'Keranjang kosong!');
+        }
+
+        $subtotal = $carts->sum('subtotal');
+        $ppn = $subtotal * 0.11;
+        $ongkir = $checkoutData['biaya_ongkir'] ?? 0;
+        $total = $subtotal + $ppn + $ongkir;
+
+        $rekeningBanks = \App\Models\Coa::withoutGlobalScopes()
+            ->where('user_id', $perusahaan->user_id)
+            ->whereNotNull('nomor_rekening')
+            ->where('nomor_rekening', '!=', '')
+            ->get();
+
+        return view('pelanggan.payment', compact('carts', 'subtotal', 'ppn', 'ongkir', 'total', 'perusahaan', 'perusahaan_slug', 'rekeningBanks'));
+    }
+
+    public function processPayment(Request $request, $perusahaan_slug = null)
+    {
+        \Log::info('CheckoutController::processPayment called', [
+            'payment_gateway' => $request->payment_gateway,
+            'user_id' => auth()->id(),
+        ]);
+        
+        $request->validate([
+            'payment_gateway' => 'required|in:transfer,tunai',
+            'bukti_pembayaran' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $checkoutData = session('checkout_data');
+        if (!$checkoutData) {
+            return redirect()->route('pelanggan.checkout', ['perusahaan_slug' => request()->route('perusahaan_slug')])->with('error', 'Sesi checkout tidak ditemukan. Silakan ulangi checkout.');
+        }
 
         $carts = Cart::with(['produk' => function ($query) {
             $query->withoutGlobalScopes();
@@ -452,110 +513,133 @@ class CheckoutController extends Controller
             $ppn = $subtotal * 0.11;
             $ongkir = 0;
             
-            // Get the owner/seller from the first product in cart
-            $ownerId = $carts->first()->produk->user_id;
-            $ownerUser = \App\Models\User::find($ownerId);
-            $perusahaan = $ownerUser ? $ownerUser->perusahaan : null;
+            // Get the company from the route parameter
+            $perusahaan_slug = $perusahaan_slug ?? $request->route('perusahaan_slug');
             
-            // CRITICAL: Only calculate ongkir for COD method
-            // For Kasir (pick up at store), ongkir is always 0
-            if ($request->payment_method === 'cod' && $perusahaan && $perusahaan->latitude && $perusahaan->longitude) {
-                
-                $latPengiriman = $request->latitude_pengiriman;
-                $lonPengiriman = $request->longitude_pengiriman;
-                
-                \Log::info('Ongkir Calculation - process() START', [
-                    'store_lat' => $perusahaan->latitude,
-                    'store_lon' => $perusahaan->longitude,
-                    'lat_pengiriman' => $latPengiriman,
-                    'lon_pengiriman' => $lonPengiriman,
-                    'alamat_pengiriman' => $request->alamat_pengiriman,
-                ]);
-                
-                if ($latPengiriman && $lonPengiriman) {
-                    $distance = $this->distanceService->calculateHaversineDistance(
-                        $perusahaan->latitude,
-                        $perusahaan->longitude,
-                        $latPengiriman,
-                        $lonPengiriman
-                    );
-                    $distanceResult = [
-                        'success' => true,
-                        'distance_km' => round($distance, 2)
-                    ];
-                    
-                    \Log::info('Distance calculated from coordinates', [
-                        'distance_km' => $distanceResult['distance_km'],
-                    ]);
-                } else {
-                    $distanceResult = $this->distanceService->calculateDistanceToAddress(
-                        $perusahaan->latitude,
-                        $perusahaan->longitude,
-                        $request->alamat_pengiriman
-                    );
-                    
-                    \Log::info('Distance calculated from geocoding', [
-                        'distance_km' => $distanceResult['distance_km'] ?? 'FAILED',
-                    ]);
-                }
-                
-                if ($distanceResult['success']) {
-                    $jarak = $distanceResult['distance_km'];
-                    $ongkirSetting = \App\Models\OngkirSetting::where('status', true)
-                        ->where('jarak_min', '<=', $jarak)
-                        ->where(function ($query) use ($jarak) {
-                            $query->whereNull('jarak_max')
-                                ->orWhere('jarak_max', '>=', $jarak);
-                        })
-                        ->orderBy('jarak_min', 'desc')
-                        ->first();
-                    
-                    \Log::info('Ongkir Setting Found', [
-                        'jarak' => $jarak,
-                        'ongkir_id' => $ongkirSetting?->id,
-                        'ongkir_range' => $ongkirSetting ? ($ongkirSetting->jarak_min . '-' . ($ongkirSetting->jarak_max ?? '∞')) : 'NOT FOUND',
-                        'ongkir_harga' => $ongkirSetting?->harga_ongkir,
-                    ]);
-                        
-                    if ($ongkirSetting) {
-                        $ongkir = $ongkirSetting->harga_ongkir;
-                    }
-                }
+            // Try to get from middleware attributes first
+            $perusahaan = $request->attributes->get('perusahaan');
+            
+            if (!$perusahaan) {
+                $perusahaan = \App\Models\Perusahaan::withoutGlobalScope('user')->where(function ($q) use ($perusahaan_slug) {
+                    $q->where('slug', strtolower($perusahaan_slug))
+                      ->orWhere('kode', strtoupper($perusahaan_slug));
+                })->first();
             }
-            // For Kasir method, ongkir remains 0
             
+            // For Midtrans and Manual Transfer, ongkir logic from COD is skipped here, but we should calculate it correctly.
+            // Wait, previously ongkir was calculated only if COD! We should calculate it for all methods if it's delivery.
+            
+            $latPengiriman = $checkoutData['latitude_pengiriman'] ?? null;
+            $lonPengiriman = $checkoutData['longitude_pengiriman'] ?? null;
+            
+            if ($perusahaan && $perusahaan->latitude && $perusahaan->longitude && $latPengiriman && $lonPengiriman) {
+                $distance = $this->distanceService->calculateHaversineDistance(
+                    $perusahaan->latitude,
+                    $perusahaan->longitude,
+                    $latPengiriman,
+                    $lonPengiriman
+                );
+                
+                $jarak = round($distance, 2);
+                $ongkirSetting = \App\Models\OngkirSetting::withoutGlobalScopes()
+                    ->where('user_id', $perusahaan->user_id)
+                    ->where('status', true)
+                    ->where('jarak_min', '<=', $jarak)
+                    ->where(function ($query) use ($jarak) {
+                        $query->whereNull('jarak_max')
+                            ->orWhere('jarak_max', '>=', $jarak);
+                    })
+                    ->orderBy('jarak_min', 'desc')
+                    ->first();
+                    
+                if ($ongkirSetting) {
+                    $ongkir = $ongkirSetting->harga_ongkir;
+                }
+            } else {
+                return redirect()->back()->with('error', 'Gagal memproses pesanan: Lokasi perusahaan atau pelanggan belum lengkap. Mohon hubungi admin.');
+            }
+            
+            // Extract actual gateway based on new UI structure
+            $actualGateway = $request->payment_gateway;
+            if ($actualGateway === 'transfer') {
+                $actualGateway = $request->metode_transfer; // 'midtrans' or 'manual_transfer'
+            }
+
+            // Determine if ongkir should be 0 (Ambil di Toko)
+            if ($actualGateway === 'tunai' && $request->metode_tunai === 'ambil_di_toko') {
+                $ongkir = 0;
+            }
+
             $totalAmount = $subtotal + $ppn + $ongkir;
 
-            // Determine stored method and note based on payment method
-            $storedMethod = $request->payment_method;
-            $catatanInput = $request->catatan;
+            // Determine stored method and note based on payment gateway
+            $catatanInput = $checkoutData['catatan'] ?? '';
+            $bankTujuanTransfer = null;
             
             $rincian = " | Rincian: Subtotal Rp " . number_format($subtotal, 0, ',', '.') . 
                        ", PPN Rp " . number_format($ppn, 0, ',', '.') . 
                        ", Ongkir Rp " . number_format($ongkir, 0, ',', '.');
                        
-            if ($request->payment_method === 'kasir') {
-                $prefixNote = 'Metode: Bayar di Kasir (Pick Up). ';
+            if ($actualGateway === 'manual_transfer') {
+                $storedMethod = 'transfer';
+                $prefixNote = 'Metode: Transfer Manual. ';
                 $catatanInput = $prefixNote . (string) $catatanInput . $rincian;
-            } elseif ($request->payment_method === 'cod') {
-                $prefixNote = 'Metode: COD (Cash On Delivery). ';
+                
+                // Retrieve bank info if provided
+                if ($request->has('rekening_id')) {
+                    $bank = \App\Models\Coa::withoutGlobalScopes()->find($request->rekening_id);
+                    if ($bank) {
+                        $bankTujuanTransfer = $bank->nama_akun . ' - ' . $bank->nomor_rekening . ' a.n. ' . $bank->atas_nama;
+                        $catatanInput .= ' | Tujuan: ' . $bankTujuanTransfer;
+                    }
+                }
+            } elseif ($actualGateway === 'tunai') {
+                $storedMethod = 'tunai';
+                $metodeTunai = $request->metode_tunai === 'ambil_di_toko' ? 'Ambil di Toko' : 'COD';
+                $prefixNote = 'Metode: Tunai (' . $metodeTunai . '). ';
                 $catatanInput = $prefixNote . (string) $catatanInput . $rincian;
             } else {
-                $catatanInput = (string) $catatanInput . $rincian;
+                $storedMethod = null;
+                $prefixNote = 'Metode: Midtrans. ';
+                $catatanInput = $prefixNote . (string) $catatanInput . $rincian;
+            }
+
+            // Handle Bukti Pembayaran Upload
+            $buktiPembayaranPath = null;
+            if ($request->hasFile('bukti_pembayaran')) {
+                $file = $request->file('bukti_pembayaran');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $buktiPembayaranPath = $file->storeAs('bukti_pembayaran', $filename, 'public');
             }
 
             // Create order
             $order = Order::create([
                 'user_id' => auth()->id(),
                 'nomor_order' => Order::generateNomorOrder(),
+                'subtotal_amount' => $subtotal,
+                'ppn_amount' => $ppn,
+                'ongkir_amount' => $ongkir,
                 'total_amount' => $totalAmount,
                 'status' => 'pending',
                 'payment_method' => $storedMethod,
+                'payment_gateway' => $actualGateway,
+                'bukti_pembayaran' => $buktiPembayaranPath,
+                'bank_tujuan_transfer' => $bankTujuanTransfer,
                 'payment_status' => 'pending',
-                'nama_penerima' => $request->nama_penerima,
-                'alamat_pengiriman' => $request->alamat_pengiriman,
-                'telepon_penerima' => $request->telepon_penerima,
+                'nama_penerima' => $checkoutData['nama_penerima'] ?? '',
+                'alamat_pengiriman' => $checkoutData['alamat_pengiriman'] ?? '',
+                'telepon_penerima' => $checkoutData['telepon_penerima'] ?? '',
                 'catatan' => $catatanInput,
+                'latitude' => $checkoutData['latitude_pengiriman'] ?? null,
+                'longitude' => $checkoutData['longitude_pengiriman'] ?? null,
+                'detail_alamat' => $checkoutData['detail_alamat'] ?? null,
+                'kecamatan' => $checkoutData['kecamatan'] ?? null,
+                'kota' => $checkoutData['kota'] ?? null,
+                'kode_pos' => $checkoutData['kode_pos'] ?? null,
+                'company_address' => $perusahaan->alamat,
+                'company_latitude' => $perusahaan->latitude,
+                'company_longitude' => $perusahaan->longitude,
+                'distance_km' => $jarak ?? null,
             ]);
 
             // Create order items & kurangi stok
@@ -656,73 +740,22 @@ class CheckoutController extends Controller
                 // Don't throw - let checkout continue
             }
 
-            // Handle payment status based on payment method
-            \Log::info('CheckoutController: Handling payment method', [
-                'payment_method' => $request->payment_method,
+            // Handle payment status based on payment gateway
+            \Log::info('CheckoutController: Handling payment gateway', [
+                'payment_gateway' => $actualGateway,
                 'order_id' => $order->id,
             ]);
             
-            if ($request->payment_method === 'kasir') {
-                \Log::info('CheckoutController: Processing kasir payment', ['order_id' => $order->id]);
-                
-                // Kasir (Pick up at store) - mark as paid and completed immediately
-                $order->update([
-                    'payment_status' => 'paid',
-                    'status' => 'completed',
-                    'paid_at' => now(),
-                ]);
-                
-                \Log::info('CheckoutController: Order updated to paid', ['order_id' => $order->id]);
-                
-                // Also update Penjualan payment status to paid
-                // This will trigger Penjualan observer to create journals
-                try {
-                    $penjualans = \App\Models\Penjualan::where('order_id', $order->id)->get();
-                    \Log::info('CheckoutController: Found penjualans to update', [
-                        'order_id' => $order->id,
-                        'penjualan_count' => $penjualans->count(),
-                    ]);
-                    
-                    foreach ($penjualans as $penjualan) {
-                        \Log::info('CheckoutController: Updating penjualan', [
-                            'penjualan_id' => $penjualan->id,
-                            'current_status' => $penjualan->payment_status,
-                        ]);
-                        
-                        $penjualan->update([
-                            'payment_status' => 'paid',
-                            'payment_confirmed_at' => now(),
-                        ]);
-                        
-                        \Log::info('CheckoutController: Penjualan updated', [
-                            'penjualan_id' => $penjualan->id,
-                            'new_status' => 'paid',
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    \Log::error('CheckoutController: Failed to update penjualan payment status for kasir', [
-                        'order_id' => $order->id,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
-                    ]);
-                }
-            } elseif ($request->payment_method === 'cod') {
-                \Log::info('CheckoutController: Processing COD payment', ['order_id' => $order->id]);
-                // COD (Cash On Delivery) - pending payment
-                $order->update([
-                    'payment_status' => 'pending',
-                    'status' => 'pending',
-                ]);
-            } elseif ($request->payment_method === 'transfer') {
-                \Log::info('CheckoutController: Processing transfer payment', ['order_id' => $order->id]);
-                // Transfer manual - pending payment, no Midtrans token
+            if ($actualGateway === 'manual_transfer' || $actualGateway === 'tunai') {
+                \Log::info('CheckoutController: Processing transfer manual/tunai payment', ['order_id' => $order->id]);
+                // Transfer manual/tunai - pending payment, no Midtrans token
                 $order->update([
                     'payment_status' => 'pending',
                     'status' => 'pending',
                 ]);
             } else {
                 \Log::info('CheckoutController: Processing Midtrans payment', ['order_id' => $order->id]);
-                // Get Midtrans Snap Token for other payment methods (QRIS, VA, etc)
+                // Get Midtrans Snap Token
                 $snapToken = $this->midtrans->createTransaction($order, $order->items);
                 $order->update(['snap_token' => $snapToken]);
             }
@@ -732,14 +765,12 @@ class CheckoutController extends Controller
 
             // Create notification
             $notificationMsg = '';
-            if ($request->payment_method === 'kasir') {
-                $notificationMsg = "Pesanan {$order->nomor_order} berhasil dibuat. Silakan ambil di toko kami.";
-            } elseif ($request->payment_method === 'cod') {
-                $notificationMsg = "Pesanan {$order->nomor_order} berhasil dibuat. Bayar saat barang tiba.";
-            } elseif ($request->payment_method === 'transfer') {
+            if ($actualGateway === 'manual_transfer') {
                 $notificationMsg = "Pesanan {$order->nomor_order} berhasil dibuat. Silakan transfer ke rekening yang telah ditampilkan.";
+            } elseif ($actualGateway === 'tunai') {
+                $notificationMsg = "Pesanan {$order->nomor_order} berhasil dibuat secara tunai.";
             } else {
-                $notificationMsg = "Pesanan {$order->nomor_order} berhasil dibuat. Silakan lakukan pembayaran.";
+                $notificationMsg = "Pesanan {$order->nomor_order} berhasil dibuat. Silakan selesaikan pembayaran Midtrans.";
             }
             
             Notification::createNotification(
@@ -752,19 +783,25 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            $msg = '';
-            if ($request->payment_method === 'kasir') {
-                $msg = 'Pesanan berhasil dibuat! Silakan ambil di toko kami. Nomor Pesanan: ' . $order->nomor_order;
-            } elseif ($request->payment_method === 'cod') {
-                $msg = 'Pesanan berhasil dibuat! Bayar saat barang tiba. Nomor Pesanan: ' . $order->nomor_order;
-            } elseif ($request->payment_method === 'transfer') {
-                $msg = 'Pesanan berhasil dibuat! Silakan transfer ke rekening yang telah ditampilkan. Nomor Pesanan: ' . $order->nomor_order;
-            } else {
-                $msg = 'Pesanan berhasil dibuat! Silakan lakukan pembayaran. Nomor Pesanan: ' . $order->nomor_order;
+            if ($actualGateway === 'midtrans') {
+                // If midtrans, redirect back to payment page to trigger snap popup
+                return back()->with(['snap_token' => $snapToken, 'order_id' => $order->id]);
             }
 
-            return redirect()->route('pelanggan.orders.show', $order->id)
-                ->with('success', $msg);
+            $msg = 'Pesanan berhasil dibuat! Nomor Pesanan: ' . $order->nomor_order;
+            if ($actualGateway === 'manual_transfer') {
+                $msg = 'Pesanan berhasil dibuat! Bukti pembayaran telah diterima. Nomor Pesanan: ' . $order->nomor_order;
+            } elseif ($actualGateway === 'tunai') {
+                $msg = 'Pesanan berhasil dibuat dan sedang menunggu persetujuan admin. Nomor Pesanan: ' . $order->nomor_order;
+            }
+
+            // Clear checkout session
+            session()->forget('checkout_data');
+
+            return redirect()->route('pelanggan.orders.show', [
+                'perusahaan_slug' => $perusahaan_slug, 
+                'order' => $order->id
+            ])->with('success', $msg);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -772,3 +809,4 @@ class CheckoutController extends Controller
         }
     }
 }
+
