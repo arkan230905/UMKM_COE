@@ -884,9 +884,9 @@
                 const passwordField = document.getElementById('password_field');
                 const rememberMeField = document.querySelector('.form-check');
                 
-                // Pastikan semua elemen ada
-                if (!loginFields || !kodePerusahaanField || !emailField || !passwordField || !rememberMeField) {
-                    console.error('Some form elements not found');
+                // Pastikan elemen utama ada
+                if (!loginFields || !emailField) {
+                    console.error('Core form elements not found');
                     return;
                 }
                 
@@ -924,16 +924,24 @@
                             passwordInput.setAttribute('required', 'required');
                         }
                     }
-                    // Role lainnya: kode perusahaan + email
-                    else if (role === 'admin' || role === 'pegawai' || role === 'pegawai_pembelian' || role === 'kasir') {
-                        kodePerusahaanField.style.display = 'block';
+                    // Admin & Kasir: kode perusahaan + email
+                    else if (role === 'admin' || role === 'kasir') {
+                        if (kodePerusahaanField) kodePerusahaanField.style.display = 'block';
                         if (kodePerusahaanInput) {
                             kodePerusahaanInput.setAttribute('required', 'required');
                         }
                     }
+                    // Pegawai & Pegawai Pembelian: HANYA email
+                    else if (role === 'pegawai' || role === 'pegawai_pembelian') {
+                        if (emailField) emailField.style.display = 'block';
+                        if (kodePerusahaanField) kodePerusahaanField.style.display = 'none';
+                        if (kodePerusahaanInput) {
+                            kodePerusahaanInput.removeAttribute('required');
+                        }
+                    }
 
                     // Focus ke field pertama yang relevan
-                    if (role === 'owner') {
+                    if (role === 'owner' || role === 'pegawai' || role === 'pegawai_pembelian') {
                         if (emailInput) {
                             setTimeout(() => emailInput.focus(), 100);
                         }
@@ -1010,9 +1018,10 @@
                         return false;
                     }
 
-                    // Validasi kode perusahaan untuk role selain owner
-                    if (['admin', 'pegawai', 'pegawai_pembelian', 'kasir'].includes(role)) {
-                        const kodePerusahaan = document.getElementById('kode_perusahaan').value;
+                    // Validasi kode perusahaan untuk admin dan kasir
+                    if (['admin', 'kasir'].includes(role)) {
+                        const kodePerusahaanInputElem = document.getElementById('kode_perusahaan');
+                        const kodePerusahaan = kodePerusahaanInputElem ? kodePerusahaanInputElem.value : '';
                         if (!kodePerusahaan) {
                             e.preventDefault();
                             alert('Kode perusahaan wajib diisi');

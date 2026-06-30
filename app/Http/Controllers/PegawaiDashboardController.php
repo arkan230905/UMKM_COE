@@ -36,7 +36,6 @@ class PegawaiDashboardController extends Controller
 
         // Get today's attendance
         $todayAttendance = Presensi::where('pegawai_id', $pegawai->id)
-            ->where('user_id', $user->id)
             ->whereDate('tgl_presensi', now())
             ->first();
 
@@ -74,7 +73,6 @@ class PegawaiDashboardController extends Controller
 
         // Get recent attendance (last 7 days)
         $recentAttendance = Presensi::where('pegawai_id', $pegawai->id)
-            ->where('user_id', $user->id)
             ->whereDate('tgl_presensi', '>=', now()->subDays(7))
             ->orderBy('tgl_presensi', 'desc')
             ->get();
@@ -116,8 +114,7 @@ class PegawaiDashboardController extends Controller
                            Hubungi administrator untuk debugging.');
             }
 
-            $query = Presensi::where('pegawai_id', $pegawai->id)
-                             ->where('user_id', $user->id);
+            $query = Presensi::where('pegawai_id', $pegawai->id);
 
             // Filter by month/year if provided
             if ($request->has('month') && $request->has('year')) {

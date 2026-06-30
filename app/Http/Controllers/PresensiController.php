@@ -7,6 +7,7 @@ use App\Models\Pegawai;
 use App\Models\RekapPresensiBulanan;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class PresensiController extends Controller
 {
@@ -596,9 +597,7 @@ $user = auth()->user();
 
             // Get today's attendance
             $today = Carbon::today();
-            // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $attendances = Presensi::where('pegawai_id', $pegawai->id)
-                ->where('user_id', auth()->id())
                 ->whereDate('tgl_presensi', $today)
                 ->get();
 
@@ -634,9 +633,7 @@ $user = auth()->user();
         }
 
         $today = now()->toDateString();
-        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $attendances = Presensi::where('pegawai_id', $pegawai->id)
-            ->where('user_id', auth()->id())
             ->whereDate('tgl_presensi', $today)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -744,6 +741,39 @@ $user = auth()->user();
                     ],
                     'time'      => $currentTime,
 ]);
+            } else {
+                // Jam keluar
+                if ($presensi->jam_keluar) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda sudah melakukan absen keluar hari ini.'
+                    ], 400);
+                }
+
+                $jamMasuk = \Carbon\Carbon::parse($presensi->jam_masuk);
+                $jamKeluar = \Carbon\Carbon::parse($currentTime);
+                $jumlahJam = $jamMasuk->diffInMinutes($jamKeluar) / 60;
+
+                $presensi->update([
+                    'jam_keluar' => $currentTime,
+                    'jumlah_jam' => round($jumlahJam, 2),
+                    'latitude_keluar' => $request->latitude,
+                    'longitude_keluar' => $request->longitude,
+                ]);
+
+                return response()->json([
+                    'success'   => true,
+                    'message'   => 'Absen keluar berhasil.',
+                    'action'    => 'clock_out',
+                    'presensi'  => $presensi,
+                    'pegawai'   => [
+                        'nama'                => $pegawai->nama,
+                        'kode_pegawai'        => $pegawai->kode_pegawai,
+                        'jabatan'             => $pegawai->jabatan ?? '-',
+                        'foto_wajah'          => $pegawai->foto_wajah,
+                    ],
+                    'time'      => $currentTime,
+                ]);
             }
 
         } catch (\Exception $e) {

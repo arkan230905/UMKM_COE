@@ -2063,6 +2063,7 @@ Route::middleware('auth')->group(function() {
     
     // Total produksi API for penggajian
     Route::get('/api/pegawai/{pegawaiId}/produksi/{bulan}/{tahun}', [App\Http\Controllers\PenggajianController::class, 'getTotalProduksiByMonth'])->name('api.pegawai.produksi');
+    Route::get('/api/pegawai/{pegawaiId}/presensi/{bulan}/{tahun}', [App\Http\Controllers\PenggajianController::class, 'getAttendanceData'])->name('api.pegawai.presensi');
 });
 
 // SEMUA ROUTE YANG HANYA BISA DIAKSES SETELAH LOGIN

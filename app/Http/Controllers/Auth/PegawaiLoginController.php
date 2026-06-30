@@ -82,9 +82,9 @@ class PegawaiLoginController extends Controller
             $user->perusahaan_id = $perusahaan->id;
             $user->save();
 
-            // Update pegawai.user_id
-            $pegawai->user_id = $user->id;
-            $pegawai->save();
+            // Ensure user is linked to pegawai
+            $user->pegawai_id = $pegawai->id;
+            $user->save();
         }
 
         // 4. Pastikan user adalah pegawai
@@ -95,9 +95,9 @@ class PegawaiLoginController extends Controller
         }
 
         // 5. Pastikan pegawai terhubung dengan user
-        if ($pegawai->user_id !== $user->id) {
-            $pegawai->user_id = $user->id;
-            $pegawai->save();
+        if ($user->pegawai_id !== $pegawai->id) {
+            $user->pegawai_id = $pegawai->id;
+            $user->save();
         }
 
         // 6. Login user

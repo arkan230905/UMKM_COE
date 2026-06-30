@@ -260,11 +260,11 @@ class Penggajian extends Model
             $totalAlpha = $pegawaiPresensis->whereIn('status', ['Alpha', 'alpha', 'absen'])->count();
             $totalJam = $pegawaiPresensis->sum('jumlah_jam');
 
-            // Get tarif_per_jam from pegawai or jabatan
-            $tarifPerJam = $pegawai->tarif_per_jam ?? $pegawai->getTarifPerJamFromJabatanAttribute() ?? 0;
+            // Get tarif_per_produk from pegawai or jabatan
+            $tarifPerProduk = $pegawai->tarif_per_produk ?? 0;
 
             // Calculate gaji_pokok based on BTKL formula
-            $gajiPokok = $totalJam * $tarifPerJam;
+            $gajiPokok = $totalJam * $tarifPerProduk;
 
             // Get tunjangan from pegawai or jabatan
             $tunjanganJabatan = $pegawai->getTunjanganJabatanAttribute() ?? 0;
@@ -349,14 +349,14 @@ class Penggajian extends Model
         $totalJam = $presensis->sum('jumlah_jam');
 
         $pegawai = Pegawai::find($pegawaiId);
-        $tarifPerJam = $pegawai->tarif_per_jam ?? $pegawai->getTarifPerJamFromJabatanAttribute() ?? 0;
-        $estimasiGaji = $totalJam * $tarifPerJam;
+        $tarifPerProduk = $pegawai->tarif_per_produk ?? 0;
+        $estimasiGaji = $totalJam * $tarifPerProduk;
 
         return [
             'total_hari_hadir' => $totalHariHadir,
             'total_alpha' => $totalAlpha,
             'total_jam' => $totalJam,
-            'tarif_per_jam' => $tarifPerJam,
+            'tarif_per_produk' => $tarifPerProduk,
             'estimasi_gaji' => $estimasiGaji,
         ];
     }

@@ -159,10 +159,33 @@ class PegawaiController extends Controller
             'user_id' => auth()->id(),
         ];
         
-        // Add user_id only if column exists
-        if (Schema::hasColumn('pegawais', 'user_id')) {
-            $pegawaiData['user_id'] = auth()->id(); // CRITICAL: multi-tenant isolation
+        // Auto-create/update user account FIRST to get the ID
+        $userBaru = User::where('email', $validated['email'])->first();
+        
+        if ($userBaru) {
+            // Kondisi user sudah ada sebelumnya (existing)
+            // Lakukan sinkronisasi balik: update perusahaan_id dan role (jika belum)
+            $userBaru->update([
+                'name' => $validated['nama'],
+                'email' => $validated['email'],
+                'role' => User::ROLE_PEGAWAI, // 3. Assign role pegawai
+                'perusahaan_id' => auth()->user()->perusahaan_id, // 2. Update perusahaan_id milik admin
+            ]);
+        } else {
+            $userBaru = User::create([
+                'name' => $validated['nama'],
+                'email' => $validated['email'],
+                'password' => Hash::make(\Illuminate\Support\Str::random(32)),
+                'role' => User::ROLE_PEGAWAI,
+                'perusahaan_id' => auth()->user()->perusahaan_id,
+                'email_verified_at' => now(),
+            ]);
         }
+
+        // The `user_id` is the tenant/owner ID and is already set correctly above.
+        // DO NOT overwrite it with the newly created employee's user ID ($userBaru->id).
+        // Link the user to the newly created pegawai
+
         
         // Log data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);
@@ -170,28 +193,10 @@ class PegawaiController extends Controller
         // Create pegawai record
         $pegawai = Pegawai::create($pegawaiData);
 
-        // Auto-create/update user account for this pegawai
-        $user = User::where('pegawai_id', $pegawai->id)->first();
-        if (!$user) {
-            $user = User::where('email', $pegawai->email)->first();
-        }
-        if ($user) {
-            $user->update([
-                'name' => $pegawai->nama,
-                'email' => $pegawai->email,
-                'role' => User::ROLE_PEGAWAI,
-                'pegawai_id' => $pegawai->id,
-            ]);
-        } else {
-            User::create([
-                'name' => $pegawai->nama,
-                'email' => $pegawai->email,
-                'password' => Hash::make(Str::random(32)),
-                'role' => User::ROLE_PEGAWAI,
-                'pegawai_id' => $pegawai->id,
-                'email_verified_at' => now(),
-            ]);
-        }
+        // Link the user to the newly created pegawai
+        $userBaru->update([
+            'pegawai_id' => $pegawai->id,
+        ]);
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
         if (strtolower($validated['kategori']) === 'btkl') {

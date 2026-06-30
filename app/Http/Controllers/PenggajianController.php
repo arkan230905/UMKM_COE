@@ -232,6 +232,45 @@ class PenggajianController extends Controller
     }
 
     /**
+     * API endpoint to get attendance data for a pegawai in a specific month
+     */
+    public function getAttendanceData($pegawaiId, $bulan, $tahun)
+    {
+        try {
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $pegawai = Pegawai::where('user_id', auth()->id())->findOrFail($pegawaiId);
+            
+            $presensi = \App\Models\Presensi::where('pegawai_id', $pegawaiId)
+                ->whereMonth('tgl_presensi', $bulan)
+                ->whereYear('tgl_presensi', $tahun)
+                ->get();
+
+            $jumlahHadir = $presensi->filter(function($item) {
+                return strtolower($item->status) === 'hadir';
+            })->count();
+
+            $jumlahAlpa = $presensi->filter(function($item) {
+                return strtolower($item->status) === 'alpa';
+            })->count();
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'jumlah_hadir' => $jumlahHadir,
+                    'jumlah_alpa' => $jumlahAlpa,
+                    'total_data' => $presensi->count(),
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
      * API endpoint to get real-time employee salary data
      */
     public function getEmployeeData($pegawaiId)
