@@ -88,12 +88,14 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
-                                <th style="width: 20%">Nama Proses</th>
-                                <th style="width: 15%">BOP / produk</th>
-                                <th style="width: 25%">Komponen BOP</th>
+                                <th style="width: 18%">Nama Proses</th>
+                                <th style="width: 12%">Produk & Periode</th>
+                                <th style="width: 10%">Target Produksi</th>
+                                <th style="width: 10%">BOP / produk</th>
+                                <th style="width: 20%">Komponen BOP</th>
                                 <th style="width: 10%">COA Debit</th>
                                 <th style="width: 10%">COA Kredit</th>
-                                <th style="width: 15%">Aksi</th>
+                                <th style="width: 5%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,6 +110,27 @@
                                         <div>
                                             <div class="fw-semibold">{{ $bop->nama_bop_proses ?? '-' }}</div>
                                             <small class="text-muted">BOP Proses</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        <div class="fw-semibold text-info">
+                                            <i class="fas fa-box me-1"></i>
+                                            {{ $bop->produk->nama_produk ?? '-' }}
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ $bop->periode ? \Carbon\Carbon::parse($bop->periode)->translatedFormat('F Y') : '-' }}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-bullseye me-2 text-success opacity-50"></i>
+                                        <div>
+                                            <div class="fw-semibold text-success">{{ number_format($bop->jumlah_produksi ?? 0, 0, ',', '.') }} unit</div>
+                                            <small class="text-muted">Target</small>
                                         </div>
                                     </div>
                                 </td>
@@ -207,7 +230,7 @@
         
                             @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="bi bi-inbox display-4 d-block mb-2"></i>
                                         <p>Belum ada data BOP</p>

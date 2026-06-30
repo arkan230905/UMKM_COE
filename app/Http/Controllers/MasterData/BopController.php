@@ -20,8 +20,9 @@ class BopController extends Controller
     {
         try {
 
-            // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only
-            $bopProses = BopProses::where('user_id', auth()->id())
+            // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only with produk relation
+            $bopProses = BopProses::with('produk')
+                ->where('user_id', auth()->id())
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get();
