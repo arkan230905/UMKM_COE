@@ -16,15 +16,43 @@ class BopController extends Controller
     /**
      * Display the unified BOP page
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
+            // Get filter parameters
+            $produkId = $request->input('produk_id');
+            $periode = $request->input('periode');
+            $status = $request->input('status');
 
             // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only with produk relation
-            $bopProses = BopProses::with('produk')
-                ->where('user_id', auth()->id())
-                ->where('is_active', true)
-                ->orderBy('id')
+            $query = BopProses::with('produk')
+                ->where('user_id', auth()->id());
+            
+            // Apply filters
+            if ($produkId) {
+                $query->where('produk_id', $produkId);
+            }
+            
+            if ($periode) {
+                $query->where('periode', $periode);
+            }
+            
+            if ($status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($status === 'inactive') {
+                $query->where('is_active', false);
+            } else {
+                // Default: show only active
+                $query->where('is_active', true);
+            }
+            
+            $bopProses = $query->orderBy('periode', 'desc')
+                ->orderBy('id', 'desc')
+                ->get();
+
+            // Get all products for filter dropdown
+            $produks = \App\Models\Produk::where('user_id', auth()->id())
+                ->orderBy('nama_produk')
                 ->get();
 
 
@@ -105,7 +133,8 @@ class BopController extends Controller
                 'akunBeban',
                 'btklData',
                 'bebanOperasional',
-                'bahanPendukungs'
+                'bahanPendukungs',
+                'produks'
             ));
             
         } catch (\Exception $e) {

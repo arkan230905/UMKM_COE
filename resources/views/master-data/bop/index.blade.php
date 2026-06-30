@@ -77,6 +77,133 @@
         </div>
     </div>
 
+    <!-- Filter Section -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ route('master-data.bop.index') }}" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="filterProduk" class="form-label">
+                            <i class="fas fa-box me-1"></i>Filter Produk
+                        </label>
+                        <select name="produk_id" id="filterProduk" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">Semua Produk</option>
+                            @foreach($produks as $produk)
+                                <option value="{{ $produk->id }}" {{ request('produk_id') == $produk->id ? 'selected' : '' }}>
+                                    {{ $produk->nama_produk }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="filterPeriode" class="form-label">
+                            <i class="fas fa-calendar me-1"></i>Filter Periode
+                        </label>
+                        <input type="month" 
+                               name="periode" 
+                               id="filterPeriode" 
+                               class="form-control" 
+                               value="{{ request('periode', now()->format('Y-m')) }}"
+                               onchange="document.getElementById('filterForm').submit()">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="filterStatus" class="form-label">
+                            <i class="fas fa-filter me-1"></i>Status
+                        </label>
+                        <select name="status" id="filterStatus" class="form-select" onchange="document.getElementById('filterForm').submit()">
+                            <option value="">Semua Status</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Aktif</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Tidak Aktif</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3 d-flex align-items-end">
+                        <a href="{{ route('master-data.bop.index') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-redo me-1"></i>Reset Filter
+                        </a>
+                    </div>
+                </div>
+                
+                @if(request()->hasAny(['produk_id', 'periode', 'status']))
+                    <div class="mt-3">
+                        <div class="alert alert-info mb-0 d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div class="flex-grow-1">
+                                <strong>Filter Aktif:</strong>
+                                @if(request('produk_id'))
+                                    @php
+                                        $selectedProduk = $produks->firstWhere('id', request('produk_id'));
+                                    @endphp
+                                    <span class="badge bg-primary ms-1">Produk: {{ $selectedProduk->nama_produk ?? '-' }}</span>
+                                @endif
+                                @if(request('periode'))
+                                    <span class="badge bg-success ms-1">Periode: {{ \Carbon\Carbon::parse(request('periode'))->translatedFormat('F Y') }}</span>
+                                @endif
+                                @if(request('status'))
+                                    <span class="badge bg-warning ms-1">Status: {{ request('status') == 'active' ? 'Aktif' : 'Tidak Aktif' }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    @if($bopProses->count() > 0)
+    <div class="card mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body text-white">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-list-alt fa-2x me-3 opacity-75"></i>
+                        <div>
+                            <div class="small opacity-75">Total BOP Proses</div>
+                            <h4 class="mb-0">{{ $bopProses->count() }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calculator fa-2x me-3 opacity-75"></i>
+                        <div>
+                            <div class="small opacity-75">Total BOP / Produk</div>
+                            <h4 class="mb-0">Rp {{ formatNumberClean($bopProses->sum('total_bop_per_produk')) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-bullseye fa-2x me-3 opacity-75"></i>
+                        <div>
+                            <div class="small opacity-75">Total Target Produksi</div>
+                            <h4 class="mb-0">{{ number_format($bopProses->sum('jumlah_produksi'), 0, ',', '.') }} unit</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-chart-line fa-2x me-3 opacity-75"></i>
+                        <div>
+                            <div class="small opacity-75">Total BOP Bulanan</div>
+                            @php
+                                $totalBopBulanan = 0;
+                                foreach($bopProses as $bop) {
+                                    $totalBopBulanan += ($bop->total_bop_per_produk * $bop->jumlah_produksi);
+                                }
+                            @endphp
+                            <h4 class="mb-0">Rp {{ formatNumberClean($totalBopBulanan) }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 
     <!-- Tab Content -->
     <div id="bopProsesContent" class="content-section" style="display: block;">
@@ -115,14 +242,16 @@
                                 </td>
                                 <td>
                                     <div class="small">
-                                        <div class="fw-semibold text-info">
+                                        <div class="fw-semibold text-info mb-1">
                                             <i class="fas fa-box me-1"></i>
                                             {{ $bop->produk->nama_produk ?? '-' }}
                                         </div>
-                                        <small class="text-muted">
-                                            <i class="fas fa-calendar me-1"></i>
-                                            {{ $bop->periode ? \Carbon\Carbon::parse($bop->periode)->translatedFormat('F Y') : '-' }}
-                                        </small>
+                                        <div>
+                                            <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                {{ $bop->periode ? \Carbon\Carbon::parse($bop->periode)->translatedFormat('F Y') : '-' }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
