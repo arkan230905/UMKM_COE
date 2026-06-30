@@ -79,10 +79,17 @@ class Pegawai extends Model
         });
 
         // 🔒 SECURITY: Global Scope untuk Multi-tenancy
-        // Memastikan Owner hanya melihat data pegawainya sendiri
+        // Memastikan Owner hanya melihat data pegawainya sendiri, dan Pegawai hanya bisa melihat dirinya sendiri
         if (auth()->check()) {
             static::addGlobalScope('user_id', function ($builder) {
-                $builder->where('user_id', auth()->id());
+                $user = auth()->user();
+                if (in_array($user->role, ['owner', 'admin'])) {
+                    $builder->where('pegawais.user_id', $user->id);
+                } elseif ($user->pegawai_id) {
+                    $builder->where('pegawais.id', $user->pegawai_id);
+                } else {
+                    $builder->where('pegawais.user_id', $user->id);
+                }
             });
         }
     }

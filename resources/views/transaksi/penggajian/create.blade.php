@@ -107,6 +107,7 @@
                             <input type="number" name="hari_kerja" id="hari_kerja" class="form-control" value="26" min="1" max="31" oninput="hitungOtomatis()">
                             <span class="input-group-text">hari</span>
                         </div>
+                        <small id="hari_kerja_status" class="form-text text-muted mt-1 d-block">Auto-filled dari presensi, bisa diedit jika perlu</small>
                     </div>
 
                     <div class="col-md-6">
@@ -170,6 +171,15 @@
                             <span class="input-group-text">Rp</span>
                             <input type="text" name="asuransi" id="bpjs" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="potongan_alpa" class="form-label">Potongan Alpa</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" name="potongan" id="potongan_alpa" class="form-control input-rupiah bg-light" value="0" readonly>
+                        </div>
+                        <small id="potongan_status" class="form-text text-muted mt-1 d-block">Potongan otomatis berdasarkan jumlah alpa</small>
                     </div>
                 </div>
 
@@ -241,6 +251,8 @@
     let TARIF_PRODUK = 0;
     let GAJI_POKOK = 0;
     let IS_PRODUKSI = false;
+    let JUMLAH_ALPA = 0;
+    let HARI_KERJA_TOTAL = 26;
 
     // Format Rupiah
     function formatRupiah(num) {
@@ -274,6 +286,7 @@
         TARIF_PRODUK = 0;
         GAJI_POKOK = 0;
         IS_PRODUKSI = false;
+        JUMLAH_ALPA = 0;
         document.getElementById('kategori').value = '';
         document.getElementById('kategori_status').textContent = '';
         document.getElementById('tarif_produk_input').value = 0;
@@ -287,6 +300,7 @@
         document.getElementById('tunj_transport').value = 0;
         document.getElementById('tunj_konsumsi').value = 0;
         document.getElementById('bpjs').value = 0;
+        if(document.getElementById('potongan_alpa')) document.getElementById('potongan_alpa').value = 0;
         document.getElementById('display_gaji_mentah').value = '0';
         document.getElementById('display_total_gaji').textContent = 'Rp 0';
         document.getElementById('display_total_biaya').textContent = 'Rp 0';
@@ -353,6 +367,7 @@
                 
                 // Trigger change to set up Produksi/Gaji Tetap state correctly
                 handleKategoriChange();
+                updatePresensiData();
             })
             .catch(error => {
                 console.error('Error fetching pegawai:', error);
@@ -412,6 +427,7 @@
         if (IS_PRODUKSI) {
             updateTotalProduk();
         }
+        updatePresensiData();
     }
 
     // Update Total Produk for Produksi
@@ -486,10 +502,19 @@
         // Tarif/Produk hanya dipakai untuk alokasi HPP, bukan untuk menghitung ulang gaji
         const gajiPokok = GAJI_POKOK;
 
+        // Hitung Potongan Alpa: (JUMLAH_ALPA / HARI_KERJA_TOTAL) * Gaji Pokok
+        let potonganAlpa = 0;
+        if (JUMLAH_ALPA > 0 && HARI_KERJA_TOTAL > 0) {
+            potonganAlpa = Math.round((JUMLAH_ALPA / HARI_KERJA_TOTAL) * gajiPokok);
+        }
+        if (document.getElementById('potongan_alpa')) {
+            document.getElementById('potongan_alpa').value = formatRupiah(potonganAlpa);
+        }
+
         const totalTunjangan = tunjanganJabatan + tunjanganTransport + tunjanganKonsumsi;
 
         // Total Gaji Karyawan = Gaji Pokok + Tunjangan (yang diterima karyawan)
-        const totalGajiKaryawan = gajiPokok + totalTunjangan;
+        const totalGajiKaryawan = gajiPokok + totalTunjangan - potonganAlpa;
 
         // Total Biaya Perusahaan = Total Gaji Karyawan + Asuransi BPJS
         const totalBiayaPerusahaan = totalGajiKaryawan + bpjs;
@@ -542,6 +567,68 @@
         // h-final = Gaji Pokok aktual dari kualifikasi
         document.getElementById('h-final').value = GAJI_POKOK;
     });
+
+    // Update Presensi Data
+    function updatePresensiData() {
+        const pegawaiId = document.getElementById('pegawai_id').value;
+        const tanggalInput = document.getElementById('tanggal_penggajian').value;
+        const hariKerjaField = document.getElementById('hari_kerja');
+        const hariKerjaStatus = document.getElementById('hari_kerja_status');
+        
+        if (!pegawaiId || !tanggalInput) {
+            JUMLAH_ALPA = 0;
+            if (hariKerjaStatus) {
+                hariKerjaStatus.textContent = 'Auto-filled dari presensi, bisa diedit jika perlu';
+                hariKerjaStatus.className = 'form-text text-muted d-block mt-1';
+            }
+            hitungOtomatis();
+            return;
+        }
+        
+        const date = new Date(tanggalInput);
+        const bulan = String(date.getMonth() + 1).padStart(2, '0');
+        const tahun = date.getFullYear();
+        
+        fetch(`/api/pegawai/${pegawaiId}/presensi/${bulan}/${tahun}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.data.total_data === 0) {
+                    JUMLAH_ALPA = 0;
+                    HARI_KERJA_TOTAL = 26; // Kembali ke default
+                    if (hariKerjaStatus) {
+                        hariKerjaStatus.textContent = '⚠ Belum ada data presensi untuk periode ini.';
+                        hariKerjaStatus.className = 'form-text text-warning d-block mt-1';
+                    }
+                } else {
+                    JUMLAH_ALPA = data.data.jumlah_alpa || 0;
+                    const jumlahHadir = data.data.jumlah_hadir || 0;
+                    
+                    // Total pembagi = Hadir + Alpa (atau 26 jika 0)
+                    HARI_KERJA_TOTAL = (jumlahHadir + JUMLAH_ALPA) > 0 ? (jumlahHadir + JUMLAH_ALPA) : 26;
+                    
+                    // Update hari kerja dengan jumlah hadir
+                    if (hariKerjaField) hariKerjaField.value = jumlahHadir;
+                    
+                    if (hariKerjaStatus) {
+                        hariKerjaStatus.textContent = `✓ Data presensi ditemukan: ${jumlahHadir} Hadir, ${JUMLAH_ALPA} Alpa.`;
+                        hariKerjaStatus.className = 'form-text text-success d-block mt-1';
+                    }
+                }
+                hitungOtomatis();
+            })
+            .catch(error => {
+                console.error('Error fetching presensi:', error);
+                JUMLAH_ALPA = 0;
+                if (hariKerjaStatus) {
+                    hariKerjaStatus.textContent = 'Auto-filled dari presensi, bisa diedit jika perlu';
+                    hariKerjaStatus.className = 'form-text text-muted d-block mt-1';
+                }
+                hitungOtomatis();
+            });
+    }
 
     // Update Metode Pembayaran (removed as we use direct select now)
     function updateMetodePembayaran() {

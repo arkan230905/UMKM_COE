@@ -83,8 +83,8 @@
             {{-- Saldo Awal --}}
             <div class="col-md-6">
                 <label class="form-label">Saldo Awal</label>
-                <input type="text" id="saldo_awal_view" class="form-control" inputmode="decimal" placeholder="0" value="{{ $coa->saldo_awal ? number_format((float)$coa->saldo_awal,0,',','.') : '' }}">
-                <input type="hidden" name="saldo_awal" id="saldo_awal" value="{{ (float)($coa->saldo_awal ?? 0) }}">
+                <input type="text" id="saldo_awal_view" class="form-control" inputmode="decimal" placeholder="0" value="{{ $coa->saldo_awal ? number_format((float)$coa->saldo_awal,0,',','.') : '' }}" required>
+                <input type="hidden" name="saldo_awal" id="saldo_awal" value="{{ $coa->saldo_awal ?? '' }}">
             </div>
 
             {{-- Tanggal Saldo Awal --}}

@@ -70,9 +70,9 @@ class User extends Authenticatable
         return $this->role === self::ROLE_OWNER;
     }
 
-    public function pegawai(): HasOne
+    public function pegawai(): BelongsTo
     {
-        return $this->hasOne(Pegawai::class, 'user_id', 'id');
+        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'id');
     }
 
     /**

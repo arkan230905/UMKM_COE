@@ -87,8 +87,8 @@
             {{-- Saldo Awal --}}
             <div class="col-md-6">
                 <label class="form-label">Saldo Awal</label>
-                <input type="text" id="saldo_awal_view" class="form-control" inputmode="decimal" placeholder="0">
-                <input type="hidden" name="saldo_awal" id="saldo_awal" value="0">
+                <input type="text" id="saldo_awal_view" class="form-control" inputmode="decimal" placeholder="0" required>
+                <input type="hidden" name="saldo_awal" id="saldo_awal" value="">
             </div>
 
             {{-- Tanggal Saldo Awal --}}

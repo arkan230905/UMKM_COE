@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'user.ownership' => \App\Http\Middleware\EnsureUserOwnership::class,
+            'validate.pegawai.tenant' => \App\Http\Middleware\ValidatePegawaiTenant::class,
         ]);
         
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
