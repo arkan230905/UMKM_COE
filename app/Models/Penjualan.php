@@ -16,6 +16,7 @@ class Penjualan extends Model
     protected $fillable = [
         'order_id',  // Link to orders table
         'user_id',  // CRITICAL: multi-tenant isolation
+        'pelanggan_id',
         'nomor_penjualan',
         'produk_id',
         'tanggal',

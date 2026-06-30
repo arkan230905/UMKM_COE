@@ -1084,8 +1084,8 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <a href="{{ route('transaksi.penjualan.show', $retur->penjualan_id) }}"
-                                           class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Lihat Detail Penjualan">
+                                        <a href="{{ route('transaksi.retur-penjualan.show', $retur->id) }}"
+                                           class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Lihat Detail Retur">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>

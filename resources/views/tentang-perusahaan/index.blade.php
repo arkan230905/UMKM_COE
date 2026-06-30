@@ -83,7 +83,7 @@
                 <div class="accordion-body p-4 bg-light">
                     <div class="row g-4">
                         <!-- Card: Nama Perusahaan -->
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="card h-100 border-0 shadow-sm rounded-4">
                                 <div class="card-body p-4">
                                     <div class="d-flex align-items-center mb-3">
@@ -93,21 +93,6 @@
                                         <h6 class="text-muted mb-0 text-uppercase fw-bold" style="letter-spacing: 1px; font-size: 0.8rem;">Nama Perusahaan</h6>
                                     </div>
                                     <h4 class="text-dark fw-bold mb-0 ps-5">{{ $dataPerusahaan->nama }}</h4>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Card: Alamat -->
-                        <div class="col-md-6">
-                            <div class="card h-100 border-0 shadow-sm rounded-4">
-                                <div class="card-body p-4">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="bg-theme-brown-opacity p-2 rounded theme-brown-light me-3">
-                                            <i class="fas fa-map-marked-alt fa-lg"></i>
-                                        </div>
-                                        <h6 class="text-muted mb-0 text-uppercase fw-bold" style="letter-spacing: 1px; font-size: 0.8rem;">Alamat Lengkap</h6>
-                                    </div>
-                                    <h5 class="text-dark fw-bold mb-0 ps-5" style="line-height: 1.5;">{{ $dataPerusahaan->alamat }}</h5>
                                 </div>
                             </div>
                         </div>
@@ -173,6 +158,66 @@
                                 <div>
                                     <p class="mb-1 text-dark"><strong>Kode Perusahaan</strong> digunakan untuk verifikasi login Pegawai dan Kasir.</p>
                                     <p class="mb-0 text-muted small">Akses edit halaman ini dibatasi eksklusif hanya untuk pemegang role <strong>Owner</strong>.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INFORMASI LOKASI SECTION -->
+        <div class="accordion-item border-0 border-bottom">
+            <h2 class="accordion-header" id="headingLokasi">
+                <button class="accordion-button collapsed bg-white text-dark fw-bold fs-5 py-4" type="button" data-bs-toggle="collapse" data-bs-target="#informasiLokasiCollapse" aria-expanded="false" aria-controls="informasiLokasiCollapse">
+                    <i class="fas fa-map-marker-alt theme-brown-light me-3"></i>Lokasi Perusahaan
+                </button>
+            </h2>
+            <div id="informasiLokasiCollapse" class="accordion-collapse collapse" aria-labelledby="headingLokasi" data-bs-parent="#accordionSections">
+                <div class="accordion-body p-4 bg-light">
+                    <div class="row g-4">
+                        <!-- Bagian Map -->
+                        <div class="col-lg-8">
+                            <div class="card h-100 border-0 shadow-sm rounded-4">
+                                <div class="card-body p-4">
+                                    <h5 class="fw-bold theme-brown mb-2">Lokasi Perusahaan untuk Perhitungan Ongkir</h5>
+                                    <p class="text-muted small mb-3">Titik lokasi ini digunakan untuk menghitung ongkir ke pelanggan secara lebih akurat.</p>
+                                    
+                                    @if($dataPerusahaan->latitude && $dataPerusahaan->longitude)
+                                        <div id="companyMap" style="height: 350px; border-radius: 12px; border: 1px solid #dee2e6;" class="w-100 shadow-sm"></div>
+                                    @else
+                                        <div class="alert alert-warning border-0 rounded-3 d-flex align-items-center">
+                                            <i class="fas fa-exclamation-triangle fa-2x me-3 text-warning"></i>
+                                            <div>
+                                                <h6 class="fw-bold mb-1">Lokasi Belum Diatur</h6>
+                                                <p class="mb-0 small">Pemilik belum menetapkan titik lokasi perusahaan di peta.</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bagian Alamat -->
+                        <div class="col-lg-4">
+                            <div class="card h-100 border-0 shadow-sm rounded-4" style="background: linear-gradient(135deg, #fdfbf7 0%, #f4eee6 100%);">
+                                <div class="card-body p-4 d-flex flex-column">
+                                    <div class="d-flex align-items-center mb-4">
+                                        <div class="bg-white p-3 rounded-circle shadow-sm theme-brown-light me-3">
+                                            <i class="fas fa-map-marked-alt fa-lg"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark mb-0">Alamat Lengkap</h5>
+                                    </div>
+                                    
+                                    <p class="text-dark mb-4 flex-grow-1" style="line-height: 1.6; font-size: 1.05rem;">
+                                        {{ $dataPerusahaan->alamat }}
+                                    </p>
+                                    
+                                    @if(auth()->user()->role === 'owner')
+                                        <a href="/tentang-perusahaan/edit" class="btn btn-theme-outline fw-bold py-2 mt-auto w-100 rounded-3">
+                                            <i class="fas fa-edit me-2"></i>Ubah Lokasi
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -296,9 +341,46 @@
 </div>
 @endsection
 
+@push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .leaflet-container {
+        z-index: 1;
+    }
+</style>
+@endpush
+
 @push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Map if data exists
+    @if($dataPerusahaan->latitude && $dataPerusahaan->longitude)
+        const lat = {{ $dataPerusahaan->latitude }};
+        const lng = {{ $dataPerusahaan->longitude }};
+        
+        const map = L.map('companyMap').setView([lat, lng], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup('<b>{{ $dataPerusahaan->nama }}</b><br>Lokasi Perusahaan')
+            .openPopup();
+            
+        // Fix for map rendering inside accordion
+        const collapseElement = document.getElementById('informasiLokasiCollapse');
+        if (collapseElement) {
+            collapseElement.addEventListener('shown.bs.collapse', function () {
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 100);
+            });
+        }
+    @endif
+
     // Handle inline editing for bank fields
     document.querySelectorAll('.editable-field').forEach(function(field) {
         const displayMode = field.querySelector('.display-mode');

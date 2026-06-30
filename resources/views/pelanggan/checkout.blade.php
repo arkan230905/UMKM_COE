@@ -361,16 +361,16 @@
 
         let marker = L.marker([defaultLat, defaultLon], {draggable: true}).addTo(map);
 
-        function updateLocation(lat, lng, fetchAddress = true) {
+        function updateLocation(lat, lng, fetchAddress = true, predefinedAddress = null, preAddrDetails = null) {
             alamatDikonfirmasi = false; // Reset status konfirmasi
             const newLatLng = new L.LatLng(lat, lng);
             marker.setLatLng(newLatLng);
             map.panTo(newLatLng);
             
-            if (fetchAddress) {
+            if (fetchAddress || predefinedAddress) {
                 pendingLat = lat;
                 pendingLon = lng;
-                reverseGeocodeAndConfirm(lat, lng);
+                reverseGeocodeAndConfirm(lat, lng, predefinedAddress, preAddrDetails);
             }
         }
 
@@ -397,8 +397,11 @@
             });
         }
 
-        function formatNominatimAddress(addr) {
+        function formatNominatimAddress(addr, placeName = null) {
             let parts = [];
+            
+            // Nama Tempat (POI)
+            let tempat = placeName || addr.amenity || addr.building || addr.shop || addr.office || addr.tourism || '';
             
             // Nama Jalan & Nomor
             let jalan = addr.road || addr.pedestrian || addr.street || addr.path || '';
@@ -410,11 +413,13 @@
                 // Seringkali jalan tidak ada tapi hamlet/dusun ada
                 jalanLengkap = addr.hamlet;
             }
-            if (jalanLengkap) parts.push(jalanLengkap);
+            
+            if (tempat && tempat !== jalanLengkap) parts.push(tempat);
+            if (jalanLengkap && jalanLengkap !== tempat) parts.push(jalanLengkap);
             
             // Kelurahan / Desa
             let kelurahan = addr.village || addr.suburb || addr.neighbourhood || addr.residential || '';
-            if (kelurahan && kelurahan !== jalanLengkap) parts.push(kelurahan);
+            if (kelurahan && kelurahan !== jalanLengkap && kelurahan !== tempat) parts.push(kelurahan);
             
             // Kecamatan
             let kecamatan = addr.city_district || addr.district || addr.subdistrict || '';
@@ -443,8 +448,8 @@
             return parts.join(', ');
         }
 
-        function reverseGeocodeAndConfirm(lat, lon) {
-            document.getElementById('modal-alamat-text').innerText = 'Sedang memuat alamat...';
+        function reverseGeocodeAndConfirm(lat, lon, predefinedAddress = null, preAddrDetails = null) {
+            document.getElementById('modal-alamat-text').innerText = predefinedAddress ? predefinedAddress : 'Sedang memuat alamat...';
             konfirmasiModal.show();
             
             // Initialize mini map if not yet
@@ -461,12 +466,20 @@
                 }
             }, 300);
 
+            if (predefinedAddress && preAddrDetails) {
+                pendingAddress = predefinedAddress;
+                pendingKecamatan = preAddrDetails.city_district || preAddrDetails.district || preAddrDetails.subdistrict || '';
+                pendingKota = preAddrDetails.city || preAddrDetails.town || preAddrDetails.municipality || preAddrDetails.county || '';
+                pendingKodePos = preAddrDetails.postcode || '';
+                return;
+            }
+
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.address) {
                         const addr = data.address;
-                        let formattedAddress = formatNominatimAddress(addr);
+                        let formattedAddress = formatNominatimAddress(addr, data.name || null);
                         
                         if (!formattedAddress) {
                             formattedAddress = data.display_name;
@@ -478,14 +491,9 @@
                         pendingKecamatan = addr.city_district || addr.district || addr.subdistrict || '';
                         pendingKota = addr.city || addr.town || addr.municipality || addr.county || '';
                         pendingKodePos = addr.postcode || '';
-                    } else if (data && data.display_name) {
-                        pendingAddress = data.display_name;
-                        document.getElementById('modal-alamat-text').innerText = data.display_name;
-                        pendingKecamatan = '';
-                        pendingKota = '';
-                        pendingKodePos = '';
                     } else {
-                        document.getElementById('modal-alamat-text').innerText = 'Alamat tidak ditemukan';
+                        pendingAddress = "Lokasi yang dipilih pada peta";
+                        document.getElementById('modal-alamat-text').innerText = pendingAddress;
                     }
                 })
                 .catch(err => {
@@ -518,19 +526,21 @@
             clearTimeout(timeoutId);
             const query = this.value.trim();
 
-            if (query.length < 5) {
+            if (query.length < 3) {
                 suggestionsList.style.display = 'none';
                 return;
             }
 
             timeoutId = setTimeout(() => {
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=5&addressdetails=1`)
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=15&addressdetails=1&dedupe=0`)
                     .then(response => response.json())
                     .then(data => {
                         suggestionsList.innerHTML = '';
                         if (data.length > 0) {
                             data.forEach(item => {
-                                let alamatLengkap = item.address ? formatNominatimAddress(item.address) : item.display_name;
+                                // Ambil nama tempat dari display_name (biasanya sebelum koma pertama)
+                                let placeName = item.name || item.display_name.split(',')[0];
+                                let alamatLengkap = item.address ? formatNominatimAddress(item.address, placeName) : item.display_name;
                                 const li = document.createElement('li');
                                 li.className = 'list-group-item list-group-item-action';
                                 li.style.cssText = 'cursor: pointer; padding: 0.6rem 1rem; font-size: 0.85rem;';
@@ -539,14 +549,22 @@
                                 li.addEventListener('click', function() {
                                     searchInput.value = alamatLengkap;
                                     suggestionsList.style.display = 'none';
-                                    updateLocation(item.lat, item.lon);
+                                    updateLocation(item.lat, item.lon, false, alamatLengkap, item.address || null);
                                 });
                                 suggestionsList.appendChild(li);
                             });
                             suggestionsList.style.display = 'block';
                         } else {
-                            suggestionsList.style.display = 'none';
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item text-muted text-center';
+                            li.style.cssText = 'padding: 0.6rem 1rem; font-size: 0.85rem;';
+                            li.innerText = 'Alamat tidak ditemukan. Coba gunakan kata kunci yang lebih lengkap.';
+                            suggestionsList.appendChild(li);
+                            suggestionsList.style.display = 'block';
                         }
+                    })
+                    .catch(err => {
+                        console.error('Geocoding error:', err);
                     });
             }, 500);
         });

@@ -573,35 +573,23 @@ class CheckoutController extends Controller
             $totalAmount = $subtotal + $ppn + $ongkir;
 
             // Determine stored method and note based on payment gateway
-            $catatanInput = $checkoutData['catatan'] ?? '';
+            $catatanInput = $checkoutData['catatan'] ?? null;
             $bankTujuanTransfer = null;
             
-            $rincian = " | Rincian: Subtotal Rp " . number_format($subtotal, 0, ',', '.') . 
-                       ", PPN Rp " . number_format($ppn, 0, ',', '.') . 
-                       ", Ongkir Rp " . number_format($ongkir, 0, ',', '.');
-                       
             if ($actualGateway === 'manual_transfer') {
                 $storedMethod = 'transfer';
-                $prefixNote = 'Metode: Transfer Manual. ';
-                $catatanInput = $prefixNote . (string) $catatanInput . $rincian;
                 
                 // Retrieve bank info if provided
                 if ($request->has('rekening_id')) {
                     $bank = \App\Models\Coa::withoutGlobalScopes()->find($request->rekening_id);
                     if ($bank) {
                         $bankTujuanTransfer = $bank->nama_akun . ' - ' . $bank->nomor_rekening . ' a.n. ' . $bank->atas_nama;
-                        $catatanInput .= ' | Tujuan: ' . $bankTujuanTransfer;
                     }
                 }
             } elseif ($actualGateway === 'tunai') {
                 $storedMethod = 'tunai';
-                $metodeTunai = $request->metode_tunai === 'ambil_di_toko' ? 'Ambil di Toko' : 'COD';
-                $prefixNote = 'Metode: Tunai (' . $metodeTunai . '). ';
-                $catatanInput = $prefixNote . (string) $catatanInput . $rincian;
             } else {
                 $storedMethod = null;
-                $prefixNote = 'Metode: Midtrans. ';
-                $catatanInput = $prefixNote . (string) $catatanInput . $rincian;
             }
 
             // Handle Bukti Pembayaran Upload

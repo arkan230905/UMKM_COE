@@ -47,14 +47,29 @@ class ReturnController extends Controller
         $orders = Order::where('user_id', auth()->id())
             ->latest()->get(['id','nomor_order','total_amount','status']);
 
-        $order = null;
-        if ($orderId) {
-            $order = Order::with('items.produk')->where('user_id', auth()->id())->findOrFail($orderId);
-        }
-
         // Get perusahaan_slug for URL generation
         $perusahaan = current_perusahaan();
         $perusahaan_slug = request()->route('perusahaan_slug') ?? perusahaan_slug($perusahaan);
+
+        $order = null;
+        if ($orderId) {
+            $order = Order::with('items.produk')->where('user_id', auth()->id())->findOrFail($orderId);
+
+            // 5-Hour Return Logic Restriction
+            $paymentStatusLower = strtolower($order->payment_status);
+            if ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
+                return redirect()->route('pelanggan.returns.index', $perusahaan_slug ?? 'default')
+                    ->with('error', 'Retur hanya dapat diajukan setelah pembayaran berhasil.');
+            }
+            if (!$order->paid_at) {
+                return redirect()->route('pelanggan.returns.index', $perusahaan_slug ?? 'default')
+                    ->with('error', 'Retur tidak dapat diajukan karena data waktu pembayaran tidak ditemukan.');
+            }
+            if (now()->greaterThan($order->paid_at->copy()->addHours(5))) {
+                return redirect()->route('pelanggan.returns.index', $perusahaan_slug ?? 'default')
+                    ->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
+            }
+        }
 
         return view('pelanggan.returns.create', compact('orders','order', 'perusahaan_slug'));
     }
@@ -87,6 +102,25 @@ class ReturnController extends Controller
 
             // Pastikan order milik user
             $order = Order::with('items')->where('user_id', auth()->id())->findOrFail($request->order_id);
+
+            // 5-Hour Return Logic Restriction
+            if (strtolower($order->payment_status) !== 'paid' && strtolower($order->payment_status) !== 'lunas') {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Retur hanya dapat diajukan setelah pembayaran berhasil.');
+            }
+
+            if (!$order->paid_at) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Retur tidak dapat diajukan karena data waktu pembayaran tidak ditemukan.');
+            }
+
+            if (now()->greaterThan($order->paid_at->copy()->addHours(5))) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
+            }
 
             // Filter item milik order
             $itemsInput = collect($request->items)
