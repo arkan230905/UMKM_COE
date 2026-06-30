@@ -440,8 +440,9 @@ class BopController extends Controller
         try {
             $bopProses = BopProses::findOrFail($id);
             $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', auth()->id())->get();
+            $produks = \App\Models\Produk::where('user_id', auth()->id())->get();
             
-            return view('master-data.bop.edit-proses-v2', compact('bopProses', 'bahanPendukungs'));
+            return view('master-data.bop.edit-proses-v2', compact('bopProses', 'bahanPendukungs', 'produks'));
             
         } catch (\Exception $e) {
             return redirect()

@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Edit BOP Proses')
+@section('title', 'Edit BOP Proses - Bahan Pendukung')
 
 @section('content')
 <div class="container-fluid px-4 py-4">
-    <h2 class="mb-4"><i class="fas fa-edit me-2"></i>Edit BOP Proses</h2>
+    <h2 class="mb-4 text-dark"><i class="fas fa-edit me-2"></i>Edit BOP Proses - Bahan Pendukung</h2>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -31,7 +31,68 @@
     @endif
 
     <div class="card shadow-sm">
-        <div class="card-body">
+        <div class="card-body" style="color: #333 !important;">
+            <style>
+                .card-body input, .card-body select, .card-body textarea {
+                    color: #333 !important;
+                    background-color: #fff !important;
+                    border: 1px solid #ddd !important;
+                }
+                .card-body input[readonly] {
+                    background-color: #f5f5f5 !important;
+                    cursor: not-allowed;
+                    color: #666 !important;
+                }
+                .card-body input::placeholder {
+                    color: #999 !important;
+                }
+                .card-body .input-group-text {
+                    color: #333 !important;
+                    background-color: #f8f9fa !important;
+                    border-color: #ddd !important;
+                }
+                .info-card {
+                    background: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                }
+                .info-card h6 {
+                    color: #495057 !important;
+                    font-weight: 600;
+                }
+                .info-card strong {
+                    color: #212529 !important;
+                }
+                .info-card .text-warning {
+                    color: #856404 !important;
+                }
+                .info-card .text-success {
+                    color: #155724 !important;
+                }
+                .table thead th {
+                    background-color: #495057 !important;
+                    color: white !important;
+                    border-color: #6c757d !important;
+                }
+                .table tbody td {
+                    background-color: #fff !important;
+                    color: #333 !important;
+                    border-color: #dee2e6 !important;
+                }
+                .form-label {
+                    color: #212529 !important;
+                    font-weight: 500;
+                }
+                h5, h6 {
+                    color: #212529 !important;
+                }
+                small.text-muted, small.text-light {
+                    color: #6c757d !important;
+                }
+            </style>
+            
             <form action="{{ route('master-data.bop.update-bop-proses', $bopProses->id) }}" method="POST" id="editBopForm">
                 @csrf
                 @method('PUT')
@@ -45,7 +106,7 @@
                                id="nama_bop_proses" 
                                class="form-control @error('nama_bop_proses') is-invalid @enderror" 
                                value="{{ old('nama_bop_proses', $bopProses->nama_bop_proses) }}"
-                               placeholder="Contoh: Pengemasan Dan Pengtopingan"
+                               placeholder="Contoh: BOP Proses Produksi A"
                                required>
                         @error('nama_bop_proses')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -53,27 +114,66 @@
                     </div>
                 </div>
 
-                <!-- Jumlah Produksi Per Bulan -->
+                <!-- Produk dan Periode -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label for="jumlah_produksi_perbulan" class="form-label">Jumlah Produksi Per Bulan <span class="text-danger">*</span></label>
-                        <input type="number" 
-                               name="jumlah_produksi_perbulan" 
-                               id="jumlah_produksi_perbulan" 
-                               class="form-control @error('jumlah_produksi_perbulan') is-invalid @enderror" 
-                               value="{{ old('jumlah_produksi_perbulan', $bopProses->jumlah_produksi_perbulan) }}"
-                               min="1"
-                               placeholder="Contoh: 1000"
-                               required>
-                        @error('jumlah_produksi_perbulan')
+                    <div class="col-md-6">
+                        <label for="produk_id" class="form-label">Produk <span class="text-danger">*</span></label>
+                        <select name="produk_id" 
+                                id="produk_id" 
+                                class="form-select @error('produk_id') is-invalid @enderror" 
+                                required>
+                            <option value="">-- Pilih Produk --</option>
+                            @foreach($produks as $produk)
+                                <option value="{{ $produk->id }}" {{ old('produk_id', $bopProses->produk_id) == $produk->id ? 'selected' : '' }}>
+                                    {{ $produk->nama_produk }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('produk_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="text-muted">Jumlah produk yang dihasilkan dalam sebulan</small>
+                        <small class="text-muted">Pilih produk yang akan menggunakan BOP ini</small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="periode" class="form-label">Periode (Bulan) <span class="text-danger">*</span></label>
+                        <input type="month" 
+                               name="periode" 
+                               id="periode" 
+                               class="form-control @error('periode') is-invalid @enderror" 
+                               value="{{ old('periode', $bopProses->periode) }}"
+                               required>
+                        @error('periode')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="text-muted">Pilih bulan untuk menghitung BOP</small>
+                    </div>
+                </div>
+
+                <!-- Target Produksi Info (Auto-filled) -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <div class="alert alert-info d-flex align-items-center" id="targetProduksiInfo" style="display: flex;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div>
+                                <strong>Target Produksi:</strong> 
+                                <span id="targetProduksiValue">{{ number_format($bopProses->jumlah_produksi, 0, ',', '.') }}</span> unit untuk bulan 
+                                <span id="targetProduksiBulan">{{ \Carbon\Carbon::parse($bopProses->periode)->translatedFormat('F Y') }}</span>
+                            </div>
+                        </div>
+                        <input type="hidden" name="jumlah_produksi" id="jumlah_produksi" value="{{ $bopProses->jumlah_produksi }}">
                     </div>
                 </div>
 
                 <!-- Bahan Pendukung -->
-                <div class="row g-3 mb-4">
+                <div class="row g-3 mt-4">
+                    <div class="col-12">
+                        <h5 class="mb-3">
+                            <i class="fas fa-box me-2"></i>Bahan Pendukung
+                        </h5>
+                        <small class="text-muted">Pilih bahan pendukung yang digunakan dalam proses produksi</small>
+                    </div>
+                    
                     <div class="col-12">
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover" id="bahanPendukungTable">
@@ -138,22 +238,20 @@
                 </div>
 
                 <!-- Ringkasan Perhitungan -->
-                <div class="card bg-light mt-4">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Total Bahan Pendukung:</strong><br>
-                                <span class="fs-5 text-primary">Rp <span id="totalBahanPendukung">0</span></span>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total BOP Lainnya:</strong><br>
-                                <span class="fs-5 text-info">Rp <span id="totalBopLainnya">0</span></span>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total BOP per Produk:</strong><br>
-                                <span class="fs-5 text-success">Rp <span id="totalBopPerProduk">0</span></span>
-                            </div>
+                <div class="info-card mt-4">
+                    <h6 class="mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Total BOP</h6>
+                    <div class="row">
+                        <div class="col-md-4 text-center border-end">
+                            <strong>BOP Bahan Pendukung:</strong><br>
+                            <span class="fs-5 text-primary fw-bold">Rp <span id="totalBopBahanPendukung">0</span></span>
+                        </div>
+                        <div class="col-md-4 text-center border-end">
+                            <strong>BOP Lainnya:</strong><br>
+                            <span class="fs-5 text-info fw-bold">Rp <span id="totalBopLainnya">0</span></span>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <strong>Total BOP Per Produk:</strong><br>
+                            <span class="fs-4 text-success fw-bold">Rp <span id="totalBopPerProduk">0</span></span>
                         </div>
                     </div>
                 </div>
@@ -173,11 +271,81 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ========================================
+    // AUTO-FILL TARGET PRODUKSI
+    // ========================================
+    const produkSelect = document.getElementById('produk_id');
+    const periodeInput = document.getElementById('periode');
+    const jumlahProduksiInput = document.getElementById('jumlah_produksi');
+    const targetProduksiInfo = document.getElementById('targetProduksiInfo');
+    const targetProduksiValue = document.getElementById('targetProduksiValue');
+    const targetProduksiBulan = document.getElementById('targetProduksiBulan');
+    
+    // Function to fetch target produksi from server
+    async function fetchTargetProduksi() {
+        const produkId = produkSelect.value;
+        const periode = periodeInput.value; // Format: YYYY-MM
+        
+        if (!produkId || !periode) {
+            targetProduksiInfo.style.display = 'none';
+            jumlahProduksiInput.value = '0';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/master-data/api/target-produksi?produk_id=${produkId}&periode=${periode}`);
+            const data = await response.json();
+            
+            if (data.jumlah_produksi > 0) {
+                jumlahProduksiInput.value = data.jumlah_produksi;
+                targetProduksiValue.textContent = data.jumlah_produksi_formatted;
+                
+                // Format bulan
+                const [tahun, bulan] = periode.split('-');
+                const namaBulan = new Date(tahun, parseInt(bulan) - 1).toLocaleDateString('id-ID', { 
+                    month: 'long', 
+                    year: 'numeric' 
+                });
+                targetProduksiBulan.textContent = namaBulan;
+                
+                targetProduksiInfo.style.display = 'flex';
+                targetProduksiInfo.classList.remove('alert-warning');
+                targetProduksiInfo.classList.add('alert-info');
+                
+                // Recalculate all rows with new target produksi
+                document.querySelectorAll('.bahan-row').forEach(row => {
+                    calculateRow(row);
+                });
+                document.querySelectorAll('.lainnya-row').forEach(row => {
+                    calculateLainnyaRow(row);
+                });
+            } else {
+                jumlahProduksiInput.value = '0';
+                targetProduksiValue.textContent = '0';
+                targetProduksiBulan.textContent = periode;
+                targetProduksiInfo.style.display = 'flex';
+                targetProduksiInfo.classList.remove('alert-info');
+                targetProduksiInfo.classList.add('alert-warning');
+                targetProduksiInfo.querySelector('div').innerHTML = '<strong>Peringatan:</strong> Tidak ada target produksi untuk produk ini di bulan tersebut. Silakan set target produksi terlebih dahulu.';
+            }
+        } catch (error) {
+            console.error('Error fetching target produksi:', error);
+            targetProduksiInfo.style.display = 'none';
+            jumlahProduksiInput.value = '0';
+        }
+    }
+    
+    // Event listeners for produk and periode changes
+    produkSelect.addEventListener('change', fetchTargetProduksi);
+    periodeInput.addEventListener('change', fetchTargetProduksi);
+    
+    // ========================================
+    // BAHAN PENDUKUNG & LAINNYA LOGIC
+    // ========================================
     const container = document.getElementById('bahanPendukungContainer');
     const addBtn = document.getElementById('addBahanBtn');
     const lainnyaContainer = document.getElementById('bopLainnyaContainer');
     const addLainnyaBtn = document.getElementById('addLainnyaBtn');
-    const jumlahProduksiInput = document.getElementById('jumlah_produksi_perbulan');
     
     // Bahan Pendukung data from backend
     const bahanPendukungList = @json($bahanPendukungs);
@@ -381,9 +549,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add button event
-    addBtn.addEventListener('click', function() {
-        addBahanRow();
-    });
+    if (addBtn) {
+        addBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            addBahanRow();
+        });
+    }
     
     // =========================================
     // BOP LAINNYA SECTION
@@ -537,9 +709,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add button event for lainnya
-    addLainnyaBtn.addEventListener('click', function() {
-        addLainnyaRow();
-    });
+    if (addLainnyaBtn) {
+        addLainnyaBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            addLainnyaRow();
+        });
+    }
     
     // Recalculate when jumlah produksi changes
     jumlahProduksiInput.addEventListener('input', function() {
@@ -570,9 +746,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const totalBopPerProduk = totalBahanPendukung + totalBopLainnya;
         
-        document.getElementById('totalBahanPendukung').textContent = totalBahanPendukung.toLocaleString('id-ID');
+        document.getElementById('totalBopBahanPendukung').textContent = totalBahanPendukung.toLocaleString('id-ID');
         document.getElementById('totalBopLainnya').textContent = totalBopLainnya.toLocaleString('id-ID');
         document.getElementById('totalBopPerProduk').textContent = totalBopPerProduk.toLocaleString('id-ID');
+    }
+    
+    // Format number helper
+    function formatNumber(num) {
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(num);
     }
     
     // Load existing data
