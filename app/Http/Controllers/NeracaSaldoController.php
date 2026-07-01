@@ -193,6 +193,15 @@ class NeracaSaldoController extends Controller
         $nextBulan = $nextMonth->format('m');
         $nextTahun = $nextMonth->format('Y');
         $nextPeriode = $nextTahun . '-' . $nextBulan;
+        $currentPeriodeStr = "{$tahun}-{$bulan}";
+
+        // 1. Guard anti-posting dobel (cek apakah periode berjalan sudah di-close)
+        $currentPeriod = \App\Models\CoaPeriod::where('periode', $currentPeriodeStr)->first();
+        if ($currentPeriod && $currentPeriod->is_closed) {
+            return redirect()
+                ->route('akuntansi.neraca-saldo-temp', ['bulan' => $bulan, 'tahun' => $tahun])
+                ->with('error', 'Periode ini sudah pernah diposting sebelumnya.');
+        }
 
         try {
             \DB::beginTransaction();
@@ -218,6 +227,13 @@ class NeracaSaldoController extends Controller
 
                 $saldoAkhir = $account['saldo_akhir'] ?? 0;
 
+                $updateData = [
+                    'saldo_awal' => $saldoAkhir,
+                    'saldo_akhir'=> $saldoAkhir,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+
                 // Simpan/update sebagai saldo_awal bulan berikutnya di coa_period_balances
                 \App\Models\CoaPeriodBalance::updateOrCreate(
                     [
@@ -225,16 +241,18 @@ class NeracaSaldoController extends Controller
                         'period_id'  => $periode->id,
                         'kode_akun'  => $account['kode_akun'],
                     ],
-                    [
-                        'saldo_awal' => $saldoAkhir,
-                        'saldo_akhir'=> $saldoAkhir,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
+                    $updateData
                 );
 
                 // HAPUS UPDATE COA saldo_awal agar tidak menimpa saldo awal original
                 $posted++;
+            }
+
+            // 2. Set is_closed = true pada record CoaPeriod untuk bulan yang sedang diposting
+            if ($currentPeriod) {
+                $currentPeriod->update(['is_closed' => true]);
+            } else {
+                \App\Models\CoaPeriod::where('periode', $currentPeriodeStr)->update(['is_closed' => true]);
             }
 
             \DB::commit();

@@ -12,9 +12,9 @@
             <form method="get" class="d-flex gap-2 align-items-end">
                 <div>
                     <label class="form-label small mb-1">Pilih Periode</label>
-                    <select name="period_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 180px;">
+                    <select name="periode" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 180px;">
                         @foreach($periods as $p)
-                            <option value="{{ $p->id }}" {{ $periode && $periode->id == $p->id ? 'selected' : '' }}>
+                            <option value="{{ $p->periode }}" {{ $periode && $periode->periode == $p->periode ? 'selected' : '' }}>
                                 {{ \Carbon\Carbon::parse($p->periode.'-01')->isoFormat('MMMM YYYY') }}
                                 {{ $p->is_closed ? '✓' : '' }}
                             </option>

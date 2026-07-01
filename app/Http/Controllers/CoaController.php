@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use App\Models\Coa;
 use App\Models\Bop;
 use App\Models\CoaPeriod;
@@ -12,21 +13,50 @@ class CoaController extends Controller
 {
     public function index(Request $request)
     {
-        // Get periode yang dipilih atau periode saat ini
-        $periodId = $request->get('period_id');
-        $periode = null;
-        
-        if ($periodId) {
-            $periode = CoaPeriod::find($periodId);
-        }
-        
-        // Jika tidak ada periode dipilih, gunakan periode saat ini
-        if (!$periode) {
+        // Resolve periode yang dipilih via string "Y-m" (bukan ID)
+        $periodeStr = $request->get('periode');
+        if ($periodeStr && preg_match('/^\d{4}-\d{2}$/', $periodeStr)) {
+            // firstOrCreate supaya periode virtual langsung terbuat di DB saat dipilih
+            $carbonPeriode = Carbon::createFromFormat('Y-m', $periodeStr)->startOfMonth();
+            $periode = CoaPeriod::firstOrCreate(
+                ['periode' => $periodeStr],
+                [
+                    'tanggal_mulai'   => $carbonPeriode->toDateString(),
+                    'tanggal_selesai' => $carbonPeriode->copy()->endOfMonth()->toDateString(),
+                    'is_closed'       => false,
+                ]
+            );
+        } else {
+            // Fallback ke periode saat ini (juga firstOrCreate via getCurrentPeriod)
             $periode = CoaPeriod::getCurrentPeriod();
         }
-        
-        // Get semua periode untuk dropdown
-        $periods = CoaPeriod::orderBy('periode', 'desc')->get();
+
+        // Generate range periode 12 bulan terakhir (rolling)
+        $startDate  = Carbon::now()->subMonths(11)->startOfMonth();
+        $endDate    = Carbon::now()->startOfMonth();
+
+        // Ambil semua CoaPeriod yang sudah ada di DB, index by string "Y-m"
+        $existingPeriods = CoaPeriod::all()->keyBy('periode');
+
+        // Build koleksi: terbaru di atas, pakai copy() agar $cursor tidak ter-mutate
+        $periods = collect();
+        $cursor  = $endDate->copy();
+        while ($cursor->gte($startDate)) {
+            $key = $cursor->format('Y-m');
+            if ($existingPeriods->has($key)) {
+                // Pakai record DB yang sudah ada (ada info is_closed, id, dll.)
+                $periods->push($existingPeriods->get($key));
+            } else {
+                // Buat objek virtual (tidak di-save ke DB)
+                $virtual                  = new CoaPeriod();
+                $virtual->periode         = $key;
+                $virtual->tanggal_mulai   = $cursor->copy()->startOfMonth()->toDateString();
+                $virtual->tanggal_selesai = $cursor->copy()->endOfMonth()->toDateString();
+                $virtual->is_closed       = false;
+                $periods->push($virtual);
+            }
+            $cursor->subMonth();
+        }
 
         // Get semua COA dengan urutan hierarkis (parent diikuti children)
         $coas = Coa::whereNotNull('nama_akun')
@@ -44,9 +74,9 @@ class CoaController extends Controller
             // Untuk akun persediaan bahan baku dan bahan pendukung, ambil dari tabel bahan
             $saldoAwal = $this->getInventorySaldoAwalForCoa($coa->kode_akun);
             
-            // Jika tidak ada di inventory, gunakan saldo_awal dari COA table
+            // Jika tidak ada di inventory, gunakan saldo awal dari tabel coa_period_balances
             if ($saldoAwal === null) {
-                $saldoAwal = $coa->saldo_awal ?? 0;
+                $saldoAwal = $this->getSaldoAwalPeriode($coa, $periode);
             }
             
             $saldoPeriode[$coa->id] = $saldoAwal;
@@ -115,17 +145,10 @@ class CoaController extends Controller
      */
     private function getSaldoAwalPeriode($coa, $periode)
     {
-        // Cek apakah ada saldo periode
-        $periodBalance = CoaPeriodBalance::where('coa_id', $coa->id)
+        // Cek apakah ada saldo periode (menggunakan kode_akun)
+        $periodBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
             ->where('period_id', $periode->id)
             ->first();
-
-        if (!$periodBalance) {
-            // Fallback untuk data lama yang belum ter-backfill
-            $periodBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-                ->where('period_id', $periode->id)
-                ->first();
-        }
         
         if ($periodBalance) {
             return $periodBalance->saldo_awal;
@@ -134,16 +157,9 @@ class CoaController extends Controller
         // Jika tidak ada, cek periode sebelumnya
         $previousPeriod = $periode->getPreviousPeriod();
         if ($previousPeriod) {
-            $previousBalance = CoaPeriodBalance::where('coa_id', $coa->id)
+            $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
                 ->where('period_id', $previousPeriod->id)
                 ->first();
-
-            if (!$previousBalance) {
-                // Fallback untuk data lama yang belum ter-backfill
-                $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-                    ->where('period_id', $previousPeriod->id)
-                    ->first();
-            }
             
             if ($previousBalance) {
                 return $previousBalance->saldo_akhir;
