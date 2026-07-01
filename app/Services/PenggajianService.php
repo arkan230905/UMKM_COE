@@ -21,13 +21,14 @@ class PenggajianService
             $tanggalPenggajian = Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
         }
 
-        DB::beginTransaction();
-        try {
-            // Get all active pegawai
-            $pegawaiList = Pegawai::where('status', 'aktif')->get();
-            $results = [];
+        // Get all active pegawai
+        $pegawaiList = Pegawai::where('status', 'aktif')->get();
+        $results = [];
+        $failures = [];
 
-            foreach ($pegawaiList as $pegawai) {
+        foreach ($pegawaiList as $pegawai) {
+            DB::beginTransaction();
+            try {
                 // Check if payroll already exists for this periode
                 $existingPayroll = Penggajian::where('pegawai_id', $pegawai->id)
                     ->where('periode_bulan', $bulan)
@@ -41,22 +42,29 @@ class PenggajianService
                     // Create new payroll
                     $results[] = $this->createPenggajian($pegawai, $bulan, $tahun, $tanggalPenggajian);
                 }
+                
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $failures[] = [
+                    'pegawai_id' => $pegawai->id,
+                    'nama' => $pegawai->nama,
+                    'error' => $e->getMessage()
+                ];
             }
-
-            DB::commit();
-            return [
-                'success' => true,
-                'message' => 'Penggajian bulanan berhasil di-generate untuk ' . count($results) . ' pegawai',
-                'data' => $results
-            ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return [
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage(),
-                'data' => []
-            ];
         }
+
+        $message = 'Penggajian bulanan selesai. Berhasil: ' . count($results) . ' pegawai.';
+        if (count($failures) > 0) {
+            $message .= ' Gagal: ' . count($failures) . ' pegawai. Silakan cek laporan kegagalan.';
+        }
+
+        return [
+            'success' => count($results) > 0,
+            'message' => $message,
+            'data' => $results,
+            'failures' => $failures
+        ];
     }
 
     /**
