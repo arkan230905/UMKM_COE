@@ -146,7 +146,7 @@ class PenggajianController extends Controller
             $tanggalAkhir = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth();
             
             // Dapatkan kualifikasi pegawai untuk acuan filter
-            $jabatan = $this->resolvePegawaiKualifikasi($pegawai);
+            $jabatan = app(\App\Services\KualifikasiTargetResolver::class)->resolve($pegawai);
 
             // Query produksi berdasarkan bulan dan tahun (tanpa filter pegawai_id karena produksi untuk seluruh pabrik)
             $query = \App\Models\Produksi::where('user_id', auth()->id())
@@ -290,7 +290,7 @@ class PenggajianController extends Controller
             ]);
             
             // Get current salary data from qualification
-            $kualifikasi = $this->resolvePegawaiKualifikasi($pegawai);
+            $kualifikasi = app(\App\Services\KualifikasiTargetResolver::class)->resolve($pegawai);
             
             \Log::info('getEmployeeData - Kualifikasi resolved', [
                 'kualifikasi_found' => $kualifikasi ? 'YES' : 'NO',
@@ -439,7 +439,7 @@ class PenggajianController extends Controller
                 $totalProduk = $totalProdukInput > 0 ? $totalProdukInput : ($produkPerHari * $hariKerja);
 
                 // STEP 2: Get jabatan/kualifikasi
-                $jabatan = $this->resolvePegawaiKualifikasi($pegawai);
+                $jabatan = app(\App\Services\KualifikasiTargetResolver::class)->resolve($pegawai);
                 $tarifProduk = (float) ($jabatan ? ($jabatan->tarif_produk ?? 0) : ($pegawai->tarif_per_jam ?? 0));
 
                 // STEP 3: Gaji Pokok diambil LANGSUNG dari kualifikasis.gaji_pokok (nilai aktual)
@@ -573,7 +573,7 @@ class PenggajianController extends Controller
 
             $pegawai = $penggajian->pegawai;
 
-            $jabatan = $this->resolvePegawaiKualifikasi($pegawai);
+            $jabatan = app(\App\Services\KualifikasiTargetResolver::class)->resolve($pegawai);
 
             if (!$jabatan) {
                 throw new \Exception('Pegawai tidak memiliki kualifikasi jabatan. Harap set jabatan terlebih dahulu.');
@@ -1524,7 +1524,7 @@ class PenggajianController extends Controller
     private function resolveProdukPayrollDetail(Penggajian $penggajian): array
     {
         $pegawai = $penggajian->pegawai;
-        $kualifikasi = $this->resolvePegawaiKualifikasi($pegawai);
+        $kualifikasi = app(\App\Services\KualifikasiTargetResolver::class)->resolve($pegawai);
 
         $tarifProduk = $this->firstPositiveNumber([
             $penggajian->tarif_produk,
@@ -1578,45 +1578,6 @@ class PenggajianController extends Controller
             'gaji_dasar' => $gajiDasar,
             'total_gaji' => $totalGaji,
         ];
-    }
-
-    /**
-     * Resolve pegawai's jabatan/kualifikasi data
-     * UPDATED: Now uses KualifikasiTenagaKerja (new system) instead of Jabatan (old system)
-     */
-    private function resolvePegawaiKualifikasi(?Pegawai $pegawai): ?\App\Models\Kualifikasi
-    {
-        if (!$pegawai) {
-            return null;
-        }
-
-        // Try to get from kualifikasiRelasi (new system)
-        if ($pegawai->kualifikasiRelasi) {
-            return $pegawai->kualifikasiRelasi;
-        }
-
-        // Query kualifikasi table
-        $query = \App\Models\Kualifikasi::where('user_id', $pegawai->user_id ?? auth()->id());
-
-        // Try by kualifikasi_id (if it exists in pegawai)
-        if ($pegawai->kualifikasi_id) {
-            $kualifikasi = (clone $query)->find($pegawai->kualifikasi_id);
-            if ($kualifikasi) {
-                return $kualifikasi;
-            }
-        }
-
-        // Try by nama (match pegawai.kualifikasi string with kualifikasi.nama_kualifikasi)
-        if (!empty($pegawai->kualifikasi)) {
-            return (clone $query)->where('nama_kualifikasi', $pegawai->kualifikasi)->first();
-        }
-
-        // Fallback: Try match pegawai.jabatan string
-        if (!empty($pegawai->jabatan)) {
-            return (clone $query)->where('nama_kualifikasi', $pegawai->jabatan)->first();
-        }
-
-        return null;
     }
 
     private function firstPositiveNumber(array $values): float
@@ -1959,7 +1920,7 @@ class PenggajianController extends Controller
             $jabatans = \App\Models\Kualifikasi::all();
             
             // Add resolved kualifikasi
-            $resolvedJab = $this->resolvePegawaiKualifikasi($pegawai);
+            $resolvedJab = app(\App\Services\KualifikasiTargetResolver::class)->resolve($pegawai);
             
             return response()->json([
                 'pegawai' => [
