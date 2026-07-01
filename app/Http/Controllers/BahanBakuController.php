@@ -100,43 +100,66 @@ class BahanBakuController extends Controller
             'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
-        // Auto generate kode_bahan if not provided
-        $kodeBahan = $request->kode_bahan;
-        if (empty($kodeBahan)) {
-            $lastBahan = BahanBaku::orderBy('id', 'desc')->first();
-            $nextNumber = $lastBahan ? $lastBahan->id + 1 : 1;
-            $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        // Use database transaction to ensure data consistency
+        try {
+            return \DB::transaction(function () use ($request) {
+                // Auto generate kode_bahan if not provided
+                $kodeBahan = $request->kode_bahan;
+                if (empty($kodeBahan)) {
+                    $lastBahan = BahanBaku::orderBy('id', 'desc')->first();
+                    $nextNumber = $lastBahan ? $lastBahan->id + 1 : 1;
+                    $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+                }
+                
+                // Auto-create COA for Persediaan if not provided
+                $coaPersediaanId = $request->coa_persediaan_id;
+                if (empty($coaPersediaanId)) {
+                    $autoCoaService = new \App\Services\AutoCoaService();
+                    $coa = $autoCoaService->createCoaForBahanBaku($request->nama_bahan, auth()->id());
+                    $coaPersediaanId = $coa->kode_akun;
+                }
+                
+                // CRITICAL: Add user_id for multi-tenant isolation
+                $bahanBaku = BahanBaku::create([
+                    'user_id' => auth()->id(),
+                    'nama_bahan' => $request->nama_bahan,
+                    'kode_bahan' => $kodeBahan,
+                    'satuan_id' => $request->satuan_id,
+                    'saldo_awal' => $request->stok ?? 0,
+                    'harga_satuan' => $request->harga_satuan,
+                    'stok_minimum' => $request->stok_minimum ?? 0,
+                    'deskripsi' => $request->deskripsi,
+                    'sub_satuan_1_id' => $request->sub_satuan_1_id,
+                    'sub_satuan_1_konversi' => $request->sub_satuan_1_konversi,
+                    'sub_satuan_1_nilai' => $request->sub_satuan_1_nilai,
+                    'sub_satuan_2_id' => $request->sub_satuan_2_id,
+                    'sub_satuan_2_konversi' => $request->sub_satuan_2_konversi,
+                    'sub_satuan_2_nilai' => $request->sub_satuan_2_nilai,
+                    'sub_satuan_3_id' => $request->sub_satuan_3_id,
+                    'sub_satuan_3_konversi' => $request->sub_satuan_3_konversi,
+                    'sub_satuan_3_nilai' => $request->sub_satuan_3_nilai,
+                    'coa_pembelian_id' => $request->coa_pembelian_id,
+                    'coa_persediaan_id' => $coaPersediaanId, // Use auto-created COA
+                    'coa_hpp_id' => $request->coa_hpp_id,
+                    'user_id' => auth()->id(),
+                ]);
+
+                // ✅ TIDAK PERLU membuat StockMovement untuk initial stock
+                // Karena stok sudah tersimpan di saldo_awal dan akan langsung terbaca oleh accessor
+
+                return redirect()->route('master-data.bahan-baku.index')
+                    ->with('success', 'Data bahan baku berhasil ditambahkan dengan COA otomatis!');
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error creating Bahan Baku with auto COA', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan data bahan baku: ' . $e->getMessage());
         }
-        
-        // CRITICAL: Add user_id for multi-tenant isolation
-        $bahanBaku = BahanBaku::create([
-            'user_id' => auth()->id(),
-            'nama_bahan' => $request->nama_bahan,
-            'kode_bahan' => $kodeBahan,
-            'satuan_id' => $request->satuan_id,
-            'saldo_awal' => $request->stok ?? 0,
-            'harga_satuan' => $request->harga_satuan,
-            'stok_minimum' => $request->stok_minimum ?? 0,
-            'deskripsi' => $request->deskripsi,
-            'sub_satuan_1_id' => $request->sub_satuan_1_id,
-            'sub_satuan_1_konversi' => $request->sub_satuan_1_konversi,
-            'sub_satuan_1_nilai' => $request->sub_satuan_1_nilai,
-            'sub_satuan_2_id' => $request->sub_satuan_2_id,
-            'sub_satuan_2_konversi' => $request->sub_satuan_2_konversi,
-            'sub_satuan_2_nilai' => $request->sub_satuan_2_nilai,
-            'sub_satuan_3_id' => $request->sub_satuan_3_id,
-            'sub_satuan_3_konversi' => $request->sub_satuan_3_konversi,
-            'sub_satuan_3_nilai' => $request->sub_satuan_3_nilai,
-            'coa_pembelian_id' => $request->coa_pembelian_id,
-            'coa_persediaan_id' => $request->coa_persediaan_id,
-            'coa_hpp_id' => $request->coa_hpp_id,
-            'user_id' => auth()->id(),
-        ]);
-
-        // ✅ TIDAK PERLU membuat StockMovement untuk initial stock
-        // Karena stok sudah tersimpan di saldo_awal dan akan langsung terbaca oleh accessor
-
-        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
 
     // Menampilkan form edit

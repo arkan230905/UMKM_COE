@@ -139,7 +139,7 @@ class BahanPendukungController extends Controller
 
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,NULL,id,user_id,' . auth()->id(),
-'deskripsi' => 'nullable|string',
+            'deskripsi' => 'nullable|string',
             'satuan_id' => 'required|exists:satuans,id',
             'harga_satuan' => 'required|numeric|min:0',
             'stok' => 'nullable|numeric|min:0',
@@ -159,26 +159,47 @@ class BahanPendukungController extends Controller
             'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
-        // Add COA fields to validated data
-        $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
-        $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
-        $validated['coa_hpp_id'] = $request->coa_hpp_id;
-        
-        // Map stok to saldo_awal
-        $validated['saldo_awal'] = $request->stok ?? 0;
-        
+        // Use database transaction to ensure data consistency
+        try {
+            return \DB::transaction(function () use ($request, $validated) {
+                // Auto-create COA for Persediaan if not provided
+                $coaPersediaanId = $request->coa_persediaan_id;
+                if (empty($coaPersediaanId)) {
+                    $autoCoaService = new \App\Services\AutoCoaService();
+                    $coa = $autoCoaService->createCoaForBahanPendukung($request->nama_bahan, auth()->id());
+                    $coaPersediaanId = $coa->kode_akun;
+                }
+                
+                // Add COA fields to validated data
+                $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
+                $validated['coa_persediaan_id'] = $coaPersediaanId; // Use auto-created COA
+                $validated['coa_hpp_id'] = $request->coa_hpp_id;
+                
+                // Map stok to saldo_awal
+                $validated['saldo_awal'] = $request->stok ?? 0;
+                
+                // CRITICAL: Add user_id for multi-tenant isolation
+                $validated['user_id'] = auth()->id();
 
-        // CRITICAL: Add user_id for multi-tenant isolation
-        $validated['user_id'] = auth()->id();
+                // Create bahan pendukung
+                $bahanPendukung = BahanPendukung::create($validated);
+                
+                // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
+                // Do not create stock movement here to avoid duplication
 
-        // Create bahan pendukung
-        $bahanPendukung = BahanPendukung::create($validated);
-        
-        // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
-        // Do not create stock movement here to avoid duplication
-
-        return redirect()->route('master-data.bahan-pendukung.index')
-            ->with('success', 'Bahan pendukung berhasil ditambahkan');
+                return redirect()->route('master-data.bahan-pendukung.index')
+                    ->with('success', 'Bahan pendukung berhasil ditambahkan dengan COA otomatis!');
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error creating Bahan Pendukung with auto COA', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan data bahan pendukung: ' . $e->getMessage());
+        }
     }
 
     public function show(BahanPendukung $bahanPendukung)
