@@ -4,6 +4,7 @@ namespace App\Http\Controllers\MasterData;
 
 use App\Http\Controllers\Controller;
 use App\Models\TargetProduksi;
+use App\Models\TargetProduksiDetail;
 use App\Models\Produk;
 use App\Services\TargetProduksiService;
 use Illuminate\Http\Request;
