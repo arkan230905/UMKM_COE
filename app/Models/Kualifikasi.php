@@ -23,6 +23,7 @@ class Kualifikasi extends Model
     
     protected $fillable = [
         'user_id',
+        'produk_id',
         'kode_kualifikasi', 
         'nama_kualifikasi', 
         'kategori',
