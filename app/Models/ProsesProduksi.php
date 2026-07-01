@@ -50,6 +50,11 @@ class ProsesProduksi extends Model
                 throw new \Exception('Proses produksi tidak dapat dihapus karena digunakan dalam BOM');
             }
         });
+        
+        // Trigger event after save (create or update) to recalculate HPP
+        static::saved(function ($model) {
+            event(new \App\Events\BtklUpdated($model));
+        });
     }
 
     /**

@@ -3630,6 +3630,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::post('/', [ProduksiController::class, 'store'])->name('store');
             Route::get('/get-bom-details/{produkId}', [ProduksiController::class, 'getBomDetails'])->name('get-bom-details');
             Route::get('/get-target-produksi/{produkId}', [ProduksiController::class, 'getTargetProduksi'])->name('get-target-produksi');
+            Route::get('/get-hpp-realtime/{produkId}', [ProduksiController::class, 'getHppRealtime'])->name('get-hpp-realtime');
             Route::post('/mulai-lagi', [ProduksiController::class, 'mulaiLagi'])->name('mulai-lagi');
             Route::post('/mulai-hari-ini', [ProduksiController::class, 'mulaiHariIni'])->name('mulai-hari-ini');
             Route::post('/{id}/mulai-produksi', [ProduksiController::class, 'mulaiProduksi'])->name('mulai-produksi');

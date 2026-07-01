@@ -179,5 +179,10 @@ class BiayaBahanBaku extends Model
                 $model->subtotal = $model->jumlah * $model->harga_satuan;
             }
         });
+        
+        // Trigger event after save (create or update) to recalculate HPP
+        static::saved(function ($model) {
+            event(new \App\Events\BiayaBahanBakuUpdated($model));
+        });
     }
 }

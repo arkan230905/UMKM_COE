@@ -29,6 +29,13 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         'App\Events\BopUpdated' => [
             'App\Listeners\UpdateBopAktual',
+            'App\Listeners\RecalculateHppOnComponentChange@handleBop',
+        ],
+        'App\Events\BiayaBahanBakuUpdated' => [
+            'App\Listeners\RecalculateHppOnComponentChange@handleBiayaBahanBaku',
+        ],
+        'App\Events\BtklUpdated' => [
+            'App\Listeners\RecalculateHppOnComponentChange@handleBtkl',
         ],
         'App\Events\UserRegistered' => [
             'App\Listeners\CreateDefaultUserData',

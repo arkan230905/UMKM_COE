@@ -2138,4 +2138,108 @@ $bopByProcess = [];
         ]);
     }
 
+    /**
+     * Get HPP (Harga Pokok Produksi) realtime for specific product
+     * Returns detailed breakdown of BBB, BTKL, and BOP components
+     */
+    public function getHppRealtime($produkId)
+    {
+        $user_id = auth()->id();
+        $produk = Produk::findOrFail($produkId);
+        
+        // Get BBB selections for this product
+        $selectedBbb = HargaPokokProduksiBiayaBahanBaku::where('user_id', $user_id)
+            ->whereHas('biayaBahanBaku', function($q) use ($produkId) {
+                $q->where('produk_id', $produkId);
+            })
+            ->with('biayaBahanBaku.bahanBaku')
+            ->get();
+            
+        // Get BTKL selections for this product
+        $selectedBtkl = HargaPokokProduksiBtkl::where('user_id', $user_id)
+            ->where('produk_id', $produkId)
+            ->with('prosesProduksi')
+            ->get();
+            
+        // Get BOP selections for this product
+        $selectedBop = HargaPokokProduksiBop::where('user_id', $user_id)
+            ->where('produk_id', $produkId)
+            ->with('bopProses')
+            ->get();
+
+        // Calculate BBB total
+        $totalBbb = 0;
+        $bbbDetails = [];
+        foreach ($selectedBbb as $bbb) {
+            if ($bbb->biayaBahanBaku) {
+                $subtotal = $bbb->biayaBahanBaku->subtotal;
+                $totalBbb += $subtotal;
+                $bbbDetails[] = [
+                    'nama' => $bbb->biayaBahanBaku->bahanBaku->nama_bahan ?? 'Unknown',
+                    'jumlah' => $bbb->biayaBahanBaku->jumlah,
+                    'satuan' => $bbb->biayaBahanBaku->satuan,
+                    'harga_satuan' => $bbb->biayaBahanBaku->harga_satuan,
+                    'subtotal' => $subtotal
+                ];
+            }
+        }
+
+        // Calculate BTKL total
+        $totalBtkl = 0;
+        $btklDetails = [];
+        foreach ($selectedBtkl as $btkl) {
+            if ($btkl->prosesProduksi) {
+                $tarifPerProduk = $btkl->prosesProduksi->tarif_per_produk ?? 0;
+                $jumlahPegawai = $btkl->prosesProduksi->jumlah_pegawai ?? 1;
+                $tarif = $tarifPerProduk * $jumlahPegawai;
+                $totalBtkl += $tarif;
+                $btklDetails[] = [
+                    'nama_proses' => $btkl->prosesProduksi->nama_proses ?? 'Proses Produksi',
+                    'tarif_per_produk' => $tarifPerProduk,
+                    'jumlah_pegawai' => $jumlahPegawai,
+                    'tarif' => $tarif
+                ];
+            }
+        }
+
+        // Calculate BOP total
+        $totalBop = 0;
+        $bopDetails = [];
+        foreach ($selectedBop as $bop) {
+            if ($bop->bopProses) {
+                $tarif = $bop->bopProses->total_bop_per_produk ?? 0;
+                $totalBop += $tarif;
+                $bopDetails[] = [
+                    'nama_bop_proses' => $bop->bopProses->nama_bop_proses ?? 'BOP Proses',
+                    'tarif' => $tarif
+                ];
+            }
+        }
+
+        // Calculate total HPP
+        $totalHpp = $totalBbb + $totalBtkl + $totalBop;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'produk_id' => $produk->id,
+                'nama_produk' => $produk->nama_produk,
+                'bbb' => [
+                    'total' => $totalBbb,
+                    'details' => $bbbDetails
+                ],
+                'btkl' => [
+                    'total' => $totalBtkl,
+                    'details' => $btklDetails
+                ],
+                'bop' => [
+                    'total' => $totalBop,
+                    'details' => $bopDetails
+                ],
+                'total_hpp' => $totalHpp,
+                'timestamp' => now()->toIso8601String()
+            ]
+        ]);
+    }
+
 }
