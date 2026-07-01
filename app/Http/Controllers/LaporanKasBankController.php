@@ -93,42 +93,44 @@ class LaporanKasBankController extends Controller
     }
     
     /**
-     * Get saldo awal sebelum periode - sama dengan logic COA
-     * Saldo Awal = Saldo dari CoaPeriodBalance atau saldo awal COA
+     * Get saldo awal sebelum periode
+     * Saldo Awal = Saldo dari saldo_awal COA (Master Data COA)
+     * Untuk Kas & Bank, saldo_awal harus diisi manual di Master Data COA
      */
     private function getSaldoAwal($akun, $startDate)
     {
-        // 1. Cari periode yang sesuai dengan start date
+        // PRIORITAS 1: Gunakan saldo_awal dari Master Data COA
+        // Saldo awal harus diinput manual di Master Data > COA
+        if (isset($akun->saldo_awal) && is_numeric($akun->saldo_awal)) {
+            return (float) $akun->saldo_awal;
+        }
+        
+        // PRIORITAS 2: Cari dari periode balance (backup)
         $periode = \App\Models\CoaPeriod::where('periode', date('Y-m', strtotime($startDate)))->first();
         
         if ($periode) {
-            // 2. Cek apakah ada saldo periode
             $periodBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
                 ->where('period_id', $periode->id)
                 ->first();
             
-            if ($periodBalance) {
-                return is_numeric($periodBalance->saldo_awal) ? (float) $periodBalance->saldo_awal : 0;
+            if ($periodBalance && is_numeric($periodBalance->saldo_awal)) {
+                return (float) $periodBalance->saldo_awal;
             }
             
-            // 3. Jika tidak ada, cek periode sebelumnya
+            // Cek periode sebelumnya
             $previousPeriod = $periode->getPreviousPeriod();
             if ($previousPeriod) {
                 $previousBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
                     ->where('period_id', $previousPeriod->id)
                     ->first();
                 
-                if ($previousBalance) {
-                    return is_numeric($previousBalance->saldo_akhir) ? (float) $previousBalance->saldo_akhir : 0;
+                if ($previousBalance && is_numeric($previousBalance->saldo_akhir)) {
+                    return (float) $previousBalance->saldo_akhir;
                 }
             }
         }
         
-        // 4. Jika tidak ada periode atau saldo, gunakan saldo awal dari COA atau 0 untuk virtual accounts
-        if (isset($akun->saldo_awal)) {
-            return is_numeric($akun->saldo_awal) ? (float) ($akun->saldo_awal ?? 0) : 0;
-        }
-        
+        // Default: 0 jika tidak ada data
         return 0;
     }
     
