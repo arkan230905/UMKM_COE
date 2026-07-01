@@ -9,6 +9,11 @@ if (file_exists(__DIR__ . '/web-seeder-trigger.php')) {
     require __DIR__ . '/web-seeder-trigger.php';
 }
 
+// TEMPORARY: Reset saldo awal COA (DELETE AFTER USE!)
+if (file_exists(__DIR__ . '/web-reset-coa.php')) {
+    require __DIR__ . '/web-reset-coa.php';
+}
+
 // TEST BLADE RENDERING
 Route::get('/test-blade', function() {
     return view('test-blade');
