@@ -99,9 +99,11 @@
                         <thead class="table-light">
                             <tr>
                                 <th width="5%" class="text-center">No</th>
-                                <th width="25%">Bulan</th>
-                                <th width="35%">Target Bulanan (Unit)</th>
-                                <th width="35%" class="text-center">Status</th>
+                                <th width="15%">Bulan</th>
+                                <th width="20%">Target Bulanan (Unit)</th>
+                                <th width="15%">Hari Kerja</th>
+                                <th width="20%">Target Per Hari</th>
+                                <th width="25%" class="text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -130,6 +132,28 @@
                                                id="target_{{ $i }}"
                                                class="target-input" 
                                                value="{{ old('details.' . ($i - 1) . '.target_bulanan', 0) }}">
+                                    </td>
+                                    <td>
+                                        <input type="number" 
+                                               name="details[{{ $i - 1 }}][hari_kerja]" 
+                                               id="hari_kerja_{{ $i }}"
+                                               class="form-control hari-kerja-input" 
+                                               placeholder="Hari"
+                                               min="1"
+                                               max="31"
+                                               onchange="hitungTargetPerHari({{ $i }})"
+                                               required>
+                                        <small class="text-muted">1-31 hari</small>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" 
+                                                   id="target_per_hari_{{ $i }}"
+                                                   class="form-control bg-light" 
+                                                   readonly
+                                                   placeholder="0.00">
+                                            <span class="input-group-text">unit/hari</span>
+                                        </div>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge bg-success">Editable</span>
@@ -196,6 +220,20 @@ function formatNumber(input, monthIndex) {
     document.getElementById('target_' + monthIndex).value = value || 0;
     
     hitungTotal();
+    hitungTargetPerHari(monthIndex);
+}
+
+// Hitung target per hari
+function hitungTargetPerHari(monthIndex) {
+    const targetBulanan = parseInt(document.getElementById('target_' + monthIndex).value) || 0;
+    const hariKerja = parseInt(document.getElementById('hari_kerja_' + monthIndex).value) || 0;
+    
+    if (hariKerja > 0 && targetBulanan > 0) {
+        const targetPerHari = (targetBulanan / hariKerja).toFixed(2);
+        document.getElementById('target_per_hari_' + monthIndex).value = targetPerHari;
+    } else {
+        document.getElementById('target_per_hari_' + monthIndex).value = '0.00';
+    }
 }
 
 // Format total target tahunan
@@ -256,6 +294,9 @@ function generateRata() {
     const perBulan = Math.floor(targetTahunan / 12);
     const sisa = targetTahunan % 12;
     
+    // Set default hari kerja = 22 hari (rata-rata hari kerja per bulan)
+    const defaultHariKerja = 22;
+    
     for (let i = 1; i <= 12; i++) {
         const value = perBulan + (i <= sisa ? 1 : 0);
         
@@ -264,6 +305,12 @@ function generateRata() {
         
         // Update display input with formatted number
         document.getElementById('target_display_' + i).value = formatNumberWithDot(value);
+        
+        // Set default hari kerja
+        document.getElementById('hari_kerja_' + i).value = defaultHariKerja;
+        
+        // Hitung target per hari
+        hitungTargetPerHari(i);
     }
     
     hitungTotal();

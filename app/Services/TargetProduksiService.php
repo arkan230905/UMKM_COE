@@ -30,6 +30,7 @@ class TargetProduksiService
                         'user_id' => auth()->id(),
                         'bulan' => $detail['bulan'],
                         'target_bulanan' => $detail['target_bulanan'],
+                        'hari_kerja' => $detail['hari_kerja'] ?? null,
                     ]);
                 }
             }
@@ -59,6 +60,7 @@ class TargetProduksiService
                     if ($detail && !$detail->isLocked()) {
                         $detail->update([
                             'target_bulanan' => $detailData['target_bulanan'],
+                            'hari_kerja' => $detailData['hari_kerja'] ?? null,
                         ]);
                     }
                 }

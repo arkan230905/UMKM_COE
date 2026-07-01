@@ -98,12 +98,14 @@
                     <thead class="table-light">
                         <tr>
                             <th width="5%" class="text-center">No</th>
-                            <th width="15%">Bulan</th>
-                            <th width="15%" class="text-end">Target</th>
-                            <th width="15%" class="text-end">Realisasi</th>
-                            <th width="15%" class="text-end">Selisih</th>
-                            <th width="10%" class="text-center">%</th>
-                            <th width="15%" class="text-center">Status</th>
+                            <th width="12%">Bulan</th>
+                            <th width="12%" class="text-end">Target</th>
+                            <th width="8%" class="text-center">Hari Kerja</th>
+                            <th width="12%" class="text-end">Target/Hari</th>
+                            <th width="12%" class="text-end">Realisasi</th>
+                            <th width="10%" class="text-end">Selisih</th>
+                            <th width="8%" class="text-center">%</th>
+                            <th width="11%" class="text-center">Status</th>
                             <th width="10%" class="text-center">Lock</th>
                         </tr>
                     </thead>
@@ -113,11 +115,22 @@
                                 $achievement = $item['persentase'];
                                 $statusClass = $achievement >= 100 ? 'success' : ($achievement >= 75 ? 'warning' : 'danger');
                                 $statusIcon = $achievement >= 100 ? 'check-circle' : ($achievement >= 75 ? 'exclamation-circle' : 'times-circle');
+                                
+                                // Get detail for this month
+                                $detail = $target->details->firstWhere('bulan', $item['bulan']);
+                                $hariKerja = $detail->hari_kerja ?? '-';
+                                $targetPerHari = $detail->target_per_hari ?? 0;
                             @endphp
                             <tr>
                                 <td class="text-center">{{ $item['bulan'] }}</td>
                                 <td><strong>{{ $item['nama_bulan'] }}</strong></td>
                                 <td class="text-end">{{ number_format($item['target'], 0, ',', '.') }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ $hariKerja }} hari</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-primary">{{ number_format($targetPerHari, 2, ',', '.') }}</span>
+                                </td>
                                 <td class="text-end">
                                     <strong class="text-{{ $statusClass }}">
                                         {{ number_format($item['realisasi'], 0, ',', '.') }}
@@ -148,6 +161,8 @@
                         <tr>
                             <td colspan="2" class="text-end"><strong>Total:</strong></td>
                             <td class="text-end"><strong>{{ number_format($target->total_target_tahunan, 0, ',', '.') }}</strong></td>
+                            <td class="text-center">-</td>
+                            <td class="text-center">-</td>
                             <td class="text-end"><strong>{{ number_format($summary['total_realisasi'], 0, ',', '.') }}</strong></td>
                             <td class="text-end">
                                 <strong class="text-{{ $summary['selisih'] >= 0 ? 'success' : 'danger' }}">

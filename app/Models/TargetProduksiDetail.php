@@ -18,11 +18,15 @@ class TargetProduksiDetail extends Model
         'target_produksi_id',
         'bulan',
         'target_bulanan',
+        'hari_kerja',
+        'target_per_hari',
     ];
 
     protected $casts = [
         'bulan' => 'integer',
         'target_bulanan' => 'integer',
+        'hari_kerja' => 'integer',
+        'target_per_hari' => 'decimal:2',
     ];
 
     /**
@@ -41,6 +45,15 @@ class TargetProduksiDetail extends Model
         static::creating(function ($model) {
             if (!$model->user_id && auth()->check()) {
                 $model->user_id = auth()->id();
+            }
+        });
+
+        // Auto-calculate target_per_hari before saving
+        static::saving(function ($model) {
+            if ($model->hari_kerja && $model->hari_kerja > 0 && $model->target_bulanan) {
+                $model->target_per_hari = round($model->target_bulanan / $model->hari_kerja, 2);
+            } else {
+                $model->target_per_hari = null;
             }
         });
     }

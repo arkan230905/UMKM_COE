@@ -62,6 +62,7 @@ class TargetProduksiController extends Controller
             'details' => 'required|array|size:12',
             'details.*.bulan' => 'required|integer|between:1,12',
             'details.*.target_bulanan' => 'required|integer|min:0',
+            'details.*.hari_kerja' => 'required|integer|min:1|max:31',
         ]);
 
         try {
@@ -133,6 +134,7 @@ class TargetProduksiController extends Controller
             'details' => 'required|array|size:12',
             'details.*.bulan' => 'required|integer|between:1,12',
             'details.*.target_bulanan' => 'required|integer|min:0',
+            'details.*.hari_kerja' => 'required|integer|min:1|max:31',
         ]);
 
         try {
