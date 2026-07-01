@@ -142,7 +142,7 @@
                                         <input type="number" 
                                                name="details[{{ $i - 1 }}][hari_kerja]" 
                                                id="hari_kerja_{{ $i }}"
-                                               class="form-control hari-kerja-input" 
+                                               class="form-control hari-kerja-input {{ $isLocked ? 'bg-light' : '' }}" 
                                                placeholder="Hari"
                                                min="1"
                                                max="31"
