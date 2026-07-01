@@ -128,10 +128,11 @@
                                         <input type="text" 
                                                name="details_display[{{ $i - 1 }}][target_bulanan]" 
                                                id="target_display_{{ $i }}"
-                                               class="form-control target-display" 
+                                               class="form-control target-display {{ $isLocked ? 'bg-light' : '' }}" 
                                                placeholder="0"
                                                onkeyup="formatNumber(this, {{ $i }})"
-                                               {{ $isLocked ? 'readonly' : 'required' }}>
+                                               {{ $isLocked ? 'readonly' : '' }}
+                                               required>
                                         <input type="hidden" 
                                                name="details[{{ $i - 1 }}][target_bulanan]" 
                                                id="target_{{ $i }}"
@@ -149,7 +150,7 @@
                                                value="{{ old('details.' . ($i - 1) . '.hari_kerja', $detail ? $detail->hari_kerja : '') }}"
                                                onchange="hitungTargetPerHari({{ $i }})"
                                                {{ $isLocked ? 'readonly' : '' }}
-                                               {{ !$isLocked ? 'required' : '' }}>
+                                               required>
                                         <small class="text-muted">1-31 hari</small>
                                     </td>
                                     <td>
