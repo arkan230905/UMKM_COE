@@ -72,9 +72,21 @@
                         <input type="text" name="gaji" id="input-gaji-pokok" class="form-control money-input" value="{{ old('gaji',0) }}">
                         <small class="money-hint"></small>
                         
-                        <div id="target-produksi-container" class="mt-2 d-none">
+                        <div id="produk-container" class="mt-3 d-none">
+                            <label class="form-label">Produk <span class="text-danger">*</span></label>
+                            <select name="produk_id" id="select-produk" class="form-select">
+                                <option value="">-- Pilih Produk --</option>
+                                @foreach($produks as $p)
+                                    <option value="{{ $p->id }}" {{ old('produk_id') == $p->id ? 'selected' : '' }}>{{ $p->nama_produk }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div id="target-produksi-container" class="mt-3 d-none">
                             <label class="form-label text-primary mb-1" style="font-size: 0.85rem;"><i class="fas fa-bullseye me-1"></i>Target Produksi/Bulan (pcs)</label>
-                            <input type="number" name="target_produksi" id="input-target-produksi" class="form-control" value="{{ old('target_produksi', 0) }}" min="0">
+                            <input type="number" name="target_produksi" id="input-target-produksi" class="form-control" value="{{ old('target_produksi', 0) }}" min="0" readonly style="background-color: #e9ecef;">
+                            <small id="target-warning" class="text-danger d-none"><i class="fas fa-exclamation-triangle"></i> Target produksi belum diatur untuk produk ini di bulan ini.</small>
+                            <small id="target-loading" class="text-info d-none"><i class="fas fa-spinner fa-spin"></i> Mengambil data target...</small>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -85,7 +97,7 @@
                 </div>
 
                 <div class="mt-4">
-                    <button class="btn btn-primary">Simpan</button>
+                    <button type="submit" id="btn-simpan" class="btn btn-primary">Simpan</button>
                     <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-secondary">Batal</a>
                 </div>
             </form>
@@ -187,6 +199,11 @@
             const inputTarif = document.getElementById('input-tarif-produk');
             const inputTarget = document.getElementById('input-target-produksi');
             const containerTarget = document.getElementById('target-produksi-container');
+            const containerProduk = document.getElementById('produk-container');
+            const selectProduk = document.getElementById('select-produk');
+            const btnSimpan = document.getElementById('btn-simpan');
+            const targetWarning = document.getElementById('target-warning');
+            const targetLoading = document.getElementById('target-loading');
 
             const calculateTarif = () => {
                 if (selectKategori.value !== 'btkl') return;
@@ -202,23 +219,74 @@
                 }
                 inputTarif.dispatchEvent(new Event('input'));
             };
+            
+            const fetchTargetProduksi = async () => {
+                const produkId = selectProduk.value;
+                if (!produkId) {
+                    inputTarget.value = 0;
+                    calculateTarif();
+                    targetWarning.classList.add('d-none');
+                    btnSimpan.disabled = true;
+                    return;
+                }
+                
+                btnSimpan.disabled = true;
+                targetLoading.classList.remove('d-none');
+                targetWarning.classList.add('d-none');
+                inputTarget.value = 0;
+                calculateTarif();
+                
+                try {
+                    const response = await fetch(`/api/kualifikasi/target-produksi/${produkId}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.target > 0) {
+                        inputTarget.value = result.target;
+                        targetWarning.classList.add('d-none');
+                        btnSimpan.disabled = false;
+                    } else {
+                        inputTarget.value = 0;
+                        targetWarning.classList.remove('d-none');
+                        btnSimpan.disabled = true;
+                    }
+                    calculateTarif();
+                } catch (error) {
+                    console.error('Error fetching target produksi:', error);
+                    inputTarget.value = 0;
+                    targetWarning.classList.remove('d-none');
+                    btnSimpan.disabled = true;
+                    calculateTarif();
+                } finally {
+                    targetLoading.classList.add('d-none');
+                }
+            };
 
             const toggleAutoHitung = () => {
                 if (selectKategori.value === 'btkl') {
+                    containerProduk.classList.remove('d-none');
+                    selectProduk.required = true;
                     containerTarget.classList.remove('d-none');
-                    inputTarget.required = true;
-                    calculateTarif();
+                    
+                    if(selectProduk.value) {
+                        fetchTargetProduksi();
+                    } else {
+                        btnSimpan.disabled = true;
+                    }
                 } else {
+                    containerProduk.classList.add('d-none');
+                    selectProduk.required = false;
                     containerTarget.classList.add('d-none');
                     inputTarget.required = false;
+                    inputTarget.value = 0;
                     inputTarif.value = formatID(0);
                     inputTarif.dispatchEvent(new Event('input'));
+                    btnSimpan.disabled = false;
                 }
             };
 
             selectKategori.addEventListener('change', toggleAutoHitung);
+            selectProduk.addEventListener('change', fetchTargetProduksi);
             inputGaji.addEventListener('input', calculateTarif);
-            inputTarget.addEventListener('input', calculateTarif);
             
             // Initial check
             toggleAutoHitung();

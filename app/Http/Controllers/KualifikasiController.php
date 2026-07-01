@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kualifikasi;
+use App\Models\Produk;
+use App\Models\TargetProduksi;
 use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 
@@ -31,7 +33,8 @@ class KualifikasiController extends Controller
 
     public function create()
     {
-        return view('master-data.kualifikasi.create');
+        $produks = Produk::where('user_id', auth()->id())->get();
+        return view('master-data.kualifikasi.create', compact('produks'));
     }
 
     public function store(Request $request)
@@ -50,6 +53,7 @@ class KualifikasiController extends Controller
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama_kualifikasi' => 'required|string|max:255|unique:kualifikasis,nama_kualifikasi,NULL,id,user_id,' . auth()->id(),
             'kategori' => 'required|in:btkl,btktl',
+            'produk_id' => 'required_if:kategori,btkl|nullable|exists:produks,id',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
@@ -127,7 +131,11 @@ class KualifikasiController extends Controller
                 ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
         }
         
-        return view('master-data.kualifikasi.edit', ['jabatan' => $kualifikasi_tenaga_kerja]);
+        $produks = Produk::where('user_id', auth()->id())->get();
+        return view('master-data.kualifikasi.edit', [
+            'jabatan' => $kualifikasi_tenaga_kerja,
+            'produks' => $produks
+        ]);
     }
 
     public function update(Request $request, Kualifikasi $kualifikasi_tenaga_kerja)
@@ -154,6 +162,7 @@ class KualifikasiController extends Controller
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'nama_kualifikasi' => 'required|string|max:255|unique:kualifikasis,nama_kualifikasi,' . $jabatan->id . ',id,user_id,' . auth()->id(),
             'kategori' => 'required|in:btkl,btktl',
+            'produk_id' => 'required_if:kategori,btkl|nullable|exists:produks,id',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
@@ -329,5 +338,22 @@ class KualifikasiController extends Controller
 
         $v = str_replace(['.', ''], ['', '.'], $value);
         return $v;
+    }
+
+    public function getTargetProduksiApi($produk_id)
+    {
+        $targetProduksi = TargetProduksi::where('user_id', auth()->id())
+            ->where('produk_id', $produk_id)
+            ->where('tahun', now()->year)
+            ->first();
+            
+        $targetBulanan = $targetProduksi ? $targetProduksi->getTargetBulan(now()->month) : 0;
+        
+        return response()->json([
+            'success' => true,
+            'target' => $targetBulanan,
+            'bulan' => now()->month,
+            'tahun' => now()->year
+        ]);
     }
 }
