@@ -1823,51 +1823,8 @@ return response()->json([
     }
 
     /**
-     * Get COA ID by kode_akun - STRICT MODE (no fallback)
-     * Throws exception if COA not found to prevent incorrect journal entries
-     * Multi-tenant support: Uses specific user_id parameter
-     */
-    private function getCoaIdByKode($kodeAkun, $user_id = null)
-    {
-        // Use provided user_id or current authenticated user
-        $user_id = $user_id ?? auth()->id();
-        
-        // Try to find the COA with user_id filter
-        $coa = \App\Models\Coa::where('kode_akun', $kodeAkun)
-            ->where('user_id', $user_id)
-            ->orderByRaw('RPAD(kode_akun, 10, "0"), LENGTH(kode_akun)')
-            ->first();
-        
-        if ($coa) {
-            return $coa->id;
-        }
-        
-        // NO FALLBACK! Throw error immediately to prevent incorrect journal entries
-        // This ensures that missing COAs are caught early rather than creating wrong journals
-        throw new \Exception(
-            "COA dengan kode '{$kodeAkun}' tidak ditemukan untuk user ID {$user_id}. " .
-            "Silakan buat COA ini terlebih dahulu di Master Data > Chart of Accounts sebelum melakukan produksi. " .
-            "COA yang diperlukan untuk produksi: 1171 (WIP BBB), 1172 (WIP BTKL), 1173 (WIP BOP), " .
-            "211 (Hutang Gaji), dan COA untuk setiap komponen BOP."
-        );
-    }
-
-    /**
-     * Get COA ID by kode for specific user - returns null if not found (no exception)
-     */
-    private function getCoaIdByKodeForUser($kodeAkun, $user_id): ?int
-    {
-        $coa = \App\Models\Coa::where('kode_akun', $kodeAkun)
-            ->where('user_id', $user_id)
-            ->orderByRaw('RPAD(kode_akun, 10, "0"), LENGTH(kode_akun)')
-            ->first();
-
-        return $coa ? $coa->id : null;
-    }
-
-    /**
      * Get detailed cost breakdown for production from saved details
-*/
+     */
     private function getProductionCostBreakdown($produksi)
     {
         $breakdown = [
