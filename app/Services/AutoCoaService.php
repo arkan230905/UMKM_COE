@@ -3,230 +3,123 @@
 namespace App\Services;
 
 use App\Models\Coa;
-use App\Models\Produk;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class AutoCoaService
 {
     /**
-     * Get or create COA for persediaan barang jadi based on product name
+     * Create COA for Bahan Baku automatically
+     * 
+     * @param string $namaBahan
+     * @param int $userId
+     * @return Coa
      */
-    public static function getOrCreatePersediaanBarangJadiCoa($productName, $productId = null)
+    public function createCoaForBahanBaku(string $namaBahan, int $userId): Coa
     {
-        // First, try to get existing COA from product
-        if ($productId) {
-            $produk = Produk::find($productId);
-            if ($produk && $produk->coa_persediaan_id) {
-                $coa = Coa::find($produk->coa_persediaan_id);
-                if ($coa) {
-                    Log::info("Using existing COA for product: {$productName} -> {$coa->kode_akun}");
-                    return $coa;
+        // Get the highest COA code for "Pers. Bahan Baku" category
+        // Pattern: starts with "114" (Persediaan Bahan Baku category)
+        // Must stay within 114xx range (1140-1149, 11400-11499, etc.)
+        $lastCoa = Coa::where('user_id', $userId)
+            ->where('kode_akun', 'LIKE', '114%')
+            ->where('nama_akun', 'LIKE', 'Pers. Bahan Baku%')
+            ->orderBy('kode_akun', 'desc')
+            ->lockForUpdate() // Prevent race condition
+            ->first();
+
+        // Generate next code within the 114 group
+        if ($lastCoa) {
+            $lastCode = $lastCoa->kode_akun;
+            
+            // Check if last code is 1149 or 11499, etc. (about to reach next group)
+            if (strlen($lastCode) == 4 && $lastCode == '1149') {
+                // Move to 5-digit: 11400
+                $nextCode = '11400';
+            } else {
+                // Simply increment
+                $nextCode = strval(intval($lastCode) + 1);
+                
+                // Validate that we're still in 114 group
+                if (!str_starts_with($nextCode, '114')) {
+                    throw new \Exception('Kode akun Pers. Bahan Baku sudah penuh. Hubungi administrator.');
                 }
             }
-        }
-        
-        // Try to find existing COA by name
-        $coaName = "Pers. Barang Jadi {$productName}";
-        $existingCoa = Coa::where('nama_akun', $coaName)->first();
-        
-        if ($existingCoa) {
-            Log::info("Found existing COA by name: {$coaName} -> {$existingCoa->kode_akun}");
-            
-            // Update product with this COA if we have product ID
-            if ($productId) {
-                $produk = Produk::find($productId);
-                if ($produk) {
-                    $produk->coa_persediaan_id = $existingCoa->id;
-                    $produk->save();
-                    Log::info("Updated product {$productId} with COA {$existingCoa->id}");
-                }
-            }
-            
-            return $existingCoa;
-        }
-        
-        // Generate the next code first to check if it already exists
-        $nextCode = self::getNextCoaCode('116');
-        
-        // Check if this code already exists (prevent duplicates)
-        if (Coa::where('kode_akun', $nextCode)->exists()) {
-            Log::warning("COA code {$nextCode} already exists, skipping creation for product: {$productName}");
-            return Coa::where('kode_akun', $nextCode)->first();
-        }
-        
-        // Create new COA
-        $newCoa = self::createPersediaanBarangJadiCoa($productName, $productId, $nextCode);
-        
-        Log::info("Created new COA for product: {$productName} -> {$newCoa->kode_akun}");
-        
-        return $newCoa;
-    }
-    
-    /**
-     * Create new COA for persediaan barang jadi
-     */
-    private static function createPersediaanBarangJadiCoa($productName, $productId = null, $nextCode = null)
-    {
-        // Get the next available COA code if not provided
-        if (!$nextCode) {
-            $nextCode = self::getNextCoaCode('116');
-        }
-        
-        $coaName = "Pers. Barang Jadi {$productName}";
-        
-        $newCoa = Coa::create([
-            'kode_akun' => $nextCode,
-            'nama_akun' => $coaName,
-            'tipe_akun' => 'Asset',
-            'saldo_normal' => 'Debit',
-            'kategori_akun' => 'Persediaan Barang Jadi',
-            'status' => 'aktif',
-            'created_by' => 1,
-        ]);
-        
-        // Update product with new COA
-        if ($productId) {
-            $produk = Produk::find($productId);
-            if ($produk) {
-                $produk->coa_persediaan_id = $newCoa->id;
-                $produk->save();
-                Log::info("Updated product {$productId} with new COA {$newCoa->id}");
-            }
-        }
-        
-        return $newCoa;
-    }
-    
-    /**
-     * Get next available COA code for persediaan barang jadi (116x series)
-     */
-    private static function getNextCoaCode($baseCode)
-    {
-        // Find existing COA codes that start with 116
-        $existingCodes = Coa::where('kode_akun', 'like', '116%')
-            ->pluck('kode_akun')
-            ->toArray();
-        
-        // Extract numeric parts and find the highest
-        $maxNumber = 0;
-        foreach ($existingCodes as $code) {
-            $numericPart = (int)substr($code, 3);
-            if ($numericPart > $maxNumber) {
-                $maxNumber = $numericPart;
-            }
-        }
-        
-        // Generate next code
-        $nextNumber = $maxNumber + 1;
-        $nextCode = '116' . str_pad($nextNumber, 1, '0', STR_PAD_LEFT);
-        
-        // If it's just 1160, make it 1161
-        if ($nextNumber == 0) {
-            $nextCode = '1161';
-        }
-        
-        return $nextCode;
-    }
-    
-    /**
-     * Get or create COA for any account type based on name and category
-     */
-    public static function getOrCreateCoa($namaAkun, $kategoriAkun = 'Lainnya', $tipeAkun = 'Asset', $saldoNormal = 'Debit')
-    {
-        // Try to find existing COA
-        $existingCoa = Coa::where('nama_akun', $namaAkun)->first();
-        
-        if ($existingCoa) {
-            Log::info("Found existing COA: {$namaAkun} -> {$existingCoa->kode_akun}");
-            return $existingCoa;
-        }
-        
-        // Generate new COA code
-        $nextCode = self::generateCoaCode($tipeAkun, $kategoriAkun);
-        
-        // Check if this code already exists (prevent duplicates)
-        if (Coa::where('kode_akun', $nextCode)->exists()) {
-            Log::warning("COA code {$nextCode} already exists, skipping creation for: {$namaAkun}");
-            return Coa::where('kode_akun', $nextCode)->first();
-        }
-        
-        // Create new COA
-        $newCoa = Coa::create([
-            'kode_akun' => $nextCode,
-            'nama_akun' => $namaAkun,
-            'tipe_akun' => $tipeAkun,
-            'saldo_normal' => $saldoNormal,
-            'kategori_akun' => $kategoriAkun,
-            'status' => 'aktif',
-            'created_by' => 1,
-        ]);
-        
-        Log::info("Created new COA: {$namaAkun} -> {$nextCode}");
-        
-        return $newCoa;
-    }
-    
-    /**
-     * Generate COA code based on account type and category
-     */
-    private static function generateCoaCode($tipeAkun, $kategoriAkun)
-    {
-        // Define base codes for different account types
-        $baseCodes = [
-            'Asset' => [
-                'Persediaan Barang Jadi' => '116',
-                'Persediaan Barang dalam Proses' => '117',
-                'Persediaan Bahan Baku' => '114',
-                'Persediaan Bahan Pendukung' => '115',
-                'Kas' => '11',
-                'Bank' => '11',
-                'Piutang' => '118',
-                'Peralatan' => '119',
-                'default' => '199'
-            ],
-            'Liability' => [
-                'Hutang Usaha' => '21',
-                'Hutang Bank' => '22',
-                'default' => '299'
-            ],
-            'Equity' => [
-                'Modal' => '31',
-                'default' => '399'
-            ],
-            'Revenue' => [
-                'Penjualan' => '41',
-                'default' => '499'
-            ],
-            'Expense' => [
-                'Beban Operasional' => '55',
-                'HPP' => '51',
-                'default' => '599'
-            ]
-        ];
-        
-        $baseCode = $baseCodes[$tipeAkun][$kategoriAkun] ?? $baseCodes[$tipeAkun]['default'] ?? '999';
-        
-        // Find existing codes with this base
-        $existingCodes = Coa::where('kode_akun', 'like', $baseCode . '%')
-            ->pluck('kode_akun')
-            ->toArray();
-        
-        // Generate next number
-        $maxNumber = 0;
-        foreach ($existingCodes as $code) {
-            $numericPart = (int)substr($code, strlen($baseCode));
-            if ($numericPart > $maxNumber) {
-                $maxNumber = $numericPart;
-            }
-        }
-        
-        $nextNumber = $maxNumber + 1;
-        
-        // For single digit base codes, add padding
-        if (strlen($baseCode) == 2) {
-            return $baseCode . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         } else {
-            return $baseCode . $nextNumber;
+            // Default starting code for Pers. Bahan Baku
+            $nextCode = '1141';
         }
+
+        // Create COA
+        $coa = Coa::create([
+            'kode_akun' => $nextCode,
+            'nama_akun' => 'Pers. Bahan Baku ' . $namaBahan,
+            'kategori_akun' => 'Aset Lancar',
+            'tipe_akun' => 'Aset',
+            'saldo_normal' => 'Debit',
+            'keterangan' => 'Auto-created for Bahan Baku: ' . $namaBahan,
+            'saldo_awal' => 0,
+            'tanggal_saldo_awal' => now(),
+            'posted_saldo_awal' => false,
+            'user_id' => $userId,
+        ]);
+
+        return $coa;
+    }
+
+    /**
+     * Create COA for Bahan Pendukung automatically
+     * 
+     * @param string $namaBahan
+     * @param int $userId
+     * @return Coa
+     */
+    public function createCoaForBahanPendukung(string $namaBahan, int $userId): Coa
+    {
+        // Get the highest COA code for "Pers. Bahan Pendukung" category
+        // Pattern: starts with "115" (Persediaan Bahan Pendukung category)
+        // Must stay within 115xx range (1150-1159, 11500-11599, etc.)
+        $lastCoa = Coa::where('user_id', $userId)
+            ->where('kode_akun', 'LIKE', '115%')
+            ->where('nama_akun', 'LIKE', 'Pers. Bahan Pendukung%')
+            ->orderBy('kode_akun', 'desc')
+            ->lockForUpdate() // Prevent race condition
+            ->first();
+
+        // Generate next code within the 115 group
+        if ($lastCoa) {
+            $lastCode = $lastCoa->kode_akun;
+            
+            // Check if last code is 1159 or 11599, etc. (about to reach next group)
+            if (strlen($lastCode) == 4 && $lastCode == '1159') {
+                // Move to 5-digit: 11500
+                $nextCode = '11500';
+            } else {
+                // Simply increment
+                $nextCode = strval(intval($lastCode) + 1);
+                
+                // Validate that we're still in 115 group
+                if (!str_starts_with($nextCode, '115')) {
+                    throw new \Exception('Kode akun Pers. Bahan Pendukung sudah penuh. Hubungi administrator.');
+                }
+            }
+        } else {
+            // Default starting code for Pers. Bahan Pendukung
+            $nextCode = '1151';
+        }
+
+        // Create COA
+        $coa = Coa::create([
+            'kode_akun' => $nextCode,
+            'nama_akun' => 'Pers. Bahan Pendukung ' . $namaBahan,
+            'kategori_akun' => 'Aset Lancar',
+            'tipe_akun' => 'Aset',
+            'saldo_normal' => 'Debit',
+            'keterangan' => 'Auto-created for Bahan Pendukung: ' . $namaBahan,
+            'saldo_awal' => 0,
+            'tanggal_saldo_awal' => now(),
+            'posted_saldo_awal' => false,
+            'user_id' => $userId,
+        ]);
+
+        return $coa;
     }
 }
