@@ -1821,22 +1821,6 @@ return response()->json([
             ]);
         }
     }
-}
-                            'user_id' => $user_id,
-                            'coa_id' => $coaKreditId,
-                            'tanggal' => $tanggal,
-                            'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
-                            'debit' => 0,
-                            'kredit' => $componentAmount,
-                            'referensi' => $produksi->id,
-                            'tipe_referensi' => 'produksi_bop',
-                            'created_by' => $user_id,
-                        ]);
-                    }
-                }
-            }
-        }
-    }
 
     /**
      * Get COA ID by kode_akun - STRICT MODE (no fallback)
