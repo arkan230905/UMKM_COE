@@ -629,8 +629,82 @@ document.getElementById('produk_id').addEventListener('change', function() {
     if (!produkId) {
         currentBomData = null;
         hideAllSections();
+        // Clear target produksi fields
+        document.getElementById('jumlah_produksi_bulanan').value = '';
+        document.getElementById('hari_produksi_bulanan').value = '';
+        document.getElementById('qty_produksi').value = '';
         return;
     }
+    
+    console.log('Fetching Target Produksi data for product ID:', produkId);
+    
+    // 🔥 NEW: Fetch Target Produksi data to auto-fill fields
+    fetch(`/transaksi/produksi/get-target-produksi/${produkId}?t=${Date.now()}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Target Produksi Response:', data);
+            if (data.success) {
+                // Auto-fill target produksi fields
+                document.getElementById('jumlah_produksi_bulanan').value = data.data.jumlah_produksi_bulanan || '';
+                document.getElementById('hari_produksi_bulanan').value = data.data.hari_produksi_bulanan || '';
+                document.getElementById('qty_produksi').value = data.data.qty_produksi_per_hari || '';
+                
+                // Make fields readonly (auto-filled dari master data)
+                document.getElementById('jumlah_produksi_bulanan').setAttribute('readonly', 'readonly');
+                document.getElementById('hari_produksi_bulanan').setAttribute('readonly', 'readonly');
+                
+                // Add visual feedback
+                document.getElementById('jumlah_produksi_bulanan').classList.add('bg-light');
+                document.getElementById('hari_produksi_bulanan').classList.add('bg-light');
+                
+                // Show success message
+                const dataSection = document.querySelector('.card.bg-light');
+                if (dataSection && data.data.nama_bulan) {
+                    const badge = document.createElement('div');
+                    badge.className = 'alert alert-success mt-2';
+                    badge.innerHTML = '<i class="fas fa-check-circle me-2"></i>Data target produksi untuk <strong>' + data.data.nama_bulan + ' ' + data.data.tahun + '</strong> berhasil dimuat.';
+                    
+                    // Remove existing alert if any
+                    const existingAlert = dataSection.querySelector('.alert-success, .alert-warning');
+                    if (existingAlert) existingAlert.remove();
+                    
+                    dataSection.querySelector('.card-body').appendChild(badge);
+                }
+                
+                // Trigger cost calculation
+                calculateCostBreakdown();
+            } else {
+                // Show error message
+                alert('Target Produksi: ' + data.message);
+                
+                // Allow manual input if target not found
+                document.getElementById('jumlah_produksi_bulanan').removeAttribute('readonly');
+                document.getElementById('hari_produksi_bulanan').removeAttribute('readonly');
+                document.getElementById('jumlah_produksi_bulanan').classList.remove('bg-light');
+                document.getElementById('hari_produksi_bulanan').classList.remove('bg-light');
+                
+                const dataSection = document.querySelector('.card.bg-light');
+                if (dataSection) {
+                    const badge = document.createElement('div');
+                    badge.className = 'alert alert-warning mt-2';
+                    badge.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>' + data.message + ' <br><small>Anda dapat mengisi data secara manual.</small>';
+                    
+                    // Remove existing alert if any
+                    const existingAlert = dataSection.querySelector('.alert-success, .alert-warning');
+                    if (existingAlert) existingAlert.remove();
+                    
+                    dataSection.querySelector('.card-body').appendChild(badge);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching target produksi:', error);
+            // Allow manual input on error
+            document.getElementById('jumlah_produksi_bulanan').removeAttribute('readonly');
+            document.getElementById('hari_produksi_bulanan').removeAttribute('readonly');
+            document.getElementById('jumlah_produksi_bulanan').classList.remove('bg-light');
+            document.getElementById('hari_produksi_bulanan').classList.remove('bg-light');
+        });
     
     console.log('Fetching BOM data for product ID:', produkId);
     

@@ -1729,6 +1729,102 @@ return response()->json([
                             'user_id' => $user_id,
                             'coa_id' => $coaKreditId,
                             'tanggal' => $tanggal,
+                            'keterangan' => "BOP - {$componentName} ({$description})",
+                            'debit' => 0,
+                            'kredit' => $componentAmount,
+                            'referensi' => $produksi->id,
+                            'tipe_referensi' => 'produksi_bop',
+                            'created_by' => $user_id,
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Get COA ID by kode akun
+     */
+    private function getCoaIdByKode($kodeAkun)
+    {
+        return \App\Models\Coa::where('kode_akun', $kodeAkun)->value('id');
+    }
+
+    /**
+     * Get COA ID by kode akun for specific user (multi-tenant)
+     */
+    private function getCoaIdByKodeForUser($kodeAkun, $userId)
+    {
+        return \App\Models\Coa::where('kode_akun', $kodeAkun)
+            ->where('user_id', $userId)
+            ->value('id');
+    }
+
+    /**
+     * Get Target Produksi for current month based on product
+     * API endpoint untuk auto-fill data target produksi di form create produksi
+     */
+    public function getTargetProduksi($produkId)
+    {
+        try {
+            // Get current date info
+            $now = now();
+            $tahun = $now->year;
+            $bulan = $now->month;
+
+            // Find target produksi for this product and year
+            $targetProduksi = \App\Models\TargetProduksi::where('user_id', auth()->id())
+                ->where('produk_id', $produkId)
+                ->where('tahun', $tahun)
+                ->first();
+
+            if (!$targetProduksi) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Target produksi belum dibuat untuk produk ini di tahun ' . $tahun . '. Silakan buat target produksi terlebih dahulu di Master Data > Target Produksi.'
+                ]);
+            }
+
+            // Find detail for current month
+            $targetDetail = \App\Models\TargetProduksiDetail::where('target_produksi_id', $targetProduksi->id)
+                ->where('bulan', $bulan)
+                ->first();
+
+            if (!$targetDetail) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Target produksi untuk bulan ini belum dibuat. Silakan lengkapi data target produksi.'
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'jumlah_produksi_bulanan' => $targetDetail->target_bulanan ?? 0,
+                    'hari_produksi_bulanan' => $targetDetail->hari_kerja ?? 0,
+                    'qty_produksi_per_hari' => $targetDetail->target_per_hari ?? 0,
+                    'bulan' => $bulan,
+                    'tahun' => $tahun,
+                    'nama_bulan' => \App\Models\TargetProduksiDetail::getMonthName($bulan)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in getTargetProduksi: ' . $e->getMessage(), [
+                'produk_id' => $produkId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data target produksi: ' . $e->getMessage()
+            ]);
+        }
+    }
+}
+                            'user_id' => $user_id,
+                            'coa_id' => $coaKreditId,
+                            'tanggal' => $tanggal,
                             'keterangan' => "Alokasi BOP - {$bopProses->nama_bop_proses} ({$componentName}) ke Barang WIP BOP",
                             'debit' => 0,
                             'kredit' => $componentAmount,
