@@ -345,102 +345,76 @@ class PembelianController extends Controller
     }
     
     /**
-     * Helper method untuk getSaldoAwal (copy dari LaporanKasBankController)
+     * Helper method untuk getSaldoAwal - HARUS SAMA dengan LaporanKasBankController
+     * PRIORITAS: Saldo Awal dari Master Data COA
      */
     private function getSaldoAwalHelper($akun, $startDate)
     {
-        // 1. Cari periode yang sesuai dengan start date
+        // PRIORITAS 1: Gunakan saldo_awal dari Master Data COA
+        // Saldo awal harus diinput manual di Master Data > COA
+        if (isset($akun->saldo_awal) && is_numeric($akun->saldo_awal)) {
+            return (float) $akun->saldo_awal;
+        }
+        
+        // PRIORITAS 2: Cari dari periode balance (backup)
         $periode = \App\Models\CoaPeriod::where('periode', date('Y-m', strtotime($startDate)))->first();
         
         if ($periode) {
-            // 2. Cari saldo di CoaPeriodBalance untuk periode tersebut
-            $balance = \App\Models\CoaPeriodBalance::where('period_id', $periode->id)
-                ->where('kode_akun', $akun->kode_akun)
+            $periodBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
+                ->where('period_id', $periode->id)
                 ->first();
+            
+            if ($periodBalance && is_numeric($periodBalance->saldo_awal)) {
+                return (float) $periodBalance->saldo_awal;
+            }
+            
+            // Cek periode sebelumnya
+            $previousPeriod = $periode->getPreviousPeriod();
+            if ($previousPeriod) {
+                $previousBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
+                    ->where('period_id', $previousPeriod->id)
+                    ->first();
                 
-            if ($balance) {
-                return (float) $balance->saldo_awal;
+                if ($previousBalance && is_numeric($previousBalance->saldo_akhir)) {
+                    return (float) $previousBalance->saldo_akhir;
+                }
             }
         }
         
-        // 3. Fallback ke saldo awal COA
-        return (float) ($akun->saldo_awal ?? 0);
+        // Default: 0 jika tidak ada data
+        return 0;
     }
     
     /**
-     * Helper method untuk getTransaksiMasuk (copy dari LaporanKasBankController)
+     * Helper method untuk getTransaksiMasuk - HARUS SAMA dengan LaporanKasBankController
+     * Hanya dari jurnal_umum (DEBIT)
      */
     private function getTransaksiMasukHelper($akun, $startDate, $endDate)
     {
-        $totalMasuk = 0;
+        // Hanya dari jurnal_umum (sistem jurnal yang digunakan)
+        $journalMasuk = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->sum('ju.debit') ?? 0;
         
-        // 1. Penjualan (cash/transfer masuk ke kas/bank)
-        $penjualanMasuk = DB::table('penjualans')
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where('coa_id', $akun->id) // Gunakan coa_id untuk penjualan
-            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang menambah saldo
-            ->sum('total');
-            
-        $totalMasuk += (float) ($penjualanMasuk ?? 0);
-        
-        // 2. Pelunasan Utang (pembayaran utang masuk ke kas/bank)
-        try {
-            $pelunasanUtangMasuk = DB::table('pelunasan_utangs')
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->where(function($query) use ($akun) {
-                    $query->where(function($subQuery) use ($akun) {
-                        // Jika akun adalah Kas (mengandung kata 'kas')
-                        if (stripos($akun->nama_akun, 'kas') !== false) {
-                            $subQuery->where('metode_bayar', 'tunai');
-                        }
-                        // Jika akun adalah Bank (mengandung kata 'bank')
-                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                            $subQuery->where('metode_bayar', 'transfer');
-                        }
-                    });
-                })
-                ->sum('dibayar_bersih');
-                
-            $totalMasuk += (float) ($pelunasanUtangMasuk ?? 0);
-        } catch (\Exception $e) {
-            // Tabel tidak ada, skip
-        }
-        
-        return $totalMasuk;
+        return (float) $journalMasuk;
     }
     
     /**
-     * Helper method untuk getTransaksiKeluar (copy dari LaporanKasBankController)
+     * Helper method untuk getTransaksiKeluar - HARUS SAMA dengan LaporanKasBankController
+     * Hanya dari jurnal_umum (KREDIT)
      */
     private function getTransaksiKeluarHelper($akun, $startDate, $endDate)
     {
-        $totalKeluar = 0;
+        // Hanya dari jurnal_umum (sistem jurnal yang digunakan)
+        $journalKeluar = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->sum('ju.kredit') ?? 0;
         
-        // Prioritas 1: Ambil dari journal lines (jurnal akuntansi)
-        try {
-            $journalKeluar = DB::table('journal_lines')
-                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-                ->where('journal_lines.coa_id', $akun->id)
-                ->where('journal_lines.credit', '>', 0)
-                ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-                ->sum('journal_lines.credit');
-                
-            $totalKeluar += (float) ($journalKeluar ?? 0);
-        } catch (\Exception $e) {
-            // Skip journal errors, fallback to direct transactions
-        }
-        
-        // Prioritas 2: Ambil dari transaksi langsung (jika journal tidak ada)
-        // 1. Pembelian (cash/transfer keluar dari kas/bank ke persediaan)
-        $pembelianKeluar = DB::table('pembelians')
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where('bank_id', $akun->id) // Gunakan bank_id yang spesifik
-            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang mengurangi saldo
-            ->sum('total_harga');
-            
-        $totalKeluar += (float) ($pembelianKeluar ?? 0);
-        
-        return $totalKeluar;
+        return (float) $journalKeluar;
     }
     
     /**
