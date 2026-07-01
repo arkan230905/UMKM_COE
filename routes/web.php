@@ -6324,14 +6324,13 @@ Route::get('/reset-coa-juli-2026-force', function() {
     $period = \App\Models\CoaPeriod::where('periode', '2026-07')->first();
     if ($period) {
         \App\Models\CoaPeriodBalance::where('period_id', $period->id)
-            ->where('user_id', auth()->id())
             ->update([
                 'saldo_awal' => 0,
                 'saldo_akhir' => 0,
                 'debit' => 0,
                 'credit' => 0
             ]);
-        return "Data COA Juli 2026 untuk user Anda berhasil direset ke 0.";
+        return "Data COA Juli 2026 untuk SEMUA user berhasil direset ke 0.";
     }
     return "Periode tidak ditemukan.";
-})->middleware('auth');
+});
