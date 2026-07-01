@@ -154,7 +154,7 @@
 
     <!-- Summary Card -->
     @if($bopProses->count() > 0)
-    <div class="card mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="card mb-3" style="background: linear-gradient(135deg, #6d4c41 0%, #4e342e 100%);">
         <div class="card-body text-white">
             <div class="row">
                 <div class="col-md-3">
@@ -247,7 +247,7 @@
                                             {{ $bop->produk->nama_produk ?? '-' }}
                                         </div>
                                         <div>
-                                            <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                            <span class="badge" style="background: linear-gradient(135deg, #6d4c41 0%, #4e342e 100%);">
                                                 <i class="fas fa-calendar me-1"></i>
                                                 {{ $bop->periode ? \Carbon\Carbon::parse($bop->periode)->translatedFormat('F Y') : '-' }}
                                             </span>
