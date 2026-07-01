@@ -42,7 +42,7 @@ class TargetProduksiService
     /**
      * Update target produksi
      */
-    public function update(TargetProduksi $target, array $data): TargetProduksi
+    public function updateTarget(TargetProduksi $target, array $data): TargetProduksi
     {
         return DB::transaction(function () use ($target, $data) {
             // Update header

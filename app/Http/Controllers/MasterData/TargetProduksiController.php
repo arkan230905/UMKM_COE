@@ -128,15 +128,15 @@ class TargetProduksiController extends Controller
     {
         $target = TargetProduksi::where('user_id', auth()->id())->findOrFail($id);
         
-        // Validate all fields (editable and locked fields)
+        // Validate basic fields - locked fields are optional
         $validated = $request->validate([
             'tahun' => 'required|integer|min:2020|max:2100',
             'produk_id' => 'required|exists:produks,id',
             'total_target_tahunan' => 'required|integer|min:1',
             'details' => 'required|array|size:12',
             'details.*.bulan' => 'required|integer|between:1,12',
-            'details.*.target_bulanan' => 'required|integer|min:0',
-            'details.*.hari_kerja' => 'required|integer|min:1|max:31',
+            'details.*.target_bulanan' => 'nullable|integer|min:0',
+            'details.*.hari_kerja' => 'nullable|integer|min:1|max:31',
         ]);
 
         try {
