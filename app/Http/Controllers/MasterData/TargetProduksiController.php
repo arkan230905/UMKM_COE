@@ -145,7 +145,7 @@ class TargetProduksiController extends Controller
         
         foreach ($validated['details'] as $index => $detail) {
             $bulan = $detail['bulan'];
-            $isLocked = TargetProduksiDetail::checkLockStatus($validated['tahun'], $bulan);
+            $isLocked = \App\Models\TargetProduksiDetail::checkLockStatus($validated['tahun'], $bulan);
             
             // If not locked, require the fields
             if (!$isLocked) {
