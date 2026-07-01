@@ -1754,7 +1754,7 @@ class BopController extends Controller
                 'jumlah_produksi_formatted' => number_format($jumlahProduksi, 0, ',', '.'),
                 'hari_kerja' => $targetDetail->hari_kerja ?? 0,
                 'target_per_hari' => $targetDetail->target_per_hari ?? 0,
-                'target_per_hari_formatted' => number_format($targetDetail->target_per_hari ?? 0, 2, ',', '.'),
+                'target_per_hari_formatted' => number_format($targetDetail->target_per_hari ?? 0, 0, ',', '.'),
                 'periode' => $periode,
                 'bulan' => $bulan,
                 'tahun' => $tahun,

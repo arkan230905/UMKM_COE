@@ -157,8 +157,8 @@
                                                    id="target_per_hari_{{ $i }}"
                                                    class="form-control bg-light" 
                                                    readonly
-                                                   value="{{ $detail && $detail->target_per_hari ? number_format($detail->target_per_hari, 2, ',', '.') : '0,00' }}"
-                                                   placeholder="0.00">
+                                                   value="{{ $detail && $detail->target_per_hari ? round($detail->target_per_hari) : '0' }}"
+                                                   placeholder="0">
                                             <span class="input-group-text">unit/hari</span>
                                         </div>
                                     </td>
@@ -242,10 +242,10 @@ function hitungTargetPerHari(monthIndex) {
     const hariKerja = parseInt(document.getElementById('hari_kerja_' + monthIndex).value) || 0;
     
     if (hariKerja > 0 && targetBulanan > 0) {
-        const targetPerHari = (targetBulanan / hariKerja).toFixed(2);
-        document.getElementById('target_per_hari_' + monthIndex).value = targetPerHari.replace('.', ',');
+        const targetPerHari = Math.round(targetBulanan / hariKerja); // Pembulatan otomatis
+        document.getElementById('target_per_hari_' + monthIndex).value = targetPerHari;
     } else {
-        document.getElementById('target_per_hari_' + monthIndex).value = '0,00';
+        document.getElementById('target_per_hari_' + monthIndex).value = '0';
     }
 }
 

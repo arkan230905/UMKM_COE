@@ -129,7 +129,7 @@
                                     <span class="badge bg-info">{{ $hariKerja }} hari</span>
                                 </td>
                                 <td class="text-end">
-                                    <span class="text-primary">{{ number_format($targetPerHari, 2, ',', '.') }}</span>
+                                    <span class="text-primary">{{ number_format($targetPerHari, 0, ',', '.') }}</span>
                                 </td>
                                 <td class="text-end">
                                     <strong class="text-{{ $statusClass }}">

@@ -26,7 +26,7 @@ class TargetProduksiDetail extends Model
         'bulan' => 'integer',
         'target_bulanan' => 'integer',
         'hari_kerja' => 'integer',
-        'target_per_hari' => 'decimal:2',
+        'target_per_hari' => 'integer',
     ];
 
     /**
@@ -51,7 +51,8 @@ class TargetProduksiDetail extends Model
         // Auto-calculate target_per_hari before saving
         static::saving(function ($model) {
             if ($model->hari_kerja && $model->hari_kerja > 0 && $model->target_bulanan) {
-                $model->target_per_hari = round($model->target_bulanan / $model->hari_kerja, 2);
+                // Pembulatan otomatis: < 0.5 ke bawah, >= 0.5 ke atas
+                $model->target_per_hari = round($model->target_bulanan / $model->hari_kerja);
             } else {
                 $model->target_per_hari = null;
             }
