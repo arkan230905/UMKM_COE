@@ -50,6 +50,31 @@ class BopController extends Controller
                 ->orderBy('id', 'desc')
                 ->get();
 
+            // 🔥 FIX: Update jumlah_produksi dynamically based on current periode
+            foreach ($bopProses as $bop) {
+                if ($bop->periode) {
+                    [$tahun, $bulan] = explode('-', $bop->periode);
+                    $bulan = (int) $bulan;
+                    
+                    // Get target produksi for this periode
+                    $targetProduksi = \App\Models\TargetProduksi::where('user_id', auth()->id())
+                        ->where('produk_id', $bop->produk_id)
+                        ->where('tahun', $tahun)
+                        ->first();
+                    
+                    if ($targetProduksi) {
+                        $targetDetail = \App\Models\TargetProduksiDetail::where('target_produksi_id', $targetProduksi->id)
+                            ->where('bulan', $bulan)
+                            ->first();
+                        
+                        if ($targetDetail) {
+                            // Update jumlah_produksi dengan target bulan ini
+                            $bop->jumlah_produksi = $targetDetail->target_bulanan ?? 0;
+                        }
+                    }
+                }
+            }
+
             // Get all products for filter dropdown
             $produks = \App\Models\Produk::where('user_id', auth()->id())
                 ->orderBy('nama_produk')
