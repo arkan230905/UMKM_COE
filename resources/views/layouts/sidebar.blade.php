@@ -57,6 +57,7 @@
             <a href="{{ route('master-data.coa.index') }}"                          class="sb-sub {{ request()->is('master-data/coa*') ? 'active' : '' }}">COA</a>
             <a href="{{ route('master-data.aset.index') }}"                         class="sb-sub {{ request()->is('master-data/aset*') ? 'active' : '' }}">Aset</a>
             <a href="{{ route('master-data.satuan.dashboard') }}"                   class="sb-sub {{ request()->is('master-data/satuan*') ? 'active' : '' }}">Satuan</a>
+            <a href="{{ route('master-data.produk.index') }}"                       class="sb-sub {{ request()->is('master-data/produk*') ? 'active' : '' }}">Produk</a>
             <a href="{{ route('master-data.target-produksi.index') }}"              class="sb-sub {{ request()->is('master-data/target-produksi*') ? 'active' : '' }}">Target Produksi</a>
             <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}"     class="sb-sub {{ request()->is('master-data/kualifikasi*') ? 'active' : '' }}">Kualifikasi TK</a>
             <a href="{{ route('master-data.pegawai.index') }}"                      class="sb-sub {{ request()->is('master-data/pegawai*') ? 'active' : '' }}">Pegawai</a>
@@ -64,7 +65,6 @@
             <a href="{{ route('master-data.pelanggan.index') }}"                    class="sb-sub {{ request()->is('master-data/pelanggan*') ? 'active' : '' }}">Pelanggan</a>
             <a href="{{ route('master-data.bahan-baku.index') }}"                   class="sb-sub {{ request()->is('master-data/bahan-baku*') ? 'active' : '' }}">Bahan Baku</a>
             <a href="{{ route('master-data.bahan-pendukung.index') }}"              class="sb-sub {{ request()->is('master-data/bahan-pendukung*') ? 'active' : '' }}">Bahan Pendukung</a>
-            <a href="{{ route('master-data.produk.index') }}"                       class="sb-sub {{ request()->is('master-data/produk*') ? 'active' : '' }}">Produk</a>
             <a href="{{ route('master-data.biaya-bahan.index') }}"                  class="sb-sub {{ request()->is('master-data/biaya-bahan*') ? 'active' : '' }}">Biaya Bahan Baku</a>
             <a href="{{ route('master-data.btkl.index') }}"                         class="sb-sub {{ request()->is('master-data/btkl*') ? 'active' : '' }}">BTKL</a>
             <a href="{{ route('master-data.bop.index') }}"                          class="sb-sub {{ request()->is('master-data/bop*') ? 'active' : '' }}">BOP</a>
