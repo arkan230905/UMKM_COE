@@ -397,77 +397,74 @@ class PembayaranBebanController extends Controller
     // Jurnal pembayaran beban sudah dibuat di jurnal_umum di method store()
     
     /**
-     * Helper method untuk getSaldoAwal (copy dari PembelianController)
+     * Helper method untuk getSaldoAwal - HARUS SAMA dengan LaporanKasBankController
+     * PRIORITAS: Saldo Awal dari Master Data COA
      */
     private function getSaldoAwalHelper($akun, $startDate)
     {
-        // Map COA kode_akun ke account code yang sesuai  
-        $accountCode = $this->mapCoaToAccountCodeHelper($akun->kode_akun);
+        // PRIORITAS 1: Gunakan saldo_awal dari Master Data COA
+        if (isset($akun->saldo_awal) && is_numeric($akun->saldo_awal)) {
+            return (float) $akun->saldo_awal;
+        }
         
-        // 1. Cari periode yang sesuai dengan start date
+        // PRIORITAS 2: Cari dari periode balance (backup)
         $periode = \App\Models\CoaPeriod::where('periode', date('Y-m', strtotime($startDate)))->first();
         
         if ($periode) {
-            // 2. Cek apakah ada saldo periode
-            $periodBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $accountCode)
+            $periodBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
                 ->where('period_id', $periode->id)
                 ->first();
             
-            if ($periodBalance) {
-                return is_numeric($periodBalance->saldo_awal) ? (float) $periodBalance->saldo_awal : 0;
+            if ($periodBalance && is_numeric($periodBalance->saldo_awal)) {
+                return (float) $periodBalance->saldo_awal;
+            }
+            
+            // Cek periode sebelumnya
+            $previousPeriod = $periode->getPreviousPeriod();
+            if ($previousPeriod) {
+                $previousBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
+                    ->where('period_id', $previousPeriod->id)
+                    ->first();
+                
+                if ($previousBalance && is_numeric($previousBalance->saldo_akhir)) {
+                    return (float) $previousBalance->saldo_akhir;
+                }
             }
         }
         
-        // 3. Jika tidak ada periode atau saldo, gunakan saldo awal dari COA
-        return is_numeric($akun->saldo_awal) ? (float) ($akun->saldo_awal ?? 0) : 0;
+        return 0;
     }
     
     /**
-     * Helper method untuk getTransaksiMasuk (copy dari PembelianController)
+     * Helper method untuk getTransaksiMasuk - HARUS SAMA dengan LaporanKasBankController
+     * Hanya dari jurnal_umum (DEBIT)
      */
     private function getTransaksiMasukHelper($akun, $startDate, $endDate)
     {
-        // Ambil transaksi dari journal_entries & journal_lines (sistem baru)
-        $debitJournal = \DB::table('journal_entries as je')
-            ->join('journal_lines as jl', 'je.id', '=', 'jl.journal_entry_id')
-            ->where('jl.coa_id', $akun->id)
-            ->where('je.user_id', auth()->id())
-            ->whereBetween('je.tanggal', [$startDate, $endDate])
-            ->sum('jl.debit') ?? 0;
+        // Hanya dari jurnal_umum (sistem jurnal yang digunakan)
+        $journalMasuk = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id())
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->sum('ju.debit') ?? 0;
         
-        // Ambil transaksi dari jurnal_umum (sistem lama)
-        $debitJurnalUmum = \DB::table('jurnal_umum')
-            ->where('coa_id', $akun->id)
-            ->where('user_id', auth()->id())
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->sum('debit') ?? 0;
-        
-        // Total transaksi masuk = debit dari kedua sistem
-        return (float) ($debitJournal + $debitJurnalUmum);
+        return (float) $journalMasuk;
     }
     
     /**
-     * Helper method untuk getTransaksiKeluar (copy dari PembelianController)
+     * Helper method untuk getTransaksiKeluar - HARUS SAMA dengan LaporanKasBankController
+     * Hanya dari jurnal_umum (KREDIT)
      */
     private function getTransaksiKeluarHelper($akun, $startDate, $endDate)
     {
-        // Ambil transaksi dari journal_entries & journal_lines (sistem baru)
-        $creditJournal = \DB::table('journal_entries as je')
-            ->join('journal_lines as jl', 'je.id', '=', 'jl.journal_entry_id')
-            ->where('jl.coa_id', $akun->id)
-            ->where('je.user_id', auth()->id())
-            ->whereBetween('je.tanggal', [$startDate, $endDate])
-            ->sum('jl.credit') ?? 0;
+        // Hanya dari jurnal_umum (sistem jurnal yang digunakan)
+        $journalKeluar = \DB::table('jurnal_umum as ju')
+            ->where('ju.coa_id', $akun->id)
+            ->where('ju.user_id', auth()->id())
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
+            ->sum('ju.kredit') ?? 0;
         
-        // Ambil transaksi dari jurnal_umum (sistem lama)
-        $creditJurnalUmum = \DB::table('jurnal_umum')
-            ->where('coa_id', $akun->id)
-            ->where('user_id', auth()->id())
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->sum('kredit') ?? 0;
-        
-        // Total transaksi keluar = kredit dari kedua sistem
-        return (float) ($creditJournal + $creditJurnalUmum);
+        return (float) $journalKeluar;
     }
     
     /**
