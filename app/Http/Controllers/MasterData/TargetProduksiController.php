@@ -127,15 +127,40 @@ class TargetProduksiController extends Controller
     {
         $target = TargetProduksi::where('user_id', auth()->id())->findOrFail($id);
         
+        // Validate basic fields
         $validated = $request->validate([
             'tahun' => 'required|integer|min:2020|max:2100',
             'produk_id' => 'required|exists:produks,id',
             'total_target_tahunan' => 'required|integer|min:1',
             'details' => 'required|array|size:12',
             'details.*.bulan' => 'required|integer|between:1,12',
-            'details.*.target_bulanan' => 'required|integer|min:0',
-            'details.*.hari_kerja' => 'required|integer|min:1|max:31',
+            'details.*.target_bulanan' => 'nullable|integer|min:0',
+            'details.*.hari_kerja' => 'nullable|integer|min:1|max:31',
         ]);
+
+        // Additional validation: Check locked months have values
+        $currentYear = now()->year;
+        $currentMonth = now()->month;
+        
+        foreach ($validated['details'] as $index => $detail) {
+            $bulan = $detail['bulan'];
+            $isLocked = TargetProduksiDetail::checkLockStatus($validated['tahun'], $bulan);
+            
+            // If not locked, require the fields
+            if (!$isLocked) {
+                if (!isset($detail['target_bulanan']) || $detail['target_bulanan'] === null) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['details.' . $index . '.target_bulanan' => 'Target bulanan untuk bulan ' . $bulan . ' wajib diisi']);
+                }
+                
+                if (!isset($detail['hari_kerja']) || $detail['hari_kerja'] === null) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['details.' . $index . '.hari_kerja' => 'Hari kerja untuk bulan ' . $bulan . ' wajib diisi']);
+                }
+            }
+        }
 
         try {
             $this->service->updateTarget($target, $validated);

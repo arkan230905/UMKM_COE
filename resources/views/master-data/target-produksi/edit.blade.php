@@ -148,7 +148,8 @@
                                                max="31"
                                                value="{{ old('details.' . ($i - 1) . '.hari_kerja', $detail ? $detail->hari_kerja : '') }}"
                                                onchange="hitungTargetPerHari({{ $i }})"
-                                               {{ $isLocked ? 'readonly' : 'required' }}>
+                                               {{ $isLocked ? 'readonly' : '' }}
+                                               {{ !$isLocked ? 'required' : '' }}>
                                         <small class="text-muted">1-31 hari</small>
                                     </td>
                                     <td>
