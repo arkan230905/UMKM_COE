@@ -136,7 +136,8 @@ class OrderToSalesService
             $customerUser = $order->user;
             
             // Cari data pelanggan yang sudah ada di master owner ini
-            $pelanggan = \App\Models\Pelanggan::where('user_id', $ownerId)
+            $pelanggan = \App\Models\Pelanggan::withoutGlobalScopes()
+                ->where('user_id', $ownerId)
                 ->where(function($q) use ($customerUser) {
                     $q->where('email', $customerUser->email)
                       ->orWhere('telepon', $customerUser->phone ?? '');
@@ -239,11 +240,15 @@ class OrderToSalesService
     /**
      * Map payment method dari Order ke Penjualan
      * 
-     * @param string $orderPaymentMethod
+     * @param string|null $orderPaymentMethod
      * @return string
      */
-    private function mapPaymentMethod(string $orderPaymentMethod): string
+    private function mapPaymentMethod(?string $orderPaymentMethod): string
     {
+        if ($orderPaymentMethod === null) {
+            return 'transfer'; // Default to transfer if null (e.g., from midtrans)
+        }
+        
         return match ($orderPaymentMethod) {
             'qris' => 'qris',
             'va_bca' => 'transfer',

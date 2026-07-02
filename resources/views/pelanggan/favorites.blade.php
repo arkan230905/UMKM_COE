@@ -108,6 +108,7 @@ function addToCart(produkId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            updateCartBadge(data.cart_total_qty);
             // Silent success - no notification
         }
     })

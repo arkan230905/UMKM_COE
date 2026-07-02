@@ -22,11 +22,6 @@ class FavoriteController extends Controller
             ->orderBy('nama_produk')
             ->paginate(12);
 
-        $cartCount = 0;
-        if ($userId) {
-            $cartCount = \App\Models\Cart::where('user_id', $userId)->sum('qty');
-        }
-
         $kategoris = \App\Models\KategoriProduk::withoutGlobalScopes()
             ->whereHas('produks', function($query) {
                 $query->withoutGlobalScopes();
@@ -43,7 +38,7 @@ class FavoriteController extends Controller
         $perusahaan = current_perusahaan();
         $perusahaan_slug = perusahaan_slug($perusahaan);
 
-        return view('pelanggan.favorites', compact('favoriteProduks', 'cartCount', 'kategoris', 'favoriteIds', 'perusahaan_slug'));
+        return view('pelanggan.favorites', compact('favoriteProduks', 'kategoris', 'favoriteIds', 'perusahaan_slug'));
     }
 
     public function toggle(Request $request)

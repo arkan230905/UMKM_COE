@@ -1021,7 +1021,7 @@ class PenjualanController extends Controller
 
             \Illuminate\Support\Facades\DB::commit();
 
-            return redirect()->back()->with('success', 'Transaksi berhasil disetujui dan jurnal telah dicatat.');
+            return redirect()->back()->with('success_approve', 'Transaksi berhasil disetujui dan jurnal telah dicatat.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
             \Log::error('Failed to approve transaction: ' . $e->getMessage());
@@ -1080,7 +1080,7 @@ class PenjualanController extends Controller
 
             \Illuminate\Support\Facades\DB::commit();
 
-            return redirect()->back()->with('success', 'Transaksi berhasil ditolak dan stok telah dikembalikan.');
+            return redirect()->back()->with('success_reject', 'Transaksi berhasil ditolak dan stok telah dikembalikan.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
             \Log::error('Failed to reject transaction: ' . $e->getMessage());

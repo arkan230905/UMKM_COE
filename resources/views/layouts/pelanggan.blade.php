@@ -20,61 +20,89 @@
     
     <style>
         body {
-            background-color: #f5f5f5;
+            background-color: #faf9f6; /* cream/off-white */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
+        /* Modern Navbar Styling */
+        .navbar-wrapper {
+            padding: 1rem 1rem 0;
+            background-color: #faf9f6;
+        }
+        
         .navbar-custom {
-            background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            padding: 0.5rem 1.5rem;
         }
         
         .navbar-brand {
-            font-weight: bold;
-            font-size: 1.5rem;
-            color: white !important;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2d3748 !important;
         }
         
         .nav-link {
-            color: rgba(255,255,255,0.9) !important;
-            font-weight: 500;
-            transition: all 0.3s;
+            color: #4a5568 !important;
+            font-weight: 600;
+            padding: 0.5rem 1rem !important;
+            transition: all 0.3s ease;
+            position: relative;
         }
         
         .nav-link:hover {
-            color: white !important;
-            transform: translateY(-2px);
+            color: #8b6f47 !important;
         }
         
-        .cart-badge {
+        .nav-link.active {
+            color: #8b6f47 !important;
+        }
+        
+        .nav-link.active::after {
+            content: '';
             position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #ff4757;
-            color: white;
-            border-radius: 50%;
-            padding: 2px 6px;
-            font-size: 0.75rem;
-            font-weight: bold;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background-color: #8b6f47;
+            border-radius: 3px;
         }
         
+        /* Pill button styling for Keranjang */
         .btn-cart {
-            position: relative;
-            background: #ffffff;
-            border: 1px solid #e6e9f0;
-            color: #1f2937;
-            padding: 8px 20px;
-            border-radius: 25px;
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 2px 6px rgba(0,0,0,.08);
+            background-color: #ffffff;
+            color: #8b6f47;
+            border: 1.5px solid #8b6f47;
+            border-radius: 50px;
+            padding: 0.4rem 1.2rem;
             font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
         }
         
         .btn-cart:hover {
-            background: #f7f9fc;
-            color: #0f172a;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0,0,0,.12);
+            background-color: #8b6f47;
+            color: #ffffff;
+        }
+        
+        .cart-badge {
+            background-color: #8b6f47;
+            color: white;
+            border-radius: 50px;
+            padding: 0.15rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        
+        .btn-cart:hover .cart-badge {
+            background-color: #ffffff;
+            color: #8b6f47;
         }
         
         .dropdown-menu {
@@ -228,14 +256,14 @@
     @stack('styles')
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
-        <div class="container">
+    <!-- Navbar Wrapper -->
+    <div class="navbar-wrapper">
+        <nav class="navbar navbar-expand-lg navbar-light navbar-custom container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('dashboard') }}">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height:36px;width:auto;">
                 <img src="{{ asset('images/logo_telkom.png') }}" alt="Telkom" style="height:36px;width:auto;">
                 <img src="{{ asset('images/logo_eadt.png') }}" alt="EADT" style="height:36px;width:auto;">
-                <span class="ms-2 d-none d-md-inline" style="font-size: 1rem; font-weight: 700; color: white;">{{ $currentCompany->nama ?? '' }}</span>
+                <span class="ms-2 d-none d-md-inline">{{ $currentCompany->nama ?? '' }}</span>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -245,13 +273,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center justify-content-end">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('dashboard') }}">
+                        <a class="nav-link {{ request()->is('*/dashboard') ? 'active' : '' }}" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('dashboard') }}">
                             <i class="bi bi-house-door"></i> Beranda
                         </a>
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('favorites') }}">
+                        <a class="nav-link {{ request()->is('*/favorites') ? 'active' : '' }}" href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('favorites') }}">
                             <i class="bi bi-heart"></i> Favorit
                         </a>
                     </li>
@@ -294,15 +322,15 @@
                     </li>
                     @else
                     <li class="nav-item ms-1">
-                        <a href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('login') }}" class="btn btn-outline-light d-flex align-items-center gap-2" style="border-radius: 25px; font-weight: 600; padding: 7px 20px;">
+                        <a href="{{ \App\Helpers\PerusahaanHelper::pelangganRoute('login') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2" style="border-radius: 25px; font-weight: 600; padding: 7px 20px;">
                             <i class="bi bi-box-arrow-in-right"></i> Login
                         </a>
                     </li>
                     @endif
                 </ul>
             </div>
-        </div>
-    </nav>
+        </nav>
+    </div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -365,6 +393,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     
     <script>
+        // Helper to update the cart badge in navbar
+        function updateCartBadge(totalQty) {
+            const badge = document.getElementById('cart-badge-header');
+            if (badge) {
+                if (totalQty > 0) {
+                    badge.style.display = 'block';
+                    badge.textContent = totalQty;
+                } else {
+                    badge.style.display = 'none';
+                    badge.textContent = '0';
+                }
+            }
+        }
+
         // Toast Notification System
         function showToast(message, type = 'info', duration = 3000) {
             const container = document.getElementById('toastContainer');

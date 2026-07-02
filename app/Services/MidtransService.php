@@ -5,6 +5,7 @@ namespace App\Services;
 use Midtrans\Config;
 use Midtrans\Snap;
 use Midtrans\Transaction;
+use Midtrans\CoreApi;
 
 class MidtransService
 {
@@ -25,10 +26,30 @@ class MidtransService
             Config::$curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
             Config::$curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
         }
+        
+        // FIX: Prevent 'Undefined array key 10023' (CURLOPT_HTTPHEADER) error in Midtrans SDK
+        if (!isset(Config::$curlOptions[CURLOPT_HTTPHEADER])) {
+            Config::$curlOptions[CURLOPT_HTTPHEADER] = [];
+        }
     }
 
-    public function createTransaction($order, $items)
+    public function createTransaction($order, $items, $bankVa = null)
     {
+        $enabledPayments = $this->getEnabledPayments($order->payment_method);
+        if ($bankVa) {
+            $codeMap = [
+                'bca' => 'bca_va',
+                'bni' => 'bni_va',
+                'bri' => 'bri_va',
+                'echannel' => 'echannel',
+                'permata' => 'permata_va',
+                'cimb' => 'cimb_va',
+            ];
+            if (isset($codeMap[$bankVa])) {
+                $enabledPayments = [$codeMap[$bankVa]];
+            }
+        }
+
         $params = [
             'transaction_details' => [
                 'order_id' => $order->nomor_order,
@@ -43,15 +64,8 @@ class MidtransService
                     'phone' => $order->telepon_penerima,
                 ],
             ],
-            'item_details' => $items->map(function ($item) {
-                return [
-                    'id' => $item->produk_id,
-                    'price' => (int) $item->harga,
-                    'quantity' => $item->qty,
-                    'name' => $item->produk->nama_produk,
-                ];
-            })->toArray(),
-            'enabled_payments' => $this->getEnabledPayments($order->payment_method),
+            'item_details' => $this->buildItemDetails($order, $items),
+            'enabled_payments' => $enabledPayments,
         ];
 
         try {
@@ -60,6 +74,40 @@ class MidtransService
         } catch (\Exception $e) {
             throw new \Exception('Midtrans Error: ' . $e->getMessage());
         }
+    }
+
+
+
+    private function buildItemDetails($order, $items)
+    {
+        $itemDetails = $items->map(function ($item) {
+            return [
+                'id' => $item->produk_id,
+                'price' => (int) $item->harga,
+                'quantity' => $item->qty,
+                'name' => substr($item->produk->nama_produk ?? 'Produk', 0, 50),
+            ];
+        })->toArray();
+
+        if ($order->ppn_amount > 0) {
+            $itemDetails[] = [
+                'id' => 'TAX-PPN',
+                'price' => (int) $order->ppn_amount,
+                'quantity' => 1,
+                'name' => 'PPN 11%',
+            ];
+        }
+
+        if ($order->ongkir_amount > 0) {
+            $itemDetails[] = [
+                'id' => 'SHIPPING',
+                'price' => (int) $order->ongkir_amount,
+                'quantity' => 1,
+                'name' => 'Biaya Pengiriman',
+            ];
+        }
+
+        return $itemDetails;
     }
 
     private function getEnabledPayments($method)

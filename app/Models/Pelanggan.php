@@ -41,7 +41,8 @@ class Pelanggan extends Model
     public function generateKodePelanggan()
     {
         $date = now()->format('ym');
-        $lastPelanggan = self::whereYear('created_at', now()->year)
+        $lastPelanggan = self::withoutGlobalScopes()
+            ->whereYear('created_at', now()->year)
             ->whereMonth('created_at', now()->month)
             ->orderBy('id', 'desc')
             ->first();

@@ -20,6 +20,7 @@ class Order extends Model
         'midtrans_transaction_id',
         'snap_token',
         'nama_penerima',
+        'jenis_pengiriman',
         'alamat_pengiriman',
         'telepon_penerima',
         'latitude',
@@ -34,6 +35,11 @@ class Order extends Model
         'bank_tujuan_transfer',
         'catatan',
         'paid_at',
+        'bank_va',
+        'nomor_va',
+        'expiry_time',
+        'payment_gateway',
+        'bukti_pembayaran',
     ];
 
     protected $casts = [
@@ -84,7 +90,7 @@ class Order extends Model
             'transfer' => 'Transfer Bank',
             'kasir' => 'Bayar di Kasir (Pick Up)',
             'cod' => 'COD (Cash On Delivery)',
-            default => '-',
+            default => $this->payment_gateway === 'midtrans' ? 'Transfer VA Midtrans' : ($this->payment_method ?: '-'),
         };
     }
 }

@@ -102,57 +102,65 @@
                                     </div>
                                     @error('payment_gateway') <small class="text-danger mt-2 d-block">{{ $message }}</small> @enderror
                                     
-                                    <!-- Info untuk Tunai -->
-                                    <div id="tunai-info" style="background: #fff8e1; border: 1px solid #ffecb3; border-radius: 6px; padding: 1rem; margin-top: 1rem; display: none; color: #f57f17;">
-                                        <h6 class="mb-3" style="font-weight: 700; font-size: 0.9rem;"><i class="bi bi-cash-coin" style="color: #fbc02d; margin-right: 5px;"></i> Pembayaran Tunai</h6>
-                                        <div class="d-flex gap-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="metode_tunai" id="tunai_cod" value="cod" checked>
-                                                <label class="form-check-label" style="font-size: 0.85rem; color: #555;" for="tunai_cod">
-                                                    Bayar di Tempat (COD)
-                                                </label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="metode_tunai" id="tunai_ambil" value="ambil_di_toko">
-                                                <label class="form-check-label" style="font-size: 0.85rem; color: #555;" for="tunai_ambil">
-                                                    Ambil di Toko
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <p class="mb-0 mt-3 text-muted" style="font-size: 0.75rem;">* Pesanan akan diproses dan dibayar langsung secara tunai.</p>
-                                    </div>
+                                    <!-- Info untuk Tunai dihapus karena sudah jelas dari pilihan checkout sebelumnya -->
                                     
                                     <!-- Info untuk Transfer -->
-                                    <div id="transfer-info" style="background: #eef8f1; border: 1px solid #d4ecd9; border-radius: 6px; padding: 1rem; margin-top: 1rem; display: none; color: #27ae60;">
-                                        <h6 class="mb-3" style="font-weight: 700; font-size: 0.9rem;"><i class="bi bi-bank" style="color: #27ae60; margin-right: 5px;"></i> Pembayaran Transfer</h6>
+                                    <div id="transfer-info" style="margin-top: 1rem; display: none;">
+                                        <h6 class="mb-3" style="font-weight: 700; font-size: 0.9rem;">Pilih Jenis Transfer</h6>
                                         
-                                        <div class="d-flex gap-3 mb-3">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="metode_transfer" id="transfer_midtrans" value="midtrans" checked>
-                                                <label class="form-check-label" style="font-size: 0.85rem; color: #555;" for="transfer_midtrans">
-                                                    Otomatis (Midtrans)
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-sm-6">
+                                                <input class="btn-check" type="radio" name="metode_transfer" id="transfer_midtrans" value="midtrans_va" checked>
+                                                <label class="payment-card w-100 text-start p-3 bg-white" for="transfer_midtrans" style="border-radius: 8px; display: block; height: 100%;">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <i class="bi bi-robot fs-5" style="color: #27ae60;"></i>
+                                                        <div>
+                                                            <strong style="display: block; font-size: 0.9rem; color: #2d3748;">Virtual Account Midtrans</strong>
+                                                            <span style="font-size: 0.75rem; color: #888;">Bayar otomatis melalui VA Midtrans</span>
+                                                        </div>
+                                                    </div>
                                                 </label>
                                             </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="metode_transfer" id="transfer_manual" value="manual_transfer">
-                                                <label class="form-check-label" style="font-size: 0.85rem; color: #555;" for="transfer_manual">
-                                                    Transfer Manual
+                                            <div class="col-sm-6">
+                                                <input class="btn-check" type="radio" name="metode_transfer" id="transfer_manual" value="manual">
+                                                <label class="payment-card w-100 text-start p-3 bg-white" for="transfer_manual" style="border-radius: 8px; display: block; height: 100%;">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <i class="bi bi-person-lines-fill fs-5" style="color: #1565c0;"></i>
+                                                        <div>
+                                                            <strong style="display: block; font-size: 0.9rem; color: #2d3748;">Transfer Manual</strong>
+                                                            <span style="font-size: 0.75rem; color: #888;">Transfer ke rekening perusahaan lalu upload bukti bayar</span>
+                                                        </div>
+                                                    </div>
                                                 </label>
                                             </div>
                                         </div>
 
                                         <!-- Midtrans Details -->
-                                        <div id="transfer_midtrans_details">
-                                            <p class="mb-2" style="font-size: 0.85rem;">Pembayaran diverifikasi secara otomatis. Anda bisa membayar menggunakan:</p>
-                                            <ul class="mb-0 ps-3" style="font-size: 0.8rem;">
-                                                <li>Virtual Account (BCA, BNI, BRI, Mandiri, dll)</li>
-                                                <li>E-Wallet (GoPay, ShopeePay, dll)</li>
-                                                <li>QRIS</li>
-                                            </ul>
+                                        <div id="transfer_midtrans_details" style="background: #eef8f1; border: 1px solid #d4ecd9; border-radius: 6px; padding: 1rem; color: #27ae60;">
+                                            <p class="mb-3" style="font-size: 0.85rem;">Pilih Bank Virtual Account:</p>
+                                            
+                                            @if(isset($supportedVABanks) && count($supportedVABanks) > 0)
+                                                <div class="row g-2">
+                                                    @foreach($supportedVABanks as $index => $bank)
+                                                        <div class="col-sm-6">
+                                                            <div class="form-check mb-2 p-2 bg-white" style="border: 1px solid #c8e6c9; border-radius: 6px;">
+                                                                <input class="form-check-input ms-1" type="radio" name="bank_va" id="va_{{ $bank['code'] }}" value="{{ $bank['code'] }}" {{ $index === 0 ? 'checked' : '' }} required>
+                                                                <label class="form-check-label w-100 ms-2" for="va_{{ $bank['code'] }}" style="cursor: pointer; font-size: 0.85rem; color: #2e7d32; font-weight: 600;">
+                                                                    Bank {{ $bank['name'] }}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <div style="background: #fff3cd; padding: 0.8rem; border-radius: 6px; margin-bottom: 0.8rem; font-size: 0.85rem; border: 1px solid #ffeeba; color: #856404;">
+                                                    <em>Bank yang didukung UMKM ini belum mendukung Virtual Account Midtrans. Silakan pilih bank lain atau gunakan Transfer Manual.</em>
+                                                </div>
+                                            @endif
                                         </div>
 
                                         <!-- Manual Details -->
-                                        <div id="transfer_manual_details" style="display: none;">
+                                        <div id="transfer_manual_details" style="display: none; background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 6px; padding: 1rem; color: #1565c0;">
                                             <p class="mb-3" style="font-size: 0.85rem; color: #1565c0;">Silakan transfer sejumlah <strong class="total-pembayaran-text">Rp {{ number_format($total, 0, ',', '.') }}</strong> ke rekening berikut:</p>
                                             
                                             @if(isset($rekeningBanks) && $rekeningBanks->count() > 0)
@@ -180,43 +188,9 @@
                                                 <label class="form-label" style="font-size: 0.85rem; color: #555; font-weight: 600;">Upload Bukti Transfer <span class="text-danger">*</span></label>
                                                 <input type="file" name="bukti_pembayaran" id="bukti_pembayaran" class="form-control form-control-sm" accept="image/*,.pdf">
                                                 <small class="text-muted" style="font-size: 0.7rem;">Format: JPG, PNG, PDF. Maks 5MB.</small>
+                                                <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">Upload bukti transfer agar pesanan dapat diverifikasi oleh penjual.</small>
                                             </div>
-                                            
-                                            <p class="mb-0 mt-2 text-muted" style="font-size: 0.75rem;">* Pesanan akan diproses setelah bukti pembayaran diverifikasi oleh admin.</p>
                                         </div>
-                                    </div>
-                                    
-                                    <!-- Info untuk Transfer Bank -->
-                                    <div id="manual-info" style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 1rem; margin-top: 1rem; display: none; color: #1565c0;">
-                                        <h6 class="mb-2" style="font-weight: 700; font-size: 0.9rem;"><i class="bi bi-bank" style="color: #2196f3; margin-right: 5px;"></i> Transfer Bank Manual</h6>
-                                        <p class="mb-3" style="font-size: 0.85rem;">Silakan transfer sejumlah <strong>Rp {{ number_format($total, 0, ',', '.') }}</strong> ke rekening berikut:</p>
-                                        
-                                        @if($perusahaan && $perusahaan->nama_bank && $perusahaan->nomor_rekening)
-                                        <div style="background: white; padding: 0.8rem; border-radius: 6px; margin-bottom: 0.8rem; font-size: 0.85rem; border: 1px solid #bbdefb;">
-                                            <table style="width: 100%;">
-                                                <tr>
-                                                    <td style="width: 35%; color: #666; padding-bottom: 4px;">Bank</td>
-                                                    <td style="padding-bottom: 4px;">: <strong>{{ $perusahaan->nama_bank }}</strong></td>
-                                                </tr>
-                                                <tr>
-                                                    <td style="color: #666; padding-bottom: 4px;">Nomor Rekening</td>
-                                                    <td style="padding-bottom: 4px;">: <strong>{{ $perusahaan->nomor_rekening }}</strong></td>
-                                                </tr>
-                                                @if($perusahaan->nama_pemilik_rekening)
-                                                <tr>
-                                                    <td style="color: #666;">Atas Nama</td>
-                                                    <td>: <strong>{{ $perusahaan->nama_pemilik_rekening }}</strong></td>
-                                                </tr>
-                                                @endif
-                                            </table>
-                                        </div>
-                                        @else
-                                        <div style="background: white; padding: 0.8rem; border-radius: 6px; margin-bottom: 0.8rem; font-size: 0.85rem; border: 1px solid #bbdefb; color: #888;">
-                                            <em>Data rekening perusahaan (Kas Bank) akan diverifikasi oleh Admin. Silakan konfirmasi via WhatsApp setelah pesanan dibuat.</em>
-                                        </div>
-                                        @endif
-                                        
-                                        <p class="mb-0 text-muted" style="font-size: 0.75rem;">* Pesanan akan diproses setelah bukti pembayaran diverifikasi oleh admin.</p>
                                     </div>
                                 </div>
                             </div>
@@ -309,20 +283,18 @@
         
         function handlePaymentChange(value) {
             const transferInfoBox = document.getElementById('transfer-info');
-            const tunaiInfoBox = document.getElementById('tunai-info');
             const btnProcess = document.getElementById('btn-process-payment');
+            const inputBukti = document.getElementById('bukti_pembayaran');
             
             if (value === 'transfer') {
                 if (transferInfoBox) transferInfoBox.style.display = 'block';
-                if (tunaiInfoBox) tunaiInfoBox.style.display = 'none';
                 updateTransferSubMethod();
             } else if (value === 'tunai') {
                 if (transferInfoBox) transferInfoBox.style.display = 'none';
-                if (tunaiInfoBox) tunaiInfoBox.style.display = 'block';
                 btnProcess.innerHTML = '<i class="bi bi-cash-coin me-2"></i> Buat Pesanan (Tunai)';
-                
-                const inputBukti = document.getElementById('bukti_pembayaran');
                 if (inputBukti) inputBukti.removeAttribute('required');
+                document.querySelectorAll('input[name="rekening_id"]').forEach(r => r.removeAttribute('required'));
+                document.querySelectorAll('input[name="bank_va"]').forEach(r => r.removeAttribute('required'));
             }
         }
         
@@ -336,12 +308,16 @@
             if (isMidtrans) {
                 midtransDetails.style.display = 'block';
                 manualDetails.style.display = 'none';
-                inputBukti.removeAttribute('required');
-                btnProcess.innerHTML = '<i class="bi bi-phone me-2"></i> Bayar dengan Midtrans';
+                if (inputBukti) inputBukti.removeAttribute('required');
+                document.querySelectorAll('input[name="rekening_id"]').forEach(r => r.removeAttribute('required'));
+                document.querySelectorAll('input[name="bank_va"]').forEach(r => r.setAttribute('required', 'required'));
+                btnProcess.innerHTML = '<i class="bi bi-phone me-2"></i> Buat Pesanan';
             } else {
                 midtransDetails.style.display = 'none';
                 manualDetails.style.display = 'block';
-                inputBukti.setAttribute('required', 'required');
+                if (inputBukti) inputBukti.setAttribute('required', 'required');
+                document.querySelectorAll('input[name="rekening_id"]').forEach(r => r.setAttribute('required', 'required'));
+                document.querySelectorAll('input[name="bank_va"]').forEach(r => r.removeAttribute('required'));
                 btnProcess.innerHTML = '<i class="bi bi-lock-fill me-2"></i> Buat Pesanan (Transfer Manual)';
             }
         }
@@ -351,26 +327,14 @@
             radio.addEventListener('change', updateTransferSubMethod);
         });
 
-        const tunaiRadios = document.querySelectorAll('input[name="metode_tunai"]');
-        tunaiRadios.forEach(radio => {
-            radio.addEventListener('change', updateOngkirDisplay);
-        });
-        
         function updateOngkirDisplay() {
-            const isAmbilDiToko = document.getElementById('tunai_ambil') && document.getElementById('tunai_ambil').checked;
-            const isTunai = document.getElementById('gateway_tunai').checked;
-            
+            // Remove tunai_ambil dependency as it's determined at checkout page
             const biayaKirimDisplay = document.getElementById('biaya-kirim-display');
             const totalDisplay = document.getElementById('total-pembayaran-display');
             
-            const originalOngkir = parseInt(biayaKirimDisplay.dataset.ongkir) || 0;
+            const currentOngkir = parseInt(biayaKirimDisplay.dataset.ongkir) || 0;
             const subtotal = parseInt(totalDisplay.dataset.subtotal) || 0;
             const ppn = parseInt(totalDisplay.dataset.ppn) || 0;
-            
-            let currentOngkir = originalOngkir;
-            if (isTunai && isAmbilDiToko) {
-                currentOngkir = 0;
-            }
             
             const currentTotal = subtotal + ppn + currentOngkir;
             
@@ -393,19 +357,70 @@
                     return; // Let browser show validation errors
                 }
                 
+                e.preventDefault(); // Prevent standard form submission
+
                 // Set loading state
                 btnProcess.disabled = true;
                 btnProcess.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Memproses...';
+
+                // Send AJAX request
+                const formData = new FormData(paymentForm);
+                
+                fetch(paymentForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.snap_token) {
+                            // Midtrans Flow
+                            snap.pay(data.snap_token, {
+                                onSuccess: function(result){
+                                    window.location.href = data.redirect_url + "?payment_status=success";
+                                },
+                                onPending: function(result){
+                                    window.location.href = data.redirect_url + "?payment_status=pending";
+                                },
+                                onError: function(result){
+                                    window.location.href = data.redirect_url + "?payment_status=error";
+                                },
+                                onClose: function(){
+                                    alert("Pembayaran belum diselesaikan. Silakan lanjutkan pembayaran pada pesanan Anda.");
+                                    window.location.href = data.redirect_url + "?payment_status=pending";
+                                }
+                            });
+                        } else {
+                            // Manual/Tunai Flow
+                            window.location.href = data.redirect_url;
+                        }
+                    } else {
+                        alert(data.message || 'Gagal memproses pembayaran.');
+                        btnProcess.disabled = false;
+                        btnProcess.innerHTML = '<i class="bi bi-lock-fill me-2"></i> Buat Pesanan';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan pada server. Silakan coba lagi.');
+                    btnProcess.disabled = false;
+                    btnProcess.innerHTML = '<i class="bi bi-lock-fill me-2"></i> Buat Pesanan';
+                });
             });
         }
         
         // Initialize state
         paymentRadios.forEach(radio => {
             radio.addEventListener('change', function() {
-                    handlePaymentChange(this.value);
-                    updateOngkirDisplay();
-                });
+                handlePaymentChange(this.value);
+                updateOngkirDisplay();
             });
+        });
 
         if (paymentRadios.length > 0) {
             // Check initial state
@@ -414,24 +429,6 @@
                 handlePaymentChange(checkedRadio.value);
             }
         }
-
-        // Display Snap Popup if token exists (after redirection from controller)
-        @if(session('snap_token'))
-            snap.pay('{{ session('snap_token') }}', {
-                onSuccess: function(result){
-                    window.location.href = "{{ route('pelanggan.orders.show', session('order_id')) }}?payment_status=success";
-                },
-                onPending: function(result){
-                    window.location.href = "{{ route('pelanggan.orders.show', session('order_id')) }}?payment_status=pending";
-                },
-                onError: function(result){
-                    window.location.href = "{{ route('pelanggan.orders.show', session('order_id')) }}?payment_status=error";
-                },
-                onClose: function(){
-                    window.location.href = "{{ route('pelanggan.orders.show', session('order_id')) }}";
-                }
-            });
-        @endif
     });
 </script>
 @endpush

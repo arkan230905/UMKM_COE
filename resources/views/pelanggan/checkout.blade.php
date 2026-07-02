@@ -52,12 +52,66 @@
                     <form action="{{ url("/" . $perusahaan_slug . "/pelanggan/checkout/process") }}" method="POST" id="checkoutForm">
                         @csrf
                         
+                        <!-- Metode Pemenuhan Pesanan -->
+                        <div class="mb-4">
+                            <h6 style="font-weight: 700; color: #2d3748; margin-bottom: 1rem;">Pilih Metode Pemenuhan Pesanan</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="w-100 h-100" style="cursor: pointer;">
+                                        <input type="radio" name="jenis_pengiriman" value="delivery" class="d-none" checked onchange="togglePengiriman(this.value)">
+                                        <div class="card h-100 radio-card-pengiriman active" id="card-delivery" style="border: 2px solid #8b5a2b; background: #fdf5eb; border-radius: 12px; transition: all 0.2s;">
+                                            <div class="card-body p-3 d-flex align-items-start gap-3">
+                                                <div class="radio-circle mt-1" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #8b5a2b; position: relative; background: #8b5a2b;">
+                                                    <div class="circle-inner" style="width: 8px; height: 8px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: block;"></div>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold" style="color: #2d3748;">Delivery</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 0.8rem;">Pesanan dikirim ke alamat</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="w-100 h-100" style="cursor: pointer;">
+                                        <input type="radio" name="jenis_pengiriman" value="ambil_di_toko" class="d-none" onchange="togglePengiriman(this.value)">
+                                        <div class="card h-100 radio-card-pengiriman" id="card-pickup" style="border: 2px solid #eee; background: white; border-radius: 12px; transition: all 0.2s;">
+                                            <div class="card-body p-3 d-flex align-items-start gap-3">
+                                                <div class="radio-circle mt-1" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ddd; position: relative; background: white;">
+                                                    <div class="circle-inner" style="width: 8px; height: 8px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none;"></div>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1 fw-bold" style="color: #2d3748;">Ambil di Toko</h6>
+                                                    <p class="mb-0 text-muted" style="font-size: 0.8rem;">Pesanan diambil langsung di toko.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Ambil di Toko (Hidden by default) -->
+                        <div id="info-pickup" class="mb-4" style="display: none;">
+                            <div class="p-3" style="background: #f8f9fa; border-left: 4px solid #8b5a2b; border-radius: 8px;">
+                                <div class="d-flex gap-2 mb-1">
+                                    <i class="bi bi-info-circle" style="color: #8b5a2b;"></i>
+                                    <strong style="color: #2d3748; font-size: 0.9rem;">Informasi Pengambilan</strong>
+                                </div>
+                                <ul class="mb-0 text-muted" style="font-size: 0.85rem; padding-left: 1.5rem;">
+                                    <li>Untuk ambil di toko, Anda <strong>tidak perlu</strong> mengisi alamat pengiriman.</li>
+                                    <li>Ongkos kirim: <strong>Gratis</strong></li>
+                                    <li>Estimasi pesanan siap diambil: <strong>15–30 menit</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+
                         <!-- Data Pengiriman -->
                         <div class="d-flex gap-3 mb-4">
                             <div style="color: #8b5a2b; font-size: 1.5rem;"><i class="bi bi-truck"></i></div>
                             <div style="flex: 1;">
-                                <h6 style="font-weight: 700; color: #2d3748; margin-bottom: 0.2rem;">Data Pengiriman</h6>
-                                <p style="font-size: 0.8rem; color: #888; margin-bottom: 1rem;">Pastikan data pengiriman sudah benar</p>
+                                <h6 style="font-weight: 700; color: #2d3748; margin-bottom: 0.2rem;" id="data-pengiriman-title">Data Pengiriman</h6>
+                                <p style="font-size: 0.8rem; color: #888; margin-bottom: 1rem;" id="data-pengiriman-desc">Pastikan data pengiriman sudah benar</p>
                                 
                                 <div class="mb-3">
                                     <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Nama Penerima <span class="text-danger">*</span></label>
@@ -68,45 +122,47 @@
                                     @error('nama_penerima') <small class="text-danger">{{ $message }}</small> @enderror
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Pilih Lokasi di Peta <span class="text-danger">*</span></label>
-                                    <div class="position-relative mb-2">
-                                        <input type="text" id="map_search" class="form-control" placeholder="Cari alamat di peta..." style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
-                                        <i class="bi bi-search position-absolute" style="right: 15px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
-                                        <!-- Map Search Suggestions Dropdown -->
-                                        <div id="map-suggestions" class="position-absolute w-100" style="top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div id="alamat-fields">
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Pilih Lokasi di Peta <span class="text-danger">*</span></label>
+                                        <div class="position-relative mb-2">
+                                            <input type="text" id="map_search" class="form-control" placeholder="Cari alamat di peta..." style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                            <i class="bi bi-search position-absolute" style="right: 15px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
+                                            <!-- Map Search Suggestions Dropdown -->
+                                            <div id="map-suggestions" class="position-absolute w-100" style="top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                            </div>
+                                        </div>
+                                        <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 1rem; z-index: 1;"></div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Alamat Lengkap <span class="text-danger">*</span></label>
+                                        <div class="position-relative">
+                                            <input type="text" id="alamat_pengiriman" name="alamat_pengiriman" class="form-control" readonly required placeholder="Alamat terisi otomatis dari peta" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem; background: #f8f9fa;">
+                                            <i class="bi bi-geo-alt position-absolute" style="right: 15px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
+                                        </div>
+                                        @error('alamat_pengiriman') <small class="text-danger">{{ $message }}</small> @enderror
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kecamatan</label>
+                                            <input type="text" id="kecamatan" name="kecamatan" class="form-control" placeholder="Kecamatan" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kota/Kabupaten</label>
+                                            <input type="text" id="kota" name="kota" class="form-control" placeholder="Kota" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kode Pos</label>
+                                            <input type="text" id="kode_pos" name="kode_pos" class="form-control" placeholder="Kode Pos" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
                                         </div>
                                     </div>
-                                    <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 1rem; z-index: 1;"></div>
-                                </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Alamat Lengkap <span class="text-danger">*</span></label>
-                                    <div class="position-relative">
-                                        <input type="text" id="alamat_pengiriman" name="alamat_pengiriman" class="form-control" readonly required placeholder="Alamat terisi otomatis dari peta" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem; background: #f8f9fa;">
-                                        <i class="bi bi-geo-alt position-absolute" style="right: 15px; top: 50%; transform: translateY(-50%); color: #aaa;"></i>
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Detail Alamat (Patokan, dll)</label>
+                                        <textarea name="detail_alamat" id="detail_alamat" class="form-control" rows="2" placeholder="Cth: Rumah pagar hitam, depan masjid..." style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;"></textarea>
                                     </div>
-                                    @error('alamat_pengiriman') <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-
-                                <div class="row g-2 mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kecamatan</label>
-                                        <input type="text" id="kecamatan" name="kecamatan" class="form-control" placeholder="Kecamatan" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kota/Kabupaten</label>
-                                        <input type="text" id="kota" name="kota" class="form-control" placeholder="Kota" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Kode Pos</label>
-                                        <input type="text" id="kode_pos" name="kode_pos" class="form-control" placeholder="Kode Pos" style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;">
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label" style="font-size: 0.85rem; font-weight: 600; color: #2d3748;">Detail Alamat (Patokan, dll)</label>
-                                    <textarea name="detail_alamat" class="form-control" rows="2" placeholder="Cth: Rumah pagar hitam, depan masjid..." style="border-radius: 8px; font-size: 0.9rem; padding: 0.6rem 1rem;"></textarea>
                                 </div>
 
 
@@ -145,6 +201,12 @@
                         <input type="hidden" name="biaya_ongkir" id="biaya_ongkir" value="0">
                         <input type="hidden" name="latitude_pengiriman" id="latitude_pengiriman" value="">
                         <input type="hidden" name="longitude_pengiriman" id="longitude_pengiriman" value="">
+                        <input type="hidden" name="kecamatan" id="kecamatan">
+                        <input type="hidden" name="kota" id="kota">
+                        <input type="hidden" name="provinsi" id="provinsi">
+                        <input type="hidden" name="kelurahan" id="kelurahan">
+                        <input type="hidden" name="negara" id="negara" value="Indonesia">
+                        <input type="hidden" name="kode_pos" id="kode_pos">
                     </form>
                 </div>
             </div>
@@ -330,7 +392,7 @@
         let timeoutId;
         
         const konfirmasiModal = new bootstrap.Modal(document.getElementById('modalKonfirmasiAlamat'));
-        let pendingLat = null, pendingLon = null, pendingAddress = '', pendingKecamatan = '', pendingKota = '', pendingKodePos = '';
+        let pendingLat = null, pendingLon = null, pendingAddress = '', pendingKecamatan = '', pendingKota = '', pendingProvinsi = '', pendingKelurahan = '', pendingNegara = '', pendingKodePos = '';
         let alamatDikonfirmasi = false;
         let ongkirValid = false;
         let miniMap = null;
@@ -338,14 +400,21 @@
 
         // Form Submission Validation
         document.getElementById('checkoutForm').addEventListener('submit', function(e) {
-            if (!alamatDikonfirmasi) {
-                e.preventDefault();
-                alert('Silakan konfirmasi titik alamat pengiriman di peta terlebih dahulu.');
-                return;
-            }
-            if (!ongkirValid) {
-                e.preventDefault();
-                alert('Gagal memproses ongkos kirim. Pastikan alamat valid dan lokasi toko penjual telah diatur oleh admin.');
+            const jenisPengiriman = document.querySelector('input[name="jenis_pengiriman"]:checked').value;
+            
+            if (jenisPengiriman === 'delivery') {
+                if (!alamatDikonfirmasi) {
+                    e.preventDefault();
+                    alert('Silakan konfirmasi titik alamat pengiriman di peta terlebih dahulu.');
+                    return;
+                }
+                if (!ongkirValid) {
+                    e.preventDefault();
+                    alert('Gagal memproses ongkos kirim. Pastikan alamat valid dan lokasi toko penjual telah diatur oleh admin.');
+                }
+            } else {
+                // If ambil_di_toko, remove required from address inputs so form can submit
+                document.getElementById('alamat_pengiriman').removeAttribute('required');
             }
         });
         
@@ -490,6 +559,9 @@
                         
                         pendingKecamatan = addr.city_district || addr.district || addr.subdistrict || '';
                         pendingKota = addr.city || addr.town || addr.municipality || addr.county || '';
+                        pendingProvinsi = addr.state || addr.province || addr.region || '';
+                        pendingKelurahan = addr.village || addr.suburb || addr.hamlet || addr.neighbourhood || '';
+                        pendingNegara = addr.country || 'Indonesia';
                         pendingKodePos = addr.postcode || '';
                     } else {
                         pendingAddress = "Lokasi yang dipilih pada peta";
@@ -509,6 +581,9 @@
             addressInput.value = pendingAddress;
             document.getElementById('kecamatan').value = pendingKecamatan;
             document.getElementById('kota').value = pendingKota;
+            document.getElementById('provinsi').value = pendingProvinsi;
+            document.getElementById('kelurahan').value = pendingKelurahan;
+            document.getElementById('negara').value = pendingNegara;
             document.getElementById('kode_pos').value = pendingKodePos;
             
             calculateOngkir(pendingAddress, pendingLat, pendingLon);
@@ -637,6 +712,86 @@
 
         // Initialize totals on page load
         updateTotals();
+        
+        // Toggle Pengiriman Logic
+        function handleTogglePengiriman(jenis) {
+            const sectionData = document.getElementById('alamat-fields');
+            const cardDelivery = document.getElementById('card-delivery');
+            const cardPickup = document.getElementById('card-pickup');
+            const infoPickup = document.getElementById('info-pickup');
+            const titleElement = document.getElementById('data-pengiriman-title');
+            const descElement = document.getElementById('data-pengiriman-desc');
+            const inputsToDisable = sectionData.querySelectorAll('input, textarea, select');
+            
+            if(jenis === 'delivery') {
+                cardDelivery.classList.add('active');
+                cardDelivery.style.background = '#fdf5eb';
+                cardDelivery.style.border = '2px solid #8b5a2b';
+                cardDelivery.querySelector('.circle-inner').style.display = 'block';
+                
+                cardPickup.classList.remove('active');
+                cardPickup.style.background = 'white';
+                cardPickup.style.border = '2px solid #eee';
+                cardPickup.querySelector('.circle-inner').style.display = 'none';
+                
+                titleElement.innerText = 'Data Pengiriman';
+                descElement.innerText = 'Pastikan data pengiriman sudah benar';
+                
+                sectionData.style.display = 'block';
+                infoPickup.style.display = 'none';
+                
+                // Enable inputs
+                inputsToDisable.forEach(input => input.removeAttribute('disabled'));
+                document.getElementById('alamat_pengiriman').setAttribute('required', 'required');
+                
+                if(pendingLat && pendingLon && document.getElementById('alamat_pengiriman').value) {
+                    calculateOngkir(document.getElementById('alamat_pengiriman').value, pendingLat, pendingLon);
+                } else {
+                    ongkirValid = false;
+                    document.getElementById('ongkir-display').innerHTML = '-';
+                    document.getElementById('biaya_ongkir').value = 0;
+                    currentOngkir = 0;
+                    updateTotals();
+                }
+                // Refresh map size due to display block
+                setTimeout(() => map.invalidateSize(), 100);
+            } else {
+                cardPickup.classList.add('active');
+                cardPickup.style.background = '#fdf5eb';
+                cardPickup.style.border = '2px solid #8b5a2b';
+                cardPickup.querySelector('.circle-inner').style.display = 'block';
+                
+                cardDelivery.classList.remove('active');
+                cardDelivery.style.background = 'white';
+                cardDelivery.style.border = '2px solid #eee';
+                cardDelivery.querySelector('.circle-inner').style.display = 'none';
+                
+                titleElement.innerText = 'Data Pengambil';
+                descElement.innerText = 'Pastikan data pengambil pesanan sudah benar';
+                
+                sectionData.style.display = 'none';
+                infoPickup.style.display = 'block';
+                
+                // Disable inputs
+                inputsToDisable.forEach(input => input.setAttribute('disabled', 'disabled'));
+                document.getElementById('alamat_pengiriman').removeAttribute('required');
+                
+                document.getElementById('ongkir-display').innerHTML = 'Rp 0 <br><small style="color: #8b5a2b; font-size: 0.7rem;">(Ambil di Toko)</small>';
+                document.getElementById('biaya_ongkir').value = 0;
+                ongkirValid = true; // allow submit
+                currentOngkir = 0;
+                updateTotals();
+            }
+        }
+
+        // Attach globally so inline onchange works, or bind event listeners
+        window.togglePengiriman = handleTogglePengiriman;
+        
+        // Trigger initial state based on checked radio
+        const initialMethod = document.querySelector('input[name="jenis_pengiriman"]:checked').value;
+        if(initialMethod === 'ambil_di_toko') {
+            handleTogglePengiriman('ambil_di_toko');
+        }
         
         // Wait a bit for modal/container to fully render before invalidating map size
         setTimeout(() => {

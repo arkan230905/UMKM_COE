@@ -62,7 +62,7 @@
                         ⚠️ Pesanan Anda menunggu pembayaran
                     </div>
                     <button id="pay-button" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem; margin-top: 0.8rem;">
-                        💳 Bayar dengan Midtrans
+                        💳 Lanjutkan Pembayaran
                     </button>
                     @elseif($order->payment_gateway === 'manual_transfer')
                     <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
@@ -159,18 +159,70 @@
                     <h6 style="font-size: 0.7rem; font-weight: 800; color: #2d3748; margin: 0;">🚚 Data Pengiriman</h6>
                 </div>
                 <div style="padding: 1rem;">
+                    @if(in_array($order->jenis_pengiriman, ['ambil_di_toko', 'kasir']))
                     <div style="margin-bottom: 0.8rem;">
-                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Nama Penerima</div>
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Nama Pengambil</div>
                         <div style="font-size: 0.75rem; color: #2d3748; font-weight: 600;">{{ $order->nama_penerima }}</div>
-                    </div>
-                    <div style="margin-bottom: 0.8rem;">
-                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Alamat</div>
-                        <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->alamat_pengiriman }}</div>
                     </div>
                     <div style="margin-bottom: 0.8rem;">
                         <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Telepon</div>
                         <div style="font-size: 0.75rem; color: #2d3748; font-weight: 600;">{{ $order->telepon_penerima }}</div>
                     </div>
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Jenis Pengiriman</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">Ambil di Toko</div>
+                    </div>
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Estimasi Pengambilan</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">15–30 menit</div>
+                    </div>
+                    @else
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Nama Penerima</div>
+                        <div style="font-size: 0.75rem; color: #2d3748; font-weight: 600;">{{ $order->nama_penerima }}</div>
+                    </div>
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Jenis Pengiriman</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">Delivery</div>
+                    </div>
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Alamat</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->alamat_pengiriman }}</div>
+                    </div>
+                    @if($order->detail_alamat)
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Detail Alamat</div>
+                        <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->detail_alamat }}</div>
+                    </div>
+                    @endif
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.8rem;">
+                        <div>
+                            <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Kecamatan</div>
+                            <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->kecamatan ?: '-' }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Kota/Kabupaten</div>
+                            <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->kota ?: '-' }}</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.8rem;">
+                        <div>
+                            <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Provinsi</div>
+                            <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->provinsi ?: '-' }}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Kode Pos</div>
+                            <div style="font-size: 0.75rem; color: #2d3748;">{{ $order->kode_pos ?: '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 0.8rem;">
+                        <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Telepon</div>
+                        <div style="font-size: 0.75rem; color: #2d3748; font-weight: 600;">{{ $order->telepon_penerima }}</div>
+                    </div>
+                    @endif
+                    
                     @if($order->catatan)
                     <div>
                         <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">Catatan</div>

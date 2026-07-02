@@ -41,10 +41,9 @@ class PelangganController extends Controller
         }); // Remove filter to show all products
         
         // Ambil keranjang dari session
-        $cart = session('cart', []);
-        $cartCount = array_sum(array_column($cart, 'qty'));
+        $cart = session()->get('cart', []);
         
-        return view('pelanggan.dashboard', compact('produks', 'cart', 'cartCount', 'user'));
+        return view('pelanggan.dashboard', compact('produks', 'cart', 'user'));
     }
     
     public function addToCart(Request $request)

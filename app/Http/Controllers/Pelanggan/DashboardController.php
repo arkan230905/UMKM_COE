@@ -69,13 +69,9 @@ class DashboardController extends Controller
             return $p;
         });
 
-        $cartCount = 0;
         $userId = auth('pelanggan')->id();
         
-        if ($userId) {
-            $cartCount = Cart::where('user_id', $userId)->sum('qty');
-        }
-
+        // Removed manual cartCount calculation so CartComposer handles it
         // Get all categories from KategoriProduk
         // For public access, we need to get all categories (both shared and user-specific)
         // The UserScope will automatically filter by user_id if authenticated
@@ -153,6 +149,6 @@ class DashboardController extends Controller
         // Get slug for URL generation in views
         $perusahaan_slug = $perusahaan->slug ?: strtolower(str_replace(' ', '-', $perusahaan->kode));
 
-        return view('pelanggan.dashboard', compact('produks', 'cartCount', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber', 'kategoris', 'kategoriFilter', 'perusahaan', 'perusahaan_slug'));
+        return view('pelanggan.dashboard', compact('produks', 'bestSellers', 'search', 'favoriteIds', 'favoriteProduks', 'whatsappNumber', 'kategoris', 'kategoriFilter', 'perusahaan', 'perusahaan_slug'));
     }
 }
