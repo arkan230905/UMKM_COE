@@ -402,19 +402,30 @@ class CheckoutController extends Controller
 
     public function process(Request $request, $perusahaan_slug = null)
     {
+        $isDelivery = $request->input('jenis_pengiriman', 'delivery') === 'delivery';
+
         $request->validate([
+            'jenis_pengiriman' => 'required|in:delivery,ambil_di_toko',
             'nama_penerima' => 'required|string|max:255',
-            'alamat_pengiriman' => 'required|string',
             'telepon_penerima' => 'required|string|max:20',
-            'latitude_pengiriman' => 'required|numeric',
-            'longitude_pengiriman' => 'required|numeric',
+            'alamat_pengiriman' => $isDelivery ? 'required|string' : 'nullable|string',
+            'latitude_pengiriman' => $isDelivery ? 'required|numeric' : 'nullable|numeric',
+            'longitude_pengiriman' => $isDelivery ? 'required|numeric' : 'nullable|numeric',
             'kecamatan' => 'nullable|string',
             'kota' => 'nullable|string',
             'kode_pos' => 'nullable|string',
             'detail_alamat' => 'nullable|string',
             'catatan' => 'nullable|string',
-            'biaya_ongkir' => 'required|numeric',
+            'provinsi' => 'nullable|string',
+            'kelurahan' => 'nullable|string',
+            'negara' => 'nullable|string',
+            'biaya_ongkir' => $isDelivery ? 'required|numeric' : 'nullable|numeric',
         ]);
+
+        $checkoutData = $request->all();
+        if (!$isDelivery) {
+            $checkoutData['biaya_ongkir'] = 0;
+        }
 
         $carts = Cart::with(['produk' => function ($query) {
             $query->withoutGlobalScopes();
@@ -424,7 +435,7 @@ class CheckoutController extends Controller
             return back()->with('error', 'Keranjang kosong!');
         }
 
-        session(['checkout_data' => $request->all()]);
+        session(['checkout_data' => $checkoutData]);
 
         return redirect()->route('pelanggan.checkout.payment', ['perusahaan_slug' => $perusahaan_slug ?? request()->route('perusahaan_slug')]);
     }
@@ -466,7 +477,29 @@ class CheckoutController extends Controller
             ->where('nomor_rekening', '!=', '')
             ->get();
 
-        return view('pelanggan.payment', compact('carts', 'subtotal', 'ppn', 'ongkir', 'total', 'perusahaan', 'perusahaan_slug', 'rekeningBanks'));
+        $supportedVABanks = [];
+        $midtransMap = [
+            'bca' => 'bca',
+            'bni' => 'bni',
+            'bri' => 'bri',
+            'mandiri' => 'echannel',
+            'permata' => 'permata',
+            'cimb' => 'cimb',
+        ];
+        foreach ($rekeningBanks as $rek) {
+            $namaAkun = strtolower($rek->nama_akun);
+            foreach ($midtransMap as $key => $code) {
+                if (str_contains($namaAkun, $key)) {
+                    $supportedVABanks[$code] = [
+                        'code' => $code,
+                        'name' => strtoupper($key)
+                    ];
+                }
+            }
+        }
+        $supportedVABanks = array_values($supportedVABanks);
+
+        return view('pelanggan.payment', compact('carts', 'subtotal', 'ppn', 'ongkir', 'total', 'perusahaan', 'perusahaan_slug', 'rekeningBanks', 'supportedVABanks'));
     }
 
     public function processPayment(Request $request, $perusahaan_slug = null)
@@ -475,10 +508,19 @@ class CheckoutController extends Controller
             'payment_gateway' => $request->payment_gateway,
             'user_id' => auth()->id(),
         ]);
+        $isManualTransfer = $request->payment_gateway === 'transfer' && $request->metode_transfer === 'manual';
+        $isMidtransVA = $request->payment_gateway === 'transfer' && $request->metode_transfer === 'midtrans_va';
         
         $request->validate([
             'payment_gateway' => 'required|in:transfer,tunai',
-            'bukti_pembayaran' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'metode_transfer' => 'nullable|in:midtrans_va,manual',
+            'rekening_id' => $isManualTransfer ? 'required' : 'nullable',
+            'bank_va' => $isMidtransVA ? 'required|in:bca,bni,bri,echannel,permata,cimb' : 'nullable',
+            'bukti_pembayaran' => $isManualTransfer ? 'required|file|mimes:jpg,jpeg,png,pdf|max:5120' : 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ], [
+            'rekening_id.required' => 'Silakan pilih rekening tujuan transfer.',
+            'bank_va.required' => 'Silakan pilih Bank Virtual Account.',
+            'bukti_pembayaran.required' => 'Bukti pembayaran wajib diupload untuk transfer manual.',
         ]);
 
         $checkoutData = session('checkout_data');
@@ -529,44 +571,51 @@ class CheckoutController extends Controller
             // For Midtrans and Manual Transfer, ongkir logic from COD is skipped here, but we should calculate it correctly.
             // Wait, previously ongkir was calculated only if COD! We should calculate it for all methods if it's delivery.
             
+            $jenisPengiriman = $checkoutData['jenis_pengiriman'] ?? 'delivery';
+            
             $latPengiriman = $checkoutData['latitude_pengiriman'] ?? null;
             $lonPengiriman = $checkoutData['longitude_pengiriman'] ?? null;
+            $jarak = null;
             
-            if ($perusahaan && $perusahaan->latitude && $perusahaan->longitude && $latPengiriman && $lonPengiriman) {
-                $distance = $this->distanceService->calculateHaversineDistance(
-                    $perusahaan->latitude,
-                    $perusahaan->longitude,
-                    $latPengiriman,
-                    $lonPengiriman
-                );
-                
-                $jarak = round($distance, 2);
-                $ongkirSetting = \App\Models\OngkirSetting::withoutGlobalScopes()
-                    ->where('user_id', $perusahaan->user_id)
-                    ->where('status', true)
-                    ->where('jarak_min', '<=', $jarak)
-                    ->where(function ($query) use ($jarak) {
-                        $query->whereNull('jarak_max')
-                            ->orWhere('jarak_max', '>=', $jarak);
-                    })
-                    ->orderBy('jarak_min', 'desc')
-                    ->first();
+            if ($jenisPengiriman === 'delivery') {
+                if ($perusahaan && $perusahaan->latitude && $perusahaan->longitude && $latPengiriman && $lonPengiriman) {
+                    $distance = $this->distanceService->calculateHaversineDistance(
+                        $perusahaan->latitude,
+                        $perusahaan->longitude,
+                        $latPengiriman,
+                        $lonPengiriman
+                    );
                     
-                if ($ongkirSetting) {
-                    $ongkir = $ongkirSetting->harga_ongkir;
+                    $jarak = round($distance, 2);
+                    $ongkirSetting = \App\Models\OngkirSetting::withoutGlobalScopes()
+                        ->where('user_id', $perusahaan->user_id)
+                        ->where('status', true)
+                        ->where('jarak_min', '<=', $jarak)
+                        ->where(function ($query) use ($jarak) {
+                            $query->whereNull('jarak_max')
+                                ->orWhere('jarak_max', '>=', $jarak);
+                        })
+                        ->orderBy('jarak_min', 'desc')
+                        ->first();
+                        
+                    if ($ongkirSetting) {
+                        $ongkir = $ongkirSetting->harga_ongkir;
+                    }
+                } else {
+                    return redirect()->back()->with('error', 'Gagal memproses pesanan: Lokasi perusahaan atau pelanggan belum lengkap. Mohon hubungi admin.');
                 }
             } else {
-                return redirect()->back()->with('error', 'Gagal memproses pesanan: Lokasi perusahaan atau pelanggan belum lengkap. Mohon hubungi admin.');
+                $ongkir = 0;
             }
             
             // Extract actual gateway based on new UI structure
             $actualGateway = $request->payment_gateway;
             if ($actualGateway === 'transfer') {
-                $actualGateway = $request->metode_transfer; // 'midtrans' or 'manual_transfer'
+                $actualGateway = $request->metode_transfer === 'manual' ? 'manual_transfer' : 'midtrans';
             }
 
             // Determine if ongkir should be 0 (Ambil di Toko)
-            if ($actualGateway === 'tunai' && $request->metode_tunai === 'ambil_di_toko') {
+            if ($actualGateway === 'tunai' && ($checkoutData['jenis_pengiriman'] ?? 'delivery') === 'ambil_di_toko') {
                 $ongkir = 0;
             }
 
@@ -614,6 +663,7 @@ class CheckoutController extends Controller
                 'bukti_pembayaran' => $buktiPembayaranPath,
                 'bank_tujuan_transfer' => $bankTujuanTransfer,
                 'payment_status' => 'pending',
+                'jenis_pengiriman' => $jenisPengiriman,
                 'nama_penerima' => $checkoutData['nama_penerima'] ?? '',
                 'alamat_pengiriman' => $checkoutData['alamat_pengiriman'] ?? '',
                 'telepon_penerima' => $checkoutData['telepon_penerima'] ?? '',
@@ -621,8 +671,11 @@ class CheckoutController extends Controller
                 'latitude' => $checkoutData['latitude_pengiriman'] ?? null,
                 'longitude' => $checkoutData['longitude_pengiriman'] ?? null,
                 'detail_alamat' => $checkoutData['detail_alamat'] ?? null,
+                'kelurahan' => $checkoutData['kelurahan'] ?? null,
                 'kecamatan' => $checkoutData['kecamatan'] ?? null,
                 'kota' => $checkoutData['kota'] ?? null,
+                'provinsi' => $checkoutData['provinsi'] ?? null,
+                'negara' => $checkoutData['negara'] ?? 'Indonesia',
                 'kode_pos' => $checkoutData['kode_pos'] ?? null,
                 'company_address' => $perusahaan->alamat,
                 'company_latitude' => $perusahaan->latitude,
@@ -743,9 +796,14 @@ class CheckoutController extends Controller
                 ]);
             } else {
                 \Log::info('CheckoutController: Processing Midtrans payment', ['order_id' => $order->id]);
-                // Get Midtrans Snap Token
-                $snapToken = $this->midtrans->createTransaction($order, $order->items);
-                $order->update(['snap_token' => $snapToken]);
+                $snapToken = $this->midtrans->createTransaction($order, $order->items, $request->bank_va);
+                
+                $order->update([
+                    'midtrans_order_id' => $order->nomor_order,
+                    'snap_token' => $snapToken,
+                    'bank_va' => $request->bank_va,
+                    'payment_status' => 'pending',
+                ]);
             }
 
             // Clear cart
@@ -771,11 +829,6 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            if ($actualGateway === 'midtrans') {
-                // If midtrans, redirect back to payment page to trigger snap popup
-                return back()->with(['snap_token' => $snapToken, 'order_id' => $order->id]);
-            }
-
             $msg = 'Pesanan berhasil dibuat! Nomor Pesanan: ' . $order->nomor_order;
             if ($actualGateway === 'manual_transfer') {
                 $msg = 'Pesanan berhasil dibuat! Bukti pembayaran telah diterima. Nomor Pesanan: ' . $order->nomor_order;
@@ -783,7 +836,30 @@ class CheckoutController extends Controller
                 $msg = 'Pesanan berhasil dibuat dan sedang menunggu persetujuan admin. Nomor Pesanan: ' . $order->nomor_order;
             }
 
-            // Clear checkout session
+            if ($request->wantsJson()) {
+                session()->forget('checkout_data');
+                
+                if ($actualGateway === 'midtrans') {
+                    return response()->json([
+                        'success' => true,
+                        'snap_token' => $snapToken,
+                        'order_id' => $order->id,
+                        'redirect_url' => route('pelanggan.orders.show', ['perusahaan_slug' => $perusahaan_slug, 'order' => $order->id])
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => true,
+                        'redirect_url' => route('pelanggan.orders.show', ['perusahaan_slug' => $perusahaan_slug, 'order' => $order->id]),
+                        'message' => $msg
+                    ]);
+                }
+            }
+
+            if ($actualGateway === 'midtrans') {
+                return back()->with(['snap_token' => $snapToken, 'order_id' => $order->id]);
+            }
+
+            // Clear checkout session for normal requests
             session()->forget('checkout_data');
 
             return redirect()->route('pelanggan.orders.show', [
@@ -793,6 +869,12 @@ class CheckoutController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Checkout gagal: ' . $e->getMessage()
+                ], 400);
+            }
             return back()->with('error', 'Checkout gagal: ' . $e->getMessage());
         }
     }

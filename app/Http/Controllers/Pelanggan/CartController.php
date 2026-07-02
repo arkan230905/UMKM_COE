@@ -10,19 +10,41 @@ use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
+    protected function getCartTotalQty()
+    {
+        $cartCount = 0;
+        if (auth('pelanggan')->check()) {
+            $perusahaan = current_perusahaan();
+            $query = Cart::where('user_id', auth('pelanggan')->id());
+            
+            if ($perusahaan) {
+                $query->whereHas('produk', function ($q) use ($perusahaan) {
+                    $q->withoutGlobalScopes()->where('user_id', $perusahaan->user_id);
+                });
+            }
+            
+            $cartCount = $query->sum('qty');
+        }
+        return (int) $cartCount;
+    }
+
     public function index()
     {
+        $perusahaan = current_perusahaan();
+        $perusahaan_slug = perusahaan_slug($perusahaan);
+
         $carts = Cart::with(['produk' => function ($query) {
             $query->withoutGlobalScopes();
         }])
             ->where('user_id', auth('pelanggan')->id())
+            ->whereHas('produk', function ($q) use ($perusahaan) {
+                if ($perusahaan) {
+                    $q->withoutGlobalScopes()->where('user_id', $perusahaan->user_id);
+                }
+            })
             ->get();
 
         $total = $carts->sum('subtotal');
-
-        // Get perusahaan_slug for URL generation
-        $perusahaan = current_perusahaan();
-        $perusahaan_slug = perusahaan_slug($perusahaan);
 
         return view('pelanggan.cart', compact('carts', 'total', 'perusahaan_slug'));
     }
@@ -178,6 +200,7 @@ class CartController extends Controller
             return response()->json([
                 'success' => true,
                 'qty' => $cart->qty,
+                'cart_total_qty' => $this->getCartTotalQty(),
                 'cart_id' => $cart->id,
                 'message' => 'Produk berhasil ditambahkan ke keranjang!'
             ]);
@@ -235,7 +258,9 @@ class CartController extends Controller
         return response()->json([
             'success' => true,
             'qty' => $cart->qty,
-            'subtotal' => $cart->subtotal
+            'cart_total_qty' => $this->getCartTotalQty(),
+            'subtotal' => $cart->subtotal,
+            'message' => 'Keranjang berhasil diperbarui'
         ]);
     }
 
@@ -254,6 +279,10 @@ class CartController extends Controller
 
         $cart->delete();
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'cart_total_qty' => $this->getCartTotalQty(),
+            'message' => 'Item dihapus dari keranjang'
+        ]);
     }
 }

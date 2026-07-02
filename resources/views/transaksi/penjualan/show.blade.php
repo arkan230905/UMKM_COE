@@ -634,18 +634,54 @@
                                     </div>
                                     @if(isset($penjualan->approval_status) && $penjualan->approval_status === 'pending')
                                     <div class="row g-2 mt-2">
+                                        @php
+                                            $catatanLowerShow = strtolower($penjualan->catatan ?? '');
+                                            $actualMethodShow = $penjualan->order ? strtolower($penjualan->order->payment_gateway ?? '') : '';
+                                            $paymentMethodShow = strtolower($penjualan->payment_method ?? '');
+                                            $jenisPengirimanShow = 'Delivery'; // default
+                                            
+                                            if ($actualMethodShow === 'tunai' || $paymentMethodShow === 'tunai' || strpos($catatanLowerShow, 'ambil di toko') !== false || strpos($catatanLowerShow, 'bayar di toko') !== false || strpos(strtolower($penjualan->catatan_pembayaran ?? ''), 'ambil di toko') !== false) {
+                                                if (strpos($catatanLowerShow, 'cod') !== false || ($penjualan->order && strtolower($penjualan->order->payment_method ?? '') === 'cod')) {
+                                                    $jenisPengirimanShow = 'Delivery';
+                                                } else {
+                                                    $jenisPengirimanShow = 'Ambil di Toko';
+                                                }
+                                            }
+
+                                            $produkData = [];
+                                            if($penjualan->details && count($penjualan->details) > 0) {
+                                                foreach($penjualan->details as $det) {
+                                                    $produkData[] = [
+                                                        'nama' => $det->produk->nama_produk ?? 'Unknown',
+                                                        'qty' => intval($det->jumlah ?? $det->kuantitas ?? 1)
+                                                    ];
+                                                }
+                                            } else {
+                                                $produkData[] = [
+                                                    'nama' => $penjualan->produk->nama_produk ?? 'Unknown',
+                                                    'qty' => intval($penjualan->jumlah ?? 1)
+                                                ];
+                                            }
+                                        @endphp
                                         <div class="col-6">
-                                            <form action="{{ route('transaksi.penjualan.approve', $penjualan->id) }}" method="POST" class="d-grid">
+                                            <form action="{{ route('transaksi.penjualan.approve', $penjualan->id) }}" method="POST" class="d-grid form-approve-transaksi" id="form-approve-{{ $penjualan->id }}">
                                                 @csrf
-                                                <button type="submit" class="btn btn-success" onclick="return confirm('Setujui transaksi ini?')">
+                                                <button type="button" class="btn btn-success btn-setuju-transaksi"
+                                                        data-id="{{ $penjualan->id }}" 
+                                                        data-nomor="{{ $penjualan->nomor_transaksi ?? $penjualan->nomor_pesanan ?? '' }}"
+                                                        data-pelanggan="{{ $penjualan->pelanggan->nama_pelanggan ?? $penjualan->nama_pelanggan ?? 'Umum' }}"
+                                                        data-pembayaran="{{ $penjualan->payment_method ?? 'Cash' }}"
+                                                        data-pemenuhan="{{ $jenisPengirimanShow }}"
+                                                        data-total="{{ number_format($penjualan->grand_total ?? $penjualan->total, 0, ',', '.') }}"
+                                                        data-produk="{{ json_encode($produkData) }}">
                                                     <i class="fas fa-check me-1"></i> Setuju
                                                 </button>
                                             </form>
                                         </div>
                                         <div class="col-6">
-                                            <form action="{{ route('transaksi.penjualan.reject', $penjualan->id) }}" method="POST" class="d-grid">
+                                            <form action="{{ route('transaksi.penjualan.reject', $penjualan->id) }}" method="POST" class="d-grid form-reject-transaksi" id="form-reject-{{ $penjualan->id }}">
                                                 @csrf
-                                                <button type="submit" class="btn btn-danger" onclick="return confirm('Tolak transaksi ini? Stok akan dikembalikan.')">
+                                                <button type="button" class="btn btn-danger btn-tolak-transaksi" data-id="{{ $penjualan->id }}" data-nomor="{{ $penjualan->nomor_transaksi ?? $penjualan->nomor_pesanan ?? '' }}">
                                                     <i class="fas fa-times me-1"></i> Tolak
                                                 </button>
                                             </form>
@@ -1413,4 +1449,215 @@ function confirmDeletePenjualan(penjualanId) {
 </script>
 
 @endsection
+
+@push('scripts')
+<!-- Modal Reject -->
+<div class="modal fade" id="modalRejectTransaksi" tabindex="-1" aria-labelledby="modalRejectTransaksiLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-body text-center p-4">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                <h4 class="mb-3" style="font-weight: 700; color: #2d3748;">Tolak Transaksi?</h4>
+                <p class="text-muted mb-2">Transaksi ini akan ditolak dan stok produk akan dikembalikan.</p>
+                <p class="mb-4"><strong id="reject-nomor-transaksi" style="color: #4a5568;"></strong></p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; padding: 0.6rem 1.5rem; color: #718096; border: 1px solid #e2e8f0;">Batal</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirm-reject" style="border-radius: 8px; font-weight: 600; padding: 0.6rem 1.5rem; background-color: #e53e3e; border: none;">Ya, Tolak Transaksi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Approve -->
+<div class="modal fade" id="modalApproveTransaksi" tabindex="-1" aria-labelledby="modalApproveTransaksiLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-body p-4 text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem; color: #38a169;"><i class="fas fa-check-circle"></i></div>
+                <h4 class="mb-2" style="font-weight: 700; color: #2d3748;">Setujui Transaksi?</h4>
+                <p class="text-muted mb-4" style="font-size: 0.9rem;">Transaksi ini akan disetujui dan diproses ke penjualan. Pastikan data pesanan sudah benar.</p>
+                
+                <div class="card mb-4" style="border-radius: 8px; border: 1px solid #e2e8f0; text-align: left; background-color: #f7fafc;">
+                    <div class="card-body p-3" style="font-size: 0.85rem;">
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">No Transaksi</div>
+                            <div class="col-7 fw-bold" id="approve-nomor-transaksi"></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Pelanggan</div>
+                            <div class="col-7 fw-bold text-truncate" id="approve-nama-pelanggan"></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Pembayaran</div>
+                            <div class="col-7 fw-bold text-capitalize" id="approve-metode-pembayaran"></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-5 text-muted">Pemenuhan</div>
+                            <div class="col-7" id="approve-pemenuhan-container"></div>
+                        </div>
+                        <hr style="margin: 0.5rem 0; border-color: #cbd5e0;">
+                        <div class="row mb-2">
+                            <div class="col-12 text-muted mb-1">Produk:</div>
+                            <div class="col-12" id="approve-produk-list"></div>
+                        </div>
+                        <hr style="margin: 0.5rem 0; border-color: #cbd5e0;">
+                        <div class="row">
+                            <div class="col-5 text-muted fw-bold">Total</div>
+                            <div class="col-7 fw-bold text-success" id="approve-total" style="font-size: 1rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; padding: 0.6rem 1.5rem; color: #718096; border: 1px solid #e2e8f0;">Batal</button>
+                    <button type="button" class="btn btn-success" id="btn-confirm-approve" style="border-radius: 8px; font-weight: 600; padding: 0.6rem 1.5rem; background-color: #38a169; border: none;">Ya, Setujui Transaksi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentRejectId = null;
+    
+    // Bind click to open modal
+    document.querySelectorAll('.btn-tolak-transaksi').forEach(button => {
+        button.addEventListener('click', function() {
+            currentRejectId = this.getAttribute('data-id');
+            const nomorTransaksi = this.getAttribute('data-nomor');
+            
+            document.getElementById('reject-nomor-transaksi').textContent = 'No Transaksi: ' + nomorTransaksi;
+            
+            const rejectModal = new bootstrap.Modal(document.getElementById('modalRejectTransaksi'));
+            rejectModal.show();
+        });
+    });
+    
+    // Bind click to confirm reject
+    document.getElementById('btn-confirm-reject').addEventListener('click', function() {
+        if (currentRejectId) {
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...';
+            this.disabled = true;
+            document.getElementById('form-reject-' + currentRejectId).submit();
+        }
+    });
+
+    // APPROVAL MODAL LOGIC
+    let currentApproveId = null;
+    
+    document.querySelectorAll('.btn-setuju-transaksi').forEach(button => {
+        button.addEventListener('click', function() {
+            currentApproveId = this.getAttribute('data-id');
+            const nomorTransaksi = this.getAttribute('data-nomor');
+            const namaPelanggan = this.getAttribute('data-pelanggan');
+            const metodePembayaran = this.getAttribute('data-pembayaran');
+            const jenisPemenuhan = this.getAttribute('data-pemenuhan');
+            const total = this.getAttribute('data-total');
+            const produkList = JSON.parse(this.getAttribute('data-produk'));
+            
+            document.getElementById('approve-nomor-transaksi').textContent = nomorTransaksi;
+            document.getElementById('approve-nama-pelanggan').textContent = namaPelanggan;
+            document.getElementById('approve-metode-pembayaran').textContent = metodePembayaran;
+            document.getElementById('approve-total').textContent = 'Rp ' + total;
+            
+            // Set Delivery/Pickup Badge
+            const badgeContainer = document.getElementById('approve-pemenuhan-container');
+            if (jenisPemenuhan.toLowerCase().includes('delivery')) {
+                badgeContainer.innerHTML = `
+                    <span class="badge bg-primary mb-1">Delivery</span>
+                    <div style="font-size: 0.7rem; color: #718096;">Pesanan akan dikirim ke alamat pelanggan</div>
+                `;
+            } else {
+                badgeContainer.innerHTML = `
+                    <span class="badge bg-secondary mb-1">Ambil di Toko</span>
+                    <div style="font-size: 0.7rem; color: #718096;">Pesanan akan diambil langsung oleh pelanggan di toko</div>
+                `;
+            }
+            
+            // Set Products
+            const produkContainer = document.getElementById('approve-produk-list');
+            produkContainer.innerHTML = '';
+            let shownProducts = produkList.slice(0, 3);
+            let remainingCount = produkList.length - 3;
+            
+            let ul = document.createElement('ul');
+            ul.style.paddingLeft = '1.2rem';
+            ul.style.marginBottom = '0';
+            ul.style.textAlign = 'left';
+            
+            shownProducts.forEach(prod => {
+                let li = document.createElement('li');
+                li.innerHTML = `<strong>${prod.nama}</strong> x${prod.qty}`;
+                ul.appendChild(li);
+            });
+            produkContainer.appendChild(ul);
+            
+            if (remainingCount > 0) {
+                let divRemaining = document.createElement('div');
+                divRemaining.style.fontSize = '0.75rem';
+                divRemaining.style.color = '#718096';
+                divRemaining.style.marginTop = '0.3rem';
+                divRemaining.style.fontStyle = 'italic';
+                divRemaining.textContent = `+${remainingCount} produk lainnya`;
+                produkContainer.appendChild(divRemaining);
+            }
+            
+            const approveModal = new bootstrap.Modal(document.getElementById('modalApproveTransaksi'));
+            approveModal.show();
+        });
+    });
+    
+    document.getElementById('btn-confirm-approve').addEventListener('click', function() {
+        if (currentApproveId) {
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...';
+            this.disabled = true;
+            document.getElementById('form-approve-' + currentApproveId).submit();
+        }
+    });
+
+    @if(session('success_reject'))
+    // Custom modern notification for reject success
+    const toastHtml = `
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055">
+            <div id="rejectSuccessToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle me-2"></i> {{ session('success_reject') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', toastHtml);
+    const toastEl = document.getElementById('rejectSuccessToast');
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+    @endif
+
+    @if(session('success_approve'))
+    // Custom modern notification for approve success
+    const approveToastHtml = `
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055">
+            <div id="approveSuccessToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle me-2"></i> {{ session('success_approve') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', approveToastHtml);
+    const approveToastEl = document.getElementById('approveSuccessToast');
+    const approveToast = new bootstrap.Toast(approveToastEl, { delay: 4000 });
+    approveToast.show();
+    @endif
+});
+</script>
+@endpush
+
             </div>
