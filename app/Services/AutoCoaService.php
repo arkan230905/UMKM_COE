@@ -16,6 +16,16 @@ class AutoCoaService
      */
     public function createCoaForBahanBaku(string $namaBahan, int $userId): Coa
     {
+        // Check if COA with this name already exists
+        $existingCoa = Coa::where('user_id', $userId)
+            ->where('nama_akun', 'Pers. Bahan Baku ' . $namaBahan)
+            ->first();
+        
+        if ($existingCoa) {
+            // COA already exists, return it instead of creating new one
+            return $existingCoa;
+        }
+        
         // Get the highest COA code for "Pers. Bahan Baku" category
         // Pattern: starts with "114" (Persediaan Bahan Baku category)
         // Must stay within 114xx range (1140-1149, 11400-11499, etc.)
@@ -74,6 +84,16 @@ class AutoCoaService
      */
     public function createCoaForBahanPendukung(string $namaBahan, int $userId): Coa
     {
+        // Check if COA with this name already exists
+        $existingCoa = Coa::where('user_id', $userId)
+            ->where('nama_akun', 'Pers. Bahan Pendukung ' . $namaBahan)
+            ->first();
+        
+        if ($existingCoa) {
+            // COA already exists, return it instead of creating new one
+            return $existingCoa;
+        }
+        
         // Get the highest COA code for "Pers. Bahan Pendukung" category
         // Pattern: starts with "115" (Persediaan Bahan Pendukung category)
         // Must stay within 115xx range (1150-1159, 11500-11599, etc.)
