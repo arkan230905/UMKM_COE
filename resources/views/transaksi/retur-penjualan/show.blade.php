@@ -285,8 +285,20 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td class="text-muted ps-0" style="vertical-align: top; padding-top: 8px;">Keterangan</td>
+                                                <td class="text-muted ps-0" style="vertical-align: top; padding-top: 8px;">Alasan</td>
                                                 <td class="text-end pe-0" style="vertical-align: top; padding-top: 8px;">{{ $returPenjualan->keterangan ?: '-' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: top; padding-top: 8px;">Bukti Barang</td>
+                                                <td class="text-end pe-0" style="vertical-align: top; padding-top: 8px;">
+                                                    @if($returPenjualan->bukti_foto)
+                                                        <a href="{{ Storage::url($returPenjualan->bukti_foto) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-image me-1"></i> Lihat Bukti
+                                                        </a>
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -308,7 +320,7 @@
                                             </tr>
                                             <tr>
                                                 <td class="text-muted ps-0">Sumber Dana Perusahaan</td>
-                                                <td class="text-end pe-0">{{ $returPenjualan->bankRefund ? $returPenjualan->bankRefund->nama_akun : ($returPenjualan->metode_refund === 'tunai' ? 'Kas Tunai' : '-') }}</td>
+                                                <td class="text-end pe-0">{{ $returPenjualan->bankRefund ? $returPenjualan->bankRefund->nama_akun : (in_array($returPenjualan->metode_refund, ['kas', 'tunai']) ? 'Kas Tunai' : '-') }}</td>
                                             </tr>
                                             
                                             @if($returPenjualan->metode_refund === 'transfer')
@@ -350,6 +362,12 @@
                                             <tr>
                                                 <td class="text-muted ps-0">Status</td>
                                                 <td class="text-end pe-0">Selesai</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted ps-0" style="vertical-align: top; padding-top: 8px;">Info</td>
+                                                <td class="text-end pe-0 text-success" style="vertical-align: top; padding-top: 8px;">
+                                                    <i class="fas fa-check-circle me-1"></i> Stok barang pengganti telah dikurangi.
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>

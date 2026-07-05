@@ -145,7 +145,6 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'kategori_id' => 'nullable|exists:kategori_produks,id',
-            'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
             'harga_jual' => 'required|numeric|min:0',
@@ -189,10 +188,12 @@ class ProdukController extends Controller
         // Parse harga_jual from formatted string (remove dots)
         $hargaJual = (int) str_replace('.', '', $request->input('harga_jual'));
 
+        $coaPersediaanId = $this->getOrCreatePersediaanCoa($request->nama_produk);
+
         Produk::create([
             'nama_produk' => $request->nama_produk,
             'kategori_id' => $request->input('kategori_id'),
-            'coa_persediaan_id' => $request->input('coa_persediaan_id'),
+            'coa_persediaan_id' => $coaPersediaanId,
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPath,
             'harga_jual' => $hargaJual,
@@ -333,7 +334,6 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'kategori_id' => 'nullable|exists:kategori_produks,id',
-            'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|file|max:2048', // Validate by extension only, not MIME type
             'harga_jual' => 'required|string',
@@ -361,10 +361,12 @@ class ProdukController extends Controller
         \Log::info('HPP old (from produk): ' . $request->input('hpp'));
         \Log::info('HPP to use: ' . $hppToUse);
 
+        $coaPersediaanId = $this->getOrCreatePersediaanCoa($request->nama_produk);
+
         $data = [
             'nama_produk' => $request->nama_produk,
             'kategori_id' => $request->input('kategori_id'),
-            'coa_persediaan_id' => $request->input('coa_persediaan_id'),
+            'coa_persediaan_id' => $coaPersediaanId,
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
             'harga_pokok' => $hppToUse,  // FIXED: Update harga_pokok dengan HPP yang dihitung
@@ -513,5 +515,39 @@ class ProdukController extends Controller
         }
 
         return view('catalog.index', compact('produks', 'company', 'catalogPhotos', 'sections'));
+    }
+
+    private function getOrCreatePersediaanCoa($namaProduk)
+    {
+        $userId = auth()->id();
+        $namaAkun = 'Pers. Barang Jadi ' . $namaProduk;
+
+        $coa = \App\Models\Coa::where('user_id', $userId)
+            ->where('nama_akun', $namaAkun)
+            ->first();
+
+        if (!$coa) {
+            $maxKode = \App\Models\Coa::where('user_id', $userId)
+                ->where('kode_akun', 'LIKE', '116%')
+                ->whereRaw('LENGTH(kode_akun) > 3')
+                ->orderBy(\Illuminate\Support\Facades\DB::raw('CAST(kode_akun AS UNSIGNED)'), 'desc')
+                ->first();
+
+            $nextKode = $maxKode ? (intval($maxKode->kode_akun) + 1) : 1161;
+
+            $coa = \App\Models\Coa::create([
+                'user_id' => $userId,
+                'kode_akun' => (string) $nextKode,
+                'nama_akun' => $namaAkun,
+                'tipe_akun' => 'Aset',
+                'kategori_akun' => 'Aset',
+                'is_akun_header' => 0,
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0,
+                'tanggal_saldo_awal' => now(),
+            ]);
+        }
+
+        return $coa->kode_akun;
     }
 }

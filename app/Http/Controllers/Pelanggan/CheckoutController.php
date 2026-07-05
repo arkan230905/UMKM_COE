@@ -652,6 +652,7 @@ class CheckoutController extends Controller
             // Create order
             $order = Order::create([
                 'user_id' => auth()->id(),
+                'perusahaan_id' => $perusahaan->user_id,
                 'nomor_order' => Order::generateNomorOrder(),
                 'subtotal_amount' => $subtotal,
                 'ppn_amount' => $ppn,
@@ -699,7 +700,7 @@ class CheckoutController extends Controller
                     'harga' => $cart->harga,
                     'subtotal' => $cart->subtotal,
                 ]);
-
+                
                 // Kurangi stok - CRITICAL: Bypass UserScope untuk update produk milik owner lain
                 if ($cart->produk) {
                     $oldStok = $cart->produk->stok;

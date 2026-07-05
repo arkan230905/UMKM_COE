@@ -11,6 +11,7 @@ class Order extends Model
     use \App\Traits\HasUserScope;
     protected $fillable = [
         'user_id',
+        'perusahaan_id',
         'nomor_order',
         'total_amount',
         'status',
@@ -40,6 +41,12 @@ class Order extends Model
         'expiry_time',
         'payment_gateway',
         'bukti_pembayaran',
+        'alasan_penolakan',
+        'approved_at',
+        'rejected_at',
+        'ready_pickup_at',
+        'shipped_at',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -60,7 +67,7 @@ class Order extends Model
     public static function generateNomorOrder(): string
     {
         $date = now()->format('Ymd');
-        $lastOrder = self::whereDate('created_at', today())->latest()->first();
+        $lastOrder = self::withoutGlobalScopes()->whereDate('created_at', today())->latest()->first();
         $number = $lastOrder ? (int)substr($lastOrder->nomor_order, -4) + 1 : 1;
         return 'ORD-' . $date . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
     }
@@ -71,7 +78,8 @@ class Order extends Model
             'pending' => '<span class="badge bg-warning">Menunggu Pembayaran</span>',
             'paid' => '<span class="badge bg-success">Dibayar</span>',
             'processing' => '<span class="badge bg-info">Diproses</span>',
-            'shipped' => '<span class="badge bg-primary">Dikirim</span>',
+            'ready_for_pickup' => '<span class="badge bg-success">Bisa Diambil</span>',
+            'shipped' => '<span class="badge bg-primary">Diantar</span>',
             'completed' => '<span class="badge bg-success">Selesai</span>',
             'cancelled' => '<span class="badge bg-danger">Dibatalkan</span>',
             default => '<span class="badge bg-secondary">Unknown</span>',

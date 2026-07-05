@@ -36,10 +36,10 @@ class MidtransController extends Controller
 
             if ($transactionStatus == 'capture') {
                 if ($fraudStatus == 'accept') {
-                    $this->updateOrderStatus($order, 'paid', 'paid');
+                    $this->updateOrderStatus($order, 'completed', 'paid');
                 }
             } elseif ($transactionStatus == 'settlement') {
-                $this->updateOrderStatus($order, 'paid', 'paid');
+                $this->updateOrderStatus($order, 'completed', 'paid');
             } elseif ($transactionStatus == 'pending') {
                 $this->updateOrderStatus($order, 'pending', 'pending');
             } elseif ($transactionStatus == 'deny' || $transactionStatus == 'cancel' || $transactionStatus == 'expire') {

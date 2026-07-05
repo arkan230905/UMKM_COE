@@ -470,6 +470,11 @@ function addToCart(produkId) {
         `;
     }
     
+    // Optimistic UI update for badge
+    const badge = document.getElementById('cart-badge-header');
+    let currentQty = parseInt(badge ? badge.textContent : 0) || 0;
+    updateCartBadge(currentQty + 1);
+    
     // Send to server in background (fire and forget)
     fetch("{{ url("/" . $perusahaan_slug . "/pelanggan/cart/ajax/store") }}", {
         method: 'POST',
@@ -509,6 +514,11 @@ function updateQty(produkId, change) {
     // Update immediately
     cartItems[produkId].qty = newQty;
     
+    // Optimistic UI update for badge
+    const badge = document.getElementById('cart-badge-header');
+    let currentQtyBadge = parseInt(badge ? badge.textContent : 0) || 0;
+    updateCartBadge(currentQtyBadge + change);
+    
     // Update input value
     const input = document.getElementById(`qty-${produkId}`);
     if (input) {
@@ -544,6 +554,14 @@ function updateQtyInput(produkId) {
         return;
     }
     
+    
+    // Optimistic UI update for badge
+    const badge = document.getElementById('cart-badge-header');
+    let currentQtyBadge = parseInt(badge ? badge.textContent : 0) || 0;
+    let oldQty = cartItems[produkId].qty || 0;
+    let diff = newQty - oldQty;
+    updateCartBadge(currentQtyBadge + diff);
+
     // Update immediately
     cartItems[produkId].qty = newQty;
 
@@ -572,7 +590,13 @@ function removeFromCart(produkId) {
     
     // Update immediately
     const cartId = cartItem.id;
+    let itemQty = cartItem.qty || 0;
     delete cartItems[produkId];
+    
+    // Optimistic UI update for badge
+    const badge = document.getElementById('cart-badge-header');
+    let currentQtyBadge = parseInt(badge ? badge.textContent : 0) || 0;
+    updateCartBadge(Math.max(0, currentQtyBadge - itemQty));
     
     // Update DOM directly
     const btn = document.getElementById(`cart-btn-${produkId}`);

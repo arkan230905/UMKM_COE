@@ -90,10 +90,9 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px">NO</th>
-                            <th>Nama</th>
+                            <th>Nama Lengkap</th>
                             <th>Email</th>
                             <th>No. Telepon</th>
-                            <th>Alamat</th>
                             <th>Password</th>
                             <th>Total Pesanan</th>
                             <th>Terdaftar</th>
@@ -115,18 +114,16 @@
                                     </div>
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
-
                                 <td>{{ $pelanggan->phone ?? '-' }}</td>
-                                <td>{{ $pelanggan->address ?? '-' }}</td>
-<td>
+                                <td>
                                     @if($pelanggan->plain_password)
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="password-text" data-password="{{ $pelanggan->plain_password }}">{{ $pelanggan->plain_password }}</span>
+                                            <span class="password-text" data-password="{{ $pelanggan->plain_password }}">••••••••</span>
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-secondary toggle-password" 
                                                     onclick="togglePassword(this)"
-                                                    title="Sembunyikan password">
-                                                <i class="fas fa-eye-slash"></i>
+                                                    title="Tampilkan password">
+                                                <i class="fas fa-eye"></i>
                                             </button>
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-info" 
@@ -140,7 +137,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary">0</span>
+                                    <span class="badge bg-primary">{{ $pelanggan->orders_count ?? 0 }}</span>
                                 </td>
                                 <td>{{ $pelanggan->created_at->format('d/m/Y') }}</td>
                                 <td class="text-center">

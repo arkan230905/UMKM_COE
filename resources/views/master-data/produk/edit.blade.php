@@ -40,31 +40,7 @@
             <small class="form-text text-muted">Opsional. Pilih kategori untuk produk ini.</small>
         </div>
 
-        <div class="mb-3">
-            <label for="coa_persediaan_id" class="form-label">COA Persediaan <span class="text-danger">*</span></label>
-            <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-control" required>
-                <option value="">-- Pilih COA Persediaan --</option>
-                @foreach($coaPersediaan as $coa)
-                    <option value="{{ $coa->kode_akun }}"
-                        {{ old('coa_persediaan_id', $produk->coa_persediaan_id) == $coa->kode_akun ? 'selected' : '' }}>
-                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
-                    </option>
-                @endforeach
-            </select>
-            <small class="form-text text-muted">Pilih akun persediaan untuk produk ini (biasanya 116 - Persediaan Barang Jadi).</small>
-        </div>
-        <div class="mb-3">
-            <label for="barcode" class="form-label">Barcode</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-barcode"></i></span>
-                <input type="text" name="barcode" id="barcode" class="form-control barcode-input" 
-                       value="{{ $produk->barcode }}" readonly>
-                <button type="button" class="btn btn-outline-secondary" onclick="copyBarcode()" title="Salin Barcode">
-                    <i class="fas fa-copy"></i>
-                </button>
-            </div>
-            <small class="form-text text-muted">Format EAN-13. Barcode tidak dapat diubah.</small>
-        </div>
+
         <div class="mb-3">
             <label for="deskripsi" class="form-label">Deskripsi</label>
             <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3">{{ $produk->deskripsi }}</textarea>

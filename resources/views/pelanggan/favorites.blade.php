@@ -94,6 +94,11 @@ function addToCart(produkId) {
         return;
     }
     
+    // Optimistic UI update for badge
+    const badge = document.getElementById('cart-badge-header');
+    let currentQty = parseInt(badge ? badge.textContent : 0) || 0;
+    updateCartBadge(currentQty + 1);
+
     fetch("{{ url("/" . $perusahaan_slug . "/pelanggan/cart/ajax/store") }}", {
         method: 'POST',
         headers: {

@@ -32,6 +32,51 @@ class ReturnController extends Controller
         return view('pelanggan.returns.index', compact('returs', 'perusahaan_slug'));
     }
 
+    private function checkOrderEligibility($order, &$baseTime = null, &$errorMessage = null) {
+        $status = strtolower($order->status);
+        $paymentStatus = strtolower($order->payment_status);
+        
+        $isPaymentLunas = in_array($paymentStatus, ['paid', 'lunas']);
+        
+        // Khusus Ambil di Toko, jika lunas maka anggap selesai walaupun statusnya masih bisa diambil
+        if ($isPaymentLunas && in_array($status, ['ready_for_pickup', 'bisa_diambil', 'bisa diambil'])) {
+            $status = 'completed';
+        }
+        
+        $isStatusSelesai = in_array($status, ['completed', 'selesai']);
+        
+        $invalidStatuses = ['pending', 'processing', 'diproses', 'ready_for_pickup', 'bisa_diambil', 'bisa diambil', 'cancelled', 'dibatalkan', 'rejected', 'ditolak', 'expired'];
+        
+        // Cek status tidak valid
+        if (in_array($status, $invalidStatuses)) {
+            $errorMessage = "Pesanan berstatus " . ucfirst($status) . " tidak dapat diretur.";
+            return false;
+        }
+        
+        // Harus selesai atau lunas
+        if (!$isStatusSelesai && !$isPaymentLunas) {
+            $errorMessage = "Pesanan belum selesai atau belum lunas.";
+            return false;
+        }
+        
+        // Prioritas field waktu
+        $rawTime = $order->completed_at ?? $order->selesai_at ?? $order->order_completed_at ?? ($isPaymentLunas ? $order->paid_at : null) ?? $order->updated_at;
+        
+        if (!$rawTime) {
+            $errorMessage = "Data waktu penyelesaian pesanan tidak ditemukan.";
+            return false;
+        }
+        
+        $baseTime = \Carbon\Carbon::parse($rawTime);
+        
+        if (now()->greaterThan($baseTime->copy()->addHours(5))) {
+            $errorMessage = "Masa pengajuan retur untuk pesanan ini sudah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pesanan selesai.";
+            return false;
+        }
+        
+        return true;
+    }
+
     public function create(Request $request)
     {
         // Run migration if columns are missing
@@ -44,30 +89,88 @@ class ReturnController extends Controller
         }
 
         $orderId = $request->query('order_id');
-        $orders = Order::where('user_id', auth()->id())
-            ->latest()->get(['id','nomor_order','total_amount','status']);
-
+        
         // Get perusahaan_slug for URL generation
         $perusahaan = current_perusahaan();
         $perusahaan_slug = request()->route('perusahaan_slug') ?? perusahaan_slug($perusahaan);
 
+        $allOrders = Order::where('user_id', auth()->id())
+            ->where('perusahaan_id', $perusahaan->user_id)
+            ->with(['items'])
+            ->latest()
+            ->get();
+            
+        \Log::info('Mengecek pesanan untuk retur', [
+            'pelanggan_id' => auth()->id(),
+            'perusahaan_id' => $perusahaan->user_id,
+            'jumlah_total_order' => $allOrders->count()
+        ]);
+            
+        $orders = $allOrders->filter(function($order) {
+            $baseTime = null;
+            $errorMsg = null;
+            $isEligible = $this->checkOrderEligibility($order, $baseTime, $errorMsg);
+            
+            // Check if there are items left to return
+            $hasRemaining = false;
+            if ($isEligible) {
+                foreach($order->items as $item) {
+                    $returnedQty = \App\Models\ReturDetail::where('ref_detail_id', $item->id)->sum('qty');
+                    if ($item->qty > $returnedQty) {
+                        $hasRemaining = true;
+                        break;
+                    }
+                }
+                if (!$hasRemaining) {
+                    $isEligible = false;
+                    $errorMsg = "Semua item pesanan sudah diretur.";
+                }
+            }
+            
+            \Log::info('Log Evaluasi Pesanan Retur', [
+                'nomor_order' => $order->nomor_order,
+                'status_pesanan' => $order->status,
+                'status_pembayaran' => $order->payment_status,
+                'completed_at' => $order->completed_at ?? $order->selesai_at ?? $order->order_completed_at,
+                'paid_at' => $order->paid_at,
+                'updated_at' => $order->updated_at,
+                'batas_retur' => $baseTime ? \Carbon\Carbon::parse($baseTime)->copy()->addHours(5)->toDateTimeString() : null,
+                'sekarang' => now()->toDateTimeString(),
+                'eligible_retur' => $isEligible,
+                'alasan' => $errorMsg
+            ]);
+            
+            if ($isEligible) {
+                $order->calculated_base_time = $baseTime;
+                return true;
+            }
+            
+            return false;
+        })->values();
+
         $order = null;
         if ($orderId) {
-            $order = Order::with('items.produk')->where('user_id', auth()->id())->findOrFail($orderId);
+            $order = Order::with('items.produk')->where('user_id', auth()->id())->where('perusahaan_id', $perusahaan->user_id)->findOrFail($orderId);
 
-            // 5-Hour Return Logic Restriction
-            $paymentStatusLower = strtolower($order->payment_status);
-            if ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
-                return redirect()->route('pelanggan.returns.index', $perusahaan_slug ?? 'default')
-                    ->with('error', 'Retur hanya dapat diajukan setelah pembayaran berhasil.');
+            $baseTime = null;
+            $errorMsg = null;
+            if (!$this->checkOrderEligibility($order, $baseTime, $errorMsg)) {
+                return redirect()->route('pelanggan.returns.create', $perusahaan_slug ?? 'default')
+                    ->with('error', $errorMsg);
             }
-            if (!$order->paid_at) {
-                return redirect()->route('pelanggan.returns.index', $perusahaan_slug ?? 'default')
-                    ->with('error', 'Retur tidak dapat diajukan karena data waktu pembayaran tidak ditemukan.');
-            }
-            if (now()->greaterThan($order->paid_at->copy()->addHours(5))) {
-                return redirect()->route('pelanggan.returns.index', $perusahaan_slug ?? 'default')
-                    ->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
+            
+            $order->calculated_base_time = $baseTime;
+            
+            // Filter order items that are fully returned
+            $order->items = $order->items->filter(function($item) {
+                $returnedQty = \App\Models\ReturDetail::where('ref_detail_id', $item->id)->sum('qty');
+                $item->remaining_qty = $item->qty - $returnedQty;
+                return $item->remaining_qty > 0;
+            })->values();
+            
+            if ($order->items->isEmpty()) {
+                return redirect()->route('pelanggan.returns.create', $perusahaan_slug ?? 'default')
+                    ->with('error', 'Semua item dalam pesanan ini sudah diretur.');
             }
         }
 
@@ -98,28 +201,36 @@ class ReturnController extends Controller
                 'items' => 'required|array|min:1',
                 'items.*.order_item_id' => 'required|exists:order_items,id',
                 'items.*.qty' => 'required|integer|min:0',
+                // Delivery fields
+                'metode_pengambilan_retur' => 'nullable|required_if:tipe_kompensasi,barang|in:ambil_di_toko,delivery',
+                'alamat_retur' => 'nullable|required_if:metode_pengambilan_retur,delivery|string',
+                'detail_alamat_retur' => 'nullable|string',
+                'kecamatan' => 'nullable|string',
+                'kota' => 'nullable|string',
+                'provinsi' => 'nullable|string',
+                'kode_pos' => 'nullable|string',
+                'latitude_pengiriman' => 'nullable|required_if:metode_pengambilan_retur,delivery|string',
+                'longitude_pengiriman' => 'nullable|required_if:metode_pengambilan_retur,delivery|string',
+                'biaya_ongkir' => 'nullable|required_if:metode_pengambilan_retur,delivery|numeric|min:0',
             ]);
 
-            // Pastikan order milik user
-            $order = Order::with('items')->where('user_id', auth()->id())->findOrFail($request->order_id);
+            // Pastikan order milik user dan dari perusahaan yang benar
+            $perusahaan = current_perusahaan();
+            $order = Order::with('items')->where('user_id', auth()->id())->where('perusahaan_id', $perusahaan->user_id)->findOrFail($request->order_id);
 
             // 5-Hour Return Logic Restriction
-            if (strtolower($order->payment_status) !== 'paid' && strtolower($order->payment_status) !== 'lunas') {
+            $baseTime = null;
+            $errorMsg = null;
+            if (!$this->checkOrderEligibility($order, $baseTime, $errorMsg)) {
+                \Log::info('Order tidak eligible saat submit retur', [
+                    'order_id' => $order->id,
+                    'status' => $order->status,
+                    'payment_status' => $order->payment_status,
+                    'alasan' => $errorMsg
+                ]);
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Retur hanya dapat diajukan setelah pembayaran berhasil.');
-            }
-
-            if (!$order->paid_at) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Retur tidak dapat diajukan karena data waktu pembayaran tidak ditemukan.');
-            }
-
-            if (now()->greaterThan($order->paid_at->copy()->addHours(5))) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
+                    ->with('error', $errorMsg);
             }
 
             // Filter item milik order
@@ -152,7 +263,7 @@ class ReturnController extends Controller
                     }
                 }
 
-                $retur = Retur::create([
+                $returData = [
                     'type' => 'sale',
                     'ref_id' => $order->id,
                     'tanggal' => now(), // Tambahkan tanggal
@@ -163,14 +274,34 @@ class ReturnController extends Controller
                     'alasan' => $request->alasan,
                     'memo' => $kode,
                     'jumlah' => 0,
-                ]);
+                ];
+
+                if ($request->tipe_kompensasi === 'barang') {
+                    $returData['metode_pengambilan_retur'] = $request->metode_pengambilan_retur;
+                    if ($request->metode_pengambilan_retur === 'delivery') {
+                        $returData['alamat_retur'] = $request->alamat_retur;
+                        $returData['detail_alamat_retur'] = $request->detail_alamat_retur;
+                        $returData['kecamatan'] = $request->kecamatan;
+                        $returData['kota'] = $request->kota;
+                        $returData['provinsi'] = $request->provinsi;
+                        $returData['kode_pos'] = $request->kode_pos;
+                        $returData['latitude'] = $request->latitude_pengiriman;
+                        $returData['longitude'] = $request->longitude_pengiriman;
+                        $returData['ongkir_retur'] = $request->biaya_ongkir;
+                    } else {
+                        $returData['ongkir_retur'] = 0;
+                    }
+                }
+
+                $retur = Retur::create($returData);
 
                 $total = 0;
                 foreach ($itemsInput as $row) {
                     $oi = $orderItems->get((int)$row['order_item_id']);
                     if (!$oi) { continue; }
                     $qtyReq = (int)$row['qty'];
-                    $qtyMax = (int)$oi->qty; // simple cap to ordered qty
+                    $returnedQty = \App\Models\ReturDetail::where('ref_detail_id', $oi->id)->sum('qty');
+                    $qtyMax = (int)$oi->qty - $returnedQty;
                     $qty = max(1, min($qtyReq, $qtyMax));
                     $harga = (float)$oi->harga;
                     $subtotal = $qty * $harga;

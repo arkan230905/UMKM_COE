@@ -56,41 +56,72 @@
                     @endif
                 </div>
 
-                @if($order->payment_status === 'pending')
-                    @if($order->payment_gateway === 'midtrans' && $order->snap_token)
-                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
-                        ⚠️ Pesanan Anda menunggu pembayaran
-                    </div>
-                    <button id="pay-button" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem; margin-top: 0.8rem;">
-                        💳 Lanjutkan Pembayaran
-                    </button>
-                    @elseif($order->payment_gateway === 'manual_transfer')
-                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
-                        ⚠️ Pesanan Anda menunggu pembayaran via Transfer Bank Manual.
-                        @if(!$order->bukti_pembayaran)
-                        <form action="{{ route('orders.upload-bukti', $order->id) }}" method="POST" enctype="multipart/form-data" style="margin-top: 10px;">
-                            @csrf
-                            <input type="file" name="bukti_pembayaran" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required style="font-size: 0.7rem; margin-bottom: 5px; width: 100%; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
-                            @error('bukti_pembayaran')
-                                <small style="color: #dc3545; display: block; margin-bottom: 5px;">{{ $message }}</small>
-                            @enderror
-                            <button type="submit" style="width: 100%; background: #2196f3; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem;">
-                                📤 Upload Bukti Transfer
-                            </button>
-                        </form>
+                @if(in_array(strtolower($order->status), ['cancelled', 'ditolak', 'rejected', 'pesanan ditolak']))
+                    <div style="background: #ffebee; border: 1px solid #ffcdd2; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #c62828; font-size: 0.75rem;">
+                        <i class="fas fa-exclamation-circle" style="margin-right: 5px;"></i>
+                        @if(!empty($order->alasan_penolakan))
+                            Pesanan Anda ditolak oleh penjual karena: <strong>{{ $order->alasan_penolakan }}</strong>
                         @else
-                        <div style="margin-top: 10px; padding: 8px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; color: #2e7d32;">
-                            ✓ Bukti transfer telah diupload dan sedang diverifikasi admin.
-                        </div>
+                            Pesanan Anda ditolak oleh penjual.
                         @endif
                     </div>
+                @else
+                    @if($order->payment_status === 'pending')
+                        @if($order->payment_gateway === 'midtrans' && $order->snap_token)
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
+                            ⚠️ Pesanan Anda menunggu pembayaran
+                        </div>
+                        <button id="pay-button" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem; margin-top: 0.8rem;">
+                            💳 Lanjutkan Pembayaran
+                        </button>
+                        @elseif($order->payment_gateway === 'manual_transfer')
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
+                            ⚠️ Pesanan Anda menunggu pembayaran via Transfer Bank Manual.
+                            @if(!$order->bukti_pembayaran)
+                            <form action="{{ route('orders.upload-bukti', $order->id) }}" method="POST" enctype="multipart/form-data" style="margin-top: 10px;">
+                                @csrf
+                                <input type="file" name="bukti_pembayaran" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required style="font-size: 0.7rem; margin-bottom: 5px; width: 100%; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                                @error('bukti_pembayaran')
+                                    <small style="color: #dc3545; display: block; margin-bottom: 5px;">{{ $message }}</small>
+                                @enderror
+                                <button type="submit" style="width: 100%; background: #2196f3; color: white; border: none; border-radius: 8px; padding: 0.6rem; font-weight: 700; cursor: pointer; font-size: 0.7rem;">
+                                    📤 Upload Bukti Transfer
+                                </button>
+                            </form>
+                            @else
+                            <div style="margin-top: 10px; padding: 8px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 6px; color: #2e7d32;">
+                                ✓ Bukti transfer telah diupload dan sedang diverifikasi admin.
+                            </div>
+                            @endif
+                        </div>
+                        @endif
+                        
+                        @if($order->status === 'ready_for_pickup')
+                        <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #155724; font-size: 0.75rem; font-weight: 600;">
+                            🎉 Pesanan Anda sudah siap dan bisa diambil di toko.
+                        </div>
+                        @endif
                     @endif
-                @endif
 
-                @if($order->payment_status === 'paid')
-                <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #155724; font-size: 0.7rem;">
-                    ✓ Pembayaran berhasil! Pesanan Anda sedang diproses.
-                </div>
+                    @if($order->payment_status === 'paid' || $order->payment_status === 'lunas')
+                        @if($order->status === 'processing')
+                            <div style="background: #cce5ff; border: 1px solid #b8daff; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #004085; font-size: 0.7rem;">
+                                ✓ Pembayaran berhasil! Pesanan Anda sedang diproses oleh penjual.
+                            </div>
+                        @elseif($order->status === 'completed' || $order->status === 'selesai')
+                            <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #155724; font-size: 0.75rem; font-weight: 600;">
+                                🎉 Pesanan telah selesai dan pembayaran sudah diterima.
+                            </div>
+                        @elseif($order->status === 'shipped')
+                            <div style="background: #cce5ff; border: 1px solid #b8daff; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #004085; font-size: 0.75rem; font-weight: 600;">
+                                🚚 Pesanan Anda sedang diantar ke alamat tujuan.
+                            </div>
+                        @else
+                            <div style="background: #e2e3e5; border: 1px solid #d6d8db; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #383d41; font-size: 0.7rem;">
+                                ✓ Pembayaran berhasil! Menunggu konfirmasi penjual.
+                            </div>
+                        @endif
+                    @endif
                 @endif
             </div>
         </div>
@@ -244,10 +275,31 @@
                         <small style="font-size: 0.6rem; color: #999;">{{ $order->created_at->format('d M Y H:i') }}</small>
                     </div>
                     @if($order->paid_at)
-                    <div style="padding-left: 1.5rem; position: relative;">
+                    <div style="padding-left: 1.5rem; position: relative; margin-top: 0.8rem;">
                         <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
                         <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Pembayaran Berhasil</div>
                         <small style="font-size: 0.6rem; color: #999;">{{ $order->paid_at->format('d M Y H:i') }}</small>
+                    </div>
+                    @endif
+                    @if($order->approved_at)
+                    <div style="padding-left: 1.5rem; position: relative; margin-top: 0.8rem;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #3b82f6;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Pesanan Diproses</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ \Carbon\Carbon::parse($order->approved_at)->format('d M Y H:i') }}</small>
+                    </div>
+                    @endif
+                    @if($order->ready_pickup_at)
+                    <div style="padding-left: 1.5rem; position: relative; margin-top: 0.8rem;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Siap Diambil</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ \Carbon\Carbon::parse($order->ready_pickup_at)->format('d M Y H:i') }}</small>
+                    </div>
+                    @endif
+                    @if($order->rejected_at)
+                    <div style="padding-left: 1.5rem; position: relative; margin-top: 0.8rem;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #ef4444;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Pesanan Ditolak</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ \Carbon\Carbon::parse($order->rejected_at)->format('d M Y H:i') }}</small>
                     </div>
                     @endif
                 </div>
@@ -257,9 +309,13 @@
         <!-- Action Buttons -->
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.5rem; justify-content: center;">
             @php
+                $isRejected = in_array(strtolower($order->status), ['cancelled', 'ditolak', 'rejected', 'pesanan ditolak']);
                 $canReturn = true;
                 $paymentStatusLower = strtolower($order->payment_status);
-                if ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
+                
+                if ($isRejected) {
+                    $canReturn = false;
+                } elseif ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
                     $canReturn = false;
                 } elseif (!$order->paid_at) {
                     $canReturn = false;
@@ -267,15 +323,19 @@
                     $canReturn = false;
                 }
             @endphp
-            @if($canReturn)
-                <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create?order_id=" . $order->id) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="Retur tersedia s/d {{ $order->paid_at->copy()->addHours(5)->format('d/m H:i') }}">
-                    🔄 Ajukan Retur
-                </a>
-            @else
-                <button type="button" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem; opacity: 0.5; cursor: not-allowed;" title="Batas waktu retur (5 jam dari pembayaran) telah habis">
-                    🔄 Ajukan Retur
-                </button>
+            
+            @if(!$isRejected)
+                @if($canReturn)
+                    <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/returns/create?order_id=" . $order->id) }}" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;" title="Retur tersedia s/d {{ $order->paid_at->copy()->addHours(5)->format('d/m H:i') }}">
+                        🔄 Ajukan Retur
+                    </a>
+                @else
+                    <button type="button" style="padding: 0.5rem 1.2rem; background: #f59e0b; color: white; border: none; border-radius: 50px; font-weight: 700; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem; opacity: 0.5; cursor: not-allowed;" title="Batas waktu retur (5 jam dari pembayaran) telah habis">
+                        🔄 Ajukan Retur
+                    </button>
+                @endif
             @endif
+            
             <a href="{{ url("/" . $perusahaan_slug . "/pelanggan/orders") }}" style="padding: 0.5rem 1.2rem; background: #8b6f47; color: white; border: none; border-radius: 50px; font-weight: 700; text-decoration: none; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.3rem;">
                 ← Kembali ke Pesanan
             </a>
@@ -304,6 +364,29 @@ document.getElementById('pay-button').addEventListener('click', function () {
         }
     });
 });
+</script>
+@endif
+
+@if($order->status === 'ready_for_pickup')
+<!-- Modal Info Siap Diambil -->
+<div id="pickup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+        <h4 style="color: #2d3748; font-weight: 800; margin-bottom: 0.5rem; font-size: 1.2rem;">Pesanan Siap Diambil!</h4>
+        <p style="color: #666; font-size: 0.85rem; margin-bottom: 1.5rem; line-height: 1.5;">Pesanan Anda sudah bisa diambil di toko.<br>Silakan datang ke toko untuk mengambil pesanan Anda.</p>
+        <button onclick="document.getElementById('pickup-modal').style.display='none'" style="background: #8b6f47; color: white; border: none; border-radius: 8px; padding: 0.6rem 2rem; font-weight: 700; cursor: pointer;">Tutup</button>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const orderId = '{{ $order->id }}';
+        const storageKey = 'pickup_notified_' + orderId;
+        
+        if (!sessionStorage.getItem(storageKey)) {
+            document.getElementById('pickup-modal').style.display = 'flex';
+            sessionStorage.setItem(storageKey, 'true');
+        }
+    });
 </script>
 @endif
 
