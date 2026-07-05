@@ -13,15 +13,21 @@ class PelangganTableController extends Controller
     public function index(Request $request)
     {
         // 🔒 SECURITY: Filter by perusahaan_id untuk multi-tenant isolation
+        $perusahaanId = auth()->user()->perusahaan_id;
         $query = User::where('role', 'pelanggan')
-            ->where('perusahaan_id', auth()->user()->perusahaan_id)
-            ->withCount('orders');
+            ->where('perusahaan_id', $perusahaanId)
+            ->withCount(['orders' => function($q) use ($perusahaanId) {
+                // Filter invalid orders
+                $q->where('perusahaan_id', $perusahaanId)
+                  ->whereNotIn('status', ['cancelled', 'dibatalkan', 'rejected', 'ditolak', 'expired']);
+            }]);
 
         // Filter Pencarian
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('username', 'like', '%' . $search . '%')
                   ->orWhere('email', 'like', '%' . $search . '%')
                   ->orWhere('phone', 'like', '%' . $search . '%');
             });

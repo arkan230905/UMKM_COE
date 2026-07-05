@@ -170,7 +170,12 @@
                                                             <input class="form-check-input ms-1" type="radio" name="rekening_id" id="rekening_{{ $rekening->id }}" value="{{ $rekening->id }}" {{ $index === 0 ? 'checked' : '' }} required>
                                                             <label class="form-check-label w-100 ms-2" for="rekening_{{ $rekening->id }}" style="cursor: pointer; font-size: 0.85rem; color: #1565c0;">
                                                                 <div style="font-weight: 600; margin-bottom: 2px;">{{ $rekening->nama_akun }}</div>
-                                                                <div style="color: #666;">No Rekening: <strong>{{ $rekening->nomor_rekening }}</strong></div>
+                                                                <div style="color: #666; display: flex; align-items: center; gap: 8px;">
+                                                                    <span>No Rekening: <strong>{{ $rekening->nomor_rekening }}</strong></span>
+                                                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.75rem; border-color: #bbdefb; color: #a66a38; border-radius: 4px;" onclick="copyToClipboard(this, '{{ $rekening->nomor_rekening }}', event)" title="Copy Nomor Rekening">
+                                                                        <i class="bi bi-clipboard"></i> Copy
+                                                                    </button>
+                                                                </div>
                                                                 @if($rekening->atas_nama)
                                                                     <div style="color: #666;">Atas Nama: <strong>{{ $rekening->atas_nama }}</strong></div>
                                                                 @endif
@@ -276,6 +281,48 @@
 @else
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
 @endif
+
+<script>
+    function copyToClipboard(btn, text, event) {
+        event.preventDefault(); // Prevent triggering radio select if button is clicked inside label
+        event.stopPropagation();
+        
+        const originalHtml = btn.innerHTML;
+        const originalColor = btn.style.color;
+        
+        const onSuccess = () => {
+            btn.innerHTML = '<i class="bi bi-check2"></i> Tersalin';
+            btn.style.color = '#198754'; // Bootstrap success color
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.style.color = originalColor;
+            }, 2000);
+        };
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            // Avoid scrolling to bottom
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                onSuccess();
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
+        }
+    }
+</script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

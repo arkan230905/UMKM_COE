@@ -17,6 +17,22 @@ class OrderController extends Controller
             ->latest()
             ->paginate(10);
 
+        // Sync payment status for completed orders (Fix old data)
+        foreach ($orders as $order) {
+            if ($order->status === 'completed' && $order->payment_status !== 'paid' && $order->payment_status !== 'lunas') {
+                $order->payment_status = 'paid';
+                if (!$order->paid_at) {
+                    $order->paid_at = now();
+                }
+                $order->save();
+                
+                \Illuminate\Support\Facades\DB::table('penjualans')->where('order_id', $order->id)->update([
+                    'payment_status' => 'paid',
+                    'payment_confirmed_at' => \Illuminate\Support\Facades\DB::raw('COALESCE(payment_confirmed_at, NOW())'),
+                ]);
+            }
+        }
+
         // Get perusahaan_slug for URL generation
         $perusahaan = current_perusahaan();
         $perusahaan_slug = perusahaan_slug($perusahaan);
@@ -29,6 +45,20 @@ class OrderController extends Controller
         // Cek ownership
         if ($order->user_id !== auth()->id()) {
             abort(403);
+        }
+
+        // Sync payment status for completed orders (Fix old data)
+        if ($order->status === 'completed' && $order->payment_status !== 'paid' && $order->payment_status !== 'lunas') {
+            $order->payment_status = 'paid';
+            if (!$order->paid_at) {
+                $order->paid_at = now();
+            }
+            $order->save();
+            
+            \Illuminate\Support\Facades\DB::table('penjualans')->where('order_id', $order->id)->update([
+                'payment_status' => 'paid',
+                'payment_confirmed_at' => \Illuminate\Support\Facades\DB::raw('COALESCE(payment_confirmed_at, NOW())'),
+            ]);
         }
 
         $order->load(['items' => function ($query) {
@@ -84,7 +114,21 @@ class OrderController extends Controller
                     ]);
 
                     foreach ($order->items as $item) {
-                        $item->produk->increment('stok', $item->qty);
+                        if ($item->produk) {
+                            if ($item->produk->tipe_produk === 'paket' && $item->produk->paket_menu_id) {
+                                $paket = \App\Models\PaketMenu::with('details')->find($item->produk->paket_menu_id);
+                                if ($paket) {
+                                    foreach ($paket->details as $detail) {
+                                        $komponenQty = $item->qty * $detail->jumlah;
+                                        \App\Models\Produk::withoutGlobalScopes()
+                                            ->where('id', $detail->produk_id)
+                                            ->increment('stok', $komponenQty);
+                                    }
+                                }
+                            } else {
+                                $item->produk->increment('stok', $item->qty);
+                            }
+                        }
                     }
                     
                     Notification::createNotification(

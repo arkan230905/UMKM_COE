@@ -44,7 +44,7 @@ class Penjualan extends Model
 
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class)->withoutGlobalScope('user');
     }
 
     public function getIsOnlineAttribute()
@@ -152,6 +152,60 @@ class Penjualan extends Model
         return $hasReturn ? 'Ada Retur' : 'Tidak Ada Retur';
     }
 
+    public function getWaktuDasarReturAttribute()
+    {
+        // 1. payment_confirmed_at
+        // 2. paid_at dari order
+        // 3. payment_success_at dari order
+        // 4. completed_at dari order
+        // 5. tanggal_transaksi + waktu
+        // 6. created_at
+        $base = $this->payment_confirmed_at 
+            ?? $this->order?->paid_at 
+            ?? $this->order?->payment_success_at 
+            ?? $this->order?->completed_at 
+            ?? $this->tanggal_transaksi 
+            ?? $this->created_at;
+            
+        if (!$base instanceof Carbon) {
+            $base = Carbon::parse($base);
+        }
+        
+        return $base->copy()->timezone(config('app.timezone', 'Asia/Jakarta'));
+    }
+    
+    public function getBatasReturAttribute()
+    {
+        return $this->waktu_dasar_retur->copy()->addHours(5);
+    }
+    
+    public function getEligibleReturAttribute()
+    {
+        $status = strtolower($this->payment_status);
+        $isPaid = ($status === 'paid' || $status === 'lunas');
+        
+        $now = now()->timezone(config('app.timezone', 'Asia/Jakarta'));
+        $isEligible = $isPaid && $now->lessThanOrEqualTo($this->batas_retur);
+        
+        \Illuminate\Support\Facades\Log::info('Return Eligibility Check', [
+            'no_transaksi' => $this->nomor_penjualan,
+            'metode_pembayaran' => $this->payment_method,
+            'status_pembayaran' => $this->payment_status,
+            'payment_confirmed_at' => $this->payment_confirmed_at?->format('Y-m-d H:i:s'),
+            'paid_at' => $this->order?->paid_at?->format('Y-m-d H:i:s'),
+            'payment_success_at' => $this->order?->payment_success_at?->format('Y-m-d H:i:s'),
+            'completed_at' => $this->order?->completed_at?->format('Y-m-d H:i:s'),
+            'tanggal_transaksi' => $this->tanggal_transaksi?->format('Y-m-d H:i:s'),
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'waktu_dasar_retur' => $this->waktu_dasar_retur->format('Y-m-d H:i:s'),
+            'batas_retur' => $this->batas_retur->format('Y-m-d H:i:s'),
+            'waktu_sekarang' => $now->format('Y-m-d H:i:s'),
+            'eligible_retur' => $isEligible
+        ]);
+        
+        return $isEligible;
+    }
+
     // Method untuk menghitung total qty retur
     public function getTotalQtyReturAttribute()
     {
@@ -184,9 +238,10 @@ class Penjualan extends Model
                 $attempt = 0;
                 
                 do {
-                    // CRITICAL: Filter by user_id untuk multi-tenant isolation
+                    // CRITICAL: Filter by user_id untuk multi-tenant isolation, bypass global scope
                     // Cari nomor terakhir untuk tanggal hari ini agar urutan direset per hari
-                    $lastNumber = static::where('user_id', $penjualan->user_id)
+                    $lastNumber = static::withoutGlobalScopes()
+                        ->where('user_id', $penjualan->user_id)
                         ->where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
                         ->orderBy('nomor_penjualan', 'desc')
                         ->value('nomor_penjualan');
@@ -203,8 +258,9 @@ class Penjualan extends Model
                     // Format: SJ-YYYYMMDD-001
                     $nomorPenjualan = 'SJ-' . $date . '-' . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
                     
-                    // CRITICAL: Cek apakah nomor sudah ada untuk user ini (multi-tenant)
-                    $exists = static::where('user_id', $penjualan->user_id)
+                    // CRITICAL: Ensure uniqueness for this specific user, bypass global scope
+                    $exists = static::withoutGlobalScopes()
+                        ->where('user_id', $penjualan->user_id)
                         ->where('nomor_penjualan', $nomorPenjualan)
                         ->exists();
                     
@@ -244,8 +300,9 @@ class Penjualan extends Model
         $attempts = 0;
         
         while ($attempts < $maxAttempts) {
-            // CRITICAL: Get the highest number for today FOR THIS USER
-            $lastNomor = static::where('user_id', $userId)
+            // CRITICAL: Get the highest number for today FOR THIS USER, bypass global scope
+            $lastNomor = static::withoutGlobalScopes()
+                ->where('user_id', $userId)
                 ->where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
                 ->orderBy('nomor_penjualan', 'desc')
                 ->value('nomor_penjualan');

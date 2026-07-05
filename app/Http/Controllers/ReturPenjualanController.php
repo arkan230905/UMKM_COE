@@ -23,6 +23,10 @@ class ReturPenjualanController extends Controller
         $penjualan = Penjualan::where('user_id', auth()->id())
             ->with(['penjualanDetails.produk'])
             ->findOrFail($penjualanId);
+            
+        if (!$penjualan->eligible_retur) {
+            return redirect()->route('transaksi.penjualan.index')->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
+        }
         // 🔒 SECURITY: Filter pelanggan by perusahaan_id
         $pelanggans = User::where('role', 'pelanggan')
             ->where('perusahaan_id', auth()->user()->perusahaan_id)
@@ -146,25 +150,14 @@ class ReturPenjualanController extends Controller
             'bank_refund_id' => 'required_if:metode_refund,transfer|exists:coas,id|nullable',
             'nama_penerima_refund' => 'required_if:metode_refund,transfer|string|nullable',
             'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable',
-            'no_rekening_refund' => 'required_if:metode_refund,transfer|string|nullable'
+            'no_rekening_refund' => 'required_if:metode_refund,transfer|string|nullable',
+            'bukti_foto' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120'
         ]);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
 
         // 5-Hour Return Logic Restriction
-        if (strtolower($penjualan->payment_status) !== 'paid' && strtolower($penjualan->payment_status) !== 'lunas') {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Retur hanya dapat diajukan setelah pembayaran berhasil.');
-        }
-
-        if (!$penjualan->payment_confirmed_at) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Retur tidak dapat diajukan karena data waktu pembayaran tidak ditemukan.');
-        }
-
-        if (now()->greaterThan($penjualan->payment_confirmed_at->copy()->addHours(5))) {
+        if (!$penjualan->eligible_retur) {
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Batas waktu pengajuan retur telah berakhir. Retur hanya dapat diajukan maksimal 5 jam setelah pembayaran berhasil.');
@@ -190,11 +183,44 @@ class ReturPenjualanController extends Controller
             
             if ($request->jenis_retur === 'refund') {
                 $returPenjualan->metode_refund = $request->metode_refund;
-                $returPenjualan->bank_refund_id = $request->bank_refund_id;
-                $returPenjualan->bank_tujuan_refund = $request->bank_tujuan_refund;
-                $returPenjualan->no_rekening_refund = $request->no_rekening_refund;
-                $returPenjualan->nama_penerima_refund = $request->nama_penerima_refund;
+                
+                if ($request->metode_refund === 'kas') {
+                    // Coba cari Kas Tunai
+                    $kasCoa = \App\Models\Coa::where(function($q) {
+                        $q->where('user_id', auth()->id())
+                          ->orWhereNull('user_id');
+                    })
+                    ->where(function($q) {
+                        $q->where('nama_akun', 'Kas Tunai')
+                          ->orWhere('nama_akun', 'Kas');
+                    })
+                    ->orderByRaw("FIELD(nama_akun, 'Kas Tunai', 'Kas')")
+                    ->first();
+                    
+                    if ($kasCoa) {
+                        $returPenjualan->bank_refund_id = $kasCoa->id;
+                    } else {
+                        // Fallback ke default bank_refund_id
+                        $returPenjualan->bank_refund_id = $request->bank_refund_id;
+                    }
+                    $returPenjualan->bank_tujuan_refund = null;
+                    $returPenjualan->no_rekening_refund = null;
+                    $returPenjualan->nama_penerima_refund = null;
+                } else {
+                    $returPenjualan->bank_refund_id = $request->bank_refund_id;
+                    $returPenjualan->bank_tujuan_refund = $request->bank_tujuan_refund;
+                    $returPenjualan->no_rekening_refund = $request->no_rekening_refund;
+                    $returPenjualan->nama_penerima_refund = $request->nama_penerima_refund;
+                }
             }
+            
+            if ($request->hasFile('bukti_foto')) {
+                $file = $request->file('bukti_foto');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('retur-penjualan', $filename, 'public');
+                $returPenjualan->bukti_foto = $path;
+            }
+
             
             $returPenjualan->save();
 
@@ -203,6 +229,13 @@ class ReturPenjualanController extends Controller
 
                 if ($detail['qty_retur'] > $penjualanDetail->jumlah) {
                     throw new \Exception('Qty retur tidak boleh melebihi qty penjualan');
+                }
+
+                if ($request->jenis_retur === 'tukar_barang') {
+                    $produk = \App\Models\Produk::find($penjualanDetail->produk_id);
+                    if ($produk && (float)($produk->stok ?? 0) < (float)$detail['qty_retur']) {
+                        throw new \Exception("Stok barang pengganti tidak mencukupi untuk {$produk->nama_produk}");
+                    }
                 }
 
                 DetailReturPenjualan::create([
@@ -299,7 +332,8 @@ class ReturPenjualanController extends Controller
             'bank_refund_id' => 'required_if:metode_refund,transfer|exists:coas,id|nullable',
             'nama_penerima_refund' => 'required_if:metode_refund,transfer|string|nullable',
             'bank_tujuan_refund' => 'required_if:metode_refund,transfer|string|nullable',
-            'no_rekening_refund' => 'required_if:metode_refund,transfer|string|nullable'
+            'no_rekening_refund' => 'required_if:metode_refund,transfer|string|nullable',
+            'bukti_foto' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120'
         ]);
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($request->penjualan_id);
@@ -320,16 +354,52 @@ class ReturPenjualanController extends Controller
             
             if ($request->jenis_retur === 'refund') {
                 $returPenjualan->metode_refund = $request->metode_refund;
-                $returPenjualan->bank_refund_id = $request->bank_refund_id;
-                $returPenjualan->bank_tujuan_refund = $request->bank_tujuan_refund;
-                $returPenjualan->no_rekening_refund = $request->no_rekening_refund;
-                $returPenjualan->nama_penerima_refund = $request->nama_penerima_refund;
+                
+                if ($request->metode_refund === 'kas') {
+                    // Coba cari Kas Tunai
+                    $kasCoa = \App\Models\Coa::where(function($q) {
+                        $q->where('user_id', auth()->id())
+                          ->orWhereNull('user_id');
+                    })
+                    ->where(function($q) {
+                        $q->where('nama_akun', 'Kas Tunai')
+                          ->orWhere('nama_akun', 'Kas');
+                    })
+                    ->orderByRaw("FIELD(nama_akun, 'Kas Tunai', 'Kas')")
+                    ->first();
+                    
+                    if ($kasCoa) {
+                        $returPenjualan->bank_refund_id = $kasCoa->id;
+                    } else {
+                        $returPenjualan->bank_refund_id = $request->bank_refund_id;
+                    }
+                    $returPenjualan->bank_tujuan_refund = null;
+                    $returPenjualan->no_rekening_refund = null;
+                    $returPenjualan->nama_penerima_refund = null;
+                } else {
+                    $returPenjualan->bank_refund_id = $request->bank_refund_id;
+                    $returPenjualan->bank_tujuan_refund = $request->bank_tujuan_refund;
+                    $returPenjualan->no_rekening_refund = $request->no_rekening_refund;
+                    $returPenjualan->nama_penerima_refund = $request->nama_penerima_refund;
+                }
             } else {
                 $returPenjualan->metode_refund = null;
                 $returPenjualan->bank_refund_id = null;
                 $returPenjualan->bank_tujuan_refund = null;
                 $returPenjualan->no_rekening_refund = null;
                 $returPenjualan->nama_penerima_refund = null;
+            }
+            
+            if ($request->hasFile('bukti_foto')) {
+                // Delete old file if exists
+                if ($returPenjualan->bukti_foto && \Storage::disk('public')->exists($returPenjualan->bukti_foto)) {
+                    \Storage::disk('public')->delete($returPenjualan->bukti_foto);
+                }
+                
+                $file = $request->file('bukti_foto');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('retur-penjualan', $filename, 'public');
+                $returPenjualan->bukti_foto = $path;
             }
             
             $returPenjualan->save();
@@ -465,6 +535,7 @@ class ReturPenjualanController extends Controller
             $returPenjualan->jenis_retur = $retur->kompensasi === 'barang' ? 'tukar_barang' : 'refund';
             $returPenjualan->keterangan = 'Retur Pelanggan (' . $retur->memo . '): ' . $retur->alasan;
             $returPenjualan->bukti_foto = $retur->bukti_foto;
+            $returPenjualan->status = 'approved';
             $returPenjualan->user_id = auth()->id(); // owner ID
             $returPenjualan->save();
 
@@ -540,8 +611,25 @@ class ReturPenjualanController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+
             $retur->status = 'rejected';
             $retur->save();
+
+            // Create ReturPenjualan to show in history
+            $returPenjualan = new ReturPenjualan();
+            $returPenjualan->nomor_retur = $returPenjualan->generateNomorRetur();
+            $returPenjualan->tanggal = $retur->tanggal ?? now();
+            $returPenjualan->penjualan_id = $penjualan->id;
+            $returPenjualan->pelanggan_id = $penjualan->pelanggan_id ?? null;
+            $returPenjualan->jenis_retur = $retur->kompensasi === 'barang' ? 'tukar_barang' : 'refund';
+            $returPenjualan->keterangan = 'Retur Pelanggan Ditolak (' . $retur->memo . '): ' . $retur->alasan;
+            $returPenjualan->bukti_foto = $retur->bukti_foto;
+            $returPenjualan->status = 'rejected';
+            $returPenjualan->user_id = auth()->id();
+            $returPenjualan->save();
+
+            DB::commit();
 
             return redirect()->back()->with('success', 'Pengajuan retur berhasil ditolak.');
         } catch (\Exception $e) {

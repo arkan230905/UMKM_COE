@@ -205,9 +205,8 @@ class OrderToSalesService
             ]);
         }
 
-        // Update payment_status to paid to trigger journal creation
-        // (Orders are usually already paid when reaching this point)
-        $penjualan->update(['payment_status' => 'paid']);
+        // Set payment_status to match the order's payment_status
+        $penjualan->update(['payment_status' => $order->payment_status ?? 'pending']);
 
         // CRITICAL: Explicitly create journal after all details saved
         try {

@@ -27,7 +27,8 @@ class ReturPenjualan extends Model
         'ppn',
         'status',
         'keterangan',
-        'bukti_foto'
+        'bukti_foto',
+        'no_rekening_refund'
     ];
 
     protected $casts = [

@@ -118,6 +118,32 @@
             </div>
             @endif
 
+            @if($retur->kompensasi === 'barang' && $retur->metode_pengambilan_retur)
+            <div style="margin-top: 0.8rem; padding: 0.6rem; border: 1px solid #90cdf4; background-color: #ebf8ff; border-radius: 8px;">
+                <div style="font-size: 0.6rem; color: #2b6cb0; margin-bottom: 0.2rem; font-weight: 700;">📦 Metode Pengambilan Barang Pengganti</div>
+                
+                @if($retur->metode_pengambilan_retur === 'ambil_di_toko')
+                    <div style="font-size: 0.7rem; color: #2d3748; font-weight: 600;">Ambil di Toko</div>
+                    <div style="font-size: 0.6rem; color: #4a5568; margin-top: 0.2rem;">Barang pengganti diambil di toko</div>
+                @elseif($retur->metode_pengambilan_retur === 'delivery')
+                    <div style="font-size: 0.7rem; color: #2d3748; font-weight: 600;">Delivery (Kirim ke Alamat)</div>
+                    <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed #bee3f8;">
+                        <div style="font-size: 0.6rem; color: #718096; font-weight: 600; margin-bottom: 0.1rem;">Alamat Pengiriman</div>
+                        <div style="font-size: 0.65rem; color: #4a5568; line-height: 1.4;">
+                            {{ $retur->alamat_retur }}<br>
+                            @if($retur->detail_alamat_retur)
+                                <i>Catatan: {{ $retur->detail_alamat_retur }}</i><br>
+                            @endif
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px dashed #bee3f8;">
+                        <div style="font-size: 0.6rem; color: #718096; font-weight: 600; margin-bottom: 0.1rem;">Ongkir Retur</div>
+                        <div style="font-size: 0.65rem; color: #c53030; font-weight: 600;">Rp {{ number_format($retur->ongkir_retur ?? 0, 0, ',', '.') }}</div>
+                    </div>
+                @endif
+            </div>
+            @endif
+
             @if($retur->bukti_foto)
             <div style="margin-top: 0.8rem;">
                 <div style="font-size: 0.6rem; color: #999; margin-bottom: 0.2rem; font-weight: 600;">📷 Foto Bukti Barang</div>

@@ -14,15 +14,18 @@ class PelangganController extends Controller
         // 🔒 SECURITY: Filter by perusahaan_id untuk multi-tenant isolation
         $query = User::where('role', 'pelanggan')
             ->where('perusahaan_id', auth()->user()->perusahaan_id)
-            ->withCount('orders');
+            ->withCount(['orders' => function($q) {
+                $q->withoutGlobalScopes()
+                  ->where('perusahaan_id', auth()->id());
+            }]);
 
         // Pencarian
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('nama_pelanggan', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('telepon', 'like', "%{$search}%");
+                  ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -33,10 +36,10 @@ class PelangganController extends Controller
                 $query->oldest();
                 break;
             case 'nama_az':
-                $query->orderBy('nama_pelanggan', 'asc');
+                $query->orderBy('name', 'asc');
                 break;
             case 'nama_za':
-                $query->orderBy('nama_pelanggan', 'desc');
+                $query->orderBy('name', 'desc');
                 break;
             case 'terbaru':
             default:
@@ -128,17 +131,17 @@ class PelangganController extends Controller
             ->findOrFail($id);
 
         $request->validate([
-            'nama_pelanggan' => 'required|string|max:255',
-            'email'          => 'required|email|unique:pelanggans,email,' . $id,
-            'telepon'        => 'required|string|max:20',
-            'alamat'         => 'nullable|string',
+            'name'    => 'required|string|max:255',
+            'email'   => 'required|email|unique:users,email,' . $id,
+            'phone'   => 'required|string|max:20',
+            'address' => 'nullable|string',
         ]);
 
         $pelanggan->update([
-            'nama_pelanggan' => $request->nama_pelanggan,
-            'email'          => $request->email,
-            'telepon'        => $request->telepon,
-            'alamat'         => $request->alamat,
+            'name'    => $request->name,
+            'email'   => $request->email,
+            'phone'   => $request->phone,
+            'address' => $request->address,
         ]);
 
         return redirect()->route('master-data.pelanggan.index')

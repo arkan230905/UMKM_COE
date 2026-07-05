@@ -663,62 +663,90 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
         $namaProduk = $produk->nama_produk;
         $tipeAkunVariants = ['Expense', 'Beban', 'Biaya', 'HPP', 'Cost'];
 
-        // 1. Spesifik per produk - exact match dulu
+        // 1. Cek field relasi di produk jika ada
+        if (!empty($produk->coa_hpp_id)) {
+            $coa = Coa::withoutGlobalScopes()->find($produk->coa_hpp_id);
+            if ($coa) {
+                return $coa->kode_akun;
+            }
+        }
+        if (!empty($produk->hpp_account_id)) {
+            $coa = Coa::withoutGlobalScopes()->find($produk->hpp_account_id);
+            if ($coa) {
+                return $coa->kode_akun;
+            }
+        }
+
+        // 2. Spesifik per produk - exact match
         $q = Coa::withoutGlobalScopes()
             ->where(function ($q2) use ($namaProduk) {
-                $q2->where('nama_akun', 'HPP ' . $namaProduk)
-                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk);
+                $q2->where('nama_akun', 'Harga Pokok Penjualan - Produk ' . $namaProduk)
+                   ->orWhere('nama_akun', 'Harga Pokok Penjualan - ' . $namaProduk)
+                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk)
+                   ->orWhere('nama_akun', 'HPP ' . $namaProduk)
+                   ->orWhere('nama_akun', 'HPP - Produk ' . $namaProduk)
+                   ->orWhere('nama_akun', 'HPP - ' . $namaProduk);
             })
-            ->whereIn('tipe_akun', $tipeAkunVariants);
+            ->whereIn('tipe_akun', $tipeAkunVariants)
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
+            })
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : []);
 
-        if ($userId) {
-            $found = (clone $q)->where('user_id', $userId)->first();
-            if ($found) return $found->kode_akun;
-        }
         $found = $q->first();
         if ($found) return $found->kode_akun;
 
-        // 2. Spesifik per produk - partial match
-        $q = Coa::withoutGlobalScopes()
+        // 3. Spesifik per produk - partial match
+        $qPartial = Coa::withoutGlobalScopes()
             ->where('nama_akun', 'like', '%HPP%' . $namaProduk . '%')
-            ->whereIn('tipe_akun', $tipeAkunVariants);
+            ->orWhere('nama_akun', 'like', '%Harga Pokok Penjualan%' . $namaProduk . '%')
+            ->whereIn('tipe_akun', $tipeAkunVariants)
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
+            })
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : []);
 
-        if ($userId) {
-            $found = (clone $q)->where('user_id', $userId)->first();
-            if ($found) return $found->kode_akun;
-        }
-        $found = $q->first();
+        $found = $qPartial->first();
         if ($found) return $found->kode_akun;
 
-        // 3. HPP umum - cari berdasarkan nama terlebih dahulu
+        // 4. HPP umum - cari berdasarkan nama terlebih dahulu
         $qUmum = Coa::withoutGlobalScopes()
             ->where(function ($q2) {
                 $q2->where('nama_akun', 'Harga Pokok Penjualan')
                    ->orWhere('nama_akun', 'HPP')
+                   ->orWhere('nama_akun', 'Harga Pokok Penjualan Umum')
                    ->orWhere('nama_akun', 'like', '%Harga Pokok%');
             })
-            ->whereIn('tipe_akun', $tipeAkunVariants);
+            ->whereIn('tipe_akun', $tipeAkunVariants)
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
+            })
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : []);
 
-        if ($userId) {
-            $found = (clone $qUmum)->where('user_id', $userId)->first();
-            if ($found) return $found->kode_akun;
-        }
         $found = $qUmum->first();
         if ($found) return $found->kode_akun;
 
-        // 4. Fallback: cari berdasarkan kode (jika nama tidak ditemukan)
+        // 5. Fallback: cari berdasarkan kode (jika nama tidak ditemukan)
         $qKode = Coa::withoutGlobalScopes()
             ->where(function ($q2) {
                 $q2->where('kode_akun', '554')
                    ->orWhere('kode_akun', '56')
                    ->orWhere('kode_akun', '560');
             })
-            ->whereIn('tipe_akun', $tipeAkunVariants);
+            ->whereIn('tipe_akun', $tipeAkunVariants)
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
+            })
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : []);
 
-        if ($userId) {
-            $found = (clone $qKode)->where('user_id', $userId)->first();
-            if ($found) return $found->kode_akun;
-        }
         $found = $qKode->first();
         if ($found) return $found->kode_akun;
 
@@ -946,96 +974,116 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
             return $coa;
         };
 
-        if ($returPenjualan->detailReturPenjualans) {
-            foreach ($returPenjualan->detailReturPenjualans as $detail) {
-                $namaProduk = $detail->produk ? $detail->produk->nama_produk : 'Umum';
-                $nilaiReturDetail = (float)($detail->harga_barang ?? 0) * (float)($detail->qty_retur ?? 0);
-                $totalReturPenjualanDetails += $nilaiReturDetail;
-                
-                // 1. Debit: Retur Penjualan (per produk)
-                $returCoa = $getOrCreateCoa("Retur Penjualan - {$namaProduk}", 'Revenue', 'Revenue', '411', 'debit'); // Saldo normal Retur Penjualan adalah Debit (mengurangi Revenue)
-                $lines[] = [
-                    'code' => $returCoa->kode_akun,
-                    'debit' => $nilaiReturDetail,
-                    'credit' => 0,
-                    'memo' => "Retur Penjualan - {$namaProduk}"
-                ];
-                
-                // 2. Pembalikan HPP & Persediaan (jika barang kembali ke stok)
-                // User: "Jika barang retur masuk kembali ke persediaan, buat jurnal tambahan: Debit Pers. Barang Jadi, Kredit HPP"
-                // Catatan: Untuk refund, barang tidak kembali ke stok (lihat ReturPenjualan::processRefund)
-                if ($detail->produk && $jenisRetur !== 'refund') {
-                    $hppSatuan = $detail->produk->getHPPForSaleDate($tanggal);
-                    $hppTotal = $hppSatuan * (float)($detail->qty_retur ?? 0);
-                    
-                    if ($hppTotal > 0) {
-                        // Debit: Persediaan Barang Jadi
-                        $persediaanCoa = $getOrCreateCoa("Pers. Barang Jadi {$namaProduk}", 'Asset', 'Asset', '121', 'debit');
-                        $lines[] = [
-                            'code' => $persediaanCoa->kode_akun,
-                            'debit' => $hppTotal,
-                            'credit' => 0,
-                            'memo' => "Pengembalian Stok - {$namaProduk}"
-                        ];
+        if ($jenisRetur === 'tukar_barang') {
+            if ($returPenjualan->detailReturPenjualans) {
+                foreach ($returPenjualan->detailReturPenjualans as $detail) {
+                    if ($detail->produk) {
+                        $namaProduk = $detail->produk->nama_produk;
+                        $hppSatuan = $detail->produk->getHPPForSaleDate($tanggal);
+                        $hppTotal = $hppSatuan * (float)($detail->qty_retur ?? 0);
                         
-                        // Kredit: HPP
-                        $hppCoa = $getOrCreateCoa("HPP - {$namaProduk}", 'Expense', 'Expense', '501', 'debit');
-                        $lines[] = [
-                            'code' => $hppCoa->kode_akun,
-                            'debit' => 0,
-                            'credit' => $hppTotal,
-                            'memo' => "Pembalikan HPP - {$namaProduk}"
-                        ];
+                        if ($hppTotal > 0) {
+                            // Debit: HPP Pengganti
+                            $kodeCoaHpp = $service->getOrCreateCoaHpp($detail->produk, $userId);
+                            $lines[] = [
+                                'code' => $kodeCoaHpp,
+                                'debit' => $hppTotal,
+                                'credit' => 0,
+                                'memo' => "Pengeluaran Barang Pengganti - {$namaProduk}"
+                            ];
+                            
+                            // Kredit: Persediaan Barang Jadi Pengganti
+                            $persediaanCoa = $getOrCreateCoa("Pers. Barang Jadi {$namaProduk}", 'Asset', 'Asset', '121', 'debit');
+                            $lines[] = [
+                                'code' => $persediaanCoa->kode_akun,
+                                'debit' => 0,
+                                'credit' => $hppTotal,
+                                'memo' => "Pengurangan Stok Pengganti - {$namaProduk}"
+                            ];
+                        }
                     }
                 }
             }
-        }
-
-        // 3. Debit: PPN Keluaran
-        if ($totalPpn > 0) {
-            // Gunakan kode 212 atau 215 untuk menghindari konflik dengan Hutang Gaji (211)
-            $ppnCoa = $getOrCreateCoa('PPN Keluaran', 'Liability', 'Liability', '215', 'kredit');
-            $lines[] = [
-                'code' => $ppnCoa->kode_akun,
-                'debit' => $totalPpn,
-                'credit' => 0,
-                'memo' => 'Pembalikan PPN Keluaran'
-            ];
-        }
-
-        // 4. Kredit: Sumber Dana / Penyelesaian
-        if ($jenisRetur === 'refund') {
-            $creditCoa = null;
-            if ($returPenjualan->bank_refund_id) {
-                $creditCoa = Coa::find($returPenjualan->bank_refund_id);
+        } else {
+            if ($returPenjualan->detailReturPenjualans) {
+                foreach ($returPenjualan->detailReturPenjualans as $detail) {
+                    $namaProduk = $detail->produk ? $detail->produk->nama_produk : 'Umum';
+                    $nilaiReturDetail = (float)($detail->harga_barang ?? 0) * (float)($detail->qty_retur ?? 0);
+                    $totalReturPenjualanDetails += $nilaiReturDetail;
+                    
+                    // 1. Debit: Retur Penjualan (per produk)
+                    $returCoa = $getOrCreateCoa("Retur Penjualan - {$namaProduk}", 'Revenue', 'Revenue', '411', 'debit');
+                    $lines[] = [
+                        'code' => $returCoa->kode_akun,
+                        'debit' => $nilaiReturDetail,
+                        'credit' => 0,
+                        'memo' => "Retur Penjualan - {$namaProduk}"
+                    ];
+                    
+                    // 2. Pembalikan HPP & Persediaan (jika barang kembali ke stok - untuk kredit)
+                    if ($detail->produk && $jenisRetur !== 'refund') {
+                        $hppSatuan = $detail->produk->getHPPForSaleDate($tanggal);
+                        $hppTotal = $hppSatuan * (float)($detail->qty_retur ?? 0);
+                        
+                        if ($hppTotal > 0) {
+                            // Debit: Persediaan Barang Jadi
+                            $persediaanCoa = $getOrCreateCoa("Pers. Barang Jadi {$namaProduk}", 'Asset', 'Asset', '121', 'debit');
+                            $lines[] = [
+                                'code' => $persediaanCoa->kode_akun,
+                                'debit' => $hppTotal,
+                                'credit' => 0,
+                                'memo' => "Pengembalian Stok - {$namaProduk}"
+                            ];
+                            
+                            // Kredit: HPP
+                            $kodeCoaHpp = $service->getOrCreateCoaHpp($detail->produk, $userId);
+                            $lines[] = [
+                                'code' => $kodeCoaHpp,
+                                'debit' => 0,
+                                'credit' => $hppTotal,
+                                'memo' => "Pembalikan HPP - {$namaProduk}"
+                            ];
+                        }
+                    }
+                }
             }
-            if (!$creditCoa) {
-                // Fallback default
-                $creditCoa = $getOrCreateCoa('Kas Tunai', 'Asset', 'Asset', '111', 'debit');
+
+            // 3. Debit: PPN Keluaran
+            if ($totalPpn > 0) {
+                $ppnCoa = $getOrCreateCoa('PPN Keluaran', 'Liability', 'Liability', '215', 'kredit');
+                $lines[] = [
+                    'code' => $ppnCoa->kode_akun,
+                    'debit' => $totalPpn,
+                    'credit' => 0,
+                    'memo' => 'Pembalikan PPN Keluaran'
+                ];
             }
-            
-            $lines[] = [
-                'code' => $creditCoa->kode_akun,
-                'debit' => 0,
-                'credit' => $totalRetur > 0 ? $totalRetur : ($totalReturPenjualanDetails + $totalPpn),
-                'memo' => 'Pengeluaran Kas/Bank - Refund'
-            ];
-        } elseif ($jenisRetur === 'kredit') {
-            $piutangCoa = $getOrCreateCoa('Piutang Usaha', 'Asset', 'Asset', '113', 'debit');
-            $lines[] = [
-                'code' => $piutangCoa->kode_akun,
-                'debit' => 0,
-                'credit' => $totalRetur > 0 ? $totalRetur : ($totalReturPenjualanDetails + $totalPpn),
-                'memo' => 'Pengurangan Piutang Usaha - Retur'
-            ];
-        } elseif ($jenisRetur === 'tukar_barang') {
-            $penjualanCoa = $getOrCreateCoa('Penjualan', 'Revenue', 'Revenue', '401', 'kredit');
-            $lines[] = [
-                'code' => $penjualanCoa->kode_akun,
-                'debit' => 0,
-                'credit' => $totalReturPenjualanDetails + $totalPpn,
-                'memo' => 'Penjualan Pengganti - Tukar Barang'
-            ];
+
+            // 4. Kredit: Sumber Dana / Penyelesaian
+            if ($jenisRetur === 'refund') {
+                $creditCoa = null;
+                if ($returPenjualan->bank_refund_id) {
+                    $creditCoa = Coa::find($returPenjualan->bank_refund_id);
+                }
+                if (!$creditCoa) {
+                    $creditCoa = $getOrCreateCoa('Kas Tunai', 'Asset', 'Asset', '111', 'debit');
+                }
+                
+                $lines[] = [
+                    'code' => $creditCoa->kode_akun,
+                    'debit' => 0,
+                    'credit' => $totalRetur > 0 ? $totalRetur : ($totalReturPenjualanDetails + $totalPpn),
+                    'memo' => 'Pengeluaran Kas/Bank - Refund'
+                ];
+            } elseif ($jenisRetur === 'kredit') {
+                $piutangCoa = $getOrCreateCoa('Piutang Usaha', 'Asset', 'Asset', '113', 'debit');
+                $lines[] = [
+                    'code' => $piutangCoa->kode_akun,
+                    'debit' => 0,
+                    'credit' => $totalRetur > 0 ? $totalRetur : ($totalReturPenjualanDetails + $totalPpn),
+                    'memo' => 'Pengurangan Piutang Usaha - Retur'
+                ];
+            }
         }
 
         // Post the journal

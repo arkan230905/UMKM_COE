@@ -570,16 +570,14 @@
                                     <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? optional($penjualan->tanggal)->format('d-m-Y') ?? '-' }}</td>
                                     <td>
                                         @if($penjualan->coa)
-                                            <span class="badge bg-info">{{ $penjualan->coa->nama_akun }}</span>
+                                            {{ $penjualan->coa->nama_akun }}
                                         @else
-                                            <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                                @switch($penjualan->payment_method ?? '')
-                                                    @case('cash') Tunai @break
-                                                    @case('transfer') Transfer @break
-                                                    @case('credit') Kredit @break
-                                                    @default Tidak Diketahui
-                                                @endswitch
-                                            </span>
+                                            @switch($penjualan->payment_method ?? '')
+                                                @case('cash') Tunai @break
+                                                @case('transfer') Transfer @break
+                                                @case('credit') Kredit @break
+                                                @default Tidak Diketahui
+                                            @endswitch
                                         @endif
                                     </td>
                                     @php $detailCount = $penjualan->details->count(); @endphp
@@ -744,15 +742,7 @@
                                         @php
                                             $totalQtyRetur = $penjualan->total_qty_retur ?? 0;
                                         @endphp
-                                        @if($totalQtyRetur > 0)
-                                            <span class="badge bg-danger">
-                                                <i class="fas fa-undo me-1"></i>{{ (int)$totalQtyRetur }}
-                                            </span>
-                                        @else
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check me-1"></i>0
-                                            </span>
-                                        @endif
+                                        {{ (int)$totalQtyRetur }}
                                     </td>
                                     <td class="text-center">
                                         <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}"

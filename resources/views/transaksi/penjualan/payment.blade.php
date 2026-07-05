@@ -444,7 +444,14 @@
                                                             </div>
                                                             <div class="mb-2">
                                                                 <small class="text-muted">Nomor Rekening</small>
-                                                                <div class="fw-bold font-monospace">{{ $bank->nomor_rekening ?? 'N/A' }}</div>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <div class="fw-bold font-monospace">{{ $bank->nomor_rekening ?? 'N/A' }}</div>
+                                                                    @if(!empty($bank->nomor_rekening))
+                                                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 copy-btn" style="font-size: 0.75rem; border-color: #bbdefb; color: #a66a38; border-radius: 4px;" onclick="copyToClipboard(this, '{{ $bank->nomor_rekening }}', event)" title="Copy Nomor Rekening">
+                                                                        <i class="fas fa-copy"></i> Copy
+                                                                    </button>
+                                                                    @endif
+                                                                </div>
                                                             </div>
                                                             <div class="mb-2">
                                                                 <small class="text-muted">Atas Nama</small>
@@ -473,7 +480,7 @@
                                         <div class="mb-3">
                                             <label class="form-label">Upload Bukti Transfer</label>
                                             <input type="file" name="bukti_pembayaran" class="form-control" 
-                                                   accept="image/*,.pdf" required>
+                                                   accept="image/*,.pdf">
                                             <small class="text-muted">Format: JPG, PNG, PDF (Max 5MB)</small>
                                         </div>
 
@@ -530,7 +537,7 @@
                         </div>
                         <div>
                             <small class="text-muted d-block">Waktu</small>
-                            <div class="fw-bold">{{ $payment_data['waktu'] }}</div>
+                            <div class="fw-bold" id="realtime-clock">{{ $payment_data['waktu'] }}</div>
                         </div>
                     </div>
                     <hr class="my-4">
@@ -642,6 +649,60 @@ document.addEventListener('change', function(e) {
         }
     }
 });
+
+function copyToClipboard(btn, text, event) {
+    event.preventDefault(); 
+    event.stopPropagation();
+    
+    const originalHtml = btn.innerHTML;
+    const originalColor = btn.style.color;
+    
+    const onSuccess = () => {
+        btn.innerHTML = '<i class="fas fa-check"></i> Tersalin';
+        btn.style.color = '#198754';
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.style.color = originalColor;
+        }, 2000);
+    };
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            onSuccess();
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
+// Real-time clock implementation
+function updateRealtimeClock() {
+    const clockElement = document.getElementById('realtime-clock');
+    if (clockElement) {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+}
+// Run immediately and then every second
+updateRealtimeClock();
+setInterval(updateRealtimeClock, 1000);
 </script>
 
 @endsection

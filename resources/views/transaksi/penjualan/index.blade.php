@@ -441,10 +441,10 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small">Metode Pembayaran</label>
-                    <select name="coa_id" class="form-select form-select-sm">
+                    <select name="payment_filter" class="form-select form-select-sm">
                         <option value="">Semua Metode</option>
-                        @foreach($kasbanks ?? [] as $kas)
-                            <option value="{{ $kas->id }}" {{ request('coa_id') == $kas->id ? 'selected' : '' }}>{{ $kas->nama_akun }}</option>
+                        @foreach($paymentOptions ?? [] as $val => $label)
+                            <option value="{{ $val }}" {{ request('payment_filter') == $val || (request('coa_id') && $val == 'coa:'.request('coa_id')) ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -515,7 +515,6 @@
                                     <th>Produk</th>
                                     <th>Catatan</th>
                                     <th class="text-end">Total Nilai</th>
-                                    <th>Status</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
@@ -528,16 +527,14 @@
                                         <td>{{ $pending->order ? ($pending->order->nama_penerima ?? $pending->pelanggan?->nama_pelanggan ?? 'Umum') : ($pending->pelanggan?->nama_pelanggan ?? 'Umum') }}</td>
                                         <td>
                                             @if($pending->coa)
-                                                <span class="badge bg-info">{{ $pending->coa->nama_akun }}</span>
+                                                {{ $pending->coa->nama_akun }}
                                             @else
-                                                <span class="badge bg-success">
-                                                    @switch($pending->payment_method ?? '')
-                                                        @case('cash') Tunai @break
-                                                        @case('transfer') Transfer Bank @break
-                                                        @case('tunai') Tunai @break
-                                                        @default {{ ucfirst($pending->payment_method ?? '') }}
-                                                    @endswitch
-                                                </span>
+                                                @switch($pending->payment_method ?? '')
+                                                    @case('cash') Tunai @break
+                                                    @case('transfer') Transfer Bank @break
+                                                    @case('tunai') Tunai @break
+                                                    @default {{ ucfirst($pending->payment_method ?? '') }}
+                                                @endswitch
                                             @endif
                                         </td>
                                         @php
@@ -578,7 +575,6 @@
                                             </span>
                                         </td>
                                         <td class="text-end fw-bold">Rp {{ number_format($pending->grand_total ?? $pending->total, 0, ',', '.') }}</td>
-                                        <td><span class="badge bg-warning text-dark">Menunggu Approval</span></td>
                                         <td class="text-center">
                                             <div class="action-row">
                                                 <button type="button" class="btn-minimal text-primary" data-bs-toggle="modal" data-bs-target="#detailModal{{ $pending->id }}">
@@ -700,15 +696,13 @@
                                 <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                 <td>
                                     @if($penjualan->coa)
-                                        <span class="badge bg-info">{{ $penjualan->coa->nama_akun }}</span>
+                                        {{ $penjualan->coa->nama_akun }}
                                     @else
-                                        <span class="badge bg-success">
-                                            @switch($penjualan->payment_method ?? '')
-                                                @case('cash') Tunai @break
-                                                @case('transfer') Transfer Bank @break
-                                                @default {{ ucfirst($penjualan->payment_method ?? '') }}
-                                            @endswitch
-                                        </span>
+                                        @switch($penjualan->payment_method ?? '')
+                                            @case('cash') Tunai @break
+                                            @case('transfer') Transfer Bank @break
+                                            @default {{ ucfirst($penjualan->payment_method ?? '') }}
+                                        @endswitch
                                     @endif
                                 </td>
                                 <td>
@@ -836,13 +830,9 @@
                                         $totalQtyRetur = $penjualan->total_qty_retur;
                                     @endphp
                                     @if($totalQtyRetur > 0)
-                                        <span class="badge bg-danger animate-pulse">
-                                            <i class="fas fa-undo me-1"></i>{{ (int)$totalQtyRetur }}
-                                        </span>
+                                        {{ (int)$totalQtyRetur }}
                                     @else
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check me-1"></i>0
-                                        </span>
+                                        0
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -854,24 +844,46 @@
                                             <button type="button" class="btn-minimal btn-jurnal" data-bs-toggle="modal" data-bs-target="#jurnalModal{{ $penjualan->id }}" title="Lihat Jurnal">
                                                 Jurnal
                                             </button>
+                                            @if($penjualan->is_online && $penjualan->order && in_array($penjualan->order->jenis_pengiriman, ['ambil_di_toko', 'kasir']))
+                                                @if($penjualan->order->status === 'processing')
+                                                    <form action="{{ route('transaksi.penjualan.complete', $penjualan->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Tandai pesanan ini siap diambil / selesai?')">
+                                                        @csrf
+                                                        <button type="submit" class="btn-minimal text-success" style="font-weight: 500;" title="Tandai Selesai / Bisa Diambil">
+                                                            Selesai
+                                                        </button>
+                                                    </form>
+                                                @elseif($penjualan->order->status === 'ready_for_pickup' && in_array(strtolower($penjualan->payment_method), ['cash', 'tunai', 'bayar di tempat', 'cod', 'bayar di toko']) && strtolower($penjualan->payment_status) !== 'paid' && strtolower($penjualan->payment_status) !== 'lunas')
+                                                    <button type="button" class="btn-minimal text-primary" style="font-weight: 500;" data-bs-toggle="modal" data-bs-target="#bayarModal{{ $penjualan->id }}" title="Bayar Pesanan Tunai">
+                                                        Bayar
+                                                    </button>
+                                                @endif
+                                            @elseif($penjualan->is_online && $penjualan->order && strtolower($penjualan->order->jenis_pengiriman) === 'delivery')
+                                                @if($penjualan->order->status === 'processing')
+                                                    <form action="{{ route('transaksi.penjualan.deliver', $penjualan->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Tandai pesanan ini sedang diantar?')">
+                                                        @csrf
+                                                        <button type="submit" class="btn-minimal text-warning" style="font-weight: 500;" title="Tandai Sedang Diantar">
+                                                            Diantar
+                                                        </button>
+                                                    </form>
+                                                @elseif($penjualan->order->status === 'shipped')
+                                                    <form action="{{ route('transaksi.penjualan.complete-delivery', $penjualan->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Tandai pesanan ini telah selesai diantar?')">
+                                                        @csrf
+                                                        <button type="submit" class="btn-minimal text-success" style="font-weight: 500;" title="Tandai Selesai">
+                                                            Selesai
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            @endif
                                         </div>
                                         <div class="action-row gap-1">
                                             <button type="button" class="btn-minimal btn-success" data-bs-toggle="modal" data-bs-target="#strukModal{{ $penjualan->id }}" title="Cetak Struk">
                                                 Cetak
                                             </button>
                                             @php
-                                                $canReturn = true;
-                                                $paymentStatusLower = strtolower($penjualan->payment_status);
-                                                if ($paymentStatusLower !== 'paid' && $paymentStatusLower !== 'lunas') {
-                                                    $canReturn = false;
-                                                } elseif (!$penjualan->payment_confirmed_at) {
-                                                    $canReturn = false;
-                                                } elseif (now()->greaterThan($penjualan->payment_confirmed_at->copy()->addHours(5))) {
-                                                    $canReturn = false;
-                                                }
+                                                $canReturn = $penjualan->eligible_retur;
                                             @endphp
                                             @if($canReturn)
-                                                <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Retur tersedia s/d {{ $penjualan->payment_confirmed_at->copy()->addHours(5)->format('d/m H:i') }}">
+                                                <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Retur tersedia s/d {{ $penjualan->batas_retur->format('d/m H:i') }}">
                                                     Retur
                                                 </a>
                                             @else
@@ -919,16 +931,12 @@
                                         <td>{{ $retur->penjualan?->nomor_penjualan ?? '-' }}</td>
                                         <td>{{ $retur->penjualan?->pelanggan?->nama_pelanggan ?? $retur->penjualan?->order?->nama_penerima ?? '-' }}</td>
                                         <td>
-                                            <span class="badge {{ $retur->kompensasi === 'barang' ? 'bg-warning' : 'bg-danger' }}">
-                                                {{ $retur->kompensasi === 'barang' ? 'Tukar Barang' : 'Refund' }}
-                                            </span>
+                                            {{ $retur->kompensasi === 'barang' ? 'Tukar Barang' : 'Refund' }}
                                         </td>
                                         <td>{{ $retur->alasan ?? '-' }}</td>
                                         <td class="text-end fw-semibold">Rp {{ number_format($retur->jumlah ?? 0, 0, ',', '.') }}</td>
                                         <td class="text-center">
-                                            <span class="badge {{ $retur->status === 'approved' ? 'bg-success' : ($retur->status === 'rejected' ? 'bg-danger' : 'bg-warning') }}">
-                                                {{ ucfirst($retur->status ?? 'draft') }}
-                                            </span>
+                                            {{ ucfirst($retur->status ?? 'draft') }}
                                         </td>
                                         <td class="text-center">
                                             <div class="action-layout">
@@ -967,7 +975,7 @@
 
                     <!-- Section: Riwayat Retur Penjualan -->
                     <h5 class="mb-3">
-                        <i class="fas fa-history me-2 text-primary"></i>Riwayat Retur Penjualan (Owner)
+                        <i class="fas fa-history me-2 text-primary"></i>Riwayat Retur Penjualan
                     </h5>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -990,7 +998,7 @@
                                     </th>
                                     <th>
                                         <a href="{{ request()->fullUrlWithQuery(['sort_retur_by' => 'deskripsi', 'sort_retur_dir' => request('sort_retur_by') === 'deskripsi' && request('sort_retur_dir') === 'asc' ? 'desc' : 'asc', 'tab' => 'retur']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
-                                            Keterangan @if(request('sort_retur_by') === 'deskripsi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                            Alasan @if(request('sort_retur_by') === 'deskripsi') <i class="fas fa-sort-{{ request('sort_retur_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
                                         </a>
                                     </th>
                                     <th>
@@ -1038,14 +1046,10 @@
                                                         $jenisLabel = '-';
                                                 }
                                             @endphp
-                                            <span class="badge {{ $jenisRetur === 'refund' ? 'bg-danger' : ($jenisRetur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
                                                 {{ $jenisLabel }}
-                                            </span>
                                         </td>
                                         <td>
-                                            <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
                                                 {{ ucfirst($retur->status ?? '-') }}
-                                            </span>
                                         </td>
                                         <td class="text-end fw-semibold">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</td>
                                         <td>
@@ -1086,6 +1090,63 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Pembayaran Tunai -->
+@foreach($penjualans->merge($pendingPenjualans) as $penjualan)
+    @if($penjualan->is_online && $penjualan->order && in_array($penjualan->order->jenis_pengiriman, ['ambil_di_toko', 'kasir']) && $penjualan->order->status === 'ready_for_pickup' && in_array(strtolower($penjualan->payment_method), ['cash', 'tunai', 'bayar di tempat', 'cod', 'bayar di toko']) && strtolower($penjualan->payment_status) !== 'paid' && strtolower($penjualan->payment_status) !== 'lunas')
+    <div class="modal fade" id="bayarModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="bayarModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1055;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ route('transaksi.penjualan.pay', $penjualan->id) }}" method="POST" id="form-bayar-{{ $penjualan->id }}">
+                    @csrf
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title fw-bold" id="bayarModalLabel{{ $penjualan->id }}">
+                            <i class="fas fa-money-bill-wave me-2 text-success"></i>Pembayaran Tunai
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label text-muted mb-1">No Transaksi</label>
+                            <div class="fw-bold">{{ $penjualan->nomor_transaksi }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted mb-1">Nama Pelanggan</label>
+                            <div class="fw-bold">{{ $penjualan->pelanggan->nama_pelanggan ?? $penjualan->nama_pelanggan ?? 'Umum' }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted mb-1">Total Pembayaran</label>
+                            <div class="fw-bold text-primary fs-5" id="total-bayar-{{ $penjualan->id }}" data-total="{{ $penjualan->grand_total ?? $penjualan->total }}">
+                                Rp {{ number_format($penjualan->grand_total ?? $penjualan->total, 0, ',', '.') }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="uang_diterima_{{ $penjualan->id }}" class="form-label fw-bold">Input Uang Diterima</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="number" class="form-control input-uang-diterima" id="uang_diterima_{{ $penjualan->id }}" name="uang_diterima" required min="0" data-id="{{ $penjualan->id }}">
+                            </div>
+                        </div>
+                        <div class="mb-3 p-3 bg-light rounded border">
+                            <label class="form-label text-muted mb-1">Kembalian</label>
+                            <div class="fw-bold text-success fs-5" id="kembalian-{{ $penjualan->id }}">Rp 0</div>
+                            <div class="text-danger mt-1 d-none" id="error-bayar-{{ $penjualan->id }}" style="font-size: 0.85rem;">
+                                <i class="fas fa-exclamation-circle me-1"></i>Uang diterima kurang dari total pembayaran.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success btn-simpan-bayar" id="btn-simpan-bayar-{{ $penjualan->id }}" disabled>
+                            <i class="fas fa-save me-1"></i>Simpan Pembayaran
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+@endforeach
 
 <!-- Detail Modal -->
 @foreach($penjualans->merge($pendingPenjualans) as $penjualan)
@@ -1240,9 +1301,9 @@
                             $totalQtyRetur = $penjualan->total_qty_retur;
                         @endphp
                         @if($totalQtyRetur > 0)
-                            <span class="badge bg-info">{{ (int)$totalQtyRetur }}</span>
+                            {{ (int)$totalQtyRetur }}
                         @else
-                            <span class="badge bg-success">0</span>
+                            0
                         @endif
                     </div>
                 </div>
@@ -1546,9 +1607,7 @@
                                 <td><strong>{{ $retur->nomor_retur }}</strong></td>
                                 <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
                                 <td>
-                                    <span class="badge {{ $retur->jenis_retur === 'refund' ? 'bg-danger' : ($retur->jenis_retur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
                                         {{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : 'Refund' }}
-                                    </span>
                                 </td>
                                 <td>
                                     @if($retur->detailReturPenjualans && $retur->detailReturPenjualans->count() > 0)
@@ -1570,9 +1629,7 @@
                                 </td>
                                 <td class="text-end">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</td>
                                 <td>
-                                    <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
                                         {{ ucfirst($retur->status ?? '-') }}
-                                    </span>
                                 </td>
                             </tr>
                             @endforeach
@@ -1705,29 +1762,6 @@
                                         <td>
                                             @php
                                                 $namaAkun = $line->coa->nama_akun ?? 'Akun tidak ditemukan';
-                                                $keteranganLower = strtolower($line->keterangan ?? '');
-                                                
-                                                // 1. Akun penerimaan pembayaran (Kas / Bank)
-                                                if ($line->debit > 0 && (str_contains(strtolower($namaAkun), 'kas') || str_contains(strtolower($namaAkun), 'bank'))) {
-                                                    if (str_contains($keteranganLower, 'penerimaan transfer') || $penjualan->payment_method === 'transfer') {
-                                                        $namaAkun = 'Bank Perusahaan';
-                                                        $perusahaan = \App\Models\Perusahaan::where('user_id', $penjualan->user_id)->first();
-                                                        if ($perusahaan && !empty($perusahaan->nama_bank)) {
-                                                            $namaAkun = 'Bank ' . $perusahaan->nama_bank;
-                                                        }
-                                                    } elseif (str_contains($keteranganLower, 'penerimaan tunai') || $penjualan->payment_method === 'cash') {
-                                                        $namaAkun = 'Kas Tunai';
-                                                    }
-                                                }
-                                                
-                                                // 2. Akun HPP
-                                                if ($line->debit > 0 && str_contains(strtolower($namaAkun), 'harga pokok penjualan') && str_contains($keteranganLower, 'hpp untuk')) {
-                                                    if (preg_match('/HPP untuk (.*?) \(/', $line->keterangan, $matches)) {
-                                                        $namaAkun = 'HPP - ' . trim($matches[1]);
-                                                    } else {
-                                                        $namaAkun = str_replace('HPP untuk ', 'HPP - ', $line->keterangan);
-                                                    }
-                                                }
                                             @endphp
                                             <div class="fw-bold">{{ $namaAkun }}</div>
                                             <small class="text-muted">{{ $line->coa->kode_akun ?? '-' }}</small>
@@ -1829,9 +1863,7 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <strong>Status:</strong>
-                        <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
                             {{ ucfirst($retur->status ?? '-') }}
-                        </span>
                     </div>
                     <div class="col-md-6">
                         <strong>Total Nilai Retur:</strong>
@@ -2068,15 +2100,11 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <strong>Status:</strong>
-                        <span class="badge {{ $retur->status === 'approved' ? 'bg-success' : ($retur->status === 'rejected' ? 'bg-danger' : 'bg-warning') }}">
                             {{ ucfirst($retur->status ?? 'draft') }}
-                        </span>
                     </div>
                     <div class="col-md-6">
                         <strong>Kompensasi:</strong>
-                        <span class="badge {{ $retur->kompensasi === 'barang' ? 'bg-warning' : 'bg-danger' }}">
                             {{ $retur->kompensasi === 'barang' ? 'Tukar Barang' : 'Refund' }}
-                        </span>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -3239,6 +3267,13 @@ function showSettingToast(type, msg) {
                 <h4 class="mb-3" style="font-weight: 700; color: #2d3748;">Tolak Transaksi?</h4>
                 <p class="text-muted mb-2">Transaksi ini akan ditolak dan stok produk akan dikembalikan.</p>
                 <p class="mb-4"><strong id="reject-nomor-transaksi" style="color: #4a5568;"></strong></p>
+                
+                <div class="mb-4 text-start">
+                    <label for="alasan-penolakan-modal" class="form-label" style="font-weight: 600; color: #4a5568;">Alasan Penolakan <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="alasan-penolakan-modal" rows="3" placeholder="Masukkan alasan kenapa pesanan ini ditolak" required style="border-radius: 8px;"></textarea>
+                    <div class="invalid-feedback" id="error-alasan-penolakan" style="display: none;">Alasan penolakan wajib diisi.</div>
+                </div>
+
                 <div class="d-flex justify-content-center gap-3">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600; padding: 0.6rem 1.5rem; color: #718096; border: 1px solid #e2e8f0;">Batal</button>
                     <button type="button" class="btn btn-danger" id="btn-confirm-reject" style="border-radius: 8px; font-weight: 600; padding: 0.6rem 1.5rem; background-color: #e53e3e; border: none;">Ya, Tolak Transaksi</button>
@@ -3316,10 +3351,30 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Bind click to confirm reject
     document.getElementById('btn-confirm-reject').addEventListener('click', function() {
+        const alasanInput = document.getElementById('alasan-penolakan-modal');
+        const errorDiv = document.getElementById('error-alasan-penolakan');
+        
+        if (!alasanInput.value.trim()) {
+            alasanInput.classList.add('is-invalid');
+            errorDiv.style.display = 'block';
+            return;
+        } else {
+            alasanInput.classList.remove('is-invalid');
+            errorDiv.style.display = 'none';
+        }
+
         if (currentRejectId) {
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...';
             this.disabled = true;
-            document.getElementById('form-reject-' + currentRejectId).submit();
+            
+            const form = document.getElementById('form-reject-' + currentRejectId);
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'alasan_penolakan';
+            input.value = alasanInput.value.trim();
+            form.appendChild(input);
+            
+            form.submit();
         }
     });
 
@@ -3394,6 +3449,44 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = true;
             document.getElementById('form-approve-' + currentApproveId).submit();
         }
+    });
+
+    // BAYAR MODAL LOGIC (KEMBALIAN)
+    document.querySelectorAll('.input-uang-diterima').forEach(input => {
+        input.addEventListener('input', function() {
+            const id = this.getAttribute('data-id');
+            const totalDiv = document.getElementById('total-bayar-' + id);
+            const kembalianDiv = document.getElementById('kembalian-' + id);
+            const errorDiv = document.getElementById('error-bayar-' + id);
+            const btnSimpan = document.getElementById('btn-simpan-bayar-' + id);
+            
+            const total = parseFloat(totalDiv.getAttribute('data-total')) || 0;
+            const uangDiterima = parseFloat(this.value) || 0;
+            
+            if (uangDiterima >= total) {
+                const kembalian = uangDiterima - total;
+                kembalianDiv.textContent = 'Rp ' + kembalian.toLocaleString('id-ID');
+                kembalianDiv.classList.remove('text-danger');
+                kembalianDiv.classList.add('text-success');
+                errorDiv.classList.add('d-none');
+                btnSimpan.disabled = false;
+            } else {
+                kembalianDiv.textContent = 'Rp 0';
+                errorDiv.classList.remove('d-none');
+                btnSimpan.disabled = true;
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-simpan-bayar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!this.disabled) {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...';
+                this.disabled = true;
+                const formId = this.getAttribute('id').replace('btn-simpan-bayar-', 'form-bayar-');
+                document.getElementById(formId).submit();
+            }
+        });
     });
 
     @if(session('success_reject'))

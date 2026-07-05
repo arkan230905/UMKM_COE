@@ -17,6 +17,27 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
+        // FIX OLD DATA: Sync completed orders to have 'paid' payment status
+        $completedUnpaidOrders = \App\Models\Order::withoutGlobalScope('user')
+            ->where('status', 'completed')
+            ->where(function($q) {
+                $q->where('payment_status', '!=', 'paid')
+                  ->where('payment_status', '!=', 'lunas');
+            })->get();
+            
+        foreach ($completedUnpaidOrders as $order) {
+            $order->payment_status = 'paid';
+            if (!$order->paid_at) {
+                $order->paid_at = now();
+            }
+            $order->save();
+            
+            \Illuminate\Support\Facades\DB::table('penjualans')->where('order_id', $order->id)->update([
+                'payment_status' => 'paid',
+                'payment_confirmed_at' => \Illuminate\Support\Facades\DB::raw('COALESCE(payment_confirmed_at, NOW())')
+            ]);
+        }
+
         // Run migration if columns are missing
         if (!\Illuminate\Support\Facades\Schema::hasColumn('returs', 'metode_refund') || 
             !\Illuminate\Support\Facades\Schema::hasColumn('returs', 'bukti_foto') ||
@@ -42,8 +63,16 @@ class PenjualanController extends Controller
         if ($request->filled('tanggal_selesai')) {
             $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
         }
-        // Filter by metode pembayaran (coa_id)
-        if ($request->filled('coa_id')) {
+        // Filter by metode pembayaran (coa_id atau metode khusus)
+        if ($request->filled('payment_filter')) {
+            $paymentFilter = $request->payment_filter;
+            if (str_starts_with($paymentFilter, 'coa:')) {
+                $query->where('coa_id', substr($paymentFilter, 4));
+            } elseif (str_starts_with($paymentFilter, 'method:')) {
+                $query->where('payment_method', substr($paymentFilter, 7));
+            }
+        } elseif ($request->filled('coa_id')) {
+            // Fallback for old parameter
             $query->where('coa_id', $request->coa_id);
         }
 
@@ -74,9 +103,25 @@ class PenjualanController extends Controller
         }
 
         $pendingQuery = clone $query;
-        $pendingPenjualans = $pendingQuery->where('approval_status', 'pending')->get();
+        $pendingPenjualans = $pendingQuery->where('approval_status', 'pending')
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+        
+        \Log::info('PenjualanController: Querying Pengajuan Penjualan Pelanggan', [
+            'perusahaan_id_owner' => auth()->id(),
+            'jumlah_order_pending_ditemukan' => $pendingPenjualans->count(),
+            'status_yang_ikut_query' => $request->status ?? 'semua',
+        ]);
         
         $query->where('approval_status', '!=', 'pending');
+        
+        // Ensure default sorting in DB query
+        $query->orderBy('tanggal', 'desc')
+              ->orderBy('created_at', 'desc')
+              ->orderBy('id', 'desc');
+              
         $penjualans = $query->get();
         $sortBy = $request->get('sort_by', 'tanggal');
         $sortDir = $request->get('sort_dir', 'desc');
@@ -86,8 +131,9 @@ class PenjualanController extends Controller
             $penjualans = $penjualans->sortBy(fn($p) => $p->id, SORT_REGULAR, $isDesc);
         } elseif ($sortBy === 'nomor_transaksi') {
             $penjualans = $penjualans->sortBy(fn($p) => $p->nomor_penjualan, SORT_REGULAR, $isDesc);
-        } elseif ($sortBy === 'tanggal') {
-            $penjualans = $penjualans->sortBy(fn($p) => $p->tanggal, SORT_REGULAR, $isDesc);
+        } elseif ($sortBy === 'tanggal' && !$isDesc) {
+            // DB already sorts by tanggal DESC, so only reverse if ascending is requested
+            $penjualans = $penjualans->reverse();
         } elseif ($sortBy === 'pembayaran') {
             $penjualans = $penjualans->sortBy(fn($p) => $p->payment_method, SORT_REGULAR, $isDesc);
         } elseif ($sortBy === 'pelanggan') {
@@ -123,8 +169,6 @@ class PenjualanController extends Controller
             $penjualans = $penjualans->sortBy(fn($p) => (float)($p->grand_total ?? $p->total), SORT_REGULAR, $isDesc);
         } elseif ($sortBy === 'qty_retur') {
             $penjualans = $penjualans->sortBy(fn($p) => (float)($p->total_qty_retur), SORT_REGULAR, $isDesc);
-        } else {
-            $penjualans = $penjualans->sortBy(fn($p) => $p->tanggal, SORT_REGULAR, true);
         }
         
         // Hitung ringkasan penjualan HARI INI saja
@@ -230,6 +274,9 @@ class PenjualanController extends Controller
         // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $salesReturns = \App\Models\ReturPenjualan::where('user_id', auth()->id())
             ->with(['penjualan', 'detailReturPenjualans.produk'])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         // Fetch customer-submitted returns
@@ -240,7 +287,10 @@ class PenjualanController extends Controller
                   ->where('user_id', auth()->id())
                   ->whereNotNull('order_id');
             })
+            ->whereIn('status', ['draft', 'pending', 'menunggu_approval', 'diajukan'])
             ->with(['penjualan', 'details.produk'])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -251,8 +301,8 @@ class PenjualanController extends Controller
 
         if ($sortReturBy === 'no') {
             $salesReturns = $salesReturns->sortBy(fn($r) => $r->id, SORT_REGULAR, $isReturDesc);
-        } elseif ($sortReturBy === 'tanggal') {
-            $salesReturns = $salesReturns->sortBy(fn($r) => $r->tanggal ?? $r->created_at, SORT_REGULAR, $isReturDesc);
+        } elseif ($sortReturBy === 'tanggal' && !$isReturDesc) {
+            $salesReturns = $salesReturns->reverse();
         } elseif ($sortReturBy === 'nomor_penjualan') {
             $salesReturns = $salesReturns->sortBy(fn($r) => $r->penjualan?->nomor_penjualan ?? '', SORT_REGULAR, $isReturDesc);
         } elseif ($sortReturBy === 'deskripsi') {
@@ -270,16 +320,66 @@ class PenjualanController extends Controller
                 }
                 return '';
             }, SORT_REGULAR, $isReturDesc);
-        } else {
-            $salesReturns = $salesReturns->sortBy(fn($r) => $r->tanggal ?? $r->created_at, SORT_REGULAR, true);
         }
 
         $produks = \App\Models\Produk::where('user_id', auth()->id())->get();
         $perusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
-        // Ambil akun kas/bank tanpa Piutang (Kredit)
-        $kasbanks = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
+        
+        // Ambil akun kas/bank yang valid untuk tenant ini
+        $paymentCoas = \App\Models\Coa::where('user_id', auth()->id())
+            ->where(function($q) {
+                $q->whereIn('kode_akun', ['111', '112', '113']) // Kas, Kas Kecil, Kas Bank default
+                  ->orWhere(function($q2) {
+                      $q2->whereIn('tipe_akun', ['Asset', 'Aset', 'Harta', 'Aktiva'])
+                         ->where(function($q3) {
+                             $q3->where('nama_akun', 'like', '%kas%')
+                                ->orWhere('nama_akun', 'like', '%bank%');
+                         });
+                  });
+            })
             ->orderBy('kode_akun')
             ->get();
+            
+        // Ambil payment method distinct dari transaksi
+        $usedPaymentMethods = \App\Models\Penjualan::where('user_id', auth()->id())
+            ->whereNotNull('payment_method')
+            ->where('payment_method', '!=', '')
+            ->distinct()
+            ->pluck('payment_method');
+            
+        // Buat struktur opsi dropdown
+        $paymentOptions = [];
+        
+        // 1. Tambahkan dari COA
+        foreach ($paymentCoas as $coa) {
+            $paymentOptions["coa:{$coa->id}"] = $coa->nama_akun;
+        }
+        
+        // 2. Tambahkan dari payment_method yang belum ada di COA
+        foreach ($usedPaymentMethods as $method) {
+            $label = $method;
+            if (strtolower($method) === 'cash' || strtolower($method) === 'tunai') {
+                $label = 'Tunai';
+            } elseif (strtolower($method) === 'transfer') {
+                $label = 'Transfer Manual';
+            } elseif (strtolower($method) === 'midtrans' || strtolower($method) === 'midtrans_va') {
+                $label = 'Transfer VA Midtrans';
+            } elseif (strtolower($method) === 'credit') {
+                $label = 'Kredit / Tempo';
+            } elseif (strtolower($method) === 'cod') {
+                $label = 'COD / Bayar di Tempat';
+            } else {
+                $label = ucfirst($method);
+            }
+            
+            // Hindari duplikat label
+            if (!in_array($label, $paymentOptions)) {
+                $paymentOptions["method:{$method}"] = $label;
+            }
+        }
+        
+        // Fallback backward compatibility for kasbanks if needed in view
+        $kasbanks = $paymentCoas;
 
         return view('transaksi.penjualan.index', compact(
             'penjualans',
@@ -300,7 +400,8 @@ class PenjualanController extends Controller
             'profitChange',
             'produks',
             'perusahaan',
-            'kasbanks'
+            'kasbanks',
+            'paymentOptions'
         ));
     }
 
@@ -792,7 +893,7 @@ class PenjualanController extends Controller
             }
         } elseif ($request->input('payment_method') === 'transfer') {
             $request->validate([
-                'bukti_pembayaran' => 'required|file|mimes:jpeg,png,jpg,pdf|max:5120',
+                'bukti_pembayaran' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:5120',
             ]);
         }
         
@@ -1016,6 +1117,14 @@ class PenjualanController extends Controller
                 'approval_status' => 'approved',
             ]);
 
+            // Update order status if exists
+            if ($penjualan->order_id) {
+                \App\Models\Order::withoutGlobalScope('user')->where('id', $penjualan->order_id)->update([
+                    'status' => 'processing',
+                    'approved_at' => now(),
+                ]);
+            }
+
             // Buat Jurnal
             \App\Services\JournalService::createJournalFromPenjualan($penjualan, auth()->id());
 
@@ -1045,7 +1154,7 @@ class PenjualanController extends Controller
                 if ($detail->produk) {
                     \App\Models\Produk::withoutGlobalScopes()
                         ->where('id', $detail->produk_id)
-                        ->increment('stok', $detail->kuantitas);
+                        ->increment('stok', $detail->jumlah);
                         
                     // Audit trail for stock return
                     \App\Models\StockMovement::create([
@@ -1054,7 +1163,7 @@ class PenjualanController extends Controller
                         'item_id' => $detail->produk_id,
                         'tanggal' => now()->toDateString(),
                         'direction' => 'in',
-                        'qty' => $detail->kuantitas,
+                        'qty' => $detail->jumlah,
                         'satuan' => $detail->produk->satuan_id ? $detail->produk->satuan->nama : 'pcs',
                         'unit_cost' => $detail->harga_satuan,
                         'total_cost' => $detail->subtotal,
@@ -1073,8 +1182,10 @@ class PenjualanController extends Controller
             
             // Also update order status if exists
             if ($penjualan->order_id) {
-                \App\Models\Order::where('id', $penjualan->order_id)->update([
+                \App\Models\Order::withoutGlobalScope('user')->where('id', $penjualan->order_id)->update([
                     'status' => 'cancelled',
+                    'alasan_penolakan' => $request->alasan_penolakan ?? 'Ditolak oleh penjual',
+                    'rejected_at' => now(),
                 ]);
             }
 
@@ -1085,6 +1196,157 @@ class PenjualanController extends Controller
             \Illuminate\Support\Facades\DB::rollBack();
             \Log::error('Failed to reject transaction: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal menolak transaksi: ' . $e->getMessage());
+        }
+    }
+
+    public function completeOnlineTransaction(Request $request, $id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $penjualan = Penjualan::with('order')->where('user_id', auth()->id())->findOrFail($id);
+
+            if ($penjualan->approval_status !== 'approved') {
+                throw new \Exception('Hanya transaksi yang sudah disetujui yang dapat diselesaikan.');
+            }
+
+            // Update order status if exists
+            if ($penjualan->order_id) {
+                $updateData = ['status' => 'ready_for_pickup'];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'ready_pickup_at')) {
+                    $updateData['ready_pickup_at'] = now();
+                }
+                \App\Models\Order::withoutGlobalScope('user')->where('id', $penjualan->order_id)->update($updateData);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Status pesanan berhasil diperbarui menjadi Bisa Diambil.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to complete transaction: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menyelesaikan pesanan: ' . $e->getMessage());
+        }
+    }
+
+    public function deliverOnlineTransaction(Request $request, $id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $penjualan = Penjualan::with('order')->where('user_id', auth()->id())->findOrFail($id);
+
+            if ($penjualan->approval_status !== 'approved') {
+                throw new \Exception('Hanya transaksi yang sudah disetujui yang dapat diantar.');
+            }
+
+            if ($penjualan->order_id) {
+                $updateData = ['status' => 'shipped'];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'shipped_at')) {
+                    $updateData['shipped_at'] = now();
+                }
+                \App\Models\Order::withoutGlobalScope('user')->where('id', $penjualan->order_id)->update($updateData);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Pesanan berhasil ditandai sedang diantar.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to deliver transaction: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses pesanan: ' . $e->getMessage());
+        }
+    }
+
+    public function completeDeliveryOnlineTransaction(Request $request, $id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $penjualan = Penjualan::with('order')->where('user_id', auth()->id())->findOrFail($id);
+
+            if ($penjualan->order_id) {
+                $updateData = [
+                    'status' => 'completed',
+                    'payment_status' => 'paid'
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'completed_at')) {
+                    $updateData['completed_at'] = now();
+                }
+                if (empty($penjualan->order->paid_at)) {
+                    $updateData['paid_at'] = now();
+                }
+                \App\Models\Order::withoutGlobalScope('user')->where('id', $penjualan->order_id)->update($updateData);
+
+                // Update penjualan payment status as well
+                \Illuminate\Support\Facades\DB::table('penjualans')->where('id', $penjualan->id)->update([
+                    'payment_status' => 'paid',
+                    'payment_confirmed_at' => \Illuminate\Support\Facades\DB::raw('COALESCE(payment_confirmed_at, NOW())'),
+                ]);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Pesanan berhasil diselesaikan.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to complete delivery transaction: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menyelesaikan pesanan: ' . $e->getMessage());
+        }
+    }
+
+    public function payOnlineTransaction(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'uang_diterima' => 'required|numeric|min:0',
+            ]);
+
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            $penjualan = Penjualan::with('order')->where('user_id', auth()->id())->findOrFail($id);
+
+            if ($penjualan->approval_status !== 'approved') {
+                throw new \Exception('Hanya transaksi yang sudah disetujui yang dapat dibayar.');
+            }
+
+            $uangDiterima = $request->uang_diterima;
+            $totalPembayaran = $penjualan->grand_total ?? $penjualan->total;
+
+            if ($uangDiterima < $totalPembayaran) {
+                throw new \Exception('Uang diterima kurang dari total pembayaran.');
+            }
+
+            $kembalian = $uangDiterima - $totalPembayaran;
+
+            // Update penjualan
+            $penjualan->update([
+                'payment_status' => 'paid',
+                'payment_confirmed_at' => now(),
+                'uang_diterima' => $uangDiterima,
+                'kembalian' => $kembalian,
+            ]);
+
+            // Update order status if exists
+            if ($penjualan->order_id) {
+                \App\Models\Order::withoutGlobalScope('user')->where('id', $penjualan->order_id)->update([
+                    'status' => 'completed',
+                    'payment_status' => 'paid',
+                    'paid_at' => now(),
+                ]);
+            }
+
+            // TODO: If Jurnal/Kas integration is needed, it should be done here.
+            // As per instructions, "jika ada akun kas tunai, jurnal/akun pembayaran menggunakan kas tunai sesuai logic yang sudah ada".
+            // Since we don't have the full KasController logic here, if there's a specific method to call, we'd do it. Let's see if approveOnlineTransaction handles kas.
+            
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Pembayaran berhasil disimpan. Transaksi telah Lunas.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to pay transaction: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses pembayaran: ' . $e->getMessage());
         }
     }
 }

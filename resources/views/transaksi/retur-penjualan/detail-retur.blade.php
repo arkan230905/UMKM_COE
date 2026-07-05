@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <form action="{{ route('transaksi.retur-penjualan.store') }}" method="POST" id="returForm">
+    <form action="{{ route('transaksi.retur-penjualan.store') }}" method="POST" id="returForm" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="penjualan_id" value="{{ $penjualan->id }}">
 
@@ -93,9 +93,20 @@
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="keterangan" class="form-label">Keterangan</label>
-                            <textarea name="keterangan" id="keterangan" class="form-control" rows="3">{{ old('keterangan') }}</textarea>
+                            <label for="keterangan" class="form-label">Alasan</label>
+                            <textarea name="keterangan" id="keterangan" class="form-control" rows="3" placeholder="Masukkan alasan retur, misalnya barang rusak, salah produk, ukuran tidak sesuai, dll.">{{ old('keterangan') }}</textarea>
                             @error('keterangan')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="bukti_foto" class="form-label">Bukti Barang</label>
+                            <input type="file" name="bukti_foto" id="bukti_foto" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            @error('bukti_foto')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
                         </div>
@@ -139,6 +150,10 @@
                                             <label for="bank_tujuan_refund" class="form-label">Bank Tujuan <span class="text-danger">*</span></label>
                                             <input type="text" name="bank_tujuan_refund" id="bank_tujuan_refund" class="form-control" value="{{ old('bank_tujuan_refund') }}" placeholder="Contoh: BCA">
                                             <small class="text-muted">Perusahaan hanya melayani transfer ke sesama bank</small>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="no_rekening_refund" class="form-label">No. Rekening Penerima <span class="text-danger">*</span></label>
+                                            <input type="text" name="no_rekening_refund" id="no_rekening_refund" class="form-control" value="{{ old('no_rekening_refund') }}" placeholder="Masukkan nomor rekening penerima">
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label for="nama_penerima_refund" class="form-label">Nama Penerima <span class="text-danger">*</span></label>

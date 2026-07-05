@@ -31,6 +31,6 @@ class ReturDetail extends Model
     // Relasi ke produk
     public function produk()
     {
-        return $this->belongsTo(Produk::class, 'produk_id');
+        return $this->belongsTo(Produk::class, 'produk_id')->withoutGlobalScopes();
     }
 }

@@ -231,16 +231,17 @@ mark.bg-warning {
             </div>
             <div class="col-md-6">
                 <label class="form-label">Waktu</label>
-                <input type="time" id="waktu_input" name="waktu" class="form-control" value="{{ now()->format('H:i') }}" required>
+                <input type="time" id="waktu_input" name="waktu" class="form-control" value="{{ now()->format('H:i:s') }}" step="1" required>
                 <script>
                     setInterval(function() {
                         const now = new Date();
                         const h = String(now.getHours()).padStart(2, '0');
                         const m = String(now.getMinutes()).padStart(2, '0');
+                        const s = String(now.getSeconds()).padStart(2, '0');
                         const waktuInput = document.getElementById('waktu_input');
                         // Update if user is not actively editing the field
                         if (document.activeElement !== waktuInput) {
-                            waktuInput.value = h + ':' + m;
+                            waktuInput.value = h + ':' + m + ':' + s;
                         }
                     }, 1000);
                 </script>
