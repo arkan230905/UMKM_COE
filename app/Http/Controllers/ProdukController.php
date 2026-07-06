@@ -520,33 +520,94 @@ class ProdukController extends Controller
     private function getOrCreatePersediaanCoa($namaProduk)
     {
         $userId = auth()->id();
-        $namaAkun = 'Pers. Barang Jadi ' . $namaProduk;
+        $namaAkun = 'Pers. Barang Jadi - Produk ' . $namaProduk;
 
+        // Cari akun jika sudah ada dengan nama yang persis sama
         $coa = \App\Models\Coa::where('user_id', $userId)
             ->where('nama_akun', $namaAkun)
+            ->where('tipe_akun', 'Aset')
             ->first();
 
-        if (!$coa) {
-            $maxKode = \App\Models\Coa::where('user_id', $userId)
-                ->where('kode_akun', 'LIKE', '116%')
-                ->whereRaw('LENGTH(kode_akun) > 3')
-                ->orderBy(\Illuminate\Support\Facades\DB::raw('CAST(kode_akun AS UNSIGNED)'), 'desc')
-                ->first();
-
-            $nextKode = $maxKode ? (intval($maxKode->kode_akun) + 1) : 1161;
-
-            $coa = \App\Models\Coa::create([
-                'user_id' => $userId,
-                'kode_akun' => (string) $nextKode,
-                'nama_akun' => $namaAkun,
-                'tipe_akun' => 'Aset',
-                'kategori_akun' => 'Aset',
-                'is_akun_header' => 0,
-                'saldo_normal' => 'debit',
-                'saldo_awal' => 0,
-                'tanggal_saldo_awal' => now(),
-            ]);
+        if ($coa) {
+            return $coa->kode_akun;
         }
+
+        // Cari akun induk Pers. Barang Jadi
+        $induk = \App\Models\Coa::where('user_id', $userId)
+            ->where(function($q) {
+                $q->where('nama_akun', 'Pers. Barang Jadi')
+                  ->orWhere('nama_akun', 'Persediaan Barang Jadi')
+                  ->orWhere('nama_akun', 'Pers. Barang Jadi Produk')
+                  ->orWhere('nama_akun', 'Persediaan Produk Jadi');
+            })
+            ->where('tipe_akun', 'Aset')
+            ->first();
+
+        $kodeInduk = $induk ? $induk->kode_akun : '116';
+
+        // Jika induk belum ada, buat induknya dulu
+        if (!$induk) {
+            $indukExists = \App\Models\Coa::where('user_id', $userId)->where('kode_akun', $kodeInduk)->first();
+            if (!$indukExists) {
+                \App\Models\Coa::create([
+                    'user_id' => $userId,
+                    'kode_akun' => $kodeInduk,
+                    'nama_akun' => 'Pers. Barang Jadi',
+                    'tipe_akun' => 'Aset',
+                    'kategori_akun' => 'Aset',
+                    'is_akun_header' => 1,
+                    'saldo_normal' => 'debit',
+                    'saldo_awal' => 0,
+                    'tanggal_saldo_awal' => now(),
+                ]);
+            }
+        }
+
+        // Cari kode akun anak terakhir
+        $maxKode = \App\Models\Coa::where('user_id', $userId)
+            ->where(function($q) use ($kodeInduk) {
+                $q->where('kode_induk', $kodeInduk)
+                  ->orWhere('kode_akun', 'LIKE', $kodeInduk . '%');
+            })
+            ->where('kode_akun', '!=', $kodeInduk)
+            ->orderBy(\Illuminate\Support\Facades\DB::raw('CAST(REPLACE(kode_akun, ".", "") AS UNSIGNED)'), 'desc')
+            ->first();
+
+        $nextKode = $kodeInduk . '1'; 
+        if ($maxKode) {
+            if (strpos($maxKode->kode_akun, '.') !== false) {
+                $parts = explode('.', $maxKode->kode_akun);
+                $lastPart = array_pop($parts);
+                $newLastPart = str_pad((int)$lastPart + 1, strlen($lastPart), '0', STR_PAD_LEFT);
+                $parts[] = $newLastPart;
+                $nextKode = implode('.', $parts);
+            } else {
+                if (str_starts_with($maxKode->kode_akun, $kodeInduk)) {
+                    $suffix = substr($maxKode->kode_akun, strlen($kodeInduk));
+                    if (is_numeric($suffix)) {
+                        $nextSuffix = (int)$suffix + 1;
+                        $nextKode = $kodeInduk . $nextSuffix;
+                    } else {
+                        $nextKode = (string)(intval($maxKode->kode_akun) + 1);
+                    }
+                } else {
+                    $nextKode = (string)(intval($maxKode->kode_akun) + 1);
+                }
+            }
+        }
+
+        $coa = \App\Models\Coa::create([
+            'user_id' => $userId,
+            'kode_akun' => (string) $nextKode,
+            'nama_akun' => $namaAkun,
+            'tipe_akun' => 'Aset',
+            'kategori_akun' => 'Aset',
+            'is_akun_header' => 0,
+            'kode_induk' => $kodeInduk,
+            'saldo_normal' => 'debit',
+            'saldo_awal' => 0,
+            'tanggal_saldo_awal' => now(),
+        ]);
 
         return $coa->kode_akun;
     }
