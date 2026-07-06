@@ -1157,6 +1157,10 @@ window.addItemRow = function() {
             input.value = '';
         } else if (input.tagName === 'SELECT' && !input.classList.contains('satuan-select')) {
             input.selectedIndex = 0;
+        } else if (input.classList.contains('satuan-select')) {
+            // Reset satuan dropdown to show only placeholder
+            input.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+            input.selectedIndex = 0;
         }
         if (input.name === 'subtotal[]') {
             input.value = '0';
@@ -1356,60 +1360,17 @@ window.updateItemsBasedOnVendor = function(vendorSelect) {
     });
 }
 
-// Update Satuan Pembelian dropdown based on selected item's satuan utama dan sub satuan
+// Update Satuan Pembelian dropdown - ALWAYS show all satuans from master data
 function updateSatuanPembelianOptions(row, itemId, tipeItem) {
     const satuanSelect = row.querySelector('.satuan-select');
     
-    if (!itemId || !tipeItem) {
-        // Reset to all satuans if no item selected
-        satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
-        @foreach($satuans as $satuan)
-            satuanSelect.innerHTML += '<option value="{{ $satuan->id }}" data-nama="{{ $satuan->nama }}">{{ $satuan->nama }}</option>';
-        @endforeach
-        return;
-    }
-    
-    // Get sub satuan data for the selected item
-    const itemData = subSatuanData[tipeItem] && subSatuanData[tipeItem][itemId];
-    
-    if (!itemData) {
-        console.warn('No sub satuan data found for item:', tipeItem, itemId);
-        // Fallback to all satuans
-        satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
-        @foreach($satuans as $satuan)
-            satuanSelect.innerHTML += '<option value="{{ $satuan->id }}" data-nama="{{ $satuan->nama }}">{{ $satuan->nama }}</option>';
-        @endforeach
-        return;
-    }
-    
-    // Build options: satuan utama + sub satuans
+    // Always show all satuans from master data satuan
     satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+    @foreach($satuans as $satuan)
+        satuanSelect.innerHTML += '<option value="{{ $satuan->id }}" data-nama="{{ $satuan->nama }}">{{ $satuan->nama }} ({{ $satuan->kode }})</option>';
+    @endforeach
     
-    // Add satuan utama (main unit)
-    if (itemData.satuan_utama && itemData.satuan_utama.id) {
-        satuanSelect.innerHTML += `<option value="${itemData.satuan_utama.id}" data-nama="${itemData.satuan_utama.nama}">${itemData.satuan_utama.nama} (Satuan Utama)</option>`;
-        console.log('✅ Added satuan utama:', itemData.satuan_utama.nama);
-    }
-    
-    // Add sub_satuan_1
-    if (itemData.sub_satuan_1 && itemData.sub_satuan_1.id) {
-        satuanSelect.innerHTML += `<option value="${itemData.sub_satuan_1.id}" data-nama="${itemData.sub_satuan_1.nama}">${itemData.sub_satuan_1.nama}</option>`;
-        console.log('✅ Added sub_satuan_1:', itemData.sub_satuan_1.nama);
-    }
-    
-    // Add sub_satuan_2
-    if (itemData.sub_satuan_2 && itemData.sub_satuan_2.id) {
-        satuanSelect.innerHTML += `<option value="${itemData.sub_satuan_2.id}" data-nama="${itemData.sub_satuan_2.nama}">${itemData.sub_satuan_2.nama}</option>`;
-        console.log('✅ Added sub_satuan_2:', itemData.sub_satuan_2.nama);
-    }
-    
-    // Add sub_satuan_3
-    if (itemData.sub_satuan_3 && itemData.sub_satuan_3.id) {
-        satuanSelect.innerHTML += `<option value="${itemData.sub_satuan_3.id}" data-nama="${itemData.sub_satuan_3.nama}">${itemData.sub_satuan_3.nama}</option>`;
-        console.log('✅ Added sub_satuan_3:', itemData.sub_satuan_3.nama);
-    }
-    
-    console.log(`📦 Updated satuan options for ${tipeItem} ID ${itemId}`);
+    console.log(`📦 Updated satuan options with all master data satuans`);
 }
 
 // Remove the old updateItemOptions function since we don't need it anymore
@@ -1838,6 +1799,15 @@ function debugFormData(form) {
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     updateDeleteButtons();
+    
+    // Reset satuan dropdown on first row to show only placeholder
+    const firstRow = document.querySelector('.item-row');
+    if (firstRow) {
+        const satuanSelect = firstRow.querySelector('.satuan-select');
+        if (satuanSelect) {
+            satuanSelect.innerHTML = '<option value="">-- Pilih Satuan --</option>';
+        }
+    }
     
     // Update sub satuan information when item is selected
     function updateSubSatuanInfo(itemSelect) {

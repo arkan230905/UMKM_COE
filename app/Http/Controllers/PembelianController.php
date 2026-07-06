@@ -251,14 +251,17 @@ class PembelianController extends Controller
         foreach ($bahanBakus as $bb) {
             // Query fresh data langsung dari database
             $freshBahanBaku = \DB::table('bahan_bakus')
-                ->select('id', 'nama_bahan', 
+                ->select('id', 'nama_bahan', 'satuan_id',
                         'sub_satuan_1_id', 'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
                         'sub_satuan_2_id', 'sub_satuan_2_konversi', 'sub_satuan_2_nilai',
                         'sub_satuan_3_id', 'sub_satuan_3_konversi', 'sub_satuan_3_nilai')
                 ->where('id', $bb->id)
                 ->first();
             
-            // Ambil nama satuan langsung dari database
+            // Ambil satuan utama dengan kode
+            $satuanUtama = \DB::table('satuans')->where('id', $freshBahanBaku->satuan_id)->first();
+            
+            // Ambil sub satuan langsung dari database dengan kode
             $subSatuan1 = $freshBahanBaku->sub_satuan_1_id ? 
                 \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_1_id)->first() : null;
             $subSatuan2 = $freshBahanBaku->sub_satuan_2_id ? 
@@ -271,22 +274,26 @@ class PembelianController extends Controller
             
             $subSatuanData['bahan_baku'][$bb->id] = [
                 'satuan_utama' => [
-                    'id' => $bb->satuan_id,
-                    'nama' => $bb->satuan->nama ?? 'Unit'
+                    'id' => $freshBahanBaku->satuan_id,
+                    'nama' => $satuanUtama->nama ?? 'Unit',
+                    'kode' => $satuanUtama->kode ?? ''
                 ],
                 'sub_satuan_1' => $subSatuan1 ? [
                     'id' => $subSatuan1->id,
                     'nama' => $subSatuan1->nama,
+                    'kode' => $subSatuan1->kode ?? '',
                     'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_1_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
                 'sub_satuan_2' => $subSatuan2 ? [
                     'id' => $subSatuan2->id,
                     'nama' => $subSatuan2->nama,
+                    'kode' => $subSatuan2->kode ?? '',
                     'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_2_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
                 'sub_satuan_3' => $subSatuan3 ? [
                     'id' => $subSatuan3->id,
                     'nama' => $subSatuan3->nama,
+                    'kode' => $subSatuan3->kode ?? '',
                     'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_3_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
                 'coa_kode' => $coa ? $coa->kode_akun : '114',
@@ -298,14 +305,17 @@ class PembelianController extends Controller
         foreach ($bahanPendukungs as $bp) {
             // Query fresh data langsung dari database
             $freshBahanPendukung = \DB::table('bahan_pendukungs')
-                ->select('id', 'nama_bahan', 
+                ->select('id', 'nama_bahan', 'satuan_id',
                         'sub_satuan_1_id', 'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
                         'sub_satuan_2_id', 'sub_satuan_2_konversi', 'sub_satuan_2_nilai',
                         'sub_satuan_3_id', 'sub_satuan_3_konversi', 'sub_satuan_3_nilai')
                 ->where('id', $bp->id)
                 ->first();
             
-            // Ambil nama satuan langsung dari database
+            // Ambil satuan utama dengan kode
+            $satuanUtama = \DB::table('satuans')->where('id', $freshBahanPendukung->satuan_id)->first();
+            
+            // Ambil sub satuan langsung dari database dengan kode
             $subSatuan1 = $freshBahanPendukung->sub_satuan_1_id ? 
                 \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_1_id)->first() : null;
             $subSatuan2 = $freshBahanPendukung->sub_satuan_2_id ? 
@@ -318,22 +328,26 @@ class PembelianController extends Controller
             
             $subSatuanData['bahan_pendukung'][$bp->id] = [
                 'satuan_utama' => [
-                    'id' => $bp->satuan_id,
-                    'nama' => $bp->satuanRelation->nama ?? 'Unit'
+                    'id' => $freshBahanPendukung->satuan_id,
+                    'nama' => $satuanUtama->nama ?? 'Unit',
+                    'kode' => $satuanUtama->kode ?? ''
                 ],
                 'sub_satuan_1' => $subSatuan1 ? [
                     'id' => $subSatuan1->id,
                     'nama' => $subSatuan1->nama,
+                    'kode' => $subSatuan1->kode ?? '',
                     'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_1_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
                 'sub_satuan_2' => $subSatuan2 ? [
                     'id' => $subSatuan2->id,
                     'nama' => $subSatuan2->nama,
+                    'kode' => $subSatuan2->kode ?? '',
                     'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_2_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
                 'sub_satuan_3' => $subSatuan3 ? [
                     'id' => $subSatuan3->id,
                     'nama' => $subSatuan3->nama,
+                    'kode' => $subSatuan3->kode ?? '',
                     'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_3_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
                 'coa_kode' => $coa ? $coa->kode_akun : '115',
