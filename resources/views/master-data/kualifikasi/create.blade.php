@@ -81,9 +81,29 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        <div id="periode-container" class="mt-3 d-none">
+                            <label class="form-label">Periode Target <span class="text-danger">*</span></label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <select name="target_bulan" id="select-bulan" class="form-select">
+                                        @foreach(range(1, 12) as $m)
+                                            <option value="{{ $m }}" {{ now()->month == $m ? 'selected' : '' }}>{{ \App\Models\TargetProduksiDetail::getMonthName($m) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <select name="target_tahun" id="select-tahun" class="form-select">
+                                        @foreach(range(now()->year - 2, now()->year + 2) as $y)
+                                            <option value="{{ $y }}" {{ now()->year == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div id="target-produksi-container" class="mt-3 d-none">
-                            <label class="form-label text-primary mb-1" style="font-size: 0.85rem;"><i class="fas fa-bullseye me-1"></i>Target Produksi/Bulan (pcs)</label>
+                            <label class="form-label text-primary mb-1" style="font-size: 0.85rem;" id="label-target-produksi"><i class="fas fa-bullseye me-1"></i>Target Produksi/Bulan (pcs)</label>
                             <input type="number" name="target_produksi" id="input-target-produksi" class="form-control" value="{{ old('target_produksi', 0) }}" min="0" readonly style="background-color: #e9ecef;">
                             <small id="target-warning" class="text-danger d-none"><i class="fas fa-exclamation-triangle"></i> Target produksi belum diatur untuk produk ini di bulan ini.</small>
                             <small id="target-loading" class="text-info d-none"><i class="fas fa-spinner fa-spin"></i> Mengambil data target...</small>
@@ -198,13 +218,17 @@
             const inputGaji = document.getElementById('input-gaji-pokok');
             const inputTarif = document.getElementById('input-tarif-produk');
             const inputTarget = document.getElementById('input-target-produksi');
+            const labelTarget = document.getElementById('label-target-produksi');
             const containerTarget = document.getElementById('target-produksi-container');
             const containerProduk = document.getElementById('produk-container');
+            const containerPeriode = document.getElementById('periode-container');
             const selectProduk = document.getElementById('select-produk');
+            const selectBulan = document.getElementById('select-bulan');
+            const selectTahun = document.getElementById('select-tahun');
             const btnSimpan = document.getElementById('btn-simpan');
             const targetWarning = document.getElementById('target-warning');
             const targetLoading = document.getElementById('target-loading');
-
+            
             const calculateTarif = () => {
                 if (selectKategori.value !== 'btkl') return;
                 
@@ -222,6 +246,12 @@
             
             const fetchTargetProduksi = async () => {
                 const produkId = selectProduk.value;
+                const bulan = selectBulan.value;
+                const tahun = selectTahun.value;
+                const bulanText = selectBulan.options[selectBulan.selectedIndex].text;
+                
+                labelTarget.innerHTML = `<i class="fas fa-bullseye me-1"></i>Target Produksi/Bulan (pcs) - Periode: ${bulanText} ${tahun}`;
+
                 if (!produkId) {
                     inputTarget.value = 0;
                     calculateTarif();
@@ -233,11 +263,9 @@
                 btnSimpan.disabled = true;
                 targetLoading.classList.remove('d-none');
                 targetWarning.classList.add('d-none');
-                inputTarget.value = 0;
-                calculateTarif();
                 
                 try {
-                    const response = await fetch(`/api/kualifikasi/target-produksi/${produkId}`);
+                    const response = await fetch(`/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`);
                     const result = await response.json();
                     
                     if (result.success && result.target > 0) {
@@ -265,16 +293,21 @@
                 if (selectKategori.value === 'btkl') {
                     containerProduk.classList.remove('d-none');
                     selectProduk.required = true;
+                    containerPeriode.classList.remove('d-none');
                     containerTarget.classList.remove('d-none');
                     
-                    if(selectProduk.value) {
+                    if(selectProduk.value && inputTarget.value == 0) {
                         fetchTargetProduksi();
-                    } else {
+                    } else if (!selectProduk.value) {
+                        btnSimpan.disabled = true;
+                    } else if (inputTarget.value == 0) {
+                        targetWarning.classList.remove('d-none');
                         btnSimpan.disabled = true;
                     }
                 } else {
                     containerProduk.classList.add('d-none');
                     selectProduk.required = false;
+                    containerPeriode.classList.add('d-none');
                     containerTarget.classList.add('d-none');
                     inputTarget.required = false;
                     inputTarget.value = 0;
@@ -286,6 +319,8 @@
 
             selectKategori.addEventListener('change', toggleAutoHitung);
             selectProduk.addEventListener('change', fetchTargetProduksi);
+            selectBulan.addEventListener('change', fetchTargetProduksi);
+            selectTahun.addEventListener('change', fetchTargetProduksi);
             inputGaji.addEventListener('input', calculateTarif);
             
             // Initial check

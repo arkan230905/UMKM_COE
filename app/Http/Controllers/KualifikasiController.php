@@ -340,20 +340,23 @@ class KualifikasiController extends Controller
         return $v;
     }
 
-    public function getTargetProduksiApi($produk_id)
+    public function getTargetProduksiApi(Request $request, $produk_id)
     {
+        $bulan = $request->get('bulan', now()->month);
+        $tahun = $request->get('tahun', now()->year);
+
         $targetProduksi = TargetProduksi::where('user_id', auth()->id())
             ->where('produk_id', $produk_id)
-            ->where('tahun', now()->year)
+            ->where('tahun', $tahun)
             ->first();
             
-        $targetBulanan = $targetProduksi ? $targetProduksi->getTargetBulan(now()->month) : 0;
+        $targetBulanan = $targetProduksi ? $targetProduksi->getTargetBulan($bulan) : 0;
         
         return response()->json([
             'success' => true,
             'target' => $targetBulanan,
-            'bulan' => now()->month,
-            'tahun' => now()->year
+            'bulan' => $bulan,
+            'tahun' => $tahun
         ]);
     }
 }
