@@ -105,7 +105,12 @@
                         <div id="target-produksi-container" class="mt-3 d-none">
                             <label class="form-label text-primary mb-1" style="font-size: 0.85rem;" id="label-target-produksi"><i class="fas fa-bullseye me-1"></i>Target Produksi/Bulan (pcs)</label>
                             <input type="number" name="target_produksi" id="input-target-produksi" class="form-control" value="{{ old('target_produksi', 0) }}" min="0" readonly style="background-color: #e9ecef;">
-                            <small id="target-warning" class="text-danger d-none"><i class="fas fa-exclamation-triangle"></i> Target produksi belum diatur untuk produk ini di bulan ini.</small>
+                            <div id="target-warning" class="alert alert-warning d-none mt-2" style="padding: 0.5rem 0.75rem;">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <strong>Target produksi belum diatur untuk produk ini di bulan/tahun ini.</strong>
+                                <br>
+                                <small>Silakan buat target produksi terlebih dahulu di <a href="{{ route('master-data.target-produksi.index') }}" target="_blank" class="alert-link">Master Data > Target Produksi</a></small>
+                            </div>
                             <small id="target-loading" class="text-info d-none"><i class="fas fa-spinner fa-spin"></i> Mengambil data target...</small>
                         </div>
                     </div>
@@ -265,17 +270,24 @@
                 targetWarning.classList.add('d-none');
                 
                 try {
-                    const response = await fetch(`/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`);
+                    const apiUrl = `/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`;
+                    console.log('Fetching target produksi from:', apiUrl);
+                    
+                    const response = await fetch(apiUrl);
                     const result = await response.json();
+                    
+                    console.log('API Response:', result);
                     
                     if (result.success && result.target > 0) {
                         inputTarget.value = result.target;
                         targetWarning.classList.add('d-none');
                         btnSimpan.disabled = false;
+                        console.log('✓ Target found:', result.target);
                     } else {
                         inputTarget.value = 0;
                         targetWarning.classList.remove('d-none');
                         btnSimpan.disabled = true;
+                        console.warn('✗ No target found for produk_id:', produkId, 'bulan:', bulan, 'tahun:', tahun);
                     }
                     calculateTarif();
                 } catch (error) {

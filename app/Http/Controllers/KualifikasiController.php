@@ -344,19 +344,46 @@ class KualifikasiController extends Controller
     {
         $bulan = $request->get('bulan', now()->month);
         $tahun = $request->get('tahun', now()->year);
+        $userId = auth()->id();
 
-        $targetProduksi = TargetProduksi::where('user_id', auth()->id())
+        \Log::info('API getTargetProduksi called', [
+            'user_id' => $userId,
+            'produk_id' => $produk_id,
+            'bulan' => $bulan,
+            'tahun' => $tahun
+        ]);
+
+        $targetProduksi = TargetProduksi::where('user_id', $userId)
             ->where('produk_id', $produk_id)
             ->where('tahun', $tahun)
             ->first();
+        
+        if (!$targetProduksi) {
+            \Log::warning('No TargetProduksi found', [
+                'user_id' => $userId,
+                'produk_id' => $produk_id,
+                'tahun' => $tahun
+            ]);
+        }
             
         $targetBulanan = $targetProduksi ? $targetProduksi->getTargetBulan($bulan) : 0;
+        
+        \Log::info('API getTargetProduksi result', [
+            'target_produksi_id' => $targetProduksi ? $targetProduksi->id : null,
+            'target_bulanan' => $targetBulanan
+        ]);
         
         return response()->json([
             'success' => true,
             'target' => $targetBulanan,
             'bulan' => $bulan,
-            'tahun' => $tahun
+            'tahun' => $tahun,
+            'debug' => [
+                'user_id' => $userId,
+                'produk_id' => $produk_id,
+                'target_produksi_found' => $targetProduksi ? true : false,
+                'target_produksi_id' => $targetProduksi ? $targetProduksi->id : null
+            ]
         ]);
     }
 }

@@ -106,7 +106,12 @@
                         <div id="target-produksi-container" class="mt-3 d-none">
                             <label class="form-label text-primary mb-1" style="font-size: 0.85rem;" id="label-target-produksi"><i class="fas fa-bullseye me-1"></i>Target Produksi/Bulan (pcs)</label>
                             <input type="number" name="target_produksi" id="input-target-produksi" class="form-control" value="{{ old('target_produksi', $jabatan->target_produksi ?? 0) }}" min="0" readonly style="background-color: #e9ecef;">
-                            <small id="target-warning" class="text-danger d-none"><i class="fas fa-exclamation-triangle"></i> Target produksi belum diatur untuk produk ini di bulan ini.</small>
+                            <div id="target-warning" class="alert alert-warning d-none mt-2" style="padding: 0.5rem 0.75rem;">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <strong>Target produksi belum diatur untuk produk ini di bulan/tahun ini.</strong>
+                                <br>
+                                <small>Silakan buat target produksi terlebih dahulu di <a href="{{ route('master-data.target-produksi.index') }}" target="_blank" class="alert-link">Master Data > Target Produksi</a></small>
+                            </div>
                             <small id="target-loading" class="text-info d-none"><i class="fas fa-spinner fa-spin"></i> Mengambil data target...</small>
                         </div>
                     </div>
