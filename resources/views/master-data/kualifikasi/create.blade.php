@@ -270,7 +270,7 @@
                 targetWarning.classList.add('d-none');
                 
                 try {
-                    const apiUrl = `/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`;
+                    const apiUrl = `/master-data/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`;
                     console.log('Fetching target produksi from:', apiUrl);
                     
                     const response = await fetch(apiUrl);

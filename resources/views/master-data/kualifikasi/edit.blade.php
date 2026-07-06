@@ -266,7 +266,7 @@
                 targetWarning.classList.add('d-none');
                 
                 try {
-                    const response = await fetch(`/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`);
+                    const response = await fetch(`/master-data/api/kualifikasi/target-produksi/${produkId}?bulan=${bulan}&tahun=${tahun}`);
                     const result = await response.json();
                     
                     if (result.success && result.target > 0) {
