@@ -358,9 +358,8 @@
                                             </td>
                                             <td>
                                                 <strong>{{ $p->produk->nama_produk }}</strong>
-                                                <br><small class="text-muted">ID: #{{ $p->id }}</small>
                                             </td>
-                                            <td class="text-end">{{ number_format($p->qty_produksi, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ number_format($p->qty_produksi, 0, ',', '.') }}</td>
                                             <td class="text-end fw-semibold">Rp {{ number_format($p->total_biaya, 0, ',', '.') }}</td>
                                             <td>
                                                 @if($p->status === 'draft')
