@@ -1123,18 +1123,14 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         ]);
         
         // Get HPP - cari akun dengan nama "Harga Pokok Penjualan" atau kode 56/560
-        // ✅ PERBAIKAN: Gunakan saldo akhir sebenarnya (bisa positif atau negatif)
-        $hppCoa = $coas->first(function($coa) {
+        // Prioritaskan akun 56 karena itu standar yang memiliki sub-akun
+        $hppCoa = $coas->where('kode_akun', '56')->first() 
+               ?? $coas->where('kode_akun', '501')->first()
+               ?? $coas->first(function($coa) {
             $first = substr($coa->kode_akun, 0, 1);
             if ($first !== '5') return false;
-            
-            // Cari berdasarkan nama atau kode
-            $isHpp = stripos($coa->nama_akun, 'harga pokok') !== false ||
-                     stripos($coa->nama_akun, 'hpp') !== false ||
-                     $coa->kode_akun === '56' ||
-                     $coa->kode_akun === '560';
-            
-            return $isHpp;
+            return stripos($coa->nama_akun, 'harga pokok') !== false ||
+                   stripos($coa->nama_akun, 'hpp') !== false;
         });
         
         // Gunakan saldo apa adanya (positif atau negatif)
@@ -1194,10 +1190,6 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         $diskonPenjualanCoa = $coas->where('kode_akun', '412')->first();
         $totalDiskonPenjualan = $diskonPenjualanCoa ? ($accountData['412']['saldo_akhir'] ?? 0) : 0;
         
-        // Calculate laba kotor dan laba bersih
-        $labaKotor = $totalPendapatan - $hppAmount;
-        $labaBersih = $labaKotor - $totalBeban;
-        
         // ── DETAIL PENJUALAN PER PRODUK ────────────────────────────
         // Breakdown penjualan per produk untuk ditampilkan di bawah COA Penjualan
         // 🔒 SECURITY: Filter by user_id untuk multi-tenant isolation
@@ -1213,31 +1205,94 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             ->orderBy('total_pendapatan', 'desc')
             ->get();
 
-        // ── DETAIL HPP PER PRODUK ──────────────────────────────────
-        // Breakdown HPP per produk untuk ditampilkan di bawah COA HPP
-        // 🔒 SECURITY: Filter by user_id untuk multi-tenant isolation
-        $detailHpp = \DB::table('penjualan_details as pd')
-            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
-            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
-            ->where('p.user_id', auth()->id())
-            ->whereBetween('p.tanggal', [$from, $to])
-            ->selectRaw('pr.nama_produk,
-                         SUM(pd.jumlah) as total_qty,
-                         SUM(pd.jumlah * pr.harga_jual) as total_hpp')
-            ->groupBy('pr.id', 'pr.nama_produk')
-            ->having('total_hpp', '>', 0)
-            ->orderBy('total_hpp', 'desc')
-            ->get();
+        // ── FETCH SEMUA AKUN ANAK HPP DARI COA ─────────────────────
+        // Tampilkan semua anak akun HPP yang ada di database, beserta perhitungan HPP per akun
+        $hppChildCoas = collect();
+        if ($hppCoa) {
+            $hppChildCoas = \App\Models\Coa::where('user_id', auth()->id())
+                ->where('kode_akun', 'LIKE', $hppCoa->kode_akun . '%')
+                ->where('kode_akun', '!=', $hppCoa->kode_akun)
+                ->orderBy('kode_akun')
+                ->get();
+        }
+
+        // ── DETAIL HPP PER ANAK AKUN HPP ───────────────────────────
+        // Untuk setiap anak akun HPP, hitung HPP berdasarkan penjualan produk terkait
+        // Gunakan nama akun untuk identifikasi produk (convention: nama akun mengandung nama produk)
+        $detailHppByAccount = collect();
+        $totalHppDetail = 0;
+
+        foreach ($hppChildCoas as $childCoa) {
+            // Extract nama produk dari nama akun
+            $namaAkunStr = trim($childCoa->nama_akun);
+            $produkNameFromCoa = null;
+            if (strpos($namaAkunStr, ' - ') !== false) {
+                $parts = explode(' - ', $namaAkunStr);
+                $produkNameStr = trim(end($parts));
+                if (stripos($produkNameStr, 'Produk ') === 0) {
+                    $produkNameFromCoa = trim(substr($produkNameStr, 7));
+                } else {
+                    $produkNameFromCoa = $produkNameStr;
+                }
+            } else {
+                $produkNameFromCoa = $namaAkunStr;
+            }
+
+            // Cari produk yang match dengan nama akun (case-insensitive partial match)
+            $produk = null;
+            if ($produkNameFromCoa) {
+                $produk = \App\Models\Produk::where('user_id', auth()->id())
+                    ->whereRaw('LOWER(nama_produk) LIKE LOWER(?)', ['%' . $produkNameFromCoa . '%'])
+                    ->first();
+            }
+
+            // Hitung HPP untuk akun ini dari penjualan produk
+            $hppValue = 0;
+            if ($produk) {
+                $hppValue = \DB::table('penjualan_details as pd')
+                    ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
+                    ->where('p.user_id', auth()->id())
+                    ->where('pd.produk_id', $produk->id)
+                    ->whereBetween('p.tanggal', [$from, $to])
+                    ->selectRaw('SUM(pd.jumlah * COALESCE(pr.harga_pokok, pr.harga_bom, 0)) as total_hpp')
+                    ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+                    ->value('total_hpp') ?? 0;
+            }
+
+            $detailHppByAccount->push([
+                'coa' => $childCoa,
+                'produk' => $produk,
+                'nilai' => (float)$hppValue,
+                'keterangan' => $produk ? "{$produk->nama_produk}" : 'Tidak ada penjualan / Produk tidak ditemukan'
+            ]);
+
+            $totalHppDetail += (float)$hppValue;
+        }
+
+        // Sort by kode_akun
+        $detailHppByAccount = $detailHppByAccount->sortBy(function($item) {
+            return $item['coa']->kode_akun;
+        })->values();
+
+        if ($detailHppByAccount->isEmpty()) {
+            $totalHppDetail = $hppAmount;
+        }
+
+        // Calculate laba kotor dan laba bersih
+        // Laba Kotor = Total Pendapatan - Total HPP (dari detail akun anak HPP)
+        $labaKotor = $totalPendapatan - $totalHppDetail;
+        $labaBersih = $labaKotor - $totalBeban;
 
         // Debug: Log totals
         \Log::info('Laba Rugi Totals', [
             'totalPendapatan' => $totalPendapatan,
             'totalBeban' => $totalBeban,
             'hppAmount' => $hppAmount,
+            'totalHppDetail' => $totalHppDetail,
             'labaKotor' => $labaKotor,
             'labaBersih' => $labaBersih,
             'detailPenjualan_count' => $detailPenjualan->count(),
-            'detailHpp_count' => $detailHpp->count()
+            'detailHppByAccount_count' => $detailHppByAccount->count()
         ]);
 
         return compact(
@@ -1246,10 +1301,10 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             'totalPendapatan', 'totalBeban',
             'labaKotor', 'labaBersih',
             'hppAmount', 'totalDiskonPenjualan',
-            'detailPenjualan', 'detailHpp',
-            'accountData', 'hppCoa'
+            'detailPenjualan', 'detailHppByAccount', 'hppChildCoas', 'hppCoa',
+            'accountData', 'totalHppDetail'
         ) + [
-            'totalHpp' => $hppAmount,
+            'totalHpp' => $totalHppDetail,
             'getSaldo' => function($coa) use ($accountData) {
                 return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             }
@@ -1281,86 +1336,16 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             $from = now()->startOfMonth()->format('Y-m-d');
             $to = now()->format('Y-m-d');
         }
+        
+        $request->merge([
+            'from' => $from,
+            'to' => $to
+        ]);
 
-        // Get all COAs
-        $coas = Coa::where('user_id', auth()->id())
-            ->orderBy('kode_akun')
-            ->get();
-
-        // Calculate mutation for the period
-        $mutasi = DB::table('jurnal_umum')
-            ->select('coa_id',
-                DB::raw('SUM(debit) as total_debit'),
-                DB::raw('SUM(kredit) as total_kredit'))
-            ->where('user_id', auth()->id())
-            ->whereDate('tanggal', '>=', $from)
-            ->whereDate('tanggal', '<=', $to)
-            ->groupBy('coa_id')
-            ->get()
-            ->keyBy('coa_id');
-
-        // Build account data
-        $accountData = [];
-        foreach ($coas as $coa) {
-            $m = $mutasi[$coa->id] ?? null;
-            $debit = $m ? (float)$m->total_debit : 0;
-            $kredit = $m ? (float)$m->total_kredit : 0;
-
-            $first = substr($coa->kode_akun, 0, 1);
-            $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
-
-            $accountData[$coa->kode_akun] = [
-                'coa' => $coa,
-                'saldo_akhir' => $saldoAkhir
-            ];
-        }
-
-        // Filter revenue accounts (4xxx)
-        $revenue = $coas->filter(function($coa) use ($accountData) {
-            $first = substr($coa->kode_akun, 0, 1);
-            if ($first !== '4') return false;
-            $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo > 0;
-        })->sortBy('kode_akun');
-
-        // Get HPP account
-        $hppCoa = $coas->first(function($coa) {
-            $first = substr($coa->kode_akun, 0, 1);
-            if ($first !== '5') return false;
-
-            $isHpp = stripos($coa->nama_akun, 'harga pokok') !== false ||
-                     stripos($coa->nama_akun, 'hpp') !== false ||
-                     $coa->kode_akun === '56' ||
-                     $coa->kode_akun === '560';
-
-            return $isHpp;
-        });
-
-        $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
-        $hppAccounts = $hppCoa ? collect([$hppCoa]) : collect([]);
-
-        // Filter expense accounts (5xxx, 6xxx) excluding HPP
-        $expense = $coas->filter(function($coa) use ($accountData, $hppCoa) {
-            $first = substr($coa->kode_akun, 0, 1);
-            if (!in_array($first, ['5', '6'])) return false;
-
-            if ($hppCoa && $coa->id === $hppCoa->id) return false;
-
-            if (stripos($coa->nama_akun, 'harga pokok') !== false ||
-                stripos($coa->nama_akun, 'hpp') !== false) {
-                return false;
-            }
-
-            $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo > 0;
-        })->sortBy('kode_akun');
+        $data = $this->prepareLabaRugiData($request);
 
         // Generate PDF
-        $pdf = PDF::loadView('akuntansi.laba-rugi-pdf', compact(
-            'from', 'to',
-            'revenue', 'hppAmount', 'hppAccounts', 'expense',
-            'coas', 'accountData'
-        ));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('akuntansi.laba-rugi-pdf', $data);
 
         $pdf->setPaper('A4', 'portrait');
 
