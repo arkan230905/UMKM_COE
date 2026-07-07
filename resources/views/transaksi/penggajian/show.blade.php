@@ -138,11 +138,29 @@
                         </tr>
                         <tr>
                             <td class="ps-4">&nbsp;&nbsp;• Tunjangan Transport</td>
-                            <td>: Rp {{ number_format($penggajian->tunjangan_transport ?? 0, 0, ',', '.') }}</td>
+                            <td>: Rp {{ number_format($penggajian->tunjangan_transport ?? 0, 0, ',', '.') }}
+                                @php
+                                    $transpFull = $penggajian->tunjangan_transport_full ?? 0;
+                                    $transpActual = $penggajian->tunjangan_transport ?? 0;
+                                    $totalAlpha = $penggajian->total_alpha ?? 0;
+                                    $totalHadir = $penggajian->total_hari_hadir ?? 0;
+                                    $hariKerjaTp = $totalHadir + $totalAlpha;
+                                @endphp
+                                @if($transpFull > 0 && $totalAlpha > 0 && $hariKerjaTp > 0)
+                                    <br><small class="text-danger">{{ number_format($transpFull, 0, ',', '.') }} x ({{ $totalHadir }}/{{ $hariKerjaTp }} hari kerja) -- dipotong karena {{ $totalAlpha }} hari alpa</small>
+                                @endif
+                            </td>
                         </tr>
                         <tr>
                             <td class="ps-4">&nbsp;&nbsp;• Tunjangan Konsumsi</td>
-                            <td>: Rp {{ number_format($penggajian->tunjangan_konsumsi ?? 0, 0, ',', '.') }}</td>
+                            <td>: Rp {{ number_format($penggajian->tunjangan_konsumsi ?? 0, 0, ',', '.') }}
+                                @php
+                                    $konsFull = $penggajian->tunjangan_konsumsi_full ?? 0;
+                                @endphp
+                                @if($konsFull > 0 && $totalAlpha > 0 && $hariKerjaTp > 0)
+                                    <br><small class="text-danger">{{ number_format($konsFull, 0, ',', '.') }} x ({{ $totalHadir }}/{{ $hariKerjaTp }} hari kerja) -- dipotong karena {{ $totalAlpha }} hari alpa</small>
+                                @endif
+                            </td>
                         </tr>
                         <tr class="fw-bold">
                             <td class="ps-4">&nbsp;&nbsp;Total Tunjangan</td>

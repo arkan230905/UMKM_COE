@@ -199,11 +199,28 @@
                 <td class="amount">Rp {{ number_format($penggajian->tunjangan_jabatan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td>&nbsp;&nbsp;• Tunjangan Transport</td>
+                <td>&nbsp;&nbsp;• Tunjangan Transport
+                    @php
+                        $pdfTranspFull = $penggajian->tunjangan_transport_full ?? 0;
+                        $pdfAlpha = $penggajian->total_alpha ?? 0;
+                        $pdfHadir = $penggajian->total_hari_hadir ?? 0;
+                        $pdfHariKerja = $pdfHadir + $pdfAlpha;
+                    @endphp
+                    @if($pdfTranspFull > 0 && $pdfAlpha > 0 && $pdfHariKerja > 0)
+                        <br><span style="font-size:0.7em;color:#dc3545;">{{ number_format($pdfTranspFull, 0, ',', '.') }} x ({{ $pdfHadir }}/{{ $pdfHariKerja }} hari) -- dipotong karena {{ $pdfAlpha }} hari alpa</span>
+                    @endif
+                </td>
                 <td class="amount">Rp {{ number_format($penggajian->tunjangan_transport ?? 0, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td>&nbsp;&nbsp;• Tunjangan Konsumsi</td>
+                <td>&nbsp;&nbsp;• Tunjangan Konsumsi
+                    @php
+                        $pdfKonsFull = $penggajian->tunjangan_konsumsi_full ?? 0;
+                    @endphp
+                    @if($pdfKonsFull > 0 && $pdfAlpha > 0 && $pdfHariKerja > 0)
+                        <br><span style="font-size:0.7em;color:#dc3545;">{{ number_format($pdfKonsFull, 0, ',', '.') }} x ({{ $pdfHadir }}/{{ $pdfHariKerja }} hari) -- dipotong karena {{ $pdfAlpha }} hari alpa</span>
+                    @endif
+                </td>
                 <td class="amount">Rp {{ number_format($penggajian->tunjangan_konsumsi ?? 0, 0, ',', '.') }}</td>
             </tr>
             <tr class="total">

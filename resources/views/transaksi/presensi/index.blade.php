@@ -142,14 +142,15 @@
                                 {{ $presensi->jumlah_jam !== null ? $presensi->jumlah_jam . ' jam' : '-' }}
                             </td>
                             <td class="text-center">
-                                @if($presensi->status === 'hadir')
+                                @php $statusLower = strtolower($presensi->status); @endphp
+                                @if($statusLower === 'hadir')
                                     <span class="badge bg-success">Hadir</span>
-                                @elseif($presensi->status === 'terlambat')
-                                    <span class="badge bg-warning text-dark">Terlambat</span>
-                                @elseif($presensi->status === 'izin')
+                                @elseif($statusLower === 'terlambat')
+                                    <span class="badge bg-secondary text-dark">Terlambat</span>
+                                @elseif($statusLower === 'izin')
                                     <span class="badge bg-info text-dark">Izin</span>
-                                @elseif($presensi->status === 'sakit')
-                                    <span class="badge bg-secondary">Sakit</span>
+                                @elseif($statusLower === 'sakit')
+                                    <span class="badge bg-warning text-dark">Sakit</span>
                                 @else
                                     <span class="badge bg-danger">{{ ucfirst($presensi->status) }}</span>
                                 @endif
