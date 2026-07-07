@@ -49,7 +49,7 @@
         <!-- TAB 1: DATA PRODUK -->
         <div class="tab-pane fade show active" id="data-produk" role="tabpanel">
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #6d4c41 0%, #4e342e 100%);">
                     <h5 class="mb-0">
                         <i class="fas fa-box me-2"></i>Data Produk Siap Produksi
                     </h5>
