@@ -798,6 +798,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         }
         
         // Hitung HPP (5xx - Harga Pokok Penjualan)
+        // ✅ PERBAIKAN: Gunakan saldo akhir sebenarnya, termasuk saldo negatif
         $hppAmount = 0;
         foreach ($coas as $coa) {
             if (substr($coa->kode_akun, 0, 1) === '5') {
@@ -806,9 +807,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
                     $coa->kode_akun === '56' ||
                     $coa->kode_akun === '560') {
                     $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-                    if ($saldo > 0) {
-                        $hppAmount += $saldo;
-                    }
+                    // Gunakan saldo apa adanya (bisa positif atau negatif)
+                    $hppAmount += $saldo;
                 }
             }
         }
@@ -817,6 +817,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         $labaKotor = $totalPendapatan - $hppAmount;
         
         // Hitung Total Beban (5xx dan 6xx, excluding HPP)
+        // ✅ PERBAIKAN: Gunakan saldo akhir sebenarnya, termasuk saldo negatif (kredit)
+        // Beban dengan saldo kredit akan mengurangi total beban (menambah laba)
         $totalBeban = 0;
         foreach ($coas as $coa) {
             $first = substr($coa->kode_akun, 0, 1);
@@ -830,9 +832,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
                 }
                 
                 $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-                if ($saldo > 0) {
-                    $totalBeban += $saldo;
-                }
+                // Gunakan saldo apa adanya (bisa positif atau negatif)
+                // Saldo negatif = beban kredit = mengurangi total beban = menambah laba
+                $totalBeban += $saldo;
             }
         }
         
@@ -1094,11 +1096,13 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         }
         
         // Filter akun pendapatan (4xxx)
+        // ✅ PERBAIKAN: Tampilkan semua akun pendapatan dengan saldo (termasuk negatif untuk transparansi)
         $pendapatan = $coas->filter(function($coa) use ($accountData) {
             $first = substr($coa->kode_akun, 0, 1);
             if ($first !== '4') return false;
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo > 0;
+            // Tampilkan akun yang memiliki saldo (positif atau negatif)
+            return $saldo != 0;
         })->sortBy('kode_akun');
 
         // Debug: Log pendapatan
@@ -1119,6 +1123,7 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         ]);
         
         // Get HPP - cari akun dengan nama "Harga Pokok Penjualan" atau kode 56/560
+        // ✅ PERBAIKAN: Gunakan saldo akhir sebenarnya (bisa positif atau negatif)
         $hppCoa = $coas->first(function($coa) {
             $first = substr($coa->kode_akun, 0, 1);
             if ($first !== '5') return false;
@@ -1132,9 +1137,11 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             return $isHpp;
         });
         
+        // Gunakan saldo apa adanya (positif atau negatif)
         $hppAmount = $hppCoa ? ($accountData[$hppCoa->kode_akun]['saldo_akhir'] ?? 0) : 0;
         
         // Filter akun beban (5xxx, 6xxx) excluding HPP
+        // ✅ PERBAIKAN: Tampilkan semua akun beban dengan saldo (termasuk kredit/negatif)
         $beban = $coas->filter(function($coa) use ($accountData, $hppCoa) {
             $first = substr($coa->kode_akun, 0, 1);
             if (!in_array($first, ['5', '6'])) return false;
@@ -1149,7 +1156,8 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             }
             
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo > 0;
+            // Tampilkan akun yang memiliki saldo (positif atau negatif)
+            return $saldo != 0;
         })->sortBy('kode_akun');
 
         // Debug: Log beban
