@@ -166,11 +166,9 @@
         <div class="section-header">PENDAPATAN USAHA</div>
         <table class="data-table">
             <tbody>
-                @php $sumRev = 0; @endphp
-                @foreach($revenue as $acc)
+                @forelse($pendapatan as $acc)
                     @php
                         $bal = $accountData[$acc->kode_akun]['saldo_akhir'] ?? 0;
-                        $sumRev += $bal;
                     @endphp
                     @if($bal != 0)
                     <tr>
@@ -178,18 +176,16 @@
                         <td class="amount">Rp {{ number_format($bal, 0, ',', '.') }}</td>
                     </tr>
                     @endif
-                @endforeach
-                
-                @if($sumRev == 0)
+                @empty
                 <tr>
                     <td colspan="3" style="text-align: center; color: #999; padding: 15px;">Belum ada data pendapatan</td>
                 </tr>
-                @endif
+                @endforelse
                 
                 <tr class="subtotal-row">
                     <td class="account-name">Total Pendapatan</td>
                     <td class="account-code"></td>
-                    <td class="amount">Rp {{ number_format($sumRev, 0, ',', '.') }}</td>
+                    <td class="amount">Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>
@@ -198,36 +194,41 @@
         <div class="section-header">HPP (HARGA POKOK PENJUALAN)</div>
         <table class="data-table">
             <tbody>
-                @php $sumHpp = 0; @endphp
-                @foreach($hppAccounts as $acc)
-                    @php
-                        $bal = $accountData[$acc->kode_akun]['saldo_akhir'] ?? 0;
-                        $sumHpp += $bal;
-                    @endphp
-                    @if($bal != 0)
-                    <tr>
-                        <td class="account-name" colspan="2">{{ $acc->kode_akun }} - {{ $acc->nama_akun }}</td>
-                        <td class="amount">Rp {{ number_format($bal, 0, ',', '.') }}</td>
-                    </tr>
-                    @endif
-                @endforeach
+                <!-- Akun Induk HPP -->
+                <tr>
+                    <td class="account-name" colspan="2">
+                        {{ $hppCoa ? $hppCoa->kode_akun . ' - ' . $hppCoa->nama_akun : 'Harga Pokok Penjualan' }}
+                    </td>
+                    <td class="amount">Rp 0</td>
+                </tr>
                 
-                @if($sumHpp == 0)
+                @forelse($hppChildCoas as $childCoa)
+                    @php
+                        $hppData = $detailHppByAccount->firstWhere('coa.id', $childCoa->id);
+                        $hppValue = $hppData ? $hppData['nilai'] : 0;
+                    @endphp
+                    <tr>
+                        <td class="account-name" colspan="2" style="padding-left: 20px;">
+                            ↳ {{ $childCoa->kode_akun }} - {{ $childCoa->nama_akun }}
+                        </td>
+                        <td class="amount">Rp {{ number_format($hppValue, 0, ',', '.') }}</td>
+                    </tr>
+                @empty
                 <tr>
                     <td colspan="3" style="text-align: center; color: #999; padding: 15px;">Belum ada transaksi HPP</td>
                 </tr>
-                @endif
+                @endforelse
                 
                 <tr class="subtotal-row">
                     <td class="account-name">Total HPP</td>
                     <td class="account-code"></td>
-                    <td class="amount">Rp {{ number_format($sumHpp, 0, ',', '.') }}</td>
+                    <td class="amount">Rp {{ number_format($totalHppDetail, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>
 
         <div class="note">
-            Catatan: HPP berdasarkan jurnal penjualan yang telah dicatat. Termasuk Bahan Baku (BBB), Biaya Tenaga Kerja Langsung (BTKL), dan Biaya Overhead Produksi (BOP).
+            Catatan: HPP berdasarkan penjualan produk pada periode yang dipilih.
         </div>
 
         <!-- LABA KOTOR -->
@@ -237,7 +238,6 @@
                     <td class="account-name">LABA KOTOR</td>
                     <td class="account-code"></td>
                     <td class="amount">
-                        @php $labaKotor = $sumRev - $sumHpp; @endphp
                         @if($labaKotor < 0)
                             <span style="color: #dc2626;">(Rp {{ number_format(abs($labaKotor), 0, ',', '.') }})</span>
                         @else

@@ -210,29 +210,69 @@
     {{-- HPP sebagai pengurang --}}
     <div class="lr-hpp">
         <div class="rname">
-            <div class="main">{{ $hppCoa ? $hppCoa->kode_akun . ' - ' . $hppCoa->nama_akun : 'Modal Barang Terjual (HPP)' }}</div>
-            <div class="hint">Biaya pokok produk yang terjual</div>
+            <div class="main">{{ $hppCoa ? $hppCoa->kode_akun . ' - ' . $hppCoa->nama_akun : 'Harga Pokok Penjualan' }}</div>
+            <div class="hint">Akun induk HPP</div>
         </div>
-        <div class="ramt">− Rp {{ number_format($totalHpp,0,',','.') }}</div>
+        <div class="ramt">Rp {{ number_format(0,0,',','.') }}</div>
     </div>
-    {{-- Breakdown HPP per produk --}}
-    @foreach($detailHpp as $dh)
-    <div class="lr-hpp lr-hpp-sub">
-        <div class="rname">
-            <div class="main sub-name" style="color:#C07050;">
-                <span class="sub-dot">↳</span> HPP {{ $dh->nama_produk }}
+    
+    {{-- Breakdown HPP per anak akun dari COA --}}
+    @forelse($hppChildCoas as $childCoa)
+        @php
+            // Cari data HPP untuk akun ini dari detailHppByAccount
+            $hppData = $detailHppByAccount->firstWhere('coa.id', $childCoa->id);
+            $hppValue = $hppData ? $hppData['nilai'] : 0;
+            $produk = $hppData ? $hppData['produk'] : null;
+        @endphp
+        <div class="lr-hpp lr-hpp-sub">
+            <div class="rname">
+                <div class="main sub-name" style="color:#C07050;">
+                    <span class="sub-dot">↳</span> 
+                    {{ $childCoa->kode_akun }} - {{ $childCoa->nama_akun }}
+                </div>
+                @php
+                    $qtyTerjual = 0;
+                    if($produk) {
+                        $qtyTerjual = $produk->penjualanDetails()
+                            ->whereHas('penjualan', function($q) use ($from, $to) {
+                                if (isset($from) && isset($to)) {
+                                    $q->whereBetween('tanggal', [$from, $to]);
+                                }
+                            })
+                            ->sum('jumlah');
+                    }
+                @endphp
+                
+                @if($produk && $qtyTerjual > 0)
+                    @php
+                        $hppPerUnit = $produk->harga_pokok > 0 ? $produk->harga_pokok : ($produk->harga_bom ?? 0);
+                    @endphp
+                    <div class="hint" style="color:#D4A898;">
+                        @if($produk){{ $produk->nama_produk }}@endif - HPP per unit: Rp {{ number_format($hppPerUnit, 0, ',', '.') }}
+                    </div>
+                @else
+                    <div class="hint" style="color:#D4A898;">Tidak ada penjualan pada periode ini</div>
+                @endif
             </div>
-            <div class="hint" style="color:#D4A898;">{{ number_format($dh->total_qty, 0, ',', '.') }} pcs × HPP/unit</div>
+            <div class="ramt" style="color:#C07050;">Rp {{ number_format($hppValue, 0, ',', '.') }}</div>
         </div>
-        <div class="ramt" style="color:#C07050;">− Rp {{ number_format($dh->total_hpp, 0, ',', '.') }}</div>
+    @empty
+        <div class="lr-empty" style="padding: 9px 22px 9px 36px; color:#CCC; background:#FFF5F2;">
+            Belum ada akun anak HPP pada COA
+        </div>
+    @endforelse
+    
+    {{-- Total HPP --}}
+    <div class="lr-total" style="background:#F7F0EB; border-top: 1px dashed #E6D4C8;">
+        <div class="rname" style="color:#B05030;">Total HPP</div>
+        <div class="ramt" style="color:#B05030;">Rp {{ number_format($totalHppDetail,0,',','.') }}</div>
     </div>
-    @endforeach
 
     {{-- Laba Kotor --}}
     <div class="lr-laba-kotor">
         <div class="rname">
             <div class="main">Laba Kotor</div>
-            <div class="hint">Sisa setelah dikurangi modal barang</div>
+            <div class="hint">Total Penjualan − Total HPP</div>
         </div>
         <div class="ramt {{ $labaKotor < 0 ? 'red' : '' }}">
             {{ $labaKotor < 0 ? '−' : '' }}Rp {{ number_format(abs($labaKotor),0,',','.') }}

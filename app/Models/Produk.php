@@ -318,4 +318,12 @@ class Produk extends Model
     {
         return number_format($this->reviews()->avg('rating') ?? 5.0, 1);
     }
+
+    /**
+     * Get the penjualan details for the Produk
+     */
+    public function penjualanDetails()
+    {
+        return $this->hasMany(PenjualanDetail::class, 'produk_id');
+    }
 }
