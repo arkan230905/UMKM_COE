@@ -278,9 +278,27 @@
                     <strong>Tanggal Dibayar:</strong> {{ $penggajian->tanggal_dibayar->format('d/m/Y') }}
                 </div>
                 @if($penggajian->metode_pembayaran)
-                    <div>
-                        <strong>Metode Pembayaran:</strong> {{ ucfirst($penggajian->metode_pembayaran) }}
+                    <div style="margin-top: 5px;">
+                        <strong>Metode Pembayaran:</strong> 
+                        {{ $penggajian->metode_pembayaran === 'transfer_bank' ? 'Transfer Bank' : ucfirst($penggajian->metode_pembayaran) }}
                     </div>
+                    @if(in_array($penggajian->metode_pembayaran, ['transfer_bank', 'transfer', 'bank']))
+                    <div style="margin-top: 10px; padding: 10px; background: white; border: 1px dashed #ccc; border-radius: 3px; font-size: 11px; text-align: left;">
+                        <div style="font-weight: bold; margin-bottom: 5px;">Informasi Rekening Tujuan:</div>
+                        <div class="info-row" style="margin-bottom: 2px;">
+                            <span class="info-label" style="width: 100px; display: inline-block;">Bank:</span>
+                            <span class="info-value">{{ $penggajian->pegawai->bank ?? '-' }}</span>
+                        </div>
+                        <div class="info-row" style="margin-bottom: 2px;">
+                            <span class="info-label" style="width: 100px; display: inline-block;">No. Rekening:</span>
+                            <span class="info-value">{{ $penggajian->pegawai->nomor_rekening ?? '-' }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label" style="width: 100px; display: inline-block;">Atas Nama:</span>
+                            <span class="info-value">{{ $penggajian->pegawai->nama_rekening ?? '-' }}</span>
+                        </div>
+                    </div>
+                    @endif
                 @endif
             @endif
         </div>

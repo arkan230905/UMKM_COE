@@ -411,10 +411,15 @@ class TrialBalanceService
      */
     private function calculateSaldoAkhir($coa, $saldoAwal, $totalDebit, $totalKredit)
     {
-        // PERBAIKAN FINAL: Gunakan formula universal yang SAMA PERSIS dengan Buku Besar
-        // Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
-        // Ini memastikan angka Neraca Saldo SAMA PERSIS dengan Buku Besar
-        return $saldoAwal + $totalDebit - $totalKredit;
+        $isDebitNormal = $this->isDebitNormalAccount($coa);
+
+        if ($isDebitNormal) {
+            // Akun normal DEBIT (Aset, Beban): saldo_akhir = saldo_awal + debit - kredit
+            return $saldoAwal + $totalDebit - $totalKredit;
+        } else {
+            // Akun normal KREDIT (Kewajiban, Modal, Pendapatan): saldo_akhir = saldo_awal - debit + kredit
+            return $saldoAwal - $totalDebit + $totalKredit;
+        }
     }
 
     /**
@@ -502,27 +507,19 @@ class TrialBalanceService
         $isDebitNormal = $this->isDebitNormalAccount($coa);
 
         if ($saldoAkhir > 0) {
-            // Saldo positif
+            // Saldo positif - tampil sesuai normal balance
             if ($isDebitNormal) {
-                // Akun normal debit dengan saldo positif → tampil di DEBIT (normal)
                 $debit = $saldoAkhir;
             } else {
-                // Akun normal kredit dengan saldo positif → tampil di KREDIT (abnormal tapi tetap di kredit)
-                // Ini terjadi jika pembayaran utang melebihi utang yang ada
                 $kredit = $saldoAkhir;
             }
         } else {
-            // Saldo negatif - ambil nilai absolut
+            // Saldo negatif (abnormal) - tampil di sisi berlawanan
             $nilaiAbsolut = abs($saldoAkhir);
-            
             if ($isDebitNormal) {
-                // Akun normal debit dengan saldo negatif → tampil di KREDIT (abnormal)
-                // Contoh: Kas minus (overdraft)
-                $kredit = $nilaiAbsolut;
+                $kredit = $nilaiAbsolut; // Akun debit normal tapi saldo negatif → tampil di kredit
             } else {
-                // Akun normal kredit dengan saldo negatif → tampil di KREDIT (normal)
-                // Contoh: Utang Usaha dengan saldo -99.000 → tampil di Kredit 99.000 ✓
-                $kredit = $nilaiAbsolut;
+                $debit = $nilaiAbsolut;  // Akun kredit normal tapi saldo negatif → tampil di debit
             }
         }
 

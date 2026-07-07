@@ -58,6 +58,29 @@
                             <td>Metode Pembayaran</td>
                             <td>: <strong>{{ $metodePembayaranLabel }}</strong></td>
                         </tr>
+                        @if(in_array($metodePembayaran, ['transfer_bank', 'transfer', 'bank']))
+                        <tr>
+                            <td colspan="2" class="p-0 pt-2 pb-2">
+                                <div class="alert alert-info mb-3">
+                                    <h6 class="alert-heading fw-bold mb-2" style="font-size: 0.9rem;"><i class="bi bi-bank me-1"></i> Informasi Rekening Tujuan</h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block" style="font-size: 0.8rem;">Bank</small>
+                                            <strong style="font-size: 0.85rem;">{{ $penggajian->pegawai->bank ?? '-' }}</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block" style="font-size: 0.8rem;">No. Rekening</small>
+                                            <strong style="font-size: 0.85rem;">{{ $penggajian->pegawai->nomor_rekening ?? '-' }}</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block" style="font-size: 0.8rem;">Atas Nama</small>
+                                            <strong style="font-size: 0.85rem;">{{ $penggajian->pegawai->nama_rekening ?? '-' }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @endif
                         <tr>
                             <td>Status Pembayaran</td>
                             <td>:
@@ -68,12 +91,9 @@
                                     @endif
                                 @else
                                     <span class="badge bg-warning text-dark">Belum Dibayar</span>
-                                    <form action="{{ route('transaksi.penggajian.markAsPaid', $penggajian->id) }}" method="POST" class="d-inline ms-2">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Tandai penggajian ini sebagai sudah dibayar?')">
-                                            <i class="fas fa-check-circle me-1"></i>Tandai Sudah Dibayar
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-success ms-2" data-bs-toggle="modal" data-bs-target="#markAsPaidModal">
+                                        <i class="fas fa-check-circle me-1"></i>Tandai Sudah Dibayar
+                                    </button>
                                 @endif
                             </td>
                         </tr>
@@ -174,6 +194,60 @@
             <i class="bi bi-file-earmark-text"></i> Slip Gaji
         </a>
     </div>
+    </div>
+</div>
+
+<!-- Modal Pembayaran Penggajian -->
+<div class="modal fade" id="markAsPaidModal" tabindex="-1" aria-labelledby="markAsPaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('transaksi.penggajian.markAsPaid', $penggajian->id) }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="markAsPaidModalLabel"><i class="bi bi-wallet2 me-2"></i>Konfirmasi Pembayaran Gaji</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info mb-3">
+                        Total yang harus dibayar:<br>
+                        <strong style="font-size: 1.25rem;">Rp {{ number_format($totalGaji, 0, ',', '.') }}</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="akun_sumber_dana" class="form-label">Pilih Sumber Dana ({{ $metodePembayaranLabel }}) <span class="text-danger">*</span></label>
+                        <select name="akun_sumber_dana" id="akun_sumber_dana" class="form-select" required>
+                            <option value="" disabled selected>-- Pilih Akun Sumber Dana --</option>
+                            @php
+                                $isTransfer = in_array($metodePembayaran, ['transfer_bank', 'transfer', 'bank']);
+                                $akunOptions = $isTransfer 
+                                    ? \App\Helpers\AccountHelper::getBankAccountsWithBalance(auth()->id())
+                                    : \App\Helpers\AccountHelper::getKasAccounts(auth()->id());
+                                
+                                if (!$isTransfer) {
+                                    foreach($akunOptions as $akun) {
+                                        $akun->saldo = \App\Helpers\AccountHelper::getCurrentBalance($akun->kode_akun, auth()->id());
+                                    }
+                                }
+                            @endphp
+                            
+                            @foreach($akunOptions as $akun)
+                                <option value="{{ $akun->kode_akun }}" {{ $akun->saldo < $totalGaji ? 'disabled' : '' }}>
+                                    {{ $akun->nama_akun }} (Saldo: Rp {{ number_format($akun->saldo, 0, ',', '.') }})
+                                    @if($akun->saldo < $totalGaji)
+                                        - Saldo Tidak Cukup
+                                    @endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted mt-2 d-block">Pilihan di atas disesuaikan dengan metode pembayaran: <strong>{{ $metodePembayaranLabel }}</strong>.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i> Proses Pembayaran</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

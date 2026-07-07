@@ -341,7 +341,10 @@ class PenggajianController extends Controller
                 'nama' => $pegawai->nama,
                 'jabatan_nama' => $kualifikasiNama,
                 'kualifikasi_nama' => $kualifikasiNama, // For backward compatibility with form JS
-                'kategori' => $kategoriInternal // Simplified to BTKL or BTKTI
+                'kategori' => $kategoriInternal, // Simplified to BTKL or BTKTI
+                'bank' => $pegawai->bank,
+                'nomor_rekening' => $pegawai->nomor_rekening,
+                'nama_rekening' => $pegawai->nama_rekening
             ];
             
             \Log::info('getEmployeeData - Final response', $response);
@@ -671,9 +674,10 @@ class PenggajianController extends Controller
     /**
      * Tandai penggajian sebagai sudah dibayar (otomatis posting ke jurnal)
      */
-    public function markAsPaid($id)
+    public function markAsPaid(Request $request, $id)
     {
         try {
+
             // CRITICAL: Filter by user_id untuk multi-tenant isolation
             $penggajian = Penggajian::where('user_id', auth()->id())
                 ->findOrFail($id);
@@ -684,6 +688,16 @@ class PenggajianController extends Controller
                 DB::beginTransaction();
                 
                 try {
+                    // Validasi akun sumber dana
+                    $request->validate([
+                        'akun_sumber_dana' => 'required|string'
+                    ], [
+                        'akun_sumber_dana.required' => 'Silakan pilih akun sumber dana terlebih dahulu.'
+                    ]);
+
+                    // Update coa_kasbank dengan akun yang dipilih dari modal
+                    $penggajian->coa_kasbank = $request->akun_sumber_dana;
+                    
                     // Update status
                     $penggajian->status_pembayaran = 'lunas';
                     $penggajian->tanggal_dibayar = now()->format('Y-m-d');
@@ -914,17 +928,24 @@ class PenggajianController extends Controller
     private function createJournalPayment($penggajian, $pegawai)
     {
         try {
-            $coaHutangGaji = $this->getOrCreateCoa('211', 'Hutang Gaji Pegawai', '2');
+            $coaHutangGaji = $this->getOrCreateCoa('212', 'Hutang Gaji', '2');
             $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)
                 ->where('user_id', auth()->id())
                 ->first();
             
             if (!$coaKasBank) {
-                throw new \Exception('Akun kas/bank tidak valid');
+                throw new \Exception('Akun sumber dana tidak valid, silakan pilih ulang.');
             }
 
             $totalHutang = $penggajian->gaji_pokok + $penggajian->total_tunjangan 
                          + $penggajian->bonus - $penggajian->asuransi - $penggajian->potongan;
+                         
+            // Check Kas/Bank balance before payment
+            $currentBalance = \App\Helpers\AccountHelper::getCurrentBalance($coaKasBank->kode_akun, auth()->id());
+            if ($currentBalance < $totalHutang) {
+                throw new \Exception("Saldo tidak mencukupi. Saldo saat ini: Rp " . number_format($currentBalance, 0, ',', '.') . " | Dibutuhkan: Rp " . number_format($totalHutang, 0, ',', '.'));
+            }
+
             $keterangan = "Pembayaran Gaji {$pegawai->nama}";
 
             // DEBIT: Hutang Gaji

@@ -13,7 +13,7 @@ class CoaPeriodBalance extends Model
         'user_id',
         'coa_id',
         'kode_akun',
-        'period_id',
+        'coa_period_id',
         'saldo_awal',
         'debit',
         'credit',
@@ -42,6 +42,6 @@ class CoaPeriodBalance extends Model
      */
     public function period()
     {
-        return $this->belongsTo(CoaPeriod::class, 'period_id');
+        return $this->belongsTo(CoaPeriod::class, 'coa_period_id');
     }
 }
