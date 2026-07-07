@@ -340,7 +340,7 @@
                                         <th style="width: 50px">NO</th>
                                         <th>Tanggal</th>
                                         <th>Produk</th>
-                                        <th class="text-end">Qty Produksi</th>
+                                        <th class="text-center">Qty Produksi</th>
                                         <th class="text-end">Total Biaya</th>
                                         <th>Status</th>
                                         <th class="text-center">Aksi</th>
@@ -359,7 +359,7 @@
                                             <td>
                                                 <strong>{{ $p->produk->nama_produk }}</strong>
                                             </td>
-                                            <td class="text-end">{{ number_format($p->qty_produksi, 0, ',', '.') }}</td>
+                                            <td class="text-center">{{ number_format($p->qty_produksi, 0, ',', '.') }}</td>
                                             <td class="text-end fw-semibold">Rp {{ number_format($p->total_biaya, 0, ',', '.') }}</td>
                                             <td>
                                                 @if($p->status === 'draft')
