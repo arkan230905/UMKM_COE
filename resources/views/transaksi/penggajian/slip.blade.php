@@ -240,9 +240,15 @@
         // Calculate totals
         $gajiProduksi = $penggajian->gaji_pokok ?? 0;
         $tunjanganTransport = $penggajian->tunjangan_transport ?? 0;
+        $tunjanganTransportFull = $penggajian->tunjangan_transport_full ?? 0;
         $tunjanganKonsumsi = $penggajian->tunjangan_konsumsi ?? 0;
+        $tunjanganKonsumsi_full = $penggajian->tunjangan_konsumsi_full ?? 0;
         $tunjanganJabatan = $penggajian->tunjangan_jabatan ?? 0;
         $totalTunjangan = $tunjanganTransport + $tunjanganKonsumsi + $tunjanganJabatan;
+        // Prorata info
+        $slipTotalAlpha = $penggajian->total_alpha ?? 0;
+        $slipTotalHadir = $penggajian->total_hari_hadir ?? 0;
+        $slipHariKerja = $slipTotalHadir + $slipTotalAlpha;
         
         $jumlahPendapatan = $gajiProduksi + $totalTunjangan;
         
@@ -333,14 +339,22 @@
                 <!-- Tunjangan -->
                 @if($tunjanganTransport > 0)
                 <tr>
-                    <td class="label-col">Tunjangan Transport</td>
+                    <td class="label-col">Tunjangan Transport
+                        @if($tunjanganTransportFull > 0 && $slipTotalAlpha > 0 && $slipHariKerja > 0)
+                            <br><small style="color:#dc3545;font-size:0.7em;">{{ number_format($tunjanganTransportFull, 0, ',', '.') }} x ({{ $slipTotalHadir }}/{{ $slipHariKerja }} hari) -- dipotong karena {{ $slipTotalAlpha }} hari alpa</small>
+                        @endif
+                    </td>
                     <td class="amount-col underline">{{ number_format($tunjanganTransport, 0, ',', '.') }}+</td>
                 </tr>
                 @endif
 
                 @if($tunjanganKonsumsi > 0)
                 <tr>
-                    <td class="label-col">Tunjangan Konsumsi</td>
+                    <td class="label-col">Tunjangan Konsumsi
+                        @if($tunjanganKonsumsi_full > 0 && $slipTotalAlpha > 0 && $slipHariKerja > 0)
+                            <br><small style="color:#dc3545;font-size:0.7em;">{{ number_format($tunjanganKonsumsi_full, 0, ',', '.') }} x ({{ $slipTotalHadir }}/{{ $slipHariKerja }} hari) -- dipotong karena {{ $slipTotalAlpha }} hari alpa</small>
+                        @endif
+                    </td>
                     <td class="amount-col underline">{{ number_format($tunjanganKonsumsi, 0, ',', '.') }}+</td>
                 </tr>
                 @endif

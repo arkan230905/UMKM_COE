@@ -456,16 +456,42 @@ class PenggajianController extends Controller
                     ? $gajiDariKualifikasi
                     : ($gajiProduksiFinalInput > 0 ? $gajiProduksiFinalInput : 0);
 
-                // STEP 5: Get tunjangan & asuransi dari form, fallback ke jabatan.
-                $tunjanganJabatan = (float) ($request->tunjangan_jabatan ?? ($jabatan ? ($jabatan->tunjangan ?? 0) : 0));
-                $tunjanganTransport = (float) ($request->tunjangan_transport ?? ($jabatan ? ($jabatan->tunjangan_transport ?? 0) : 0));
-                $tunjanganKonsumsi = (float) ($request->tunjangan_konsumsi ?? ($jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : 0));
-                $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
-                $asuransi = (float) ($request->bpjs_asuransi ?? $request->asuransi ?? ($jabatan ? ($jabatan->asuransi ?? 0) : 0));
+                // STEP 5: Get tunjangan & asuransi dari MASTER KUALIFIKASI (bukan form) untuk keamanan.
+                // Kemudian hitung prorata server-side dari data presensi asli.
+                $tunjanganJabatan = (float) ($jabatan ? ($jabatan->tunjangan ?? 0) : 0);
+                $tunjanganTransportFull = (float) ($jabatan ? ($jabatan->tunjangan_transport ?? 0) : 0);
+                $tunjanganKonsumsi_full_val = (float) ($jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : 0);
+                $asuransi = (float) ($jabatan ? ($jabatan->asuransi ?? 0) : ($request->bpjs_asuransi ?? $request->asuransi ?? 0));
                 $bonus = (float) ($request->bonus ?? 0);
                 $potongan = (float) ($request->potongan ?? 0);
 
+                // STEP 5b: Hitung prorata Transport & Konsumsi dari presensi asli (server-side)
+                $hariKerjaInput = (int) ($request->hari_kerja ?? $request->hari_kerja_bulanan ?? 26);
+                $tanggalParsed = \Carbon\Carbon::parse($request->tanggal_penggajian);
+                $bulanPresensi = $tanggalParsed->month;
+                $tahunPresensi = $tanggalParsed->year;
+
+                $presensiData = \App\Models\Presensi::where('pegawai_id', $pegawai->id)
+                    ->whereMonth('tgl_presensi', $bulanPresensi)
+                    ->whereYear('tgl_presensi', $tahunPresensi)
+                    ->get();
+
+                $hariHadir = $presensiData->filter(fn($p) => strtolower($p->status) === 'hadir')->count();
+                $jumlahAlpa = $presensiData->filter(fn($p) => strtolower($p->status) === 'alpa')->count();
+
+                // Gunakan data presensi jika tersedia, fallback ke hari_kerja input dari form
+                $hariKerjaTotal = $presensiData->count() > 0 ? $presensiData->count() : $hariKerjaInput;
+
+                // Prorata hanya jika ada alpa dan hari kerja valid
+                $tunjanganTransport = $tunjanganTransportFull;
+                $tunjanganKonsumsi = $tunjanganKonsumsi_full_val;
+                if ($jumlahAlpa > 0 && $hariKerjaTotal > 0) {
+                    $tunjanganTransport = (int) round($tunjanganTransportFull * ($hariHadir / $hariKerjaTotal));
+                    $tunjanganKonsumsi = (int) round($tunjanganKonsumsi_full_val * ($hariHadir / $hariKerjaTotal));
+                }
+
                 // STEP 6: Calculate total gaji
+                $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
                 // Total Gaji Karyawan = Gaji Pokok Final + Tunjangan + Bonus - Potongan (yang diterima karyawan)
                 $totalGajiKaryawan = $gajiProduksiFinal + $totalTunjangan + $bonus - $potongan;
                 // Total Biaya Perusahaan = Total Gaji Karyawan + Asuransi BPJS (beban perusahaan)
@@ -497,14 +523,16 @@ class PenggajianController extends Controller
                     'tarif_per_jam' => 0,
                     'tunjangan_jabatan' => $tunjanganJabatan,
                     'tunjangan_transport' => $tunjanganTransport,
+                    'tunjangan_transport_full' => $tunjanganTransportFull,
                     'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                    'tunjangan_konsumsi_full' => $tunjanganKonsumsi_full_val,
                     'total_tunjangan' => $totalTunjangan,
                     'asuransi' => $asuransi,
                     'bonus' => $bonus,
                     'potongan' => $potongan,
                     'total_jam_kerja' => 0,
-                    'total_hari_hadir' => 0,
-                    'total_alpha' => 0,
+                    'total_hari_hadir' => $hariHadir,
+                    'total_alpha' => $jumlahAlpa,
                     'total_jam' => 0,
                     'total_gaji' => $totalGaji,
                     'status_pembayaran' => 'belum_lunas',

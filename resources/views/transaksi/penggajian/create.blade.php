@@ -181,6 +181,7 @@
                             <span class="input-group-text">Rp</span>
                             <input type="text" name="tunjangan_transport" id="tunj_transport" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
+                        <small class="text-danger d-none" id="hint_tunjangan_transport"></small>
                     </div>
 
                     <div class="col-md-6">
@@ -189,6 +190,7 @@
                             <span class="input-group-text">Rp</span>
                             <input type="text" name="tunjangan_konsumsi" id="tunj_konsumsi" class="form-control input-rupiah" value="0" oninput="hitungOtomatis()">
                         </div>
+                        <small class="text-danger d-none" id="hint_tunjangan_konsumsi"></small>
                     </div>
 
                     <div class="col-md-6">
@@ -280,7 +282,8 @@
     let JUMLAH_ALPA = 0;
     let HARI_KERJA_TOTAL = 26;
     let HAS_REKENING = false;
-
+    let TUNJANGAN_TRANSPORT_FULL = 0;
+    let TUNJANGAN_KONSUMSI_FULL = 0;
     // Format Rupiah
     function formatRupiah(num) {
         return new Intl.NumberFormat('id-ID', {
@@ -364,9 +367,12 @@
                 GAJI_POKOK = parseInt(data.gaji_pokok) || 0;
                 
                 // Set default tunjangan dan asuransi
+                TUNJANGAN_TRANSPORT_FULL = parseInt(data.tunjangan_transport) || 0;
+                TUNJANGAN_KONSUMSI_FULL = parseInt(data.tunjangan_konsumsi) || 0;
+                
                 document.getElementById('tunj_jabatan').value = formatRupiah(parseInt(data.tunjangan_jabatan) || 0);
-                document.getElementById('tunj_transport').value = formatRupiah(parseInt(data.tunjangan_transport) || 0);
-                document.getElementById('tunj_konsumsi').value = formatRupiah(parseInt(data.tunjangan_konsumsi) || 0);
+                document.getElementById('tunj_transport').value = formatRupiah(TUNJANGAN_TRANSPORT_FULL);
+                document.getElementById('tunj_konsumsi').value = formatRupiah(TUNJANGAN_KONSUMSI_FULL);
                 // Asuransi dari API, default 0 kalau kosong
                 document.getElementById('bpjs').value = formatRupiah(parseInt(data.asuransi) || 0);
                 
@@ -536,9 +542,6 @@
     function hitungOtomatis() {
         const totalProduk = parseInt(document.getElementById('total_produk').value) || 0;
         const hariKerja = parseInt(document.getElementById('hari_kerja').value) || 26;
-        const tunjanganJabatan = parseRupiah(document.getElementById('tunj_jabatan').value) || 0;
-        const tunjanganTransport = parseRupiah(document.getElementById('tunj_transport').value) || 0;
-        const tunjanganKonsumsi = parseRupiah(document.getElementById('tunj_konsumsi').value) || 0;
         const bpjs = parseRupiah(document.getElementById('bpjs').value) || 0;
 
         // Update TARIF_PRODUK dari input field (hanya untuk referensi HPP, bukan untuk hitung gaji)
@@ -551,15 +554,49 @@
         // Tarif/Produk hanya dipakai untuk alokasi HPP, bukan untuk menghitung ulang gaji
         const gajiPokok = GAJI_POKOK;
 
-        // Hitung Potongan Alpa: (JUMLAH_ALPA / HARI_KERJA_TOTAL) * Gaji Pokok
+        // Hitung Potongan Alpa & Prorata Tunjangan
         let potonganAlpa = 0;
+        let hariHadir = hariKerja;
+
         if (JUMLAH_ALPA > 0 && HARI_KERJA_TOTAL > 0) {
             potonganAlpa = Math.round((JUMLAH_ALPA / HARI_KERJA_TOTAL) * gajiPokok);
+            hariHadir = Math.max(0, HARI_KERJA_TOTAL - JUMLAH_ALPA);
+            
+            // Prorata calculation
+            let prorataTransport = Math.round(TUNJANGAN_TRANSPORT_FULL * (hariHadir / HARI_KERJA_TOTAL));
+            let prorataKonsumsi = Math.round(TUNJANGAN_KONSUMSI_FULL * (hariHadir / HARI_KERJA_TOTAL));
+            
+            // Set input values and show hints
+            document.getElementById('tunj_transport').value = formatRupiah(prorataTransport);
+            document.getElementById('tunj_konsumsi').value = formatRupiah(prorataKonsumsi);
+            
+            document.getElementById('hint_tunjangan_transport').textContent = `${formatRupiah(TUNJANGAN_TRANSPORT_FULL)} x (${hariHadir}/${HARI_KERJA_TOTAL} hari kerja) -- dipotong karena ${JUMLAH_ALPA} hari alpa`;
+            document.getElementById('hint_tunjangan_transport').classList.remove('d-none');
+            document.getElementById('hint_tunjangan_transport').classList.add('d-block');
+            
+            document.getElementById('hint_tunjangan_konsumsi').textContent = `${formatRupiah(TUNJANGAN_KONSUMSI_FULL)} x (${hariHadir}/${HARI_KERJA_TOTAL} hari kerja) -- dipotong karena ${JUMLAH_ALPA} hari alpa`;
+            document.getElementById('hint_tunjangan_konsumsi').classList.remove('d-none');
+            document.getElementById('hint_tunjangan_konsumsi').classList.add('d-block');
+        } else {
+            // Restore full if previously there was an alpa hint showing
+            if(document.getElementById('hint_tunjangan_transport').classList.contains('d-block')) {
+                document.getElementById('tunj_transport').value = formatRupiah(TUNJANGAN_TRANSPORT_FULL);
+                document.getElementById('tunj_konsumsi').value = formatRupiah(TUNJANGAN_KONSUMSI_FULL);
+                document.getElementById('hint_tunjangan_transport').classList.remove('d-block');
+                document.getElementById('hint_tunjangan_transport').classList.add('d-none');
+                document.getElementById('hint_tunjangan_konsumsi').classList.remove('d-block');
+                document.getElementById('hint_tunjangan_konsumsi').classList.add('d-none');
+            }
         }
+
         if (document.getElementById('potongan_alpa')) {
             document.getElementById('potongan_alpa').value = formatRupiah(potonganAlpa);
         }
 
+        // Read tunjangan values after possible override
+        const tunjanganJabatan = parseRupiah(document.getElementById('tunj_jabatan').value) || 0;
+        const tunjanganTransport = parseRupiah(document.getElementById('tunj_transport').value) || 0;
+        const tunjanganKonsumsi = parseRupiah(document.getElementById('tunj_konsumsi').value) || 0;
         const totalTunjangan = tunjanganJabatan + tunjanganTransport + tunjanganKonsumsi;
 
         // Total Gaji Karyawan = Gaji Pokok + Tunjangan (yang diterima karyawan)
