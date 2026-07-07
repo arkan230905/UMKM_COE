@@ -147,7 +147,7 @@ class CoaController extends Controller
     {
         // Cek apakah ada saldo periode (menggunakan kode_akun)
         $periodBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-            ->where('period_id', $periode->id)
+            ->where('coa_period_id', $periode->id)
             ->first();
         
         if ($periodBalance) {
@@ -158,7 +158,7 @@ class CoaController extends Controller
         $previousPeriod = $periode->getPreviousPeriod();
         if ($previousPeriod) {
             $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
-                ->where('period_id', $previousPeriod->id)
+                ->where('coa_period_id', $previousPeriod->id)
                 ->first();
             
             if ($previousBalance) {

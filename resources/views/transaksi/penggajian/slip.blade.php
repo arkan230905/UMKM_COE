@@ -391,7 +391,15 @@
 
         <!-- Metode Pembayaran -->
         <div class="payment-method">
-            Metode Pembayaran: <strong>{{ $metodeBayarText }}</strong>
+            <div style="margin-bottom: 5px;">Metode Pembayaran: <strong>{{ $metodeBayarText }}</strong></div>
+            @if(in_array($metodeBayar, ['transfer_bank', 'transfer', 'bank']))
+            <div style="margin-top: 5px; padding: 10px; background: #f8f9fa; border: 1px dashed #ccc; border-radius: 4px;">
+                <strong style="display: block; margin-bottom: 3px;">Informasi Rekening Tujuan:</strong>
+                Bank: {{ $penggajian->pegawai->bank ?? '-' }} <br>
+                No. Rekening: {{ $penggajian->pegawai->nomor_rekening ?? '-' }} <br>
+                Atas Nama: {{ $penggajian->pegawai->nama_rekening ?? '-' }}
+            </div>
+            @endif
         </div>
 
         <!-- Tanda Tangan -->

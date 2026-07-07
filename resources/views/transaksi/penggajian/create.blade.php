@@ -67,7 +67,7 @@
 
                     <div class="col-md-6">
                         <label for="metode_pembayaran" class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
-                        <select name="metode_pembayaran" id="metode_pembayaran" class="form-select @error('metode_pembayaran') is-invalid @enderror" required>
+                        <select name="metode_pembayaran" id="metode_pembayaran" class="form-select @error('metode_pembayaran') is-invalid @enderror" required onchange="toggleRekeningBlock()">
                             <option value="">-- Pilih --</option>
                             <option value="tunai" {{ old('metode_pembayaran') == 'tunai' ? 'selected' : '' }}>Tunai</option>
                             <option value="transfer_bank" {{ old('metode_pembayaran', 'transfer_bank') == 'transfer_bank' ? 'selected' : '' }}>Transfer Bank</option>
@@ -84,6 +84,32 @@
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                         <small class="form-text text-muted">Tanggal pelaksanaan pembayaran gaji (untuk dokumentasi dan ekstrak bulan)</small>
+                    </div>
+
+                    <!-- BLOK REKENING TUJUAN -->
+                    <div class="col-12" id="blok_rekening_tujuan" style="display: none;">
+                        <div class="alert alert-info mb-0">
+                            <h6 class="alert-heading fw-bold mb-2"><i class="bi bi-bank me-1"></i> Informasi Rekening Tujuan</h6>
+                            <div id="info_rekening_tersedia" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Bank</small>
+                                        <strong id="display_nama_bank">-</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">No. Rekening</small>
+                                        <strong id="display_no_rekening">-</strong>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small class="text-muted d-block">Atas Nama</small>
+                                        <strong id="display_atas_nama">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="info_rekening_kosong" class="text-danger mt-2" style="display: none;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Pegawai ini belum memiliki data rekening bank. Lengkapi di Master Data Pegawai terlebih dahulu.
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -229,7 +255,7 @@
                 <div class="row g-3">
                     <div class="col-12">
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="btn_simpan">
                                 <i class="bi bi-save me-1"></i> Simpan Penggajian
                             </button>
                             <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary">
@@ -253,6 +279,7 @@
     let IS_PRODUKSI = false;
     let JUMLAH_ALPA = 0;
     let HARI_KERJA_TOTAL = 26;
+    let HAS_REKENING = false;
 
     // Format Rupiah
     function formatRupiah(num) {
@@ -287,6 +314,7 @@
         GAJI_POKOK = 0;
         IS_PRODUKSI = false;
         JUMLAH_ALPA = 0;
+        HAS_REKENING = false;
         document.getElementById('kategori').value = '';
         document.getElementById('kategori_status').textContent = '';
         document.getElementById('tarif_produk_input').value = 0;
@@ -306,6 +334,11 @@
         document.getElementById('display_total_biaya').textContent = 'Rp 0';
         document.getElementById('rata_rata_hari').value = '0';
         document.getElementById('h-final').value = 0;
+        
+        document.getElementById('blok_rekening_tujuan').style.display = 'none';
+        document.getElementById('info_rekening_tersedia').style.display = 'none';
+        document.getElementById('info_rekening_kosong').style.display = 'none';
+        document.getElementById('btn_simpan').disabled = false;
     }
 
     // Handle Pegawai Change
@@ -337,6 +370,21 @@
                 // Asuransi dari API, default 0 kalau kosong
                 document.getElementById('bpjs').value = formatRupiah(parseInt(data.asuransi) || 0);
                 
+                // Update Rekening Info
+                const noRekening = data.nomor_rekening || '';
+                if (noRekening !== '') {
+                    HAS_REKENING = true;
+                    document.getElementById('display_nama_bank').textContent = data.bank || '-';
+                    document.getElementById('display_no_rekening').textContent = noRekening;
+                    document.getElementById('display_atas_nama').textContent = data.nama_rekening || '-';
+                    document.getElementById('info_rekening_tersedia').style.display = 'block';
+                    document.getElementById('info_rekening_kosong').style.display = 'none';
+                } else {
+                    HAS_REKENING = false;
+                    document.getElementById('info_rekening_tersedia').style.display = 'none';
+                    document.getElementById('info_rekening_kosong').style.display = 'block';
+                }
+
                 // Auto-set tarif
                 const tarifField = document.getElementById('tarif_produk_input');
                 const tarifStatus = document.getElementById('tarif_status');
@@ -368,6 +416,7 @@
                 // Trigger change to set up Produksi/Gaji Tetap state correctly
                 handleKategoriChange();
                 updatePresensiData();
+                toggleRekeningBlock();
             })
             .catch(error => {
                 console.error('Error fetching pegawai:', error);
@@ -630,9 +679,23 @@
             });
     }
 
-    // Update Metode Pembayaran (removed as we use direct select now)
-    function updateMetodePembayaran() {
-        // No longer needed
+    // Update Metode Pembayaran
+    function toggleRekeningBlock() {
+        const metode = document.getElementById('metode_pembayaran').value;
+        const pegawaiId = document.getElementById('pegawai_id').value;
+        const btnSimpan = document.getElementById('btn_simpan');
+        
+        if (metode === 'transfer_bank' && pegawaiId) {
+            document.getElementById('blok_rekening_tujuan').style.display = 'block';
+            if (!HAS_REKENING) {
+                btnSimpan.disabled = true;
+            } else {
+                btnSimpan.disabled = false;
+            }
+        } else {
+            document.getElementById('blok_rekening_tujuan').style.display = 'none';
+            btnSimpan.disabled = false;
+        }
     }
 
     // Initialize
@@ -641,6 +704,9 @@
         clearFormState();
         setupRupiahFormatting(); // Setup format listener
         hitungOtomatis();
+        
+        // Cek init metode_pembayaran
+        toggleRekeningBlock();
     });
 
     // Clear state on window focus

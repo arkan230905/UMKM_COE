@@ -188,20 +188,39 @@ class AccountHelper
             return 0;
         }
         
-        // Saldo awal dari COA
-        $saldoAwal = is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
+        // Saldo awal dari COA (Pastikan casting ke float aman)
+        $rawSaldoAwal = $coa->saldo_awal ?? 0;
+        $saldoAwal = is_numeric($rawSaldoAwal) ? (float) $rawSaldoAwal : (float) str_replace(['Rp', '.', ',', ' '], ['', '', '.', ''], $rawSaldoAwal);
         
-        // Hitung saldo dari journal lines
-        // Note: journal_entries tidak punya user_id, tapi COA sudah difilter by user_id
-        // Jadi saldo yang dihitung otomatis adalah saldo untuk COA milik user tersebut
+        // Hitung akumulasi dari journal lines (Sistem Baru)
         $journalQuery = DB::table('journal_lines')
             ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_lines.coa_id', $coa->id);
-        
-        $saldo = $journalQuery->selectRaw('SUM(debit) - SUM(credit) as saldo')
-            ->value('saldo') ?? 0;
             
-        return $saldoAwal + $saldo;
+        $jNew = $journalQuery->selectRaw('COALESCE(SUM(debit), 0) as total_debit, COALESCE(SUM(credit), 0) as total_kredit')->first();
+
+        // Hitung akumulasi dari jurnal_umum (Sistem Lama/Penggajian)
+        $queryJurnalUmum = DB::table('jurnal_umum')
+            ->where('coa_id', $coa->id);
+            
+        if ($userId !== null) {
+            $queryJurnalUmum->where('user_id', $userId);
+        }
+        
+        $jOld = $queryJurnalUmum->selectRaw('COALESCE(SUM(debit), 0) as total_debit, COALESCE(SUM(kredit), 0) as total_kredit')->first();
+        
+        // Total Mutasi Jurnal
+        $totalDebitJurnal = ($jNew->total_debit ?? 0) + ($jOld->total_debit ?? 0);
+        $totalKreditJurnal = ($jNew->total_kredit ?? 0) + ($jOld->total_kredit ?? 0);
+        
+        // Rumus saldo berdasarkan Saldo Normal (Sesuai kaidah akuntansi)
+        if (strtolower($coa->saldo_normal) === 'debit') {
+            // Aset / Beban: saldo_berjalan = saldo_awal + total_debit_jurnal - total_kredit_jurnal
+            return $saldoAwal + $totalDebitJurnal - $totalKreditJurnal;
+        } else {
+            // Kewajiban / Ekuitas / Pendapatan: saldo_berjalan = saldo_awal + total_kredit_jurnal - total_debit_jurnal
+            return $saldoAwal + $totalKreditJurnal - $totalDebitJurnal;
+        }
     }
     
     /**
