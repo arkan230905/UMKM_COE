@@ -374,24 +374,49 @@ class NeracaService
             $periodData['tanggal_akhir']
         );
         
-        // Pendapatan (4xx accounts)
-        $pendapatan = 0;
-        $biaya = 0;
+        // ✅ PERBAIKAN: Hitung laba/rugi berdasarkan saldo akhir sebenarnya
+        // Pendapatan (4xxx): saldo normal kredit, jadi saldo akhir positif = kredit > debit
+        // Beban (5xxx, 6xxx): saldo normal debit, jadi saldo akhir positif = debit > kredit
+        
+        $totalPendapatan = 0;
+        $totalHpp = 0;
+        $totalBeban = 0;
         
         foreach ($trialBalance['accounts'] as $account) {
             $firstDigit = substr($account['kode_akun'], 0, 1);
+            $saldoAkhir = $account['saldo_akhir'];
             
             if ($firstDigit == '4') {
-                // Revenue accounts (4xx) - credit normal
-                $pendapatan += $account['kredit'];
+                // Pendapatan (4xxx) - credit normal
+                // Saldo akhir sudah terhitung dengan benar (kredit - debit)
+                $totalPendapatan += $saldoAkhir;
             } elseif ($firstDigit == '5') {
-                // Expense accounts (5xx) - debit normal
-                $biaya += $account['debit'];
+                // Check if HPP
+                $namaAkun = strtolower($account['nama_akun']);
+                $isHpp = (stripos($namaAkun, 'harga pokok') !== false ||
+                         stripos($namaAkun, 'hpp') !== false ||
+                         $account['kode_akun'] === '56' ||
+                         $account['kode_akun'] === '560');
+                
+                if ($isHpp) {
+                    // HPP - debit normal
+                    // Saldo akhir sudah terhitung dengan benar (debit - kredit)
+                    $totalHpp += $saldoAkhir;
+                } else {
+                    // Beban lainnya (5xxx) - debit normal
+                    // Saldo akhir sudah terhitung dengan benar (debit - kredit)
+                    $totalBeban += $saldoAkhir;
+                }
+            } elseif ($firstDigit == '6') {
+                // Beban (6xxx) - debit normal
+                // Saldo akhir sudah terhitung dengan benar (debit - kredit)
+                $totalBeban += $saldoAkhir;
             }
         }
         
-        // Laba/Rugi = Pendapatan - Biaya
-        $labaRugi = $pendapatan - $biaya;
+        // Laba/Rugi = Pendapatan - HPP - Beban
+        $labaKotor = $totalPendapatan - $totalHpp;
+        $labaRugi = $labaKotor - $totalBeban;
         
         return $labaRugi;
     }
