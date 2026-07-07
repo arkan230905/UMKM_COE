@@ -35,7 +35,7 @@ class TrialBalanceService
         
         if ($hasPostedBefore) {
             $hasCurrentPeriodBalances = DB::table('coa_period_balances as cpb')
-                ->join('coa_periods as cp', 'cpb.period_id', '=', 'cp.id')
+                ->join('coa_periods as cp', 'cpb.coa_period_id', '=', 'cp.id')
                 ->where('cpb.user_id', auth()->id())
                 ->where('cp.periode', $periodeStr)
                 ->exists();
@@ -48,7 +48,7 @@ class TrialBalanceService
         // Cek apakah periode ini sudah diposting ke bulan berikutnya
         $nextMonthStr = Carbon::parse($startDate)->addMonth()->format('Y-m');
         $isPosted = DB::table('coa_period_balances as cpb')
-            ->join('coa_periods as cp', 'cpb.period_id', '=', 'cp.id')
+            ->join('coa_periods as cp', 'cpb.coa_period_id', '=', 'cp.id')
             ->where('cpb.user_id', auth()->id())
             ->where('cp.periode', $nextMonthStr)
             ->exists();
@@ -338,7 +338,7 @@ class TrialBalanceService
 
         // Cek saldo awal spesifik untuk periode ini dari posting bulan sebelumnya
         $periodBalance = DB::table('coa_period_balances as cpb')
-            ->join('coa_periods as cp', 'cpb.period_id', '=', 'cp.id')
+            ->join('coa_periods as cp', 'cpb.coa_period_id', '=', 'cp.id')
             ->where('cpb.user_id', auth()->id())
             ->where('cp.periode', $periodeStr)
             ->where('cpb.kode_akun', $kodeAkun)
