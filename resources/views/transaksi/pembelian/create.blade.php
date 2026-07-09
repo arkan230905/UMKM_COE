@@ -451,7 +451,8 @@ button[aria-expanded="false"] .transition-icon {
                             
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Tanggal Jatuh Tempo <span class="text-danger">*</span></label>
-                                <input type="date" name="tanggal_jatuh_tempo" id="due_date_input" class="form-control">
+                                <input type="date" name="tanggal_jatuh_tempo" id="due_date_input" class="form-control" placeholder="Pilih tanggal jatuh tempo">
+                                
                             </div>
                         </div>
                     </div>
@@ -735,6 +736,73 @@ document.addEventListener('DOMContentLoaded', function() {
     const dpInput = document.getElementById('dp_input');
     const dueDateInput = document.getElementById('due_date_input');
     const vendorSelect = document.getElementById('vendor_select');
+    const tanggalInput = document.querySelector('input[name="tanggal"]');
+    
+    // Function to calculate date range for due date
+    function calculateDueDateRange(purchaseDate) {
+        if (!purchaseDate) return { min: '', max: '' };
+        
+        const date = new Date(purchaseDate);
+        
+        // Min: Purchase date + 1 day
+        const minDate = new Date(date);
+        minDate.setDate(minDate.getDate() + 1);
+        
+        // Max: Purchase date + 30 days
+        const maxDate = new Date(date);
+        maxDate.setDate(maxDate.getDate() + 30);
+        
+        // Format to YYYY-MM-DD
+        const formatDate = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        return {
+            min: formatDate(minDate),
+            max: formatDate(maxDate)
+        };
+    }
+    
+    // Function to update due date constraints (min/max) based on purchase date
+    // ✅ REVISI: Set rentang tanggal (min = +1 hari, max = +30 hari)
+    function updateDueDateConstraints() {
+        const paymentMethod = paymentSelect ? paymentSelect.value : '';
+        
+        if (paymentMethod === 'credit' && tanggalInput) {
+            const purchaseDate = tanggalInput.value;
+            const dateRange = calculateDueDateRange(purchaseDate);
+            
+            if (dueDateInput && dateRange.min && dateRange.max) {
+                // ✅ Set min = tanggal pembelian + 1 hari
+                dueDateInput.setAttribute('min', dateRange.min);
+                
+                // ✅ Set max = tanggal pembelian + 30 hari
+                dueDateInput.setAttribute('max', dateRange.max);
+                
+                // ✅ JANGAN set value - biarkan kosong, user harus pilih manual
+                // Kosongkan value jika tanggal pembelian berubah dan value sekarang di luar rentang baru
+                if (dueDateInput.value) {
+                    const currentValue = dueDateInput.value;
+                    if (currentValue < dateRange.min || currentValue > dateRange.max) {
+                        dueDateInput.value = '';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Add event listener to tanggal pembelian
+    if (tanggalInput) {
+        tanggalInput.addEventListener('change', function() {
+            // ✅ Saat tanggal pembelian berubah:
+            // - Update min/max ke rentang baru
+            // - Kosongkan value jika di luar rentang
+            updateDueDateConstraints();
+        });
+    }
     
     // Add vendor change event listener
     if (vendorSelect) {
@@ -755,6 +823,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 dueDateInput.setAttribute('required', 'required');
                 saldoInfo.textContent = '';
                 
+                // ✅ Set min/max constraints dengan rentang tanggal
+                updateDueDateConstraints();
+                
                 // Show DP summary section
                 updateDpSummary();
             } else {
@@ -763,6 +834,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 dpInput.value = '0';
                 dueDateInput.value = '';
                 dueDateInput.removeAttribute('required');
+                dueDateInput.removeAttribute('min');
+                dueDateInput.removeAttribute('max');
                 
                 // Hide DP summary section
                 document.getElementById('dp_summary_section').style.display = 'none';
@@ -787,6 +860,11 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDpSummary();
             calculateTotal();
         });
+        
+        // ✅ Initialize constraints on page load if payment method is already set to credit
+        if (paymentSelect.value === 'credit') {
+            updateDueDateConstraints();
+        }
     }
     
     // Add event listener for DP input

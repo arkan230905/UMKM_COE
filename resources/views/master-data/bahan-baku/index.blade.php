@@ -81,6 +81,7 @@
                                         <a href="{{ route('master-data.bahan-baku.show', $bahan->id) }}" class="btn btn-outline-info" title="Detail">
                                             <i class="fas fa-eye"></i> Detail
                                         </a>
+                                        {{-- Tombol hapus disembunyikan
                                         <form action="{{ route('master-data.bahan-baku.destroy', $bahan->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
@@ -88,6 +89,7 @@
                                                 <i class="fas fa-trash"></i> Hapus
                                             </button>
                                         </form>
+                                        --}}
                                     </div>
                                 </td>
                             </tr>

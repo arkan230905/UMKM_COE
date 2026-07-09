@@ -343,15 +343,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
                 return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
             }
 
-            // Use same saldo awal logic as neraca saldo
-            $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
-            $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
-            
-            if (in_array($accountCode, $bahanBakuCoas) || in_array($accountCode, $bahanPendukungCoas)) {
-                $saldoAwal = $this->getInventorySaldoAwal($accountCode);
-            } else {
-                $saldoAwal = (float)($coa->saldo_awal ?? 0);
-            }
+            // ✅ PERBAIKAN: Ambil saldo awal langsung dari COA untuk semua akun
+            // Tidak ada logika khusus untuk inventory karena sudah disabled
+            $saldoAwal = (float)($coa->saldo_awal ?? 0);
 
 
             // MULTI-TENANT: Query jurnal_umum untuk konsistensi dengan sistem lain
@@ -434,14 +428,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
             return redirect()->back()->with('error', 'Akun tidak ditemukan');
         }
 
-        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
-        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
-        
-        if (in_array($accountCode, $bahanBakuCoas) || in_array($accountCode, $bahanPendukungCoas)) {
-            $saldoAwal = $this->getInventorySaldoAwal($accountCode);
-        } else {
-            $saldoAwal = (float)($coa->saldo_awal ?? 0);
-        }
+        // ✅ PERBAIKAN: Ambil saldo awal langsung dari COA untuk semua akun
+        // Tidak ada logika khusus untuk inventory karena sudah disabled
+        $saldoAwal = (float)($coa->saldo_awal ?? 0);
 
         $query = \DB::table('jurnal_umum as ju')
             ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
@@ -579,15 +568,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
 
         $totals = [];
         foreach ($coas as $coa) {
-            // Untuk akun persediaan bahan baku dan bahan pendukung, ambil saldo awal dari stock_movements
-            $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
-            $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
-            
-            if (in_array($coa->kode_akun, $bahanBakuCoas) || in_array($coa->kode_akun, $bahanPendukungCoas)) {
-                $saldoAwal = $this->getInventorySaldoAwal($coa->kode_akun);
-            } else {
-                $saldoAwal = (float)($coa->saldo_awal ?? 0);
-            }
+            // ✅ PERBAIKAN: Ambil saldo awal langsung dari COA untuk semua akun
+            // Tidak ada logika khusus untuk inventory karena sudah disabled
+            $saldoAwal = (float)($coa->saldo_awal ?? 0);
             
             $totalDebit  = $mutasiByKodeAkun[$coa->kode_akun]['total_debit']  ?? 0;
             $totalKredit = $mutasiByKodeAkun[$coa->kode_akun]['total_kredit'] ?? 0;
@@ -868,15 +851,9 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
 
         $trialBalanceData = [];
         foreach ($coas as $coa) {
-            // Untuk akun persediaan bahan baku dan bahan pendukung, ambil saldo awal dari stock_movements
-            $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
-            $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
-            
-            if (in_array($coa->kode_akun, $bahanBakuCoas) || in_array($coa->kode_akun, $bahanPendukungCoas)) {
-                $saldoAwal = $this->getInventorySaldoAwal($coa->kode_akun);
-            } else {
-                $saldoAwal = (float)($coa->saldo_awal ?? 0);
-            }
+            // ✅ PERBAIKAN: Ambil saldo awal langsung dari COA untuk semua akun
+            // Tidak ada logika khusus untuk inventory karena sudah disabled
+            $saldoAwal = (float)($coa->saldo_awal ?? 0);
             
             $totalDebit  = $mutasiByKodeAkun[$coa->kode_akun]['total_debit']  ?? 0;
             $totalKredit = $mutasiByKodeAkun[$coa->kode_akun]['total_kredit'] ?? 0;

@@ -175,16 +175,9 @@ class TrialBalanceService
         }
 
         // 1. Ambil saldo awal menggunakan logika yang SAMA dengan AkuntansiController
-        $kodeAkun = $coa->kode_akun;
-        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
-        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
-        
-        // Untuk akun persediaan, gunakan saldo awal dari inventory
-        if (in_array($kodeAkun, $bahanBakuCoas) || in_array($kodeAkun, $bahanPendukungCoas)) {
-            $saldoAwal = $this->getInventorySaldoAwal($kodeAkun);
-        } else {
-            $saldoAwal = (float)($coa->saldo_awal ?? 0);
-        }
+        // ✅ PERBAIKAN: Ambil saldo awal langsung dari COA untuk semua akun
+        // Tidak ada logika khusus untuk inventory karena sudah disabled
+        $saldoAwal = (float)($coa->saldo_awal ?? 0);
 
         // 2. Ambil total debit dan kredit sampai tanggal tertentu menggunakan jurnal_umum table
         $journalLines = DB::table('jurnal_umum as ju')
@@ -327,12 +320,7 @@ class TrialBalanceService
     {
         $kodeAkun = $coa->kode_akun;
         
-        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
-        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
-        
-        if (in_array($kodeAkun, $bahanBakuCoas) || in_array($kodeAkun, $bahanPendukungCoas)) {
-            return $this->getInventorySaldoAwal($kodeAkun);
-        }
+        // ✅ PERBAIKAN: Tidak ada logika khusus untuk inventory karena sudah disabled
         
         $periodeStr = Carbon::parse($startDate)->format('Y-m');
 
