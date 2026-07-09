@@ -522,9 +522,37 @@ class PembelianController extends Controller
         
         // Tambahan validasi untuk kredit
         if ($request->bank_id === 'credit') {
-            $validationRules['tanggal_jatuh_tempo'] = 'required|date';
+            $validationRules['tanggal_jatuh_tempo'] = [
+                'required',
+                'date',
+                'after:tanggal', // Harus lebih besar dari tanggal pembelian
+                function ($attribute, $value, $fail) use ($request) {
+                    // ✅ REVISI: Validasi tanggal jatuh tempo harus antara +1 hari sampai +30 hari
+                    $tanggalPembelian = \Carbon\Carbon::parse($request->tanggal);
+                    $tanggalJatuhTempo = \Carbon\Carbon::parse($value);
+                    
+                    // Min: Tanggal pembelian + 1 hari
+                    $minDueDate = $tanggalPembelian->copy()->addDay();
+                    
+                    // Max: Tanggal pembelian + 30 hari
+                    $maxDueDate = $tanggalPembelian->copy()->addDays(30);
+                    
+                    // Validasi: Tanggal jatuh tempo harus di antara min dan max
+                    if ($tanggalJatuhTempo->lt($minDueDate)) {
+                        $fail('Tanggal jatuh tempo tidak boleh sama atau lebih awal dari tanggal pembelian. Minimal ' . $minDueDate->format('d/m/Y') . '.');
+                    }
+                    
+                    if ($tanggalJatuhTempo->gt($maxDueDate)) {
+                        $fail('Tanggal jatuh tempo tidak boleh lebih dari 30 hari setelah tanggal pembelian. Maksimal ' . $maxDueDate->format('d/m/Y') . '.');
+                    }
+                },
+            ];
             $validationRules['dp'] = 'nullable|numeric|min:0';
             $validationMessages['tanggal_jatuh_tempo.required'] = 'Tanggal jatuh tempo wajib diisi untuk pembelian kredit';
+            $validationMessages['tanggal_jatuh_tempo.after'] = 'Tanggal jatuh tempo harus lebih besar dari tanggal pembelian';
+        } else {
+            // Jika bukan kredit, tanggal jatuh tempo harus null
+            $validationRules['tanggal_jatuh_tempo'] = 'nullable';
         }
         
         $request->validate($validationRules, $validationMessages);
