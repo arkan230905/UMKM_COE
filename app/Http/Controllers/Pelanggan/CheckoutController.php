@@ -477,6 +477,17 @@ class CheckoutController extends Controller
             ->where('nomor_rekening', '!=', '')
             ->get();
 
+        $midtransEnabled = !empty(config('midtrans.server_key')) && !empty(config('midtrans.client_key'));
+
+        $defaultMidtransVA = [
+            'bca' => ['code' => 'bca', 'name' => 'BCA'],
+            'bni' => ['code' => 'bni', 'name' => 'BNI'],
+            'bri' => ['code' => 'bri', 'name' => 'BRI'],
+            'echannel' => ['code' => 'echannel', 'name' => 'MANDIRI'],
+            'permata' => ['code' => 'permata', 'name' => 'PERMATA'],
+            'cimb' => ['code' => 'cimb', 'name' => 'CIMB'],
+        ];
+
         $supportedVABanks = [];
         $midtransMap = [
             'bca' => 'bca',
@@ -486,20 +497,24 @@ class CheckoutController extends Controller
             'permata' => 'permata',
             'cimb' => 'cimb',
         ];
+
         foreach ($rekeningBanks as $rek) {
             $namaAkun = strtolower($rek->nama_akun);
             foreach ($midtransMap as $key => $code) {
                 if (str_contains($namaAkun, $key)) {
-                    $supportedVABanks[$code] = [
-                        'code' => $code,
-                        'name' => strtoupper($key)
-                    ];
+                    $supportedVABanks[$code] = $defaultMidtransVA[$code];
                 }
             }
         }
+
+        // Jika tidak ada mapping bank, gunakan default bank VA Midtrans
+        if (empty($supportedVABanks)) {
+            $supportedVABanks = $defaultMidtransVA;
+        }
+
         $supportedVABanks = array_values($supportedVABanks);
 
-        return view('pelanggan.payment', compact('carts', 'subtotal', 'ppn', 'ongkir', 'total', 'perusahaan', 'perusahaan_slug', 'rekeningBanks', 'supportedVABanks'));
+        return view('pelanggan.payment', compact('carts', 'subtotal', 'ppn', 'ongkir', 'total', 'perusahaan', 'perusahaan_slug', 'rekeningBanks', 'supportedVABanks', 'midtransEnabled'));
     }
 
     public function processPayment(Request $request, $perusahaan_slug = null)

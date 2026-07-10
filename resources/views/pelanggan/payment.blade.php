@@ -137,24 +137,23 @@
 
                                         <!-- Midtrans Details -->
                                         <div id="transfer_midtrans_details" style="background: #eef8f1; border: 1px solid #d4ecd9; border-radius: 6px; padding: 1rem; color: #27ae60;">
-                                            <p class="mb-3" style="font-size: 0.85rem;">Pilih Bank Virtual Account:</p>
-                                            
-                                            @if(isset($supportedVABanks) && count($supportedVABanks) > 0)
-                                                <div class="row g-2">
-                                                    @foreach($supportedVABanks as $index => $bank)
-                                                        <div class="col-sm-6">
-                                                            <div class="form-check mb-2 p-2 bg-white" style="border: 1px solid #c8e6c9; border-radius: 6px;">
-                                                                <input class="form-check-input ms-1" type="radio" name="bank_va" id="va_{{ $bank['code'] }}" value="{{ $bank['code'] }}" {{ $index === 0 ? 'checked' : '' }} required>
-                                                                <label class="form-check-label w-100 ms-2" for="va_{{ $bank['code'] }}" style="cursor: pointer; font-size: 0.85rem; color: #2e7d32; font-weight: 600;">
-                                                                    Bank {{ $bank['name'] }}
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
+                                            @if(!$midtransEnabled)
+                                                <div style="background: #fff3cd; padding: 0.8rem; border-radius: 6px; margin-bottom: 0.8rem; font-size: 0.85rem; border: 1px solid #ffeeba; color: #856404;">
+                                                    <em>Metode pembayaran Virtual Account Midtrans saat ini belum diaktifkan. Silakan gunakan Transfer Manual.</em>
                                                 </div>
                                             @else
-                                                <div style="background: #fff3cd; padding: 0.8rem; border-radius: 6px; margin-bottom: 0.8rem; font-size: 0.85rem; border: 1px solid #ffeeba; color: #856404;">
-                                                    <em>Bank yang didukung UMKM ini belum mendukung Virtual Account Midtrans. Silakan pilih bank lain atau gunakan Transfer Manual.</em>
+                                                <div class="mb-2">
+                                                    <label class="form-label mb-1" style="font-weight: 500; font-size: 0.9rem;">Pilih Bank Virtual Account <span class="text-danger">*</span></label>
+                                                    <select name="bank_va" id="bank_va" class="form-select" style="font-size: 0.9rem;">
+                                                        <option value="">Pilih Bank</option>
+                                                        @foreach($supportedVABanks as $bank)
+                                                            <option value="{{ $bank['code'] }}">{{ $bank['name'] }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div style="font-size: 0.8rem; margin-top: 10px; color: #555;">
+                                                    <i class="fas fa-info-circle me-1 text-primary"></i> 
+                                                    Nomor Virtual Account akan diberikan setelah Anda menekan tombol "Buat Pesanan".
                                                 </div>
                                             @endif
                                         </div>
