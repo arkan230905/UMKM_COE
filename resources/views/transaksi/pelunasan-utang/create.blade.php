@@ -34,8 +34,16 @@
             
             <div class="card-body">
                 <div class="form-group">
-                    <label>Tanggal <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control @error('tanggal') is-invalid @enderror" name="tanggal" value="{{ old('tanggal', date('Y-m-d')) }}" required>
+                    <label>Tanggal Pelunasan <span class="text-danger">*</span></label>
+                    <input 
+                        type="date" 
+                        class="form-control @error('tanggal') is-invalid @enderror" 
+                        name="tanggal" 
+                        id="tanggal_pelunasan"
+                        value="{{ old('tanggal', now()->format('Y-m-d')) }}" 
+                        max="{{ now()->format('Y-m-d') }}"
+                        required>
+                    <small class="text-muted">Tanggal pelunasan tidak boleh melebihi hari ini</small>
                     @error('tanggal')
                         <div class="invalid-feedback">
                             {{ $message }}
@@ -164,6 +172,8 @@
     <script>
         // Store the original debt amount
         let originalSisaUtang = 0;
+        let purchaseDate = null;
+        let dueDate = null;
         
         // Format price input with thousand separator
         function setupPriceFormatting() {
@@ -200,14 +210,98 @@
             // Before form submission, use raw values
             const form = jumlahInput ? jumlahInput.closest('form') : null;
             if (form) {
-                form.addEventListener('submit', function() {
+                form.addEventListener('submit', function(e) {
                     if (jumlahInput && jumlahRawInput && jumlahRawInput.value) {
                         jumlahInput.value = jumlahRawInput.value;
                     } else if (jumlahInput) {
                         jumlahInput.value = jumlahInput.value.replace(/\./g, '');
                     }
+                    
+                    // ✅ Validate tanggal before submit
+                    if (!validatePaymentDate()) {
+                        e.preventDefault();
+                        return false;
+                    }
                 });
             }
+        }
+        
+        // Validate payment date - compare string YYYY-MM-DD directly
+        function validatePaymentDate() {
+            const tanggalInput = document.getElementById('tanggal_pelunasan');
+            if (!tanggalInput) return true;
+            
+            // Get input value directly (format: YYYY-MM-DD)
+            const paymentDateStr = tanggalInput.value;
+            if (!paymentDateStr) return true;
+            
+            // Get today's date in YYYY-MM-DD format (local timezone)
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
+            
+            // Debug: log the comparison
+            console.log('Payment Date:', paymentDateStr);
+            console.log('Today:', todayStr);
+            console.log('Is Future?', paymentDateStr > todayStr);
+            
+            // Compare strings directly (no timezone issues)
+            // YYYY-MM-DD format allows proper lexicographic comparison
+            if (paymentDateStr > todayStr) {
+                alert('Tanggal pelunasan tidak boleh melebihi hari ini. Jika pembayaran dilakukan besok, silakan mencatat pelunasan besok.');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Check if payment is late
+        function checkPaymentStatus() {
+            const tanggalInput = document.getElementById('tanggal_pelunasan');
+            if (!tanggalInput || !dueDate) return;
+            
+            // Get payment date string (format: YYYY-MM-DD)
+            const paymentDateStr = tanggalInput.value;
+            if (!paymentDateStr) return;
+            
+            // Due date is already in YYYY-MM-DD format from backend
+            const dueDateStr = dueDate;
+            
+            const dueDateElement = document.getElementById('due-date');
+            
+            // Compare strings directly (no timezone issues)
+            if (paymentDateStr > dueDateStr) {
+                // Payment is late
+                if (dueDateElement) {
+                    dueDateElement.innerHTML = formatDate(dueDate) + ' <span class="badge badge-danger ml-2">TERLAMBAT</span>';
+                }
+                
+                // Show warning
+                const dueDateSection = document.getElementById('due-date-section');
+                if (dueDateSection) {
+                    dueDateSection.classList.add('alert', 'alert-warning');
+                }
+            } else {
+                // Payment is on time
+                if (dueDateElement) {
+                    dueDateElement.innerHTML = formatDate(dueDate) + ' <span class="badge badge-success ml-2">TEPAT WAKTU</span>';
+                }
+                
+                const dueDateSection = document.getElementById('due-date-section');
+                if (dueDateSection) {
+                    dueDateSection.classList.remove('alert', 'alert-warning');
+                    dueDateSection.classList.add('alert', 'alert-info');
+                }
+            }
+        }
+        
+        // ✅ Format date to Indonesian format
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
         }
         
         // Update remaining debt display based on payment amount
@@ -234,6 +328,18 @@
                 sisaUtangSpan.classList.remove('text-success', 'text-warning');
                 sisaUtangSpan.classList.add('text-danger');
             }
+        }
+        
+        // Setup date input change listener
+        function setupDateChangeListener() {
+            const tanggalInput = document.getElementById('tanggal_pelunasan');
+            if (!tanggalInput) return;
+            
+            // Add change event listener to validate and check status
+            tanggalInput.addEventListener('change', function() {
+                validatePaymentDate();
+                checkPaymentStatus();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -270,6 +376,10 @@
                         // Store original sisa utang for calculation
                         originalSisaUtang = Math.floor(data.data.sisa_utang);
                         
+                        // ✅ Store purchase date and due date
+                        purchaseDate = data.data.tanggal_pembelian || null;
+                        dueDate = data.data.tanggal_jatuh_tempo || null;
+                        
                         // Fill in the details
                         vendorName.textContent = data.data.vendor;
                         document.getElementById('nomor-pembelian').textContent = data.data.nomor_pembelian;
@@ -288,19 +398,11 @@
                         }
                         
                         // Show due date if exists
-                        const dueDate = data.data.tanggal_jatuh_tempo;
                         const dueDateSection = document.getElementById('due-date-section');
                         
                         if (dueDate) {
                             dueDateSection.style.display = 'block';
-                            // Format date to Indonesian format
-                            const dateObj = new Date(dueDate);
-                            const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric' 
-                            });
-                            document.getElementById('due-date').textContent = formattedDate;
+                            document.getElementById('due-date').textContent = formatDate(dueDate);
                         } else {
                             dueDateSection.style.display = 'none';
                         }
@@ -328,6 +430,12 @@
                         
                         // Update remaining debt display (initially will be 0 since payment = debt)
                         updateRemainingDebt(sisaUtangValue);
+                        
+                        // Setup date change listener after loading purchase details
+                        setupDateChangeListener();
+                        
+                        // Check payment status initially
+                        checkPaymentStatus();
                     } else {
                         alert(data.message);
                         window.location.href = '{{ route('transaksi.pelunasan-utang.index') }}';

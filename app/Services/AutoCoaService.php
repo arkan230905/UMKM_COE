@@ -29,10 +29,11 @@ class AutoCoaService
         // Get the highest COA code for "Pers. Bahan Baku" category
         // Pattern: starts with "114" (Persediaan Bahan Baku category)
         // Must stay within 114xx range (1140-1149, 11400-11499, etc.)
+        // IMPORTANT: Cast to unsigned integer for proper numeric sorting
         $lastCoa = Coa::where('user_id', $userId)
             ->where('kode_akun', 'LIKE', '114%')
             ->where('nama_akun', 'LIKE', 'Pers. Bahan Baku%')
-            ->orderBy('kode_akun', 'desc')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC') // Numeric sorting instead of string
             ->lockForUpdate() // Prevent race condition
             ->first();
 
@@ -45,7 +46,7 @@ class AutoCoaService
                 // Move to 5-digit: 11400
                 $nextCode = '11400';
             } else {
-                // Simply increment
+                // Simply increment numerically
                 $nextCode = strval(intval($lastCode) + 1);
                 
                 // Validate that we're still in 114 group
@@ -55,7 +56,8 @@ class AutoCoaService
             }
         } else {
             // Default starting code for Pers. Bahan Baku
-            $nextCode = '1141';
+            // Start from 11400 to avoid conflict with any 4-digit codes
+            $nextCode = '11400';
         }
 
         // Create COA
@@ -97,10 +99,11 @@ class AutoCoaService
         // Get the highest COA code for "Pers. Bahan Pendukung" category
         // Pattern: starts with "115" (Persediaan Bahan Pendukung category)
         // Must stay within 115xx range (1150-1159, 11500-11599, etc.)
+        // IMPORTANT: Cast to unsigned integer for proper numeric sorting
         $lastCoa = Coa::where('user_id', $userId)
             ->where('kode_akun', 'LIKE', '115%')
             ->where('nama_akun', 'LIKE', 'Pers. Bahan Pendukung%')
-            ->orderBy('kode_akun', 'desc')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC') // Numeric sorting instead of string
             ->lockForUpdate() // Prevent race condition
             ->first();
 
@@ -113,7 +116,7 @@ class AutoCoaService
                 // Move to 5-digit: 11500
                 $nextCode = '11500';
             } else {
-                // Simply increment
+                // Simply increment numerically
                 $nextCode = strval(intval($lastCode) + 1);
                 
                 // Validate that we're still in 115 group
@@ -123,7 +126,8 @@ class AutoCoaService
             }
         } else {
             // Default starting code for Pers. Bahan Pendukung
-            $nextCode = '1151';
+            // Start from 11500 to avoid conflict with any 4-digit codes
+            $nextCode = '11500';
         }
 
         // Create COA
