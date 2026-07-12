@@ -537,7 +537,7 @@
                                             <thead>
                                                 <tr>
                                                     <th>Produk</th>
-                                                    <th class="text-end">Qty</th>
+                                                    <th class="text-end">Jumlah</th>
                                                     <th class="text-end">Harga</th>
                                                     <th class="text-end">HPP</th>
                                                     <th class="text-end">Profit</th>

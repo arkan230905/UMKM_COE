@@ -149,7 +149,7 @@
                 <th width="35%">Produk Terjual</th>
                 <th width="12%">Pembayaran</th>
                 <th width="13%" class="text-right">Total</th>
-                <th width="8%" class="text-center">Qty</th>
+                <th width="8%" class="text-center">Jumlah</th>
             </tr>
         </thead>
         <tbody>

@@ -227,7 +227,7 @@
                 <th width="10%">Tanggal</th>
                 <th width="10%">Pembayaran</th>
                 <th width="28%">Produk</th>
-                <th width="8%">Qty</th>
+                <th width="8%">Jumlah</th>
                 <th width="14%">Harga/Satuan</th>
                 <th width="14%">Total</th>
             </tr>

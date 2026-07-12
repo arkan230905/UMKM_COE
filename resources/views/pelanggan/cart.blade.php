@@ -75,7 +75,7 @@
                                 <tr>
                                     <th style="padding: 1rem 1.5rem; border-bottom: 1px solid #eaeaea; font-weight: 600;">Produk</th>
                                     <th style="padding: 1rem 0.5rem; border-bottom: 1px solid #eaeaea; font-weight: 600;">Harga</th>
-                                    <th width="140" style="padding: 1rem 0.5rem; border-bottom: 1px solid #eaeaea; font-weight: 600; text-align: center;">Qty</th>
+                                    <th width="140" style="padding: 1rem 0.5rem; border-bottom: 1px solid #eaeaea; font-weight: 600; text-align: center;">Jumlah</th>
                                     <th style="padding: 1rem 0.5rem; border-bottom: 1px solid #eaeaea; font-weight: 600;">Subtotal</th>
                                     <th width="80" style="padding: 1rem 1.5rem; border-bottom: 1px solid #eaeaea; font-weight: 600; text-align: center;">Aksi</th>
                                 </tr>
