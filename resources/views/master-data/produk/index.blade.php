@@ -96,6 +96,7 @@
 .ba-bc { background:#E3F2FD; color:#1565C0; } .ba-bc:hover { background:#BBDEFB; }
 .ba-ed { background:#FFF8E1; color:#E65100; } .ba-ed:hover { background:#FFE0B2; }
 .ba-del { background:#FFEBEE; color:#C62828; } .ba-del:hover { background:#FFCDD2; }
+.ba-del { display:none !important; }
 .empty-st { text-align:center; padding:60px 20px; color:#6c757d; }
 .empty-st i { font-size:40px; margin-bottom:12px; display:block; color:#adb5bd; }
 .pg-bar { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-top:1px solid #e9ecef; flex-wrap:wrap; gap:10px; }

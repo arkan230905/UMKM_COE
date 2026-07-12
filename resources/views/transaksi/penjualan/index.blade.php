@@ -846,10 +846,17 @@
                                             </button>
                                             @if($penjualan->is_online && $penjualan->order && in_array($penjualan->order->jenis_pengiriman, ['ambil_di_toko', 'kasir']))
                                                 @if($penjualan->order->status === 'processing')
-                                                    <form action="{{ route('transaksi.penjualan.complete', $penjualan->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Tandai pesanan ini siap diambil / selesai?')">
+                                                    <form action="{{ route('transaksi.penjualan.complete', $penjualan->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Tandai pesanan ini siap diambil?')">
                                                         @csrf
-                                                        <button type="submit" class="btn-minimal text-success" style="font-weight: 500;" title="Tandai Selesai / Bisa Diambil">
-                                                            Selesai
+                                                        <button type="submit" class="btn-minimal text-success" style="font-weight: 500;" title="Tandai Siap Diambil">
+                                                            Siap
+                                                        </button>
+                                                    </form>
+                                                @elseif($penjualan->order->status === 'ready_for_pickup')
+                                                    <form action="{{ route('transaksi.penjualan.pickup', $penjualan->id) }}" method="POST" class="d-inline mb-0" onsubmit="return confirm('Tandai pesanan ini sudah diambil oleh pelanggan?')">
+                                                        @csrf
+                                                        <button type="submit" class="btn-minimal text-success" style="font-weight: 500;" title="Tandai Sudah Diambil">
+                                                            Diambil
                                                         </button>
                                                     </form>
                                                 @elseif($penjualan->order->status === 'ready_for_pickup' && in_array(strtolower($penjualan->payment_method), ['cash', 'tunai', 'bayar di tempat', 'cod', 'bayar di toko']) && strtolower($penjualan->payment_status) !== 'paid' && strtolower($penjualan->payment_status) !== 'lunas')

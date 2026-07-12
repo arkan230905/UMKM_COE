@@ -235,57 +235,42 @@
             <!-- Right Content: Best Seller -->
             <div style="display: flex; justify-content: center; align-items: center;">
                 @if($bestSellers && $bestSellers->count() > 0)
-                    <div style="width: 100%; max-width: 320px; position: relative;">
-                        <div id="bestSellersCarousel" style="display: flex; transition: transform 0.5s ease-in-out; overflow: hidden; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08);">
-                            @foreach($bestSellers as $product)
-                            <div style="min-width: 100%; background: white;">
-                                <div style="position: relative;">
-                                    <div style="position: absolute; top: 1rem; left: 1rem; background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%); color: white; padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 700; font-size: 0.75rem; z-index: 2;">
-                                        ⭐ Best Seller
-                                    </div>
-                                    <div style="width: 100%; height: 220px; background: #f8fafc; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                                        @if($product->foto)
-                                            <img src="{{ storage_url($product->foto) }}" alt="{{ $product->nama_produk }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                        @else
-                                            <div style="font-size: 3rem;">📦</div>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div style="padding: 1.5rem;">
-                                    <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $product->nama_produk }}</h3>
-                                    <div style="font-size: 1.25rem; font-weight: 800; color: #dc2626; margin-bottom: 0.5rem;">Rp {{ number_format($product->harga_jual, 0, ',', '.') }}</div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">
-                                        <span>⭐ 5.0 • {{ $product->total_terjual ?? 0 }} terjual</span>
-                                    </div>
-                                    @if($product->stok > 0)
-                                    <button onclick="addToCart({{ $product->id }})" class="btn-hero-primary" style="width: 100%; border-radius: 12px; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.8rem;">
-                                        🛒 Tambah ke Keranjang
-                                    </button>
-                                    @else
-                                    <button disabled style="width: 100%; background: #e2e8f0; color: #94a3b8; border: none; padding: 0.8rem; border-radius: 12px; font-weight: 700; cursor: not-allowed; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
-                                        Habis
-                                    </button>
-                                    @endif
-                                </div>
+                    @php $product = $bestSellers->first(); @endphp
+                    <div style="width: 100%; max-width: 320px; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); overflow: hidden;">
+                        <div style="position: relative;">
+                            <div style="position: absolute; top: 1rem; left: 1rem; background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%); color: white; padding: 0.3rem 0.8rem; border-radius: 50px; font-weight: 700; font-size: 0.75rem; z-index: 2;">
+                                ⭐ Best Seller
                             </div>
-                            @endforeach
+                            <div style="width: 100%; height: 220px; background: #f8fafc; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                                @if($product->foto)
+                                    <img src="{{ storage_url($product->foto) }}" alt="{{ $product->nama_produk }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                @else
+                                    <div style="font-size: 3rem;">📦</div>
+                                @endif
+                            </div>
                         </div>
-                        
-                        @if($bestSellers->count() > 1)
-                        <div style="display: flex; justify-content: center; gap: 0.4rem; margin-top: 1rem;">
-                            @for($i = 0; $i < $bestSellers->count(); $i++)
-                            <div class="carousel-dot" data-index="{{ $i }}" onclick="goToSlide({{ $i }})" style="width: 8px; height: 8px; border-radius: 50%; background: {{ $i === 0 ? '#8b6f47' : '#e2e8f0' }}; cursor: pointer; transition: all 0.3s;"></div>
-                            @endfor
+                        <div style="padding: 1.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $product->nama_produk }}</h3>
+                            <div style="font-size: 1.25rem; font-weight: 800; color: #dc2626; margin-bottom: 0.5rem;">Rp {{ number_format($product->harga_jual, 0, ',', '.') }}</div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">
+                                <span>⭐ 5.0 • {{ $product->total_terjual ?? 0 }} terjual</span>
+                            </div>
+                            @if($product->stok > 0)
+                            <button onclick="addToCart({{ $product->id }})" class="btn-hero-primary" style="width: 100%; border-radius: 12px; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.8rem;">
+                                🛒 Tambah ke Keranjang
+                            </button>
+                            @else
+                            <button disabled style="width: 100%; background: #e2e8f0; color: #94a3b8; border: none; padding: 0.8rem; border-radius: 12px; font-weight: 700; cursor: not-allowed; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+                                Habis
+                            </button>
+                            @endif
                         </div>
-                        <button onclick="prevSlide()" style="position: absolute; left: -15px; top: 40%; transform: translateY(-50%); background: white; border: none; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; z-index: 10; color: #475569;">‹</button>
-                        <button onclick="nextSlide()" style="position: absolute; right: -15px; top: 40%; transform: translateY(-50%); background: white; border: none; width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; z-index: 10; color: #475569;">›</button>
-                        @endif
                     </div>
                 @else
                     <!-- Fallback if no best sellers -->
                     <div style="width: 100%; max-width: 320px; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); padding: 2rem; text-align: center;">
                         <div style="font-size: 4rem; margin-bottom: 1rem;">🛍️</div>
-                        <h3 style="font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">Mulai Belanja</h3>
+                        <h3 style="font-size: 1.2rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">Belum ada produk best seller</h3>
                         <p style="color: #64748b; font-size: 0.9rem;">Temukan produk terbaik pilihan kami di katalog di bawah ini.</p>
                     </div>
                 @endif
@@ -389,11 +374,8 @@
 console.log('Dashboard script loaded');
 let cartItems = {};
 let isLoggedIn = {{ auth('pelanggan')->check() ? 'true' : 'false' }};
-let currentSlide = 0;
-let totalSlides = {{ $bestSellers ? $bestSellers->count() : 0 }};
 
 console.log('isLoggedIn:', isLoggedIn);
-
 
 // Load cart items on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -403,47 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Cart initialized');
     }
 });
-
-// Carousel functions
-function nextSlide() {
-    if (totalSlides <= 1) return;
-    currentSlide = (currentSlide + 1) % totalSlides;
-    updateCarousel();
-}
-
-function prevSlide() {
-    if (totalSlides <= 1) return;
-    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
-    updateCarousel();
-}
-
-function goToSlide(index) {
-    currentSlide = index;
-    updateCarousel();
-}
-
-function updateCarousel() {
-    const carousel = document.getElementById('bestSellersCarousel');
-    if (carousel) {
-        carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
-    }
-    
-    // Update dots
-    document.querySelectorAll('.carousel-dot').forEach((dot, index) => {
-        if (index === currentSlide) {
-            dot.style.background = '#8b6f47';
-        } else {
-            dot.style.background = '#ddd';
-        }
-    });
-}
-
-// Auto-rotate carousel every 5 seconds
-setInterval(() => {
-    if (totalSlides > 1) {
-        nextSlide();
-    }
-}, 5000);
 
 function addToCart(produkId) {
     console.log('addToCart called with produkId:', produkId);

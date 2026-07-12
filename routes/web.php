@@ -3120,6 +3120,7 @@ Route::middleware('auth')->group(function () {
         Route::post('penjualan/{id}/deliver', [PenjualanController::class, 'deliverOnlineTransaction'])->name('penjualan.deliver');
         Route::post('penjualan/{id}/complete-delivery', [PenjualanController::class, 'completeDeliveryOnlineTransaction'])->name('penjualan.complete-delivery');
         Route::post('penjualan/{id}/pay', [PenjualanController::class, 'payOnlineTransaction'])->name('penjualan.pay');
+        Route::post('penjualan/{id}/pickup', [PenjualanController::class, 'pickupOrder'])->name('penjualan.pickup');
         Route::get('penjualan/barcode/{barcode}', [PenjualanController::class, 'findByBarcode'])->name('penjualan.barcode');
         Route::get('penjualan/{id}/struk', [PenjualanController::class, 'struk'])->name('penjualan.struk');
         Route::post('penjualan/prepare-payment', [PenjualanController::class, 'preparePayment'])->name('penjualan.prepare-payment');
