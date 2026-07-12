@@ -417,7 +417,7 @@
                                                 <tr>
                                                     <th style="width:5%">No</th>
                                                     <th>Produk</th>
-                                                    <th class="text-center" style="width:10%">Qty</th>
+                                                    <th class="text-center" style="width:10%">Jumlah</th>
                                                     <th class="text-end" style="width:22%">Harga/Unit</th>
                                                     <th class="text-end" style="width:25%">Subtotal</th>
                                                 </tr>

@@ -137,7 +137,7 @@
                         <tr style="border-bottom: 2px solid #f0f0f0;">
                             <th style="text-align: left; padding: 0.4rem; font-weight: 700; color: #2d3748;">Produk</th>
                             <th style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Harga</th>
-                            <th style="text-align: center; padding: 0.4rem; font-weight: 700; color: #2d3748;">Qty</th>
+                            <th style="text-align: center; padding: 0.4rem; font-weight: 700; color: #2d3748;">Jumlah</th>
                             <th style="text-align: right; padding: 0.4rem; font-weight: 700; color: #2d3748;">Subtotal</th>
                         </tr>
                     </thead>

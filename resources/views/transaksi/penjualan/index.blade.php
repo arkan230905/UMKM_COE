@@ -657,7 +657,7 @@
                             </th>
                             <th class="text-end">
                                 <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'qty', 'sort_dir' => request('sort_by') === 'qty' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
-                                    Qty @if(request('sort_by') === 'qty') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                    Jumlah @if(request('sort_by') === 'qty') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
                                 </a>
                             </th>
                             <th class="text-end">
@@ -682,7 +682,7 @@
                             </th>
                             <th>
                                 <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'qty_retur', 'sort_dir' => request('sort_by') === 'qty_retur' && request('sort_dir') === 'asc' ? 'desc' : 'asc']) }}" class="text-dark text-decoration-none fw-bold d-inline-flex align-items-center">
-                                    Qty Retur @if(request('sort_by') === 'qty_retur') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
+                                    Jumlah Retur @if(request('sort_by') === 'qty_retur') <i class="fas fa-sort-{{ request('sort_dir') === 'asc' ? 'up' : 'down' }} ms-1"></i> @else <i class="fas fa-sort text-muted ms-1" style="font-size: 0.8rem;"></i> @endif
                                 </a>
                             </th>
                             <th class="text-center">Aksi</th>
@@ -1296,7 +1296,7 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Qty Retur:</strong> 
+                        <strong>Jumlah Retur:</strong> 
                         @php
                             $totalQtyRetur = $penjualan->total_qty_retur;
                         @endphp
@@ -1334,7 +1334,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Produk</th>
-                                <th class="text-end">Qty</th>
+                                <th class="text-end">Jumlah</th>
                                 <th class="text-end">Harga</th>
                                 <th class="text-end">HPP</th>
                                 <th class="text-end">Profit</th>
@@ -1596,7 +1596,7 @@
                                 <th>Tanggal</th>
                                 <th>Jenis</th>
                                 <th>Produk</th>
-                                <th class="text-end">Qty Retur</th>
+                                <th class="text-end">Jumlah Retur</th>
                                 <th class="text-end">Total Retur</th>
                                 <th>Status</th>
                             </tr>
@@ -1895,7 +1895,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Produk</th>
-                                <th class="text-end">Qty Diretur</th>
+                                <th class="text-end">Jumlah Diretur</th>
                                 <th class="text-end">Harga Satuan</th>
                                 <th class="text-end">Subtotal Retur</th>
                             </tr>
@@ -2143,7 +2143,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Produk</th>
-                                <th class="text-end">Qty Diretur</th>
+                                <th class="text-end">Jumlah Diretur</th>
                                 <th class="text-end">Harga Satuan</th>
                                 <th class="text-end">Subtotal Retur</th>
                             </tr>

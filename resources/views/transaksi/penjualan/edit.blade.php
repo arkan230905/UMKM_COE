@@ -338,7 +338,7 @@ mark.bg-warning {
                 <thead class="table-light">
                     <tr>
                         <th>Produk</th>
-                        <th class="text-end">Qty</th>
+                        <th class="text-end">Jumlah</th>
                         <th class="text-end">Harga/Satuan</th>
                         <th class="text-end">Diskon (%)</th>
                         <th class="text-end">Subtotal</th>

@@ -55,7 +55,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th width="50%" id="headerColumn">PRODUK</th>
-                                <th width="20%">QTY</th>
+                                <th width="20%">JUMLAH</th>
                                 <th width="25%">HARGA ASAL (OPTIONAL)</th>
                                 <th width="5%">
                                     <button type="button" class="btn btn-sm btn-success" onclick="addRowRetur()">➕</button>
