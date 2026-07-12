@@ -1,0 +1,482 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="ERD Lengkap - Notasi Chen" id="erd-lengkap">
+    <mxGraphModel dx="3200" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="4500" pageHeight="3200">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- TITLE -->
+        <mxCell id="title" value="Entity Relationship Diagram (ERD) - Sistem Informasi Manajemen Biaya Produksi dan HPP&#xa;Notasi Chen (Peter Chen, 1976) - LENGKAP DENGAN SEMUA ATRIBUT PER ENTITAS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=26;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="40" width="3300" height="90" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 1: ENTITAS SISTEM ==================== -->
+        
+        <!-- ENTITAS: companies -->
+        <mxCell id="ent-companies" value="companies&#xa;_______________&#xa;company_id (PK)&#xa;company_name&#xa;alamat&#xa;telepon&#xa;npwp&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="200" y="250" width="240" height="220" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: users -->
+        <mxCell id="ent-users" value="users&#xa;_______________&#xa;user_id (PK)&#xa;company_id (FK)&#xa;username&#xa;email&#xa;password&#xa;role&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="200" y="550" width="240" height="240" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 2: ENTITAS PENDUKUNG ==================== -->
+        
+        <!-- ENTITAS: produk -->
+        <mxCell id="ent-produk" value="produk&#xa;_______________&#xa;produk_id (PK)&#xa;company_id (FK)&#xa;kategori_id (FK)&#xa;kode_produk&#xa;nama_produk&#xa;satuan&#xa;harga_jual&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="250" width="260" height="260" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: bahan_baku -->
+        <mxCell id="ent-bahan-baku" value="bahan_baku&#xa;_______________&#xa;bahan_baku_id (PK)&#xa;company_id (FK)&#xa;kategori_bahan_id (FK)&#xa;kode_bahan&#xa;nama_bahan&#xa;satuan&#xa;harga_beli&#xa;stok_minimum&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="250" width="280" height="280" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: jabatan -->
+        <mxCell id="ent-jabatan" value="jabatan&#xa;_______________&#xa;jabatan_id (PK)&#xa;company_id (FK)&#xa;nama_jabatan&#xa;tarif_upah_per_jam&#xa;deskripsi&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="250" width="280" height="220" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: coa (Chart of Accounts) -->
+        <mxCell id="ent-coa" value="coa&#xa;_______________&#xa;account_id (PK)&#xa;company_id (FK)&#xa;parent_id (FK)&#xa;account_code&#xa;account_name&#xa;account_type&#xa;normal_balance&#xa;is_active&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="250" width="260" height="280" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 3: MODUL 1 - TARGET PRODUKSI ==================== -->
+        
+        <!-- ENTITAS: target_produksi -->
+        <mxCell id="ent-target-prod" value="target_produksi&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;produk_id (FK)&#xa;tahun&#xa;created_by (FK → users)&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="650" width="300" height="220" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: target_produksi_detail -->
+        <mxCell id="ent-target-detail" value="target_produksi_detail&#xa;_______________&#xa;id (PK)&#xa;target_produksi_id (FK)&#xa;bulan (1-12)&#xa;target_bulanan&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="950" width="300" height="200" as="geometry"/>
+        </mxCell>
+
+        
+        <!-- ==================== AREA 4: MODUL 2 - BIAYA BAHAN BAKU ==================== -->
+        
+        <!-- ENTITAS: biaya_bahan_baku (kualifikasi) -->
+        <mxCell id="ent-biaya-bbb" value="biaya_bahan_baku&#xa;(kualifikasi)&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;produk_id (FK)&#xa;periode (YYYY-MM)&#xa;total_bbb&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="650" width="300" height="240" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: kualifikasi_detail -->
+        <mxCell id="ent-kualifikasi-detail" value="kualifikasi_detail&#xa;_______________&#xa;id (PK)&#xa;kualifikasi_id (FK)&#xa;bahan_baku_id (FK)&#xa;qty&#xa;satuan&#xa;harga_satuan&#xa;subtotal&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="970" width="300" height="260" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 5: MODUL 3 - BTKL ==================== -->
+        
+        <!-- ENTITAS: btkl -->
+        <mxCell id="ent-btkl" value="btkl&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;produk_id (FK)&#xa;jabatan_id (FK)&#xa;periode (YYYY-MM)&#xa;tarif_upah&#xa;jam_kerja&#xa;total_btkl&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="650" width="280" height="280" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 6: MODUL 4 - BOP ==================== -->
+        
+        <!-- ENTITAS: bop -->
+        <mxCell id="ent-bop" value="bop&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;coa_id (FK)&#xa;nama_bop&#xa;jenis_bop&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="650" width="280" height="220" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: komponen_bop -->
+        <mxCell id="ent-komponen-bop" value="komponen_bop&#xa;_______________&#xa;id (PK)&#xa;bop_id (FK)&#xa;nama_komponen&#xa;budget_bulanan&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="950" width="280" height="200" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: bom_proses_bop -->
+        <mxCell id="ent-bom-proses-bop" value="bom_proses_bop&#xa;_______________&#xa;id (PK)&#xa;bom_proses_id (FK)&#xa;komponen_bop_id (FK)&#xa;tarif_bop&#xa;driver_cost&#xa;nilai_bop&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="1230" width="300" height="240" as="geometry"/>
+        </mxCell>
+
+        
+        <!-- ==================== AREA 7: MODUL 5 - HPP ==================== -->
+        
+        <!-- ENTITAS: hpp_bbb -->
+        <mxCell id="ent-hpp-bbb" value="hpp_bbb&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;produk_id (FK)&#xa;bom_job_id (FK)&#xa;periode (YYYY-MM)&#xa;total_bbb&#xa;unit_produksi&#xa;hpp_bbb_per_unit&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="1300" width="280" height="280" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: hpp_btkl -->
+        <mxCell id="ent-hpp-btkl" value="hpp_btkl&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;produk_id (FK)&#xa;kualifikasi_id (FK)&#xa;periode (YYYY-MM)&#xa;total_btkl&#xa;unit_produksi&#xa;hpp_btkl_per_unit&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="1300" width="300" height="280" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: hpp_bop -->
+        <mxCell id="ent-hpp-bop" value="hpp_bop&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;produk_id (FK)&#xa;bom_proses_bop_id (FK)&#xa;periode (YYYY-MM)&#xa;total_bop&#xa;unit_produksi&#xa;hpp_bop_per_unit&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1300" width="320" height="280" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 8: MODUL 6 - TRANSAKSI PRODUKSI ==================== -->
+        
+        <!-- ENTITAS: proses_produksi -->
+        <mxCell id="ent-proses-prod" value="proses_produksi&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;tanggal_produksi&#xa;shift&#xa;keterangan&#xa;status&#xa;created_by (FK → users)&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="1700" width="300" height="260" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: produksi_detail -->
+        <mxCell id="ent-produksi-detail" value="produksi_detail&#xa;_______________&#xa;id (PK)&#xa;proses_produksi_id (FK)&#xa;produk_id (FK)&#xa;qty_produksi&#xa;hpp_per_unit&#xa;total_hpp&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="700" y="2050" width="300" height="240" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== AREA 9: MODUL 7 - PEMBAYARAN BEBAN ==================== -->
+        
+        <!-- ENTITAS: pembayaran_beban -->
+        <mxCell id="ent-pembayaran-beban" value="pembayaran_beban&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;tanggal_pembayaran&#xa;coa_beban_id (FK → coa)&#xa;coa_kas_id (FK → coa)&#xa;nominal&#xa;keterangan&#xa;created_by (FK → users)&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="1700" width="340" height="300" as="geometry"/>
+        </mxCell>
+
+        
+        <!-- ==================== AREA 10: MODUL 8,9,10 - LAPORAN ==================== -->
+        
+        <!-- ENTITAS: stock_movements -->
+        <mxCell id="ent-stock-movements" value="stock_movements&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;item_type&#xa;item_id&#xa;direction (in/out)&#xa;qty&#xa;unit_cost&#xa;total_value&#xa;reference_type&#xa;reference_id&#xa;tanggal&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="1700" width="280" height="360" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITAS: jurnal_umum -->
+        <mxCell id="ent-jurnal-umum" value="jurnal_umum&#xa;_______________&#xa;id (PK)&#xa;company_id (FK)&#xa;coa_id (FK)&#xa;tanggal&#xa;keterangan&#xa;debit&#xa;kredit&#xa;reference_type&#xa;reference_id&#xa;created_at&#xa;updated_at" style="whiteSpace=wrap;html=1;align=left;fontSize=18;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=3;spacing=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="1700" width="280" height="320" as="geometry"/>
+        </mxCell>
+        
+        <!-- ==================== RELASI (DIAMONDS) ==================== -->
+        
+        <!-- Relasi: companies - target_produksi -->
+        <mxCell id="rel-comp-target" value="memiliki" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="480" y="450" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-comp-target1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-companies" target="rel-comp-target"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-comp-target2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-comp-target" target="ent-target-prod"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: produk - target_produksi -->
+        <mxCell id="rel-prod-target" value="menetapkan" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="540" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-target1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-target"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-target2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-target" target="ent-target-prod"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: target_produksi - target_produksi_detail -->
+        <mxCell id="rel-target-detail" value="terdiri_dari" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="770" y="880" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-target-detail1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-target-prod" target="rel-target-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-target-detail2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-target-detail" target="ent-target-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: produk - biaya_bahan_baku -->
+        <mxCell id="rel-prod-bbb" value="memiliki_BBB" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="540" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-bbb1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-bbb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-bbb2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-bbb" target="ent-biaya-bbb"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        
+        <!-- Relasi: biaya_bahan_baku - kualifikasi_detail -->
+        <mxCell id="rel-bbb-detail" value="terdiri_dari" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="900" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-bbb-detail1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-biaya-bbb" target="rel-bbb-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-bbb-detail2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-bbb-detail" target="ent-kualifikasi-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: bahan_baku - kualifikasi_detail -->
+        <mxCell id="rel-bahan-detail" value="digunakan_dalam" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="550" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-bahan-detail1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-bahan-baku" target="rel-bahan-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-bahan-detail2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-bahan-detail" target="ent-kualifikasi-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: produk - btkl -->
+        <mxCell id="rel-prod-btkl" value="memiliki_BTKL" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="540" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-btkl1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-btkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-btkl2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-btkl" target="ent-btkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: jabatan - btkl -->
+        <mxCell id="rel-jabatan-btkl" value="menentukan_tarif" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1760" y="540" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-jabatan-btkl1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-jabatan" target="rel-jabatan-btkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-jabatan-btkl2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-jabatan-btkl" target="ent-btkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: coa - bop -->
+        <mxCell id="rel-coa-bop" value="terhubung_akun" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2240" y="540" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-coa-bop1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-coa" target="rel-coa-bop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-coa-bop2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-coa-bop" target="ent-bop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: bop - komponen_bop -->
+        <mxCell id="rel-bop-komponen" value="memiliki_komponen" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="880" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-bop-komponen1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-bop" target="rel-bop-komponen"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-bop-komponen2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-bop-komponen" target="ent-komponen-bop"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        
+        <!-- Relasi: komponen_bop - bom_proses_bop -->
+        <mxCell id="rel-komponen-prosesbop" value="dialokasikan_ke" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2270" y="1160" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-komponen-prosesbop1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-komponen-bop" target="rel-komponen-prosesbop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-komponen-prosesbop2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-komponen-prosesbop" target="ent-bom-proses-bop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: biaya_bahan_baku - hpp_bbb -->
+        <mxCell id="rel-bbb-hpp" value="menghasilkan" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="950" y="1150" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-bbb-hpp1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-biaya-bbb" target="rel-bbb-hpp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-bbb-hpp2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-bbb-hpp" target="ent-hpp-bbb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: btkl - hpp_btkl -->
+        <mxCell id="rel-btkl-hpp" value="menghasilkan" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="1150" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-btkl-hpp1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-btkl" target="rel-btkl-hpp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-btkl-hpp2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-btkl-hpp" target="ent-hpp-btkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: bom_proses_bop - hpp_bop -->
+        <mxCell id="rel-bop-hpp" value="menghasilkan" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1850" y="1380" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-bop-hpp1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-bom-proses-bop" target="rel-bop-hpp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-bop-hpp2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-bop-hpp" target="ent-hpp-bop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: produk - hpp_bbb/btkl/bop -->
+        <mxCell id="rel-prod-hppbbb" value="memiliki_hpp" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1150" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-hppbbb1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-hppbbb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-hppbbb2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-hppbbb" target="ent-hpp-bbb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <mxCell id="rel-prod-hppbtkl" value="memiliki_hpp" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="1150" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-hppbtkl1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-hppbtkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-hppbtkl2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-hppbtkl" target="ent-hpp-btkl"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        
+        <mxCell id="rel-prod-hppbop" value="memiliki_hpp" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="1150" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-hppbop1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-hppbop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-hppbop2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-hppbop" target="ent-hpp-bop"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: proses_produksi - produksi_detail -->
+        <mxCell id="rel-proses-detail" value="memiliki_detail" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="770" y="1970" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-proses-detail1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-proses-prod" target="rel-proses-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-proses-detail2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-proses-detail" target="ent-produksi-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: produk - produksi_detail -->
+        <mxCell id="rel-prod-proddetail" value="diproduksi" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="750" y="1600" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-prod-proddetail1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-produk" target="rel-prod-proddetail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-prod-proddetail2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-prod-proddetail" target="ent-proses-prod"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: hpp_bbb/btkl/bop → produksi_detail (digunakan) -->
+        <mxCell id="rel-hpp-proddetail" value="digunakan_dalam" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="950" y="1850" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-hpp-proddetail1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-hpp-bbb" target="rel-hpp-proddetail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-hpp-proddetail2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-hpp-proddetail" target="ent-produksi-detail"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: companies - pembayaran_beban -->
+        <mxCell id="rel-comp-pembayaran" value="melakukan" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="1550" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-comp-pembayaran1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-companies" target="rel-comp-pembayaran"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-comp-pembayaran2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-comp-pembayaran" target="ent-pembayaran-beban"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: coa - pembayaran_beban -->
+        <mxCell id="rel-coa-pembayaran" value="digunakan" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2240" y="1550" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-coa-pembayaran1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-coa" target="rel-coa-pembayaran"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-coa-pembayaran2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-coa-pembayaran" target="ent-pembayaran-beban"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        
+        <!-- Relasi: bahan_baku - stock_movements -->
+        <mxCell id="rel-bahan-stock" value="mencatat_stok" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1550" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-bahan-stock1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-bahan-baku" target="rel-bahan-stock"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-bahan-stock2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-bahan-stock" target="ent-stock-movements"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: proses_produksi - stock_movements -->
+        <mxCell id="rel-proses-stock" value="mempengaruhi_stok" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="1870" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-proses-stock1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-proses-prod" target="rel-proses-stock"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-proses-stock2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-proses-stock" target="ent-stock-movements"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: coa - jurnal_umum -->
+        <mxCell id="rel-coa-jurnal" value="dicatat_dalam" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1940" y="1550" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-coa-jurnal1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-coa" target="rel-coa-jurnal"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-coa-jurnal2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-coa-jurnal" target="ent-jurnal-umum"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: proses_produksi - jurnal_umum -->
+        <mxCell id="rel-proses-jurnal" value="membuat_jurnal" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="1870" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-proses-jurnal1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-proses-prod" target="rel-proses-jurnal"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-proses-jurnal2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-proses-jurnal" target="ent-jurnal-umum"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- Relasi: pembayaran_beban - jurnal_umum -->
+        <mxCell id="rel-pembayaran-jurnal" value="membuat_jurnal" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=20;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1960" y="2020" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-pembayaran-jurnal1" value="1" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ent-pembayaran-beban" target="rel-pembayaran-jurnal"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-pembayaran-jurnal2" value="n" style="endArrow=none;html=1;rounded=0;fontSize=20;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-pembayaran-jurnal" target="ent-jurnal-umum"><mxGeometry relative="1" as="geometry"/></mxCell>
+        
+        <!-- ==================== LEGEND ==================== -->
+        
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="2800" y="250" width="600" height="1200" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-title" value="KETERANGAN" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2900" y="280" width="400" height="50" as="geometry"/>
+        </mxCell>
+
+        
+        <!-- Legend: Notasi Chen -->
+        <mxCell id="legend-notasi-title" value="Notasi Chen (Peter Chen, 1976):" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2850" y="350" width="400" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-entitas" value="Entitas" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="400" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-entitas-text" value="= Entitas (Rectangle)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="410" width="250" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-relasi" value="Relasi" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="470" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-relasi-text" value="= Relasi (Diamond)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="485" width="220" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-kardinalitas-title" value="Kardinalitas:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="560" width="150" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-card-1" value="1 = Satu (One)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="2890" y="600" width="200" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-card-n" value="n = Banyak (Many)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="2890" y="640" width="220" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- Legend: Warna Entitas -->
+        <mxCell id="legend-warna-title" value="Kode Warna Entitas:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2850" y="700" width="400" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-sistem" value="Sistem" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="750" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-sistem-text" value="= Companies, Users" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="760" width="250" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-pendukung" value="Pendukung" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="820" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-pendukung-text" value="= Produk, Bahan, Jabatan, COA" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="830" width="340" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-master" value="Master Data" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="890" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-master-text" value="= Target, BBB, BTKL, BOP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="900" width="300" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-hpp" value="HPP" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="960" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-hpp-text" value="= HPP BBB, BTKL, BOP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="970" width="280" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-transaksi" value="Transaksi" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1030" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-transaksi-text" value="= Produksi, Pembayaran" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="1040" width="300" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-laporan" value="Laporan" style="whiteSpace=wrap;html=1;align=center;fontSize=18;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1100" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-laporan-text" value="= Stok, Kas Bank, Jurnal" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="3030" y="1110" width="300" height="30" as="geometry"/>
+        </mxCell>
+
+        
+        <!-- Legend: 10 Modul -->
+        <mxCell id="legend-modul-title" value="10 Modul Aplikasi SIMCOST:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2850" y="1180" width="400" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod1" value="1. Master Data Target Produksi" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1220" width="400" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod2" value="2. Master Data Biaya Bahan Baku" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1250" width="400" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod3" value="3. Master Data Biaya Tenaga Kerja Langsung" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1280" width="460" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod4" value="4. Master Data Biaya Overhead Pabrik" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1310" width="420" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod5" value="5. Master Data Harga Pokok Produksi" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1340" width="410" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod6" value="6. Transaksi Produksi" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1370" width="300" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod7" value="7. Transaksi Pembayaran Beban" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1400" width="380" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod8" value="8. Laporan Stok Bahan Baku" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1430" width="350" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod9" value="9. Laporan Kas dan Bank" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1460" width="320" height="25" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-mod10" value="10. Laporan Jurnal Umum (Perpetual)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry x="2870" y="1490" width="410" height="25" as="geometry"/>
+        </mxCell>
+        
+        <!-- Footer Note -->
+        <mxCell id="footer" value="ERD ini menggambarkan struktur database lengkap untuk Sistem Informasi Manajemen Biaya Produksi (SIMCOST)&#xa;yang mengintegrasikan 10 modul pengelolaan biaya produksi dengan perhitungan HPP menggunakan metode Process Costing.&#xa;Sistem menggunakan Perpetual Inventory System untuk pencatatan otomatis jurnal akuntansi dan Average Method untuk penilaian persediaan.&#xa;&#xa;Total: 22 Entitas | 29 Relasi | 150+ Atribut Lengkap" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=18;fontColor=#333333;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="2400" width="2800" height="150" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
