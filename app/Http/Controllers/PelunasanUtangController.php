@@ -196,12 +196,19 @@ class PelunasanUtangController extends Controller
      */
     public function store(Request $request)
     {
+        // Validasi tanggal pelunasan
         $request->validate([
             'pembelian_id' => 'required|exists:pembelians,id',
-            'tanggal' => 'required|date',
+            'tanggal' => [
+                'required',
+                'date',
+                'before_or_equal:today', // Tidak boleh tanggal masa depan
+            ],
             'jumlah' => 'required|numeric|min:1',
             'akun_kas_id' => 'required|exists:coas,id',
             'keterangan' => 'nullable|string|max:255'
+        ], [
+            'tanggal.before_or_equal' => 'Tanggal pelunasan tidak boleh melebihi hari ini. Jika pembayaran dilakukan besok, silakan mencatat pelunasan besok.',
         ]);
 
         return DB::transaction(function () use ($request) {
@@ -234,6 +241,23 @@ class PelunasanUtangController extends Controller
             // Fully paid if: terbayar + refund >= total_harga
             $isFullyPaid = ($newTerbayar + $totalRefund) >= ($pembelian->total_harga ?? 0);
             
+            // ✅ BARU: Check if payment is late
+            $isLate = false;
+            if ($pembelian->tanggal_jatuh_tempo) {
+                $paymentDate = \Carbon\Carbon::parse($request->tanggal);
+                $dueDate = \Carbon\Carbon::parse($pembelian->tanggal_jatuh_tempo);
+                $isLate = $paymentDate->gt($dueDate);
+            }
+            
+            // ✅ PERBAIKAN: Determine status based on payment completion and timeliness
+            $status = 'belum_lunas'; // Default
+            
+            if ($isFullyPaid) {
+                $status = $isLate ? 'terlambat' : 'lunas';
+            } else {
+                $status = 'belum_lunas';
+            }
+            
             // Create payment record
             $pelunasan = new PelunasanUtang([
                 'kode_transaksi' => $kodeTransaksi,
@@ -243,7 +267,7 @@ class PelunasanUtangController extends Controller
                 'coa_pelunasan_id' => $coaPelunasan->id, // Auto-set to Hutang Usaha
                 'jumlah' => $request->jumlah,
                 'keterangan' => $request->keterangan,
-                'status' => $isFullyPaid ? 'lunas' : 'belum_lunas', // Status based on payment
+                'status' => $status, // ✅ Status dengan pengecekan terlambat
                 'user_id' => auth()->id()
             ]);
             
@@ -261,20 +285,26 @@ class PelunasanUtangController extends Controller
             
             // Check if fully paid (considering refunds)
             if ($isFullyPaid) {
-                $pembelian->status = 'lunas';
+                $pembelian->status = $isLate ? 'terlambat' : 'lunas';
                 
-                // UPDATE: Set status semua pelunasan untuk pembelian ini menjadi 'lunas'
+                // UPDATE: Set status semua pelunasan untuk pembelian ini
                 PelunasanUtang::where('pembelian_id', $pembelian->id)
                     ->where('user_id', auth()->id())
-                    ->update(['status' => 'lunas']);
+                    ->update(['status' => $isLate ? 'terlambat' : 'lunas']);
             } else {
                 $pembelian->status = 'belum_lunas';
             }
             
             $pembelian->save();
             
+            // ✅ BARU: Show success message with late warning if applicable
+            $message = 'Pembayaran berhasil disimpan.';
+            if ($isLate) {
+                $message .= ' Pembayaran melewati tanggal jatuh tempo.';
+            }
+            
             return redirect()->route('transaksi.pelunasan-utang.index', ['tab' => 'pelunasan'])
-                ->with('success', 'Pembayaran berhasil disimpan.');
+                ->with('success', $message);
         });
     }
 
@@ -446,6 +476,7 @@ class PelunasanUtangController extends Controller
                 'terbayar' => $pembelian->terbayar ?? 0,
                 'total_refund' => $pembelian->total_refund ?? 0,
                 'dp_amount' => $pembelian->dp ?? 0, // DP amount
+                'tanggal_pembelian' => $pembelian->tanggal ? $pembelian->tanggal->format('Y-m-d') : null, // ✅ BARU: Purchase date
                 'tanggal_jatuh_tempo' => $pembelian->tanggal_jatuh_tempo ? $pembelian->tanggal_jatuh_tempo->format('Y-m-d') : null, // Due date
                 'vendor' => $pembelian->vendor->nama_vendor ?? '-',
                 'nomor_pembelian' => $pembelian->nomor_pembelian ?? 'PB-' . $pembelian->id
