@@ -93,7 +93,7 @@ class DashboardController extends Controller
                 })
                 ->groupBy('produk_id')
                 ->orderByDesc('total_terjual')
-                ->limit(6)
+                ->limit(1)
                 ->get();
 
             $result = collect();
@@ -113,16 +113,16 @@ class DashboardController extends Controller
                 }
             }
             
-            // Fallback: Jika belum ada penjualan, tampilkan produk random dengan stok > 0
+            // Fallback: Jika belum ada penjualan, tampilkan produk aktif pertama dengan stok > 0
             if ($result->isEmpty()) {
-                $allProducts = Produk::withoutGlobalScopes()
+                $activeProduct = Produk::withoutGlobalScopes()
                     ->where('user_id', $perusahaan->user_id)
                     ->where('stok', '>', 0)
-                    ->inRandomOrder()
-                    ->limit(6)
+                    ->orderBy('id')
+                    ->limit(1)
                     ->get();
                 
-                $result = $allProducts->map(function($p) {
+                $result = $activeProduct->map(function($p) {
                     $p->stok_tersedia = max(0, $p->stok);
                     $p->total_terjual = 0;
                     return $p;

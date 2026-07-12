@@ -36,6 +36,7 @@ class Order extends Model
         'bank_tujuan_transfer',
         'catatan',
         'paid_at',
+        'payment_success_at',
         'bank_va',
         'nomor_va',
         'expiry_time',
@@ -45,6 +46,7 @@ class Order extends Model
         'approved_at',
         'rejected_at',
         'ready_pickup_at',
+        'picked_up_at',
         'shipped_at',
         'completed_at',
     ];
@@ -74,6 +76,11 @@ class Order extends Model
 
     public function getStatusBadgeAttribute(): string
     {
+        // Special case for "Ambil di Toko" completed orders
+        if ($this->status === 'completed' && in_array($this->jenis_pengiriman, ['ambil_di_toko', 'kasir', 'pickup'])) {
+            return '<span class="badge bg-success">Sudah Diambil</span>';
+        }
+        
         return match($this->status) {
             'pending' => '<span class="badge bg-warning">Menunggu Pembayaran</span>',
             'paid' => '<span class="badge bg-success">Dibayar</span>',

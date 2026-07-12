@@ -108,9 +108,13 @@
                             <div style="background: #cce5ff; border: 1px solid #b8daff; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #004085; font-size: 0.7rem;">
                                 ✓ Pembayaran berhasil! Pesanan Anda sedang diproses oleh penjual.
                             </div>
+                        @elseif($order->status === 'ready_for_pickup')
+                            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #856404; font-size: 0.7rem;">
+                                ⚠️ Pesanan Anda sudah siap dan bisa diambil di toko.
+                            </div>
                         @elseif($order->status === 'completed' || $order->status === 'selesai')
                             <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #155724; font-size: 0.75rem; font-weight: 600;">
-                                🎉 Pesanan telah selesai dan pembayaran sudah diterima.
+                                ✅ Pesanan Anda sudah diambil di toko. Pembayaran telah dikonfirmasi.
                             </div>
                         @elseif($order->status === 'shipped')
                             <div style="background: #cce5ff; border: 1px solid #b8daff; border-radius: 8px; padding: 0.8rem; margin-top: 1rem; color: #004085; font-size: 0.75rem; font-weight: 600;">
@@ -293,6 +297,19 @@
                         <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
                         <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Siap Diambil</div>
                         <small style="font-size: 0.6rem; color: #999;">{{ \Carbon\Carbon::parse($order->ready_pickup_at)->format('d M Y H:i') }}</small>
+                    </div>
+                    @endif
+                    @if($order->picked_up_at)
+                    <div style="padding-left: 1.5rem; position: relative; margin-top: 0.8rem;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Sudah Diambil</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ \Carbon\Carbon::parse($order->picked_up_at)->format('d M Y H:i') }}</small>
+                    </div>
+                    @elseif($order->status === 'completed' && $order->completed_at)
+                    <div style="padding-left: 1.5rem; position: relative; margin-top: 0.8rem;">
+                        <div style="position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: #2d3748;">Sudah Diambil</div>
+                        <small style="font-size: 0.6rem; color: #999;">{{ \Carbon\Carbon::parse($order->completed_at)->format('d M Y H:i') }}</small>
                     </div>
                     @endif
                     @if($order->rejected_at)

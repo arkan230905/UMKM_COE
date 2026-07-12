@@ -1349,4 +1349,85 @@ class PenjualanController extends Controller
             return redirect()->back()->with('error', 'Gagal memproses pembayaran: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Mark pickup order as picked up
+     * Ganti status dari "Bisa Diambil" menjadi "Sudah Diambil"
+     * Update payment status to paid
+     * Set timestamps
+     */
+    public function pickupOrder(Request $request, $id)
+    {
+        try {
+            \Illuminate\Support\Facades\DB::beginTransaction();
+
+            // Find penjualan with user_id filter for multi-tenant
+            $penjualan = Penjualan::with('order')
+                ->where('user_id', auth()->id())
+                ->findOrFail($id);
+
+            // Validate conditions
+            if (!$penjualan->order_id) {
+                throw new \Exception('Transaksi ini bukan order dari website pelanggan.');
+            }
+
+            $order = $penjualan->order;
+            
+            // Check jenis_pengiriman
+            if (!in_array(strtolower($order->jenis_pengiriman), ['ambil_di_toko', 'kasir', 'pickup'])) {
+                throw new \Exception('Tombol Diambil hanya berlaku untuk jenis pengiriman Ambil di Toko.');
+            }
+
+            // Check status is ready_for_pickup
+            if ($order->status !== 'ready_for_pickup') {
+                throw new \Exception('Pesanan harus dalam status "Bisa Diambil" sebelum dapat ditandai diambil.');
+            }
+
+            // Build update data with only existing columns
+            $updateData = [
+                'status' => 'completed',
+                'payment_status' => 'paid',
+            ];
+            
+            // Add timestamps only if columns exist
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'paid_at')) {
+                $updateData['paid_at'] = now();
+            }
+            
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'completed_at')) {
+                $updateData['completed_at'] = now();
+            }
+            
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'picked_up_at')) {
+                $updateData['picked_up_at'] = now();
+            }
+            
+            if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'payment_success_at')) {
+                $updateData['payment_success_at'] = now();
+            }
+
+            \App\Models\Order::withoutGlobalScope('user')
+                ->where('id', $order->id)
+                ->update($updateData);
+
+            // Update Penjualan payment status
+            $penjualanUpdateData = [
+                'payment_status' => 'paid',
+            ];
+            
+            if (\Illuminate\Support\Facades\Schema::hasColumn('penjualans', 'payment_confirmed_at')) {
+                $penjualanUpdateData['payment_confirmed_at'] = now();
+            }
+
+            $penjualan->update($penjualanUpdateData);
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return redirect()->back()->with('success', 'Pesanan berhasil ditandai diambil. Pembayaran telah dikonfirmasi.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Log::error('Failed to mark order as picked up: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memproses pengambilan pesanan: ' . $e->getMessage());
+        }
+    }
 }
