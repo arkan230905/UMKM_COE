@@ -258,6 +258,12 @@ class LaporanController extends Controller
         $itemId = $request->get('item_id'); // Remove default to item_id=2
         $satuanId = $request->get('satuan_id');
 
+        // Sembunyikan laporan stok untuk produk - data stok produk sudah ada di master data
+        if ($tipe === 'product') {
+            return redirect()->route('laporan.stok', ['tipe' => 'material'])
+                ->with('warning', 'Laporan stok produk tidak tersedia. Data stok produk dapat dilihat di menu Master Data Produk.');
+        }
+
         // Daftar item untuk dropdown - CRITICAL: Filter by user_id untuk multi-tenant
         $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
             ->where('user_id', auth()->id())
@@ -921,6 +927,13 @@ class LaporanController extends Controller
         }
 
         $tipe = $request->get('tipe', 'material');
+        
+        // Sembunyikan export laporan stok untuk produk
+        if ($tipe === 'product') {
+            return redirect()->route('laporan.stok', ['tipe' => 'material'])
+                ->with('warning', 'Export laporan stok produk tidak tersedia. Data stok produk dapat dilihat di menu Master Data Produk.');
+        }
+        
         $itemId = $request->item_id;
         $satuanId = $request->satuan_id;
 

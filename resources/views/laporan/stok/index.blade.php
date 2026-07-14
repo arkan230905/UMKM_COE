@@ -78,7 +78,7 @@
                 <div class="d-flex shadow-sm" style="border-radius: 20px; overflow: hidden; background: white; min-width: 400px;">
                     <select name="tipe" class="form-select border-0" id="tipeSelect" style="padding: 8px 15px; background: white; border-radius: 20px 0 0 0; outline: none; box-shadow: none; font-size: 14px;">
                         <option value="material" {{ request('tipe', 'material') == 'material' ? 'selected' : '' }}>Bahan Baku</option>
-                        <option value="product" {{ request('tipe') == 'product' ? 'selected' : '' }}>Produk</option>
+                        {{-- <option value="product" {{ request('tipe') == 'product' ? 'selected' : '' }}>Produk</option> --}}
                         {{-- <option value="bahan_pendukung" {{ request('tipe') == 'bahan_pendukung' ? 'selected' : '' }}>Bahan Pendukung</option> --}}
                     </select>
                     
